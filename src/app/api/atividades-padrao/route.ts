@@ -9,6 +9,8 @@ const schema = z.object({
   nome: z.string().min(1, 'Nome obrigatório').max(200),
   descricao: z.string().max(500).optional().nullable(),
   ordem: z.coerce.number().int().min(0).optional(),
+  temPrazo: z.boolean().optional(),
+  temQuantidade: z.boolean().optional(),
 })
 
 export async function GET() {

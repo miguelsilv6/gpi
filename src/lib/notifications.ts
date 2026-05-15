@@ -64,6 +64,32 @@ export async function notifyAtividadeAdicionada(opts: {
   })
 }
 
+export async function notifyAtividadePrazo(opts: {
+  descricao: string
+  inqueritoid: string
+  nuipc: string
+  utilizadorId: string
+  utilizadorEmail: string | null
+  diasRestantes: number
+  alertaNum: 1 | 2
+}) {
+  const dias = opts.diasRestantes === 0
+    ? 'hoje'
+    : opts.diasRestantes === 1
+      ? 'amanhã'
+      : `em ${opts.diasRestantes} dias`
+
+  await createNotification({
+    utilizadorId: opts.utilizadorId,
+    tipo: 'ATIVIDADE_PRAZO_APROXIMANDO',
+    titulo: `Prazo de atividade — ${opts.nuipc}`,
+    mensagem: `A atividade "${opts.descricao}" do inquérito ${opts.nuipc} tem prazo ${dias}${opts.alertaNum === 2 ? ' (2.º aviso)' : ''}.`,
+    inqueritoid: opts.inqueritoid,
+    sendEmail: true,
+    emailAddress: opts.utilizadorEmail ?? undefined,
+  })
+}
+
 export async function notifyInqueritoAtribuido(opts: {
   inqueritoid: string
   nuipc: string

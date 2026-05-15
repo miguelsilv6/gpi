@@ -10,6 +10,8 @@ const schema = z.object({
   descricao: z.string().max(500).optional().nullable(),
   ativa: z.boolean().optional(),
   ordem: z.coerce.number().int().min(0).optional(),
+  temPrazo: z.boolean().optional(),
+  temQuantidade: z.boolean().optional(),
 })
 
 export async function PUT(

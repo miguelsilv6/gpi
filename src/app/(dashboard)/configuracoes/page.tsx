@@ -30,6 +30,8 @@ interface AtividadePadrao {
   descricao: string | null
   ativa: boolean
   ordem: number
+  temPrazo: boolean
+  temQuantidade: boolean
 }
 
 function AtividadesTab() {
@@ -38,6 +40,8 @@ function AtividadesTab() {
   const [adding, setAdding] = useState(false)
   const [newNome, setNewNome] = useState('')
   const [newDescricao, setNewDescricao] = useState('')
+  const [newTemPrazo, setNewTemPrazo] = useState(false)
+  const [newTemQuantidade, setNewTemQuantidade] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [editNome, setEditNome] = useState('')
@@ -58,7 +62,12 @@ function AtividadesTab() {
     const res = await fetch('/api/atividades-padrao', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome: newNome.trim(), descricao: newDescricao.trim() || null }),
+      body: JSON.stringify({
+        nome: newNome.trim(),
+        descricao: newDescricao.trim() || null,
+        temPrazo: newTemPrazo,
+        temQuantidade: newTemQuantidade,
+      }),
     })
     setSaving(false)
     if (!res.ok) {
@@ -69,18 +78,20 @@ function AtividadesTab() {
     toast.success('Atividade padrão criada')
     setNewNome('')
     setNewDescricao('')
+    setNewTemPrazo(false)
+    setNewTemQuantidade(false)
     setAdding(false)
     load()
   }
 
-  async function handleToggle(a: AtividadePadrao) {
+  async function handleToggleField(a: AtividadePadrao, field: 'ativa' | 'temPrazo' | 'temQuantidade') {
     const res = await fetch(`/api/atividades-padrao/${a.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ativa: !a.ativa }),
+      body: JSON.stringify({ [field]: !a[field] }),
     })
     if (res.ok) {
-      setAtividades((prev) => prev.map((x) => x.id === a.id ? { ...x, ativa: !x.ativa } : x))
+      setAtividades((prev) => prev.map((x) => x.id === a.id ? { ...x, [field]: !x[field] } : x))
     }
   }
 
@@ -123,7 +134,7 @@ function AtividadesTab() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground">
-            Defina as atividades padrão disponíveis ao registar atividade num inquérito.
+            Defina as atividades padrão. Os badges <span className="font-medium">Prazo</span> e <span className="font-medium">Qtd</span> ativam campos extra no registo.
           </p>
         </div>
         {!adding && (
@@ -158,12 +169,37 @@ function AtividadesTab() {
                 onChange={(e) => setNewDescricao(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-4 pt-1">
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={newTemPrazo}
+                  onChange={(e) => setNewTemPrazo(e.target.checked)}
+                  className="h-4 w-4 rounded border"
+                />
+                <span>Tem prazo</span>
+                <span className="text-xs text-muted-foreground">(mostra data limite e alertas)</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={newTemQuantidade}
+                  onChange={(e) => setNewTemQuantidade(e.target.checked)}
+                  className="h-4 w-4 rounded border"
+                />
+                <span>Tem quantidade</span>
+                <span className="text-xs text-muted-foreground">(mostra campo numérico)</span>
+              </label>
+            </div>
+            <div className="flex gap-2 pt-1">
               <Button size="sm" onClick={handleAdd} disabled={saving || !newNome.trim()}>
                 {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 Adicionar
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setNewNome(''); setNewDescricao('') }}>
+              <Button size="sm" variant="ghost" onClick={() => {
+                setAdding(false); setNewNome(''); setNewDescricao('')
+                setNewTemPrazo(false); setNewTemQuantidade(false)
+              }}>
                 Cancelar
               </Button>
             </div>
@@ -213,9 +249,36 @@ function AtividadesTab() {
                     <p className="text-sm font-medium">{a.nome}</p>
                     {a.descricao && <p className="text-xs text-muted-foreground">{a.descricao}</p>}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0 flex-wrap">
+                    {/* Prazo toggle */}
                     <button
-                      onClick={() => handleToggle(a)}
+                      onClick={() => handleToggleField(a, 'temPrazo')}
+                      title="Clique para ativar/desativar prazo"
+                      className={cn(
+                        'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
+                        a.temPrazo
+                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                          : 'bg-muted text-muted-foreground/60',
+                      )}
+                    >
+                      Prazo
+                    </button>
+                    {/* Quantidade toggle */}
+                    <button
+                      onClick={() => handleToggleField(a, 'temQuantidade')}
+                      title="Clique para ativar/desativar quantidade"
+                      className={cn(
+                        'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
+                        a.temQuantidade
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                          : 'bg-muted text-muted-foreground/60',
+                      )}
+                    >
+                      Qtd
+                    </button>
+                    {/* Ativa toggle */}
+                    <button
+                      onClick={() => handleToggleField(a, 'ativa')}
                       className={cn(
                         'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
                         a.ativa

@@ -6,11 +6,17 @@ import { notifyAtividadeAdicionada } from '@/lib/notifications'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
+const ALERT_OPTIONS = [1, 2, 5, 7, 15, 30]
+
 const schema = z.object({
   inqueritoid: z.string().min(1),
   descricao: z.string().min(1, 'Selecione uma atividade'),
   observacoes: z.string().max(2000).optional().nullable(),
   dataRealizacao: z.string().optional(),
+  quantidade: z.number().int().min(1).optional().nullable(),
+  dataPrazo: z.string().optional().nullable(),
+  alertaDias1: z.number().int().refine((v) => ALERT_OPTIONS.includes(v)).optional().nullable(),
+  alertaDias2: z.number().int().refine((v) => ALERT_OPTIONS.includes(v)).optional().nullable(),
 })
 
 export async function POST(req: NextRequest) {
@@ -26,7 +32,7 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { inqueritoid, descricao, observacoes, dataRealizacao } = parsed.data
+    const { inqueritoid, descricao, observacoes, dataRealizacao, quantidade, dataPrazo, alertaDias1, alertaDias2 } = parsed.data
 
     // Find inquiry and check access
     const inquerito = await prisma.inquerito.findUnique({
@@ -47,6 +53,10 @@ export async function POST(req: NextRequest) {
       data: {
         descricao,
         observacoes: observacoes ?? null,
+        quantidade: quantidade ?? null,
+        dataPrazo: dataPrazo ? new Date(dataPrazo) : null,
+        alertaDias1: alertaDias1 ?? null,
+        alertaDias2: alertaDias2 ?? null,
         dataRealizacao: dataRealizacao ? new Date(dataRealizacao) : new Date(),
         inqueritoid,
         utilizadorId: session.user.id,

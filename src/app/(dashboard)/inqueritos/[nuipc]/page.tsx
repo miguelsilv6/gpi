@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { formatDate, formatDateTime, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -162,6 +162,45 @@ export default async function InqueritoDetailPage({
         </Card>
       )}
 
+      {/* Activity count by type */}
+      {inquerito.atividades.length > 0 && (() => {
+        const byType = inquerito.atividades.reduce<Record<string, { count: number; totalQtd: number; hasQtd: boolean }>>((acc, atv) => {
+          const key = atv.descricao
+          if (!acc[key]) acc[key] = { count: 0, totalQtd: 0, hasQtd: false }
+          acc[key].count++
+          if (atv.quantidade != null) { acc[key].totalQtd += atv.quantidade; acc[key].hasQtd = true }
+          return acc
+        }, {})
+        const entries = Object.entries(byType).sort((a, b) => b[1].count - a[1].count)
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+                <BarChart2 className="h-4 w-4" />
+                Resumo por tipo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {entries.map(([tipo, data]) => (
+                  <div key={tipo} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{tipo}</span>
+                    <span className="font-medium tabular-nums">
+                      {data.count}×
+                      {data.hasQtd && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          (total: {data.totalQtd})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -182,7 +221,9 @@ export default async function InqueritoDetailPage({
             </p>
           ) : (
             <div className="space-y-4">
-              {inquerito.atividades.map((atv, idx) => (
+              {inquerito.atividades.map((atv, idx) => {
+                const atvOverdue = atv.dataPrazo && new Date(atv.dataPrazo) < new Date()
+                return (
                 <div key={atv.id}>
                   {idx > 0 && <Separator className="mb-4" />}
                   <div className="flex items-start gap-3">
@@ -196,9 +237,27 @@ export default async function InqueritoDetailPage({
                           {formatDateTime(atv.dataRealizacao)}
                         </span>
                       </div>
-                      <span className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                        {atv.descricao}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                          {atv.descricao}
+                        </span>
+                        {atv.quantidade != null && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                            Qtd: {atv.quantidade}
+                          </span>
+                        )}
+                        {atv.dataPrazo && (
+                          <span className={cn(
+                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                            atvOverdue
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+                          )}>
+                            <Bell className="h-3 w-3" />
+                            Prazo: {formatDate(atv.dataPrazo)}
+                          </span>
+                        )}
+                      </div>
                       {atv.observacoes && (
                         <p className="text-sm mt-1.5 text-muted-foreground whitespace-pre-wrap">
                           {atv.observacoes}
@@ -207,7 +266,7 @@ export default async function InqueritoDetailPage({
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </CardContent>

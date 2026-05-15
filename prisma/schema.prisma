@@ -37,6 +37,7 @@ enum TipoNotificacao {
   ATIVIDADE_ADICIONADA
   INQUERITO_ATRIBUIDO
   INQUERITO_TRANSFERIDO
+  ATIVIDADE_PRAZO_APROXIMANDO
 }
 
 model Brigada {
@@ -108,11 +109,17 @@ model Inquerito {
 }
 
 model Atividade {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   descricao      String
   observacoes    String?
-  dataRealizacao DateTime @default(now())
-  createdAt      DateTime @default(now())
+  quantidade     Int?
+  dataPrazo      DateTime?
+  alertaDias1    Int?
+  alertaDias2    Int?
+  alerta1Enviado Boolean   @default(false)
+  alerta2Enviado Boolean   @default(false)
+  dataRealizacao DateTime  @default(now())
+  createdAt      DateTime  @default(now())
 
   inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
   inqueritoid String
@@ -123,6 +130,7 @@ model Atividade {
   @@index([inqueritoid])
   @@index([utilizadorId])
   @@index([inqueritoid, dataRealizacao])
+  @@index([dataPrazo])
 }
 
 model Notificacao {
@@ -170,13 +178,15 @@ model ConfiguracaoSistema {
 }
 
 model AtividadePadrao {
-  id        String   @id @default(cuid())
-  nome      String   @unique
-  descricao String?
-  ativa     Boolean  @default(true)
-  ordem     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  nome          String   @unique
+  descricao     String?
+  ativa         Boolean  @default(true)
+  ordem         Int      @default(0)
+  temPrazo      Boolean  @default(false)
+  temQuantidade Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Sessao {
