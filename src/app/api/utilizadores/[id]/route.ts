@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { getRequestInfo } from '@/lib/request-info'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import type { Role } from '@/generated/prisma/enums'
@@ -30,6 +31,7 @@ export async function GET(
       select: {
         id: true, nome: true, email: true, role: true, ativo: true,
         brigadaId: true, brigada: { select: { id: true, nome: true } },
+        chefeSupremo: true, lastLoginAt: true, lastLoginIp: true,
         createdAt: true,
       },
     })
@@ -57,8 +59,47 @@ export async function PUT(
     const utilizador = await prisma.utilizador.findUnique({ where: { id } })
     if (!utilizador) return apiError('Utilizador não encontrado', 404)
 
-    if (parsed.data.email && parsed.data.email !== utilizador.email) {
-      const exists = await prisma.utilizador.findUnique({ where: { email: parsed.data.email } })
+    const isSelf = id === session.user.id
+
+    // chefe supremo cannot be modified through this endpoint
+    if (utilizador.chefeSupremo) {
+      const touchesPrivileged =
+        parsed.data.role !== undefined ||
+        parsed.data.ativo !== undefined ||
+        parsed.data.password !== undefined
+      if (touchesPrivileged) {
+        return apiError('A conta de chefe supremo não pode ser modificada por esta via', 403)
+      }
+    }
+
+    // Self cannot change own role or own active state (no self-promotion / self-lockout)
+    if (isSelf && (parsed.data.role !== undefined || parsed.data.ativo !== undefined)) {
+      return apiError('Não pode alterar o seu próprio papel ou estado', 403)
+    }
+
+    // Protect last active ADMINISTRACAO: cannot demote or deactivate
+    if (utilizador.role === 'ADMINISTRACAO') {
+      const demoting = parsed.data.role !== undefined && parsed.data.role !== 'ADMINISTRACAO'
+      const deactivating = parsed.data.ativo === false
+      if (demoting || deactivating) {
+        const otherActiveAdmins = await prisma.utilizador.count({
+          where: {
+            role: 'ADMINISTRACAO',
+            ativo: true,
+            NOT: { id: utilizador.id },
+          },
+        })
+        if (otherActiveAdmins === 0) {
+          return apiError('Não é possível remover o último administrador activo', 409)
+        }
+      }
+    }
+
+    // Normalize email
+    const normalizedEmail = parsed.data.email?.toLowerCase().trim()
+
+    if (normalizedEmail && normalizedEmail !== utilizador.email) {
+      const exists = await prisma.utilizador.findUnique({ where: { email: normalizedEmail } })
       if (exists) return apiError('Já existe um utilizador com este email', 409)
     }
 
@@ -67,10 +108,19 @@ export async function PUT(
       if (!brigada) return apiError('Brigada não encontrada', 404)
     }
 
-    const { password, ...rest } = parsed.data
+    const { password, email: _email, ...rest } = parsed.data
     const data: Record<string, unknown> = { ...rest }
+    if (normalizedEmail) data.email = normalizedEmail
     if (password) {
       data.passwordHash = await bcrypt.hash(password, 12)
+    }
+    // Invalidate active sessions on password / role / deactivation changes
+    const sensitiveChange =
+      password !== undefined ||
+      parsed.data.role !== undefined ||
+      parsed.data.ativo !== undefined
+    if (sensitiveChange) {
+      data.tokenVersion = { increment: 1 }
     }
 
     const updated = await prisma.utilizador.update({
@@ -81,18 +131,20 @@ export async function PUT(
       },
     })
 
-    // Audit log for sensitive changes
-    const sensitiveChange = parsed.data.role !== undefined || parsed.data.ativo !== undefined
     if (sensitiveChange) {
+      const { ip, userAgent } = getRequestInfo(req)
       await prisma.auditLog.create({
         data: {
           acao: 'UPDATE_UTILIZADOR',
           entidade: 'Utilizador',
           entidadeId: id,
           utilizadorId: session.user.id,
+          ip,
+          userAgent,
           detalhes: {
             ...(parsed.data.role !== undefined && { roleAnterior: utilizador.role, roleNovo: parsed.data.role }),
             ...(parsed.data.ativo !== undefined && { ativoAnterior: utilizador.ativo, ativoNovo: parsed.data.ativo }),
+            ...(password !== undefined && { passwordChanged: true }),
           },
         },
       })
@@ -105,7 +157,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -122,15 +174,38 @@ export async function DELETE(
     const utilizador = await prisma.utilizador.findUnique({ where: { id } })
     if (!utilizador) return apiError('Utilizador não encontrado', 404)
 
-    // Soft delete — just deactivate
-    await prisma.utilizador.update({ where: { id }, data: { ativo: false } })
+    if (utilizador.chefeSupremo) {
+      return apiError('A conta de chefe supremo não pode ser desativada', 403)
+    }
 
+    if (utilizador.role === 'ADMINISTRACAO' && utilizador.ativo) {
+      const otherActiveAdmins = await prisma.utilizador.count({
+        where: {
+          role: 'ADMINISTRACAO',
+          ativo: true,
+          NOT: { id: utilizador.id },
+        },
+      })
+      if (otherActiveAdmins === 0) {
+        return apiError('Não é possível desativar o último administrador activo', 409)
+      }
+    }
+
+    // Soft delete + invalidate sessions
+    await prisma.utilizador.update({
+      where: { id },
+      data: { ativo: false, tokenVersion: { increment: 1 } },
+    })
+
+    const { ip, userAgent } = getRequestInfo(req)
     await prisma.auditLog.create({
       data: {
         acao: 'DEACTIVATE_UTILIZADOR',
         entidade: 'Utilizador',
         entidadeId: id,
         utilizadorId: session.user.id,
+        ip,
+        userAgent,
         detalhes: { nome: utilizador.nome, email: utilizador.email },
       },
     })

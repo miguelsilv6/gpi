@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -27,10 +28,9 @@ interface HeaderProps {
     email: string
     role: Role
   }
-  unreadCount?: number
 }
 
-export function Header({ user, unreadCount = 0 }: HeaderProps) {
+export function Header({ user }: HeaderProps) {
   const initials = user.nome
     .split(' ')
     .map((n) => n[0])
@@ -59,7 +59,7 @@ export function Header({ user, unreadCount = 0 }: HeaderProps) {
         <ThemeToggle />
 
         {/* Notification bell */}
-        <NotificationBell initialCount={unreadCount} />
+        <NotificationBell />
 
         {/* User menu */}
         <DropdownMenu>
@@ -71,13 +71,15 @@ export function Header({ user, unreadCount = 0 }: HeaderProps) {
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user.nome}</p>
-                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                <p className="text-xs text-blue-600 font-medium mt-1">{ROLE_LABELS[user.role]}</p>
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user.nome}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  <p className="text-xs text-blue-600 font-medium mt-1">{ROLE_LABELS[user.role]}</p>
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer">
               <User className="h-4 w-4" />
@@ -86,7 +88,10 @@ export function Header({ user, unreadCount = 0 }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="gap-2 text-red-600 focus:text-red-600 cursor-pointer"
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={async () => {
+                await signOut({ redirect: false })
+                window.location.href = '/login'
+              }}
             >
               <LogOut className="h-4 w-4" />
               Terminar sessão

@@ -29,9 +29,44 @@ export function buildInqueritoWhere(
     return { inspetorId: userId }
   }
   if (role === 'INSPETOR_CHEFE') {
-    return brigadaId ? { brigadaId } : { inspetorId: userId }
+    // Fail-closed: a chefe without brigada is a misconfiguration. Returning
+    // their own inquéritos as a fallback hides the issue and risks silently
+    // narrowing/expanding permissions.
+    if (!brigadaId) {
+      return { id: '__inspetor_chefe_sem_brigada__' }
+    }
+    return { brigadaId }
   }
   return {}
+}
+
+/**
+ * Single source of truth for "can this user edit this inquérito?".
+ * Use after fetching the inquérito (which gives you the actual brigadaId/inspetorId).
+ */
+export function canEditInquerito(
+  role: Role,
+  userId: string,
+  userBrigadaId: string | null,
+  inq: { inspetorId: string | null; brigadaId: string },
+): boolean {
+  if (hasPermission(role, 'inquerito:edit:all')) return true
+  if (
+    role === 'INSPETOR_CHEFE' &&
+    userBrigadaId &&
+    inq.brigadaId === userBrigadaId &&
+    hasPermission(role, 'inquerito:edit:brigade')
+  ) {
+    return true
+  }
+  if (
+    role === 'INSPETOR' &&
+    inq.inspetorId === userId &&
+    hasPermission(role, 'inquerito:edit:own')
+  ) {
+    return true
+  }
+  return false
 }
 
 export function apiError(message: string, status: number) {

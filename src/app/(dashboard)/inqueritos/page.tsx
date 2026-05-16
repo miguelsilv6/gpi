@@ -19,6 +19,20 @@ interface SearchParams {
   faseProcessual?: string
   brigadaId?: string
   inspetorId?: string
+  overdue?: string
+  semInspetor?: string
+  dataAberturaFrom?: string
+  dataAberturaTo?: string
+  sort?: string
+  order?: string
+}
+
+const ALLOWED_SORT: Record<string, true> = {
+  updatedAt: true,
+  dataAbertura: true,
+  dataPrazo: true,
+  nuipc: true,
+  estado: true,
 }
 
 export default async function InqueritosPage({
@@ -34,8 +48,12 @@ export default async function InqueritosPage({
   const page = Math.max(1, parseInt(sp.page ?? '1'))
   const limit = 20
 
+  const sort = sp.sort && ALLOWED_SORT[sp.sort] ? sp.sort : 'updatedAt'
+  const order = sp.order === 'asc' ? 'asc' : 'desc'
+
   const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
   const where = {
+    deletedAt: null,
     ...roleWhere,
     ...(sp.search && {
       OR: [
@@ -48,6 +66,17 @@ export default async function InqueritosPage({
     ...(sp.faseProcessual && { faseProcessual: sp.faseProcessual as FaseProcessual }),
     ...(sp.brigadaId && { brigadaId: sp.brigadaId }),
     ...(sp.inspetorId && { inspetorId: sp.inspetorId }),
+    ...(sp.semInspetor === '1' && { inspetorId: null }),
+    ...(sp.overdue === '1' && {
+      dataPrazo: { lt: new Date() },
+      estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] as never[] },
+    }),
+    ...((sp.dataAberturaFrom || sp.dataAberturaTo) && {
+      dataAbertura: {
+        ...(sp.dataAberturaFrom && { gte: new Date(sp.dataAberturaFrom) }),
+        ...(sp.dataAberturaTo && { lte: new Date(sp.dataAberturaTo) }),
+      },
+    }),
   }
 
   const canCreate = hasPermission(role, 'inquerito:create')
@@ -59,7 +88,7 @@ export default async function InqueritosPage({
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { [sort]: order } as never,
       include: {
         brigada: { select: { id: true, nome: true } },
         inspetor: { select: { id: true, nome: true } },
@@ -84,6 +113,16 @@ export default async function InqueritosPage({
   ])
 
   const totalPages = Math.ceil(total / limit)
+
+  // Build pagination URLs preserving filters
+  function buildPageUrl(targetPage: number): string {
+    const params = new URLSearchParams()
+    for (const [k, v] of Object.entries(sp)) {
+      if (v && k !== 'page') params.set(k, String(v))
+    }
+    params.set('page', String(targetPage))
+    return `/inqueritos?${params.toString()}`
+  }
 
   return (
     <div className="space-y-4">
@@ -119,7 +158,6 @@ export default async function InqueritosPage({
         brigadas={brigadas}
       />
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
@@ -128,7 +166,7 @@ export default async function InqueritosPage({
           <div className="flex gap-2">
             {page > 1 && (
               <Link
-                href={`/inqueritos?${new URLSearchParams({ ...sp, page: String(page - 1) })}`}
+                href={buildPageUrl(page - 1)}
                 className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
               >
                 Anterior
@@ -136,7 +174,7 @@ export default async function InqueritosPage({
             )}
             {page < totalPages && (
               <Link
-                href={`/inqueritos?${new URLSearchParams({ ...sp, page: String(page + 1) })}`}
+                href={buildPageUrl(page + 1)}
                 className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
               >
                 Próxima

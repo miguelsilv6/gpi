@@ -35,3 +35,8 @@ export const FASE_COLORS: Record<FaseProcessual, string> = {
 export const NUIPC_REGEX = /^\d{4}\/\d+\/[A-Z]+$/
 
 export const ESTADOS_FINAIS: EstadoInquerito[] = ['CONCLUIDO', 'ARQUIVADO']
+
+// Auth / security policy
+export const LOGIN_MAX_FAILED_ATTEMPTS = 5
+export const LOGIN_LOCKOUT_MINUTES = 15
+export const LOGIN_ATTEMPT_WINDOW_MINUTES = 30

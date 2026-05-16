@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { EstadoBadge } from './estado-badge'
 import { FaseBadge } from './fase-badge'
 import { BulkActionBar } from './bulk-action-bar'
@@ -33,28 +33,89 @@ interface Props {
   brigadas: Brigada[]
 }
 
+interface RowProps {
+  inq: Inquerito
+  canBulk: boolean
+  isSelected: boolean
+  onToggle: (id: string) => void
+}
+
+const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) {
+  const overdue = isOverdue(inq.dataPrazo) && !['CONCLUIDO', 'ARQUIVADO'].includes(inq.estado)
+  return (
+    <tr
+      className={cn(
+        'hover:bg-accent/30 transition-colors',
+        isSelected && 'bg-blue-50/50 dark:bg-blue-950/10',
+      )}
+    >
+      {canBulk && (
+        <td className="px-3 py-3">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggle(inq.id)}
+            className="h-4 w-4 rounded border"
+          />
+        </td>
+      )}
+      <td className="px-4 py-3">
+        <Link
+          href={`/inqueritos/${nuipcToSlug(inq.nuipc)}`}
+          className="font-mono font-medium hover:text-blue-600 hover:underline flex items-center gap-1.5"
+        >
+          {overdue && <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
+          {inq.nuipc}
+        </Link>
+        {inq.nai && (
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">
+            NAI: {inq.nai}
+          </p>
+        )}
+      </td>
+      <td className="px-4 py-3 max-w-[200px] truncate">{inq.natureza}</td>
+      <td className="px-4 py-3">
+        <EstadoBadge estado={inq.estado as never} />
+      </td>
+      <td className="px-4 py-3">
+        <FaseBadge fase={inq.faseProcessual as never} />
+      </td>
+      <td className="px-4 py-3 text-muted-foreground">
+        {inq.inspetor?.nome ?? <span className="text-muted-foreground/50 italic">Não atribuído</span>}
+      </td>
+      <td className={cn('px-4 py-3', overdue && 'text-red-600 font-medium')}>
+        {formatDate(inq.dataPrazo)}
+      </td>
+      <td className="px-4 py-3 text-muted-foreground text-center">
+        {inq._count.atividades}
+      </td>
+    </tr>
+  )
+})
+
 export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, brigadas }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const allIds = inqueritos.map((i) => i.id)
   const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id))
 
-  function toggleAll() {
-    if (allSelected) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(allIds))
-    }
-  }
+  const toggleAll = useCallback(() => {
+    setSelected((prev) => {
+      if (allIds.length > 0 && allIds.every((id) => prev.has(id))) return new Set()
+      return new Set(allIds)
+    })
+  }, [allIds])
 
-  function toggle(id: string) {
+  const toggle = useCallback((id: string) => {
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
       return next
     })
-  }
+  }, [])
+
+  const clearSelected = useCallback(() => setSelected(new Set()), [])
 
   return (
     <>
@@ -90,60 +151,15 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
                 </td>
               </tr>
             ) : (
-              inqueritos.map((inq) => {
-                const overdue = isOverdue(inq.dataPrazo) && !['CONCLUIDO', 'ARQUIVADO'].includes(inq.estado)
-                const isSelected = selected.has(inq.id)
-                return (
-                  <tr
-                    key={inq.id}
-                    className={cn(
-                      'hover:bg-accent/30 transition-colors',
-                      isSelected && 'bg-blue-50/50 dark:bg-blue-950/10',
-                    )}
-                  >
-                    {canBulk && (
-                      <td className="px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggle(inq.id)}
-                          className="h-4 w-4 rounded border"
-                        />
-                      </td>
-                    )}
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/inqueritos/${nuipcToSlug(inq.nuipc)}`}
-                        className="font-mono font-medium hover:text-blue-600 hover:underline flex items-center gap-1.5"
-                      >
-                        {overdue && <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
-                        {inq.nuipc}
-                      </Link>
-                      {inq.nai && (
-                        <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                          NAI: {inq.nai}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 max-w-[200px] truncate">{inq.natureza}</td>
-                    <td className="px-4 py-3">
-                      <EstadoBadge estado={inq.estado as never} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <FaseBadge fase={inq.faseProcessual as never} />
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {inq.inspetor?.nome ?? <span className="text-muted-foreground/50 italic">Não atribuído</span>}
-                    </td>
-                    <td className={cn('px-4 py-3', overdue && 'text-red-600 font-medium')}>
-                      {formatDate(inq.dataPrazo)}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-center">
-                      {inq._count.atividades}
-                    </td>
-                  </tr>
-                )
-              })
+              inqueritos.map((inq) => (
+                <Row
+                  key={inq.id}
+                  inq={inq}
+                  canBulk={canBulk}
+                  isSelected={selected.has(inq.id)}
+                  onToggle={toggle}
+                />
+              ))
             )}
           </tbody>
         </table>
@@ -175,7 +191,10 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
       {canBulk && (
         <BulkActionBar
           selectedIds={Array.from(selected)}
-          onClear={() => setSelected(new Set())}
+          selectedNuipcs={inqueritos
+            .filter((i) => selected.has(i.id))
+            .map((i) => i.nuipc)}
+          onClear={clearSelected}
           canTransfer={canTransfer}
           inspetores={inspetores}
           brigadas={brigadas}

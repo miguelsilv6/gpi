@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -13,10 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { inqueritoSchema, type InqueritoFormData } from '@/lib/validations/inquerito'
 import { ESTADO_LABELS, FASE_LABELS } from '@/lib/constants'
 import { nuipcToSlug } from '@/lib/utils'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { Loader2 } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
-interface Inspetor { id: string; nome: string }
+interface Inspetor { id: string; nome: string; brigadaId: string | null }
 
 interface InqueritoFormProps {
   defaultValues?: Partial<InqueritoFormData>
@@ -40,7 +42,7 @@ export function InqueritoForm({
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<InqueritoFormData>({
     resolver: zodResolver(inqueritoSchema),
     defaultValues: {
@@ -50,6 +52,8 @@ export function InqueritoForm({
     },
   })
 
+  useUnsavedChangesWarning(isDirty && !isSubmitting && !isSubmitSuccessful)
+
   async function onSubmit(data: InqueritoFormData) {
     const url =
       mode === 'create'
@@ -57,10 +61,16 @@ export function InqueritoForm({
         : `/api/inqueritos/${nuipcOriginal ? nuipcToSlug(nuipcOriginal) : ''}`
     const method = mode === 'create' ? 'POST' : 'PUT'
 
+    // Empty strings (from "Não atribuído" or after a brigada change) must become null
+    const payload = {
+      ...data,
+      inspetorId: data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null,
+    }
+
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
 
     if (!res.ok) {
@@ -75,7 +85,22 @@ export function InqueritoForm({
     router.refresh()
   }
 
-  const brigadaId = watch('brigadaId')
+  const selectedBrigadaId = watch('brigadaId')
+  const selectedInspetorId = watch('inspetorId')
+
+  const filteredInspetores = useMemo(
+    () => inspetores.filter((i) => i.brigadaId === selectedBrigadaId),
+    [inspetores, selectedBrigadaId],
+  )
+
+  // When brigada changes, clear inspetorId if the current inspetor doesn't belong to it
+  useEffect(() => {
+    if (!selectedInspetorId) return
+    const stillValid = filteredInspetores.some((i) => i.id === selectedInspetorId)
+    if (!stillValid) {
+      setValue('inspetorId', '', { shouldDirty: true })
+    }
+  }, [selectedBrigadaId, selectedInspetorId, filteredInspetores, setValue])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
@@ -147,7 +172,11 @@ export function InqueritoForm({
                 onValueChange={(v) => setValue('estado', v as InqueritoFormData['estado'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar estado" />
+                  <SelectValue placeholder="Selecionar estado">
+                    {(v: string) =>
+                      ESTADO_LABELS[v as keyof typeof ESTADO_LABELS] ?? 'Selecionar estado'
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ESTADO_LABELS).map(([value, label]) => (
@@ -167,7 +196,11 @@ export function InqueritoForm({
                 onValueChange={(v) => setValue('faseProcessual', v as InqueritoFormData['faseProcessual'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar fase" />
+                  <SelectValue placeholder="Selecionar fase">
+                    {(v: string) =>
+                      FASE_LABELS[v as keyof typeof FASE_LABELS] ?? 'Selecionar fase'
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(FASE_LABELS).map(([value, label]) => (
@@ -202,11 +235,15 @@ export function InqueritoForm({
             <div className="space-y-1.5">
               <Label>Brigada *</Label>
               <Select
-                defaultValue={defaultValues?.brigadaId || ''}
-                onValueChange={(v) => setValue('brigadaId', v ?? '')}
+                value={selectedBrigadaId || ''}
+                onValueChange={(v) => setValue('brigadaId', v ?? '', { shouldDirty: true })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar brigada" />
+                  <SelectValue placeholder="Selecionar brigada">
+                    {(v: string) =>
+                      brigadas.find((b) => b.id === v)?.nome ?? 'Selecionar brigada'
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {brigadas.map((b) => (
@@ -222,19 +259,37 @@ export function InqueritoForm({
             <div className="space-y-1.5">
               <Label>Inspetor atribuído</Label>
               <Select
-                defaultValue={defaultValues?.inspetorId ?? ''}
-                onValueChange={(v) => setValue('inspetorId', v === 'none' ? '' : (v ?? ''))}
+                value={selectedInspetorId || 'none'}
+                onValueChange={(v) => setValue('inspetorId', v === 'none' ? '' : (v ?? ''), { shouldDirty: true })}
+                disabled={!selectedBrigadaId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Não atribuído" />
+                  <SelectValue placeholder={selectedBrigadaId ? 'Não atribuído' : 'Selecione primeiro a brigada'}>
+                    {(v: string) => {
+                      if (!selectedBrigadaId) return 'Selecione primeiro a brigada'
+                      if (!v || v === 'none') return 'Não atribuído'
+                      return filteredInspetores.find((i) => i.id === v)?.nome ?? 'Não atribuído'
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Não atribuído</SelectItem>
-                  {inspetores.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>
-                  ))}
+                  {filteredInspetores.length === 0 ? (
+                    <SelectItem value="__empty" disabled>
+                      Sem inspetores nesta brigada
+                    </SelectItem>
+                  ) : (
+                    filteredInspetores.map((i) => (
+                      <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {selectedBrigadaId && filteredInspetores.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Não há inspetores activos atribuídos a esta brigada.
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

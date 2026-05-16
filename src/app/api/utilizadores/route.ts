@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { getRequestInfo } from '@/lib/request-info'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import type { Role } from '@/generated/prisma/enums'
@@ -45,6 +46,8 @@ export async function GET(req: NextRequest) {
         ativo: true,
         brigadaId: true,
         brigada: { select: { id: true, nome: true } },
+        chefeSupremo: true,
+        lastLoginAt: true,
         createdAt: true,
       },
     })
@@ -65,7 +68,8 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { nome, email, password, role: newRole, brigadaId } = parsed.data
+    const { nome, password, role: newRole, brigadaId } = parsed.data
+    const email = parsed.data.email.toLowerCase().trim()
 
     const exists = await prisma.utilizador.findUnique({ where: { email } })
     if (exists) return apiError('Já existe um utilizador com este email', 409)
@@ -81,6 +85,19 @@ export async function POST(req: NextRequest) {
       data: { nome, email, passwordHash, role: newRole, brigadaId: brigadaId ?? null },
       select: {
         id: true, nome: true, email: true, role: true, ativo: true, brigadaId: true,
+      },
+    })
+
+    const { ip, userAgent } = getRequestInfo(req)
+    await prisma.auditLog.create({
+      data: {
+        acao: 'CREATE_UTILIZADOR',
+        entidade: 'Utilizador',
+        entidadeId: utilizador.id,
+        utilizadorId: session.user.id,
+        ip,
+        userAgent,
+        detalhes: { nome, email, role: newRole, brigadaId: brigadaId ?? null },
       },
     })
 

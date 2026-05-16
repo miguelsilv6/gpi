@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -26,6 +27,7 @@ interface Brigada { id: string; nome: string }
 
 interface BulkActionBarProps {
   selectedIds: string[]
+  selectedNuipcs?: string[]  // optional — shown in confirmation dialog
   onClear: () => void
   canTransfer: boolean
   inspetores: Inspetor[]
@@ -50,8 +52,15 @@ const FASE_LABELS: Record<string, string> = {
 
 type ActionType = 'assign' | 'changeState' | 'changeFase' | 'transfer' | null
 
+// Type-to-confirm threshold — destrutivo a partir daqui
+const HARD_CONFIRM_THRESHOLD = 5
+const HARD_CONFIRM_WORD = 'CONFIRMAR'
+
+const DESTRUCTIVE_ACTIONS: NonNullable<ActionType>[] = ['transfer', 'changeState']
+
 export function BulkActionBar({
   selectedIds,
+  selectedNuipcs,
   onClear,
   canTransfer,
   inspetores,
@@ -61,11 +70,23 @@ export function BulkActionBar({
   const [loading, setLoading] = useState(false)
   const [activeAction, setActiveAction] = useState<ActionType>(null)
   const [selectedValue, setSelectedValue] = useState('')
+  const [confirmText, setConfirmText] = useState('')
+
+  useEffect(() => {
+    setConfirmText('')
+  }, [activeAction])
 
   if (selectedIds.length === 0) return null
 
+  const needsHardConfirm =
+    activeAction !== null &&
+    DESTRUCTIVE_ACTIONS.includes(activeAction) &&
+    selectedIds.length >= HARD_CONFIRM_THRESHOLD
+  const hardConfirmOk = !needsHardConfirm || confirmText.trim() === HARD_CONFIRM_WORD
+
   async function execute() {
     if (!selectedValue) return
+    if (!hardConfirmOk) return
     setLoading(true)
 
     const extra: Record<string, string> = {}
@@ -82,13 +103,17 @@ export function BulkActionBar({
     setLoading(false)
 
     if (!res.ok) {
-      const err = await res.json()
+      const err = await res.json().catch(() => ({}))
       toast.error(err.error ?? 'Erro na operação')
       return
     }
 
-    const { updated } = await res.json()
-    toast.success(`${updated} inquérito${updated !== 1 ? 's' : ''} actualizado${updated !== 1 ? 's' : ''}`)
+    const { updated, skipped } = await res.json()
+    toast.success(
+      `${updated} inquérito${updated !== 1 ? 's' : ''} actualizado${updated !== 1 ? 's' : ''}${
+        skipped ? ` (${skipped} ignorado${skipped !== 1 ? 's' : ''})` : ''
+      }`,
+    )
     closeDialog()
     onClear()
     router.refresh()
@@ -102,6 +127,7 @@ export function BulkActionBar({
   function closeDialog() {
     setActiveAction(null)
     setSelectedValue('')
+    setConfirmText('')
   }
 
   const dialogConfig: Record<NonNullable<ActionType>, { title: string; label: string; options: { value: string; label: string }[] }> = {
@@ -128,6 +154,8 @@ export function BulkActionBar({
   }
 
   const config = activeAction ? dialogConfig[activeAction] : null
+  const previewNuipcs = (selectedNuipcs ?? []).slice(0, 10)
+  const moreCount = (selectedNuipcs?.length ?? 0) - previewNuipcs.length
 
   return (
     <>
@@ -162,15 +190,32 @@ export function BulkActionBar({
       </div>
 
       <Dialog open={!!activeAction} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           {config && (
             <>
               <DialogHeader>
                 <DialogTitle>{config.title}</DialogTitle>
               </DialogHeader>
+
               <p className="text-sm text-muted-foreground">
                 A aplicar a <strong>{selectedIds.length}</strong> inquérito{selectedIds.length !== 1 ? 's' : ''}.
               </p>
+
+              {previewNuipcs.length > 0 && (
+                <div className="rounded-md border bg-muted/30 px-3 py-2 max-h-40 overflow-y-auto">
+                  <ul className="text-xs font-mono space-y-0.5">
+                    {previewNuipcs.map((n) => (
+                      <li key={n}>{n}</li>
+                    ))}
+                    {moreCount > 0 && (
+                      <li className="text-muted-foreground italic">
+                        … e mais {moreCount}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label>{config.label}</Label>
                 <Select value={selectedValue} onValueChange={(v) => setSelectedValue(v ?? '')}>
@@ -184,9 +229,24 @@ export function BulkActionBar({
                   </SelectContent>
                 </Select>
               </div>
+
+              {needsHardConfirm && (
+                <div className="space-y-1.5 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 px-3 py-2">
+                  <Label className="text-amber-900 dark:text-amber-200">
+                    Confirmação obrigatória — escreva <strong>{HARD_CONFIRM_WORD}</strong>
+                  </Label>
+                  <Input
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder={HARD_CONFIRM_WORD}
+                    autoComplete="off"
+                  />
+                </div>
+              )}
+
               <DialogFooter>
                 <Button variant="outline" onClick={closeDialog} disabled={loading}>Cancelar</Button>
-                <Button onClick={execute} disabled={loading || !selectedValue}>
+                <Button onClick={execute} disabled={loading || !selectedValue || !hardConfirmOk}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Confirmar
                 </Button>

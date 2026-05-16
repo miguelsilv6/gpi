@@ -60,6 +60,11 @@ model Utilizador {
   role         Role
   ativo        Boolean  @default(true)
   chefeSupremo Boolean  @default(false)
+  tokenVersion Int      @default(0)
+  lockedUntil  DateTime?
+  failedLoginCount Int  @default(0)
+  lastLoginAt  DateTime?
+  lastLoginIp  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -87,6 +92,7 @@ model Inquerito {
   dataPrazo      DateTime?
   dataConclusao  DateTime?
   notas          String?
+  deletedAt      DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -106,6 +112,10 @@ model Inquerito {
   @@index([dataPrazo])
   @@index([nuipc])
   @@index([nai])
+  @@index([updatedAt(sort: Desc)])
+  @@index([brigadaId, updatedAt(sort: Desc)])
+  @@index([inspetorId, updatedAt(sort: Desc)])
+  @@index([deletedAt])
 }
 
 model Atividade {
@@ -161,10 +171,25 @@ model AuditLog {
   utilizadorId String
   detalhes     Json?
   ip           String?
+  userAgent    String?
   createdAt    DateTime @default(now())
 
   @@index([entidade, entidadeId])
   @@index([utilizadorId])
+  @@index([createdAt])
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String?
+  userAgent String?
+  success   Boolean
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
   @@index([createdAt])
 }
 

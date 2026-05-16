@@ -24,8 +24,8 @@ interface Notificacao {
   inquerito: { nuipc: string } | null
 }
 
-export function NotificationBell({ initialCount = 0 }: { initialCount?: number }) {
-  const [count, setCount] = useState(initialCount)
+export function NotificationBell() {
+  const [count, setCount] = useState(0)
   const [open, setOpen] = useState(false)
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [loading, setLoading] = useState(false)
@@ -54,10 +54,36 @@ export function NotificationBell({ initialCount = 0 }: { initialCount?: number }
     finally { setLoading(false) }
   }, [])
 
-  // Poll count every 30s
+  // Initial fetch + poll every 90s, paused when tab hidden
   useEffect(() => {
-    const interval = setInterval(fetchCount, 30_000)
-    return () => clearInterval(interval)
+    fetchCount()
+    let interval: ReturnType<typeof setInterval> | null = null
+
+    const start = () => {
+      if (interval) return
+      interval = setInterval(fetchCount, 90_000)
+    }
+    const stop = () => {
+      if (!interval) return
+      clearInterval(interval)
+      interval = null
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCount()
+        start()
+      } else {
+        stop()
+      }
+    }
+
+    if (document.visibilityState === 'visible') start()
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [fetchCount])
 
   // Close on outside click

@@ -23,7 +23,7 @@ export default async function NovoInqueritoPage() {
     prisma.utilizador.findMany({
       where: { role: 'INSPETOR', ativo: true },
       orderBy: { nome: 'asc' },
-      select: { id: true, nome: true },
+      select: { id: true, nome: true, brigadaId: true },
     }),
   ])
 

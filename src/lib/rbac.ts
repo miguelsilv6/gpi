@@ -12,6 +12,10 @@ export type Permission =
   | 'inquerito:transfer'
   | 'inquerito:bulk:brigade'
   | 'inquerito:bulk:all'
+  | 'inquerito:reopen'
+  | 'inquerito:delete'
+  | 'inquerito:export'
+  | 'inquerito:audit:read'
   | 'atividade:create:own'
   | 'atividade:create:brigade'
   | 'estatistica:read'
@@ -34,6 +38,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:edit:brigade',
     'inquerito:assign',
     'inquerito:bulk:brigade',
+    'inquerito:export',
+    'inquerito:audit:read',
     'atividade:create:own',
     'atividade:create:brigade',
     'brigada:read',
@@ -50,6 +56,9 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:transfer',
     'inquerito:bulk:brigade',
     'inquerito:bulk:all',
+    'inquerito:reopen',
+    'inquerito:export',
+    'inquerito:audit:read',
     'atividade:create:own',
     'atividade:create:brigade',
     'estatistica:read',
@@ -58,6 +67,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
   ],
   ESTATISTICA: [
     'inquerito:read:all',
+    'inquerito:export',
     'estatistica:read',
     'brigada:read',
   ],
@@ -73,6 +83,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:transfer',
     'inquerito:bulk:brigade',
     'inquerito:bulk:all',
+    'inquerito:reopen',
+    'inquerito:delete',
+    'inquerito:export',
+    'inquerito:audit:read',
     'atividade:create:own',
     'atividade:create:brigade',
     'estatistica:read',

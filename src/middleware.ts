@@ -19,7 +19,7 @@ export default auth((req) => {
   const { nextUrl } = req
   const session = req.auth
 
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.redirect(new URL('/login', nextUrl))
   }
 

@@ -16,11 +16,22 @@ declare module 'next-auth' {
     nome: string
     role: Role
     brigadaId: string | null
+    tokenVersion?: number
+  }
+}
+
+declare module '@auth/core/jwt' {
+  interface JWT {
+    id?: string
+    nome?: string
+    role?: string
+    brigadaId?: string | null
+    tokenVersion?: number
   }
 }
 
 export const authConfig: NextAuthConfig = {
-  session: { strategy: 'jwt' },
+  session: { strategy: 'jwt', maxAge: 8 * 60 * 60 }, // 8h
   pages: {
     signIn: '/login',
   },
@@ -39,15 +50,21 @@ export const authConfig: NextAuthConfig = {
       return isLoggedIn
     },
     jwt({ token, user }) {
+      // Initial sign-in: copy user fields onto the token.
+      // (DB-backed validation lives in auth.ts so it stays out of the Edge runtime.)
       if (user) {
         token.id = user.id as string
         token.nome = user.nome
         token.role = user.role as string
         token.brigadaId = user.brigadaId as string | null
+        token.tokenVersion = user.tokenVersion ?? 0
       }
       return token
     },
     session({ session, token }) {
+      if (!token.id) {
+        return { ...session, user: undefined as never }
+      }
       session.user.id = token.id as string
       session.user.nome = token.nome as string
       session.user.role = token.role as Role

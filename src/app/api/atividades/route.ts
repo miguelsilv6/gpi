@@ -39,7 +39,16 @@ export async function POST(req: NextRequest) {
       where: { id: inqueritoid },
       include: { inspetor: { select: { id: true, email: true, nome: true } } },
     })
-    if (!inquerito) return apiError('Inquérito não encontrado', 404)
+    if (!inquerito || inquerito.deletedAt) return apiError('Inquérito não encontrado', 404)
+
+    // Block on terminal states — activities are investigative records,
+    // they shouldn't be added to closed/archived cases.
+    if (inquerito.estado === 'CONCLUIDO' || inquerito.estado === 'ARQUIVADO') {
+      return apiError(
+        'Não é possível adicionar atividades a um inquérito concluído ou arquivado',
+        409,
+      )
+    }
 
     const canAdd =
       role === 'ESTATISTICA' ? false :

@@ -1,8 +1,11 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession, handleApiError } from '@/lib/auth-helpers'
-import { buildInqueritoWhere } from '@/lib/auth-helpers'
+import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { hasPermission } from '@/lib/rbac'
+import { writeAudit } from '@/lib/audit'
 import type { Role } from '@/generated/prisma/enums'
+
+const EXPORT_LIMIT = 5000
 
 function escapeCSV(value: unknown): string {
   if (value === null || value === undefined) return ''
@@ -17,22 +20,36 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
-    const { searchParams } = new URL(req.url)
+    if (!hasPermission(role, 'inquerito:export')) {
+      return apiError('Sem permissão para exportar inquéritos', 403)
+    }
 
+    const { searchParams } = new URL(req.url)
     const estado = searchParams.get('estado') ?? ''
     const faseProcessual = searchParams.get('faseProcessual') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
 
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+    const where = {
+      deletedAt: null,
+      ...roleWhere,
+      ...(estado && { estado: estado as never }),
+      ...(faseProcessual && { faseProcessual: faseProcessual as never }),
+      ...(brigadaId && { brigadaId }),
+    }
+
+    const total = await prisma.inquerito.count({ where })
+    if (total > EXPORT_LIMIT) {
+      return apiError(
+        `Limite de ${EXPORT_LIMIT} registos por exportação. Total filtrado: ${total}. Refine os filtros.`,
+        413,
+      )
+    }
 
     const inqueritos = await prisma.inquerito.findMany({
-      where: {
-        ...roleWhere,
-        ...(estado && { estado: estado as never }),
-        ...(faseProcessual && { faseProcessual: faseProcessual as never }),
-        ...(brigadaId && { brigadaId }),
-      },
+      where,
       orderBy: { dataAbertura: 'desc' },
+      take: EXPORT_LIMIT,
       select: {
         nuipc: true,
         natureza: true,
@@ -46,7 +63,30 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    const headers = ['NUIPC', 'Natureza', 'Estado', 'Fase Processual', 'Data Abertura', 'Prazo', 'Data Conclusão', 'Brigada', 'Inspetor']
+    // Audit the export — record filters and result count (mandatory in a police platform).
+    await writeAudit({
+      req,
+      acao: 'EXPORT_INQUERITOS',
+      entidade: 'Inquerito',
+      entidadeId: '__bulk_export__',
+      utilizadorId: session.user.id,
+      detalhes: {
+        filtros: { estado, faseProcessual, brigadaId },
+        quantidade: inqueritos.length,
+      },
+    })
+
+    const headers = [
+      'NUIPC',
+      'Natureza',
+      'Estado',
+      'Fase Processual',
+      'Data Abertura',
+      'Prazo',
+      'Data Conclusão',
+      'Brigada',
+      'Inspetor',
+    ]
     const rows = inqueritos.map((i) => [
       i.nuipc,
       i.natureza,

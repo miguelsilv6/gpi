@@ -26,14 +26,18 @@ async function main() {
   const hash = (pw: string) => bcrypt.hash(pw, 12)
 
   // Utilizadores (1 por role)
+  // The ADMINISTRACAO account is the platform's "break-glass" super-admin
+  // (chefeSupremo). Its role/active state/password cannot be modified via
+  // the user management UI — protection enforced in the PUT/DELETE endpoint.
   const admin = await prisma.utilizador.upsert({
     where: { email: 'admin@gpi.pt' },
-    update: {},
+    update: { chefeSupremo: true },
     create: {
       nome: 'Administrador Sistema',
       email: 'admin@gpi.pt',
       passwordHash: await hash(seedPassword),
       role: 'ADMINISTRACAO',
+      chefeSupremo: true,
       ativo: true,
     },
   })
@@ -52,14 +56,13 @@ async function main() {
 
   const chefe = await prisma.utilizador.upsert({
     where: { email: 'chefe@gpi.pt' },
-    update: {},
+    update: { chefeSupremo: false },
     create: {
       nome: 'Ana Inspetora Chefe',
       email: 'chefe@gpi.pt',
       passwordHash: await hash(seedPassword),
       role: 'INSPETOR_CHEFE',
       brigadaId: brigadaAlfa.id,
-      chefeSupremo: true,
       ativo: true,
     },
   })
