@@ -9,6 +9,21 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
@@ -27,6 +42,7 @@ interface EstadoOption {
   id: string
   codigo: string
   nome: string
+  cor: string | null
   ativo: boolean
 }
 
@@ -40,9 +56,13 @@ interface AtividadePadrao {
   ordem: number
   temPrazo: boolean
   temQuantidade: boolean
+  contaParaEstatistica: boolean
+  transicaoEstadoId: string | null
 }
 
-function AtividadesTab() {
+const TRANSICAO_NONE = '__none__'
+
+function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [atividades, setAtividades] = useState<AtividadePadrao[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -50,10 +70,22 @@ function AtividadesTab() {
   const [newDescricao, setNewDescricao] = useState('')
   const [newTemPrazo, setNewTemPrazo] = useState(false)
   const [newTemQuantidade, setNewTemQuantidade] = useState(false)
+  const [newContaParaEstatistica, setNewContaParaEstatistica] = useState(true)
+  const [newTransicaoEstadoId, setNewTransicaoEstadoId] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [editNome, setEditNome] = useState('')
   const [editDescricao, setEditDescricao] = useState('')
+  const [editTemPrazo, setEditTemPrazo] = useState(false)
+  const [editTemQuantidade, setEditTemQuantidade] = useState(false)
+  const [editContaParaEstatistica, setEditContaParaEstatistica] = useState(true)
+  const [editTransicaoEstadoId, setEditTransicaoEstadoId] = useState<string>('')
+  const [deleteCandidate, setDeleteCandidate] = useState<AtividadePadrao | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteInUseCount, setDeleteInUseCount] = useState<number | null>(null)
+
+  const estadosAtivos = estados.filter((e) => e.ativo)
+  const estadoById = new Map(estados.map((e) => [e.id, e]))
 
   async function load() {
     setLoading(true)
@@ -75,6 +107,8 @@ function AtividadesTab() {
         descricao: newDescricao.trim() || null,
         temPrazo: newTemPrazo,
         temQuantidade: newTemQuantidade,
+        contaParaEstatistica: newContaParaEstatistica,
+        transicaoEstadoId: newTransicaoEstadoId || null,
       }),
     })
     setSaving(false)
@@ -88,11 +122,16 @@ function AtividadesTab() {
     setNewDescricao('')
     setNewTemPrazo(false)
     setNewTemQuantidade(false)
+    setNewContaParaEstatistica(true)
+    setNewTransicaoEstadoId('')
     setAdding(false)
     load()
   }
 
-  async function handleToggleField(a: AtividadePadrao, field: 'ativa' | 'temPrazo' | 'temQuantidade') {
+  async function handleToggleField(
+    a: AtividadePadrao,
+    field: 'ativa' | 'temPrazo' | 'temQuantidade' | 'contaParaEstatistica',
+  ) {
     const res = await fetch(`/api/atividades-padrao/${a.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -103,18 +142,74 @@ function AtividadesTab() {
     }
   }
 
-  async function handleDelete(id: string) {
-    const res = await fetch(`/api/atividades-padrao/${id}`, { method: 'DELETE' })
-    if (res.ok) {
-      setAtividades((prev) => prev.filter((x) => x.id !== id))
-      toast.success('Removida')
+  async function openDeleteDialog(a: AtividadePadrao) {
+    setDeleteCandidate(a)
+    setDeleteInUseCount(null)
+    // Probe: try DELETE optimistically? No — better do a HEAD count via a
+    // separate endpoint, but to avoid adding routes we just attempt a no-op
+    // count via the existing list of atividades (snapshot match by nome would
+    // require a new endpoint). Simpler: leave the count null and rely on the
+    // server-side guard. The dialog shows both actions; if hard-delete fails,
+    // we surface the error.
+  }
+
+  function closeDeleteDialog() {
+    setDeleteCandidate(null)
+    setDeleting(false)
+    setDeleteInUseCount(null)
+  }
+
+  async function handleDeactivate() {
+    if (!deleteCandidate) return
+    setDeleting(true)
+    const res = await fetch(`/api/atividades-padrao/${deleteCandidate.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ativa: false }),
+    })
+    setDeleting(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro ao desativar')
+      return
     }
+    setAtividades((prev) =>
+      prev.map((x) =>
+        x.id === deleteCandidate.id ? { ...x, ativa: false } : x,
+      ),
+    )
+    toast.success('Atividade desativada')
+    closeDeleteDialog()
+  }
+
+  async function handleHardDelete() {
+    if (!deleteCandidate) return
+    setDeleting(true)
+    const res = await fetch(`/api/atividades-padrao/${deleteCandidate.id}`, {
+      method: 'DELETE',
+    })
+    setDeleting(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      // Extract a count if the server reports one ("Atividade padrão em uso em N atividade(s)...")
+      const match = /em uso em (\d+)/.exec(err?.error ?? '')
+      if (match) setDeleteInUseCount(parseInt(match[1]!, 10))
+      toast.error(err.error ?? 'Erro ao eliminar')
+      return
+    }
+    setAtividades((prev) => prev.filter((x) => x.id !== deleteCandidate.id))
+    toast.success('Atividade eliminada')
+    closeDeleteDialog()
   }
 
   async function handleEdit(a: AtividadePadrao) {
     setEditId(a.id)
     setEditNome(a.nome)
     setEditDescricao(a.descricao ?? '')
+    setEditTemPrazo(a.temPrazo)
+    setEditTemQuantidade(a.temQuantidade)
+    setEditContaParaEstatistica(a.contaParaEstatistica)
+    setEditTransicaoEstadoId(a.transicaoEstadoId ?? '')
   }
 
   async function handleEditSave(id: string) {
@@ -122,7 +217,14 @@ function AtividadesTab() {
     const res = await fetch(`/api/atividades-padrao/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome: editNome.trim(), descricao: editDescricao.trim() || null }),
+      body: JSON.stringify({
+        nome: editNome.trim(),
+        descricao: editDescricao.trim() || null,
+        temPrazo: editTemPrazo,
+        temQuantidade: editTemQuantidade,
+        contaParaEstatistica: editContaParaEstatistica,
+        transicaoEstadoId: editTransicaoEstadoId || null,
+      }),
     })
     if (!res.ok) {
       const err = await res.json()
@@ -198,6 +300,44 @@ function AtividadesTab() {
                 <span>Tem quantidade</span>
                 <span className="text-xs text-muted-foreground">(mostra campo numérico)</span>
               </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={newContaParaEstatistica}
+                  onChange={(e) => setNewContaParaEstatistica(e.target.checked)}
+                  className="h-4 w-4 rounded border"
+                />
+                <span>Conta para estatística</span>
+                <span className="text-xs text-muted-foreground">(aparece nos resumos por tipo)</span>
+              </label>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newTransicao">Altera estado do inquérito para</Label>
+              <Select
+                value={newTransicaoEstadoId || TRANSICAO_NONE}
+                onValueChange={(v) =>
+                  setNewTransicaoEstadoId(!v || v === TRANSICAO_NONE ? '' : v)
+                }
+              >
+                <SelectTrigger id="newTransicao">
+                  <SelectValue>
+                    {(v: string) => {
+                      if (!v || v === TRANSICAO_NONE) return 'Não altera o estado'
+                      return estadoById.get(v)?.nome ?? 'Não altera o estado'
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TRANSICAO_NONE}>Não altera o estado</SelectItem>
+                  {estadosAtivos.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Quando esta atividade for adicionada a um inquérito, o estado passará automaticamente
+                para o escolhido (respeitando a máquina de estados).
+              </p>
             </div>
             <div className="flex gap-2 pt-1">
               <Button size="sm" onClick={handleAdd} disabled={saving || !newNome.trim()}>
@@ -232,23 +372,78 @@ function AtividadesTab() {
               )}
             >
               {editId === a.id ? (
-                <div className="flex-1 flex items-center gap-2 flex-wrap">
-                  <Input
-                    autoFocus
-                    className="h-8 text-sm flex-1 min-w-[160px]"
-                    value={editNome}
-                    onChange={(e) => setEditNome(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleEditSave(a.id)}
-                  />
-                  <Input
-                    className="h-8 text-sm flex-1 min-w-[160px]"
-                    placeholder="Descrição"
-                    value={editDescricao}
-                    onChange={(e) => setEditDescricao(e.target.value)}
-                  />
-                  <div className="flex gap-1">
-                    <button onClick={() => handleEditSave(a.id)} className="p-1.5 rounded hover:bg-muted text-green-600"><Check className="h-4 w-4" /></button>
-                    <button onClick={() => setEditId(null)} className="p-1.5 rounded hover:bg-muted text-muted-foreground"><X className="h-4 w-4" /></button>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      autoFocus
+                      className="h-8 text-sm flex-1 min-w-[160px]"
+                      value={editNome}
+                      onChange={(e) => setEditNome(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleEditSave(a.id)}
+                    />
+                    <Input
+                      className="h-8 text-sm flex-1 min-w-[160px]"
+                      placeholder="Descrição"
+                      value={editDescricao}
+                      onChange={(e) => setEditDescricao(e.target.value)}
+                    />
+                    <div className="flex gap-1">
+                      <button onClick={() => handleEditSave(a.id)} className="p-1.5 rounded hover:bg-muted text-green-600"><Check className="h-4 w-4" /></button>
+                      <button onClick={() => setEditId(null)} className="p-1.5 rounded hover:bg-muted text-muted-foreground"><X className="h-4 w-4" /></button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={editTemPrazo}
+                        onChange={(e) => setEditTemPrazo(e.target.checked)}
+                        className="h-4 w-4 rounded border"
+                      />
+                      <span>Tem prazo</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={editTemQuantidade}
+                        onChange={(e) => setEditTemQuantidade(e.target.checked)}
+                        className="h-4 w-4 rounded border"
+                      />
+                      <span>Tem quantidade</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={editContaParaEstatistica}
+                        onChange={(e) => setEditContaParaEstatistica(e.target.checked)}
+                        className="h-4 w-4 rounded border"
+                      />
+                      <span>Conta para estatística</span>
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Label className="text-xs text-muted-foreground">Altera estado para</Label>
+                    <Select
+                      value={editTransicaoEstadoId || TRANSICAO_NONE}
+                      onValueChange={(v) =>
+                        setEditTransicaoEstadoId(!v || v === TRANSICAO_NONE ? '' : v)
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[200px] text-xs">
+                        <SelectValue>
+                          {(v: string) => {
+                            if (!v || v === TRANSICAO_NONE) return 'Não altera o estado'
+                            return estadoById.get(v)?.nome ?? 'Não altera o estado'
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TRANSICAO_NONE}>Não altera o estado</SelectItem>
+                        {estadosAtivos.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               ) : (
@@ -258,6 +453,25 @@ function AtividadesTab() {
                     {a.descricao && <p className="text-xs text-muted-foreground">{a.descricao}</p>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0 flex-wrap">
+                    {/* Transição badge */}
+                    {a.transicaoEstadoId && (() => {
+                      const target = estadoById.get(a.transicaoEstadoId)
+                      if (!target) return null
+                      const corClass = target.cor
+                        ? ESTADO_COR_CLASSES[target.cor] ?? ESTADO_COR_DEFAULT
+                        : ESTADO_COR_DEFAULT
+                      return (
+                        <span
+                          title={`Altera o estado do inquérito para «${target.nome}»`}
+                          className={cn(
+                            'text-xs px-2 py-0.5 rounded-full font-medium border',
+                            corClass,
+                          )}
+                        >
+                          → {target.nome}
+                        </span>
+                      )
+                    })()}
                     {/* Prazo toggle */}
                     <button
                       onClick={() => handleToggleField(a, 'temPrazo')}
@@ -284,6 +498,19 @@ function AtividadesTab() {
                     >
                       Qtd
                     </button>
+                    {/* Estatística toggle */}
+                    <button
+                      onClick={() => handleToggleField(a, 'contaParaEstatistica')}
+                      title="Conta para resumos por tipo e estatísticas"
+                      className={cn(
+                        'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
+                        a.contaParaEstatistica
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          : 'bg-muted text-muted-foreground/60',
+                      )}
+                    >
+                      Estatística
+                    </button>
                     {/* Ativa toggle */}
                     <button
                       onClick={() => handleToggleField(a, 'ativa')}
@@ -299,7 +526,11 @@ function AtividadesTab() {
                     <button onClick={() => handleEdit(a)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={() => handleDelete(a.id)} className="p-1.5 rounded hover:bg-muted text-red-500 hover:text-red-700">
+                    <button
+                      onClick={() => openDeleteDialog(a)}
+                      title="Apagar ou desativar"
+                      className="p-1.5 rounded hover:bg-muted text-red-500 hover:text-red-700"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -309,6 +540,71 @@ function AtividadesTab() {
           ))}
         </div>
       )}
+
+      <Dialog
+        open={!!deleteCandidate}
+        onOpenChange={(open) => !open && closeDeleteDialog()}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Apagar atividade padrão</DialogTitle>
+          </DialogHeader>
+          {deleteCandidate && (
+            <div className="space-y-3 text-sm">
+              <p>
+                «<strong>{deleteCandidate.nome}</strong>»
+              </p>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 space-y-2">
+                <p className="font-medium text-amber-900 dark:text-amber-200">
+                  Desativar (recomendado)
+                </p>
+                <p className="text-xs text-amber-900/80 dark:text-amber-200/80">
+                  A atividade não aparece na lista para novos registos. O histórico
+                  fica intacto. Pode reativar a qualquer altura.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={handleDeactivate}
+                  disabled={deleting || !deleteCandidate.ativa}
+                  className="w-full"
+                >
+                  {deleting && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                  {deleteCandidate.ativa ? 'Desativar' : 'Já está desativada'}
+                </Button>
+              </div>
+              <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 p-3 space-y-2">
+                <p className="font-medium text-red-900 dark:text-red-200">
+                  Eliminar permanentemente
+                </p>
+                <p className="text-xs text-red-900/80 dark:text-red-200/80">
+                  Apaga o registo do catálogo. Não é possível se já existirem
+                  atividades deste tipo em inquéritos — nesse caso desative em vez.
+                </p>
+                {deleteInUseCount !== null && deleteInUseCount > 0 && (
+                  <p className="text-xs font-medium text-red-900 dark:text-red-200">
+                    Em uso em {deleteInUseCount} atividade(s) — não pode ser eliminada.
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleHardDelete}
+                  disabled={deleting}
+                  className="w-full"
+                >
+                  {deleting && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                  Eliminar
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={closeDeleteDialog}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -560,7 +856,7 @@ export default function ConfiguracoesPage() {
       {tab === 'estados' && <EstadosTab />}
 
       {/* Atividades tab */}
-      {tab === 'atividades' && <AtividadesTab />}
+      {tab === 'atividades' && <AtividadesTab estados={estados} />}
     </div>
   )
 }

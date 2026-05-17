@@ -13,6 +13,8 @@ const schema = z.object({
   ordem: z.coerce.number().int().min(0).optional(),
   temPrazo: z.boolean().optional(),
   temQuantidade: z.boolean().optional(),
+  contaParaEstatistica: z.boolean().optional(),
+  transicaoEstadoId: z.string().nullable().optional(),
 })
 
 export async function PUT(
@@ -32,6 +34,18 @@ export async function PUT(
     const existing = await prisma.atividadePadrao.findUnique({ where: { id } })
     if (!existing) return apiError('Atividade não encontrada', 404)
 
+    // If the caller is setting a new transition target, verify it exists.
+    // null/undefined are accepted (clears the rule).
+    if (parsed.data.transicaoEstadoId) {
+      const estado = await prisma.estadoInquerito.findUnique({
+        where: { id: parsed.data.transicaoEstadoId },
+        select: { ativo: true },
+      })
+      if (!estado || !estado.ativo) {
+        return apiError('Estado de transição inválido ou inactivo', 400)
+      }
+    }
+
     const updated = await prisma.atividadePadrao.update({ where: { id }, data: parsed.data })
 
     const changes = diff(existing, updated, [
@@ -41,6 +55,8 @@ export async function PUT(
       'ordem',
       'temPrazo',
       'temQuantidade',
+      'contaParaEstatistica',
+      'transicaoEstadoId',
     ])
     if (changes) {
       await writeAudit({

@@ -41,4 +41,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+# The entrypoint applies the schema, seeds idempotently and then starts the
+# server. This makes the container "plug and play" — no manual migrate step.
+ENTRYPOINT ["sh", "/app/scripts/docker-entrypoint.sh"]

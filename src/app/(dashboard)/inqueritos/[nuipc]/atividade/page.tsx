@@ -11,10 +11,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ChevronLeft, Loader2, Settings, Bell } from 'lucide-react'
+import { ChevronLeft, Loader2, Settings, Bell, Info } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { slugToNuipc, nuipcToSlug } from '@/lib/utils'
+import { slugToNuipc, nuipcToSlug, cn } from '@/lib/utils'
 
 interface AtividadePadrao {
   id: string
@@ -23,6 +23,15 @@ interface AtividadePadrao {
   ativa: boolean
   temPrazo: boolean
   temQuantidade: boolean
+  transicaoEstadoId: string | null
+}
+
+interface EstadoOption {
+  id: string
+  codigo: string
+  nome: string
+  cor: string | null
+  terminal: boolean
 }
 
 const ALERT_OPTIONS = [
@@ -53,6 +62,7 @@ export default function AddAtividadePage() {
   const nuipc = slugToNuipc(slug)
   const [inqueritoid, setInqueritoid] = useState<string | null>(null)
   const [atividadesPadrao, setAtividadesPadrao] = useState<AtividadePadrao[]>([])
+  const [estados, setEstados] = useState<EstadoOption[]>([])
   const [loadingPadrao, setLoadingPadrao] = useState(true)
   const [showAlerta2, setShowAlerta2] = useState(false)
 
@@ -62,9 +72,16 @@ export default function AddAtividadePage() {
       .then((d) => setInqueritoid(d.id))
       .catch(() => toast.error('Erro ao carregar inquérito'))
 
-    fetch('/api/atividades-padrao')
-      .then((r) => r.json())
-      .then((d: AtividadePadrao[]) => setAtividadesPadrao(d.filter((a) => a.ativa)))
+    Promise.all([
+      fetch('/api/atividades-padrao').then((r) => r.json()),
+      fetch('/api/estados-inquerito').then((r) => r.json()),
+    ])
+      .then(([padroes, est]) => {
+        setAtividadesPadrao(
+          Array.isArray(padroes) ? padroes.filter((a: AtividadePadrao) => a.ativa) : [],
+        )
+        setEstados(Array.isArray(est) ? est : [])
+      })
       .catch(() => {})
       .finally(() => setLoadingPadrao(false))
   }, [slug])
@@ -86,6 +103,9 @@ export default function AddAtividadePage() {
   const selectedNome = watch('descricao')
   const watchedAlerta1 = watch('alertaDias1')
   const selectedPadrao = atividadesPadrao.find((a) => a.nome === selectedNome)
+  const transicaoTarget = selectedPadrao?.transicaoEstadoId
+    ? estados.find((e) => e.id === selectedPadrao.transicaoEstadoId) ?? null
+    : null
 
   async function onSubmit(data: FormData) {
     if (!inqueritoid) return
@@ -111,7 +131,27 @@ export default function AddAtividadePage() {
       return
     }
 
-    toast.success('Atividade registada')
+    const body = await res.json().catch(() => null)
+    const transicao = body?.transicao
+
+    if (transicao?.applied) {
+      toast.success(
+        `Atividade registada — estado alterado para «${transicao.novoEstado.nome}».`,
+      )
+    } else if (transicao?.skipped) {
+      const reasonMsg =
+        transicao.reason === 'estado_alvo_invalido'
+          ? 'estado-alvo está inactivo'
+          : transicao.reason === 'transicao_invalida'
+            ? 'transição não permitida'
+            : 'desconhecida'
+      toast.warning(
+        `Atividade registada, mas o estado não foi alterado (${reasonMsg}).`,
+      )
+    } else {
+      toast.success('Atividade registada')
+    }
+
     router.push(`/inqueritos/${nuipcToSlug(nuipc)}`)
     router.refresh()
   }
@@ -209,6 +249,23 @@ export default function AddAtividadePage() {
               )}
               {selectedPadrao?.descricao && (
                 <p className="text-xs text-muted-foreground italic">{selectedPadrao.descricao}</p>
+              )}
+              {transicaoTarget && (
+                <div
+                  className={cn(
+                    'mt-2 rounded-lg border px-3 py-2 text-xs flex items-start gap-2',
+                    transicaoTarget.terminal
+                      ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-900/20 dark:text-red-300'
+                      : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300',
+                  )}
+                >
+                  <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    Ao guardar, o estado do inquérito passa para{' '}
+                    <strong>«{transicaoTarget.nome}»</strong>
+                    {transicaoTarget.terminal && ' (estado terminal — exigirá reabertura para voltar a editar).'}
+                  </span>
+                </div>
               )}
             </div>
 

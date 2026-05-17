@@ -124,7 +124,8 @@ model EstadoInquerito {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  inqueritos Inquerito[]
+  inqueritos                   Inquerito[]
+  atividadesPadraoQueTransitam AtividadePadrao[]
 
   @@index([ativo, ordem])
 }
@@ -217,15 +218,26 @@ model ConfiguracaoSistema {
 }
 
 model AtividadePadrao {
-  id            String   @id @default(cuid())
-  nome          String   @unique
-  descricao     String?
-  ativa         Boolean  @default(true)
-  ordem         Int      @default(0)
-  temPrazo      Boolean  @default(false)
-  temQuantidade Boolean  @default(false)
+  id                    String   @id @default(cuid())
+  nome                  String   @unique
+  descricao             String?
+  ativa                 Boolean  @default(true)
+  ordem                 Int      @default(0)
+  temPrazo              Boolean  @default(false)
+  temQuantidade         Boolean  @default(false)
+  // When false, activities of this type are excluded from analytical
+  // aggregations (e.g. "Resumo por tipo" in the inquérito detail). The total
+  // count of activities is unaffected.
+  contaParaEstatistica  Boolean  @default(true)
+  // Optional auto-transition: when an Atividade with this padrão's `nome` is
+  // created, the parent inquérito is moved to this estado (subject to the
+  // state machine). Null means no transition.
+  transicaoEstado   EstadoInquerito? @relation(fields: [transicaoEstadoId], references: [id], onDelete: SetNull)
+  transicaoEstadoId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([transicaoEstadoId])
 }
 
 model Sessao {
