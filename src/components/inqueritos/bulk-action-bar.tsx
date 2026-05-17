@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-interface Inspetor { id: string; nome: string }
+interface Inspetor { id: string; nome: string; brigadaId: string | null }
 interface Brigada { id: string; nome: string }
+interface Estado { id: string; codigo: string; nome: string; ativo: boolean }
 
 interface BulkActionBarProps {
   selectedIds: string[]
@@ -32,14 +33,7 @@ interface BulkActionBarProps {
   canTransfer: boolean
   inspetores: Inspetor[]
   brigadas: Brigada[]
-}
-
-const ESTADO_LABELS: Record<string, string> = {
-  ABERTO: 'Aberto',
-  EM_INVESTIGACAO: 'Em Investigação',
-  SUSPENSO: 'Suspenso',
-  CONCLUIDO: 'Concluído',
-  ARQUIVADO: 'Arquivado',
+  estados: Estado[]
 }
 
 const FASE_LABELS: Record<string, string> = {
@@ -65,6 +59,7 @@ export function BulkActionBar({
   canTransfer,
   inspetores,
   brigadas,
+  estados,
 }: BulkActionBarProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -91,7 +86,7 @@ export function BulkActionBar({
 
     const extra: Record<string, string> = {}
     if (activeAction === 'assign') extra.inspetorId = selectedValue
-    if (activeAction === 'changeState') extra.estado = selectedValue
+    if (activeAction === 'changeState') extra.estadoId = selectedValue
     if (activeAction === 'changeFase') extra.faseProcessual = selectedValue
     if (activeAction === 'transfer') extra.brigadaId = selectedValue
 
@@ -139,7 +134,7 @@ export function BulkActionBar({
     changeState: {
       title: 'Alterar estado',
       label: 'Novo estado',
-      options: Object.entries(ESTADO_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      options: estados.map((e) => ({ value: e.id, label: e.nome })),
     },
     changeFase: {
       title: 'Alterar fase processual',
@@ -220,7 +215,12 @@ export function BulkActionBar({
                 <Label>{config.label}</Label>
                 <Select value={selectedValue} onValueChange={(v) => setSelectedValue(v ?? '')}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder={`Selecionar ${config.label.toLowerCase()}`} />
+                    <SelectValue placeholder={`Selecionar ${config.label.toLowerCase()}`}>
+                      {(v: string) =>
+                        config.options.find((o) => o.value === v)?.label ??
+                        `Selecionar ${config.label.toLowerCase()}`
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {config.options.map((o) => (

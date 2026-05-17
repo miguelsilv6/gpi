@@ -16,6 +16,7 @@ export type Permission =
   | 'inquerito:delete'
   | 'inquerito:export'
   | 'inquerito:audit:read'
+  | 'inquerito:estados:manage'
   | 'atividade:create:own'
   | 'atividade:create:brigade'
   | 'estatistica:read'
@@ -87,6 +88,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:delete',
     'inquerito:export',
     'inquerito:audit:read',
+    'inquerito:estados:manage',
     'atividade:create:own',
     'atividade:create:brigade',
     'estatistica:read',

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       prisma.inquerito.findMany({
         where: {
           dataPrazo: { gte: now, lte: threshold },
-          estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] },
+          estado: { terminal: false },
           inspetorId: { not: null },
         },
         include: { inspetor: { select: { id: true, email: true } } },
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       prisma.inquerito.findMany({
         where: {
           dataPrazo: { lt: now },
-          estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] },
+          estado: { terminal: false },
           inspetorId: { not: null },
         },
         include: { inspetor: { select: { id: true, email: true } } },

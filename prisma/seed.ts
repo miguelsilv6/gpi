@@ -9,6 +9,24 @@ const prisma = new PrismaClient({ adapter })
 async function main() {
   console.log('🌱 A criar seed da base de dados...')
 
+  // Estados de inquérito (5 standard codigos)
+  const ESTADOS_SEED = [
+    { codigo: 'ABERTO', nome: 'Aberto', ordem: 1, terminal: false, cor: 'blue' },
+    { codigo: 'EM_INVESTIGACAO', nome: 'Em Investigação', ordem: 2, terminal: false, cor: 'yellow' },
+    { codigo: 'SUSPENSO', nome: 'Suspenso', ordem: 3, terminal: false, cor: 'orange' },
+    { codigo: 'CONCLUIDO', nome: 'Concluído', ordem: 4, terminal: true, cor: 'green' },
+    { codigo: 'ARQUIVADO', nome: 'Arquivado', ordem: 5, terminal: true, cor: 'gray' },
+  ]
+  const estadosByCodigo: Record<string, { id: string }> = {}
+  for (const e of ESTADOS_SEED) {
+    const r = await prisma.estadoInquerito.upsert({
+      where: { codigo: e.codigo },
+      update: {},
+      create: e,
+    })
+    estadosByCodigo[e.codigo] = r
+  }
+
   // Brigadas
   const brigadaAlfa = await prisma.brigada.upsert({
     where: { nome: 'Brigada Alfa' },
@@ -112,7 +130,7 @@ async function main() {
     create: {
       nuipc: '2024/000001/YUSTR',
       natureza: 'Furto qualificado',
-      estado: 'EM_INVESTIGACAO',
+      estadoId: estadosByCodigo.EM_INVESTIGACAO!.id,
       faseProcessual: 'INQUERITO',
       dataAbertura: new Date('2024-01-15'),
       dataPrazo: new Date('2026-07-15'),
@@ -128,7 +146,7 @@ async function main() {
     create: {
       nuipc: '2024/000002/YUSTR',
       natureza: 'Tráfico de estupefacientes',
-      estado: 'ABERTO',
+      estadoId: estadosByCodigo.ABERTO!.id,
       faseProcessual: 'INSTRUCAO',
       dataAbertura: new Date('2024-03-20'),
       dataPrazo: new Date('2026-06-01'),
@@ -143,7 +161,7 @@ async function main() {
     create: {
       nuipc: '2024/000003/YUSTR',
       natureza: 'Burla informática',
-      estado: 'CONCLUIDO',
+      estadoId: estadosByCodigo.CONCLUIDO!.id,
       faseProcessual: 'JULGAMENTO',
       dataAbertura: new Date('2023-06-10'),
       dataConclusao: new Date('2025-12-01'),

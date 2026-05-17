@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -39,6 +40,16 @@ export async function POST(req: NextRequest) {
     if (exists) return apiError('Já existe uma atividade padrão com este nome', 409)
 
     const atividade = await prisma.atividadePadrao.create({ data: parsed.data })
+
+    await writeAudit({
+      req,
+      acao: 'CREATE_ATIVIDADE_PADRAO',
+      entidade: 'AtividadePadrao',
+      entidadeId: atividade.id,
+      utilizadorId: session.user.id,
+      detalhes: parsed.data as never,
+    })
+
     return Response.json(atividade, { status: 201 })
   } catch (error) {
     return handleApiError(error)

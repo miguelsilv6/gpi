@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -26,8 +27,10 @@ export default function NovaBrigadaPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  useUnsavedChangesWarning(isDirty && !isSubmitting && !isSubmitSuccessful)
 
   async function onSubmit(data: FormData) {
     const res = await fetch('/api/brigadas', {

@@ -15,14 +15,6 @@ enum Role {
   ADMINISTRACAO
 }
 
-enum EstadoInquerito {
-  ABERTO
-  EM_INVESTIGACAO
-  SUSPENSO
-  CONCLUIDO
-  ARQUIVADO
-}
-
 enum FaseProcessual {
   INQUERITO
   INSTRUCAO
@@ -82,19 +74,21 @@ model Utilizador {
 }
 
 model Inquerito {
-  id             String          @id @default(cuid())
-  nuipc          String          @unique
-  nai            String?         @unique
+  id             String         @id @default(cuid())
+  nuipc          String         @unique
+  nai            String?        @unique
   natureza       String
-  estado         EstadoInquerito @default(ABERTO)
-  faseProcessual FaseProcessual  @default(INQUERITO)
+  faseProcessual FaseProcessual @default(INQUERITO)
   dataAbertura   DateTime
   dataPrazo      DateTime?
   dataConclusao  DateTime?
   notas          String?
   deletedAt      DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  estado   EstadoInquerito @relation(fields: [estadoId], references: [id])
+  estadoId String
 
   brigada   Brigada @relation(fields: [brigadaId], references: [id])
   brigadaId String
@@ -107,7 +101,7 @@ model Inquerito {
 
   @@index([brigadaId])
   @@index([inspetorId])
-  @@index([estado])
+  @@index([estadoId])
   @@index([faseProcessual])
   @@index([dataPrazo])
   @@index([nuipc])
@@ -116,6 +110,23 @@ model Inquerito {
   @@index([brigadaId, updatedAt(sort: Desc)])
   @@index([inspetorId, updatedAt(sort: Desc)])
   @@index([deletedAt])
+}
+
+model EstadoInquerito {
+  id        String   @id @default(cuid())
+  codigo    String   @unique
+  nome      String
+  descricao String?
+  ordem     Int      @default(0)
+  terminal  Boolean  @default(false)
+  cor       String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inqueritos Inquerito[]
+
+  @@index([ativo, ordem])
 }
 
 model Atividade {

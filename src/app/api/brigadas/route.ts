@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -52,6 +53,15 @@ export async function POST(req: NextRequest) {
 
     const brigada = await prisma.brigada.create({
       data: { nome, descricao },
+    })
+
+    await writeAudit({
+      req,
+      acao: 'CREATE_BRIGADA',
+      entidade: 'Brigada',
+      entidadeId: brigada.id,
+      utilizadorId: session.user.id,
+      detalhes: { nome, descricao: descricao ?? null },
     })
 
     return Response.json(brigada, { status: 201 })

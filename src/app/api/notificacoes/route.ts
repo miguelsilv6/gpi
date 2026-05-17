@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
 
     const cursor = searchParams.get('cursor') ?? undefined
     const limitParam = searchParams.get('limit')
-    const PAGE_SIZE = limitParam ? Math.min(parseInt(limitParam), 50) : 20
+    const parsedLimit = limitParam ? parseInt(limitParam, 10) : NaN
+    const PAGE_SIZE = Number.isFinite(parsedLimit) && parsedLimit > 0
+      ? Math.min(parsedLimit, 50)
+      : 20
 
     const notificacoes = await prisma.notificacao.findMany({
       where: {

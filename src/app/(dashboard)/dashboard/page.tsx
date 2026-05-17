@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { ROLE_LABELS } from '@/lib/rbac'
-import { ESTADO_LABELS, FASE_LABELS } from '@/lib/constants'
+import { FASE_LABELS } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 import {
   FolderOpen,
@@ -26,20 +26,27 @@ export default async function DashboardPage() {
   const now = new Date()
 
   const [total, emInvestigacao, vencidos, recentes] = await Promise.all([
-    prisma.inquerito.count({ where }),
-    prisma.inquerito.count({ where: { ...where, estado: 'EM_INVESTIGACAO' } }),
+    prisma.inquerito.count({ where: { ...where, deletedAt: null } }),
+    prisma.inquerito.count({
+      where: { ...where, deletedAt: null, estado: { codigo: 'EM_INVESTIGACAO' } },
+    }),
     prisma.inquerito.count({
       where: {
         ...where,
+        deletedAt: null,
         dataPrazo: { lt: now },
-        estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] },
+        estado: { terminal: false },
       },
     }),
     prisma.inquerito.findMany({
-      where,
+      where: { ...where, deletedAt: null },
       orderBy: { updatedAt: 'desc' },
       take: 5,
-      include: { brigada: { select: { nome: true } }, inspetor: { select: { nome: true } } },
+      include: {
+        brigada: { select: { nome: true } },
+        inspetor: { select: { nome: true } },
+        estado: { select: { codigo: true, nome: true, cor: true } },
+      },
     }),
   ])
 
@@ -129,7 +136,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                      {ESTADO_LABELS[inq.estado]}
+                      {inq.estado.nome}
                     </Badge>
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                       {FASE_LABELS[inq.faseProcessual]}

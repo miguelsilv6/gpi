@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, handleApiError, apiError } from '@/lib/auth-helpers'
+import { getRequestInfo } from '@/lib/request-info'
 import { notifyInqueritoTransferido } from '@/lib/notifications'
 import { nuipcToSlug } from '@/lib/utils'
 import { z } from 'zod'
@@ -20,14 +21,17 @@ export async function POST(req: NextRequest) {
 
     const { nuipc, brigadaId } = parsed.data
 
-    const inquerito = await prisma.inquerito.findUnique({ where: { nuipc } })
+    const inquerito = await prisma.inquerito.findUnique({
+      where: { nuipc },
+      include: { estado: { select: { codigo: true, terminal: true } } },
+    })
     if (!inquerito || inquerito.deletedAt) return apiError('Inquérito não encontrado', 404)
 
     if (inquerito.brigadaId === brigadaId) {
       return apiError('Brigada destino é igual à actual', 409)
     }
 
-    if (inquerito.estado === 'ARQUIVADO') {
+    if (inquerito.estado.codigo === 'ARQUIVADO') {
       return apiError('Inquérito arquivado não pode ser transferido', 409)
     }
 
@@ -43,6 +47,8 @@ export async function POST(req: NextRequest) {
       select: { nome: true },
     })
 
+    const { ip, userAgent } = getRequestInfo(req)
+
     const updated = await prisma.$transaction(async (tx) => {
       const u = await tx.inquerito.update({
         where: { nuipc },
@@ -54,10 +60,8 @@ export async function POST(req: NextRequest) {
           entidade: 'Inquerito',
           entidadeId: u.id,
           utilizadorId: session.user.id,
-          // IP/UA captured below via writeAudit-style fields directly:
-          // (we use tx.create here, so we inline the request info)
-          ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? null,
-          userAgent: req.headers.get('user-agent') ?? null,
+          ip,
+          userAgent,
           detalhes: {
             from: { brigadaId: inquerito.brigadaId, nome: brigadaOrigem?.nome ?? null },
             to: { brigadaId, nome: brigadaDestino.nome },
@@ -68,7 +72,6 @@ export async function POST(req: NextRequest) {
       return u
     })
 
-    // Notify brigade chiefs (outside the transaction)
     const [chefeOrigem, chefeDestino] = await Promise.all([
       prisma.utilizador.findFirst({
         where: { brigadaId: inquerito.brigadaId, role: 'INSPETOR_CHEFE', ativo: true },
@@ -98,4 +101,3 @@ export async function POST(req: NextRequest) {
     return handleApiError(error)
   }
 }
-

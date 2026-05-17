@@ -14,7 +14,7 @@ interface Stats {
   total: number
   vencidos: number
   semInspetor: number
-  porEstado: { estado: string; count: number }[]
+  porEstado: { estadoId: string; codigo: string; nome: string; cor: string | null; count: number }[]
   porFase: { fase: string; count: number }[]
   porBrigada: { brigadaId: string; nome: string; count: number }[]
   porNatureza: { natureza: string; count: number }[]
@@ -49,7 +49,13 @@ export function EstatisticasDashboard({ brigadas }: { brigadas: Brigada[] }) {
           <Label className="text-xs text-muted-foreground">Brigada</Label>
           <Select value={brigadaFilter || 'all'} onValueChange={(v) => setBrigadaFilter(!v || v === 'all' ? '' : v)}>
             <SelectTrigger className="h-9 w-[180px] text-sm">
-              <SelectValue placeholder="Todas as brigadas" />
+              <SelectValue placeholder="Todas as brigadas">
+                {(v: string) =>
+                  !v || v === 'all'
+                    ? 'Todas as brigadas'
+                    : brigadas.find((b) => b.id === v)?.nome ?? 'Todas as brigadas'
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as brigadas</SelectItem>

@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/rbac'
+import { listEstados, findEstadoByCodigo } from '@/lib/estados'
 import { InqueritoForm } from '@/components/inqueritos/inquerito-form'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -14,7 +15,7 @@ export default async function NovoInqueritoPage() {
   const role = session.user.role as Role
   if (!hasPermission(role, 'inquerito:create')) redirect('/inqueritos')
 
-  const [brigadas, inspetores] = await Promise.all([
+  const [brigadas, inspetores, estados, defaultEstado] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -25,6 +26,8 @@ export default async function NovoInqueritoPage() {
       orderBy: { nome: 'asc' },
       select: { id: true, nome: true, brigadaId: true },
     }),
+    listEstados({ onlyActive: true }),
+    findEstadoByCodigo('ABERTO'),
   ])
 
   return (
@@ -48,9 +51,11 @@ export default async function NovoInqueritoPage() {
         mode="create"
         brigadas={brigadas}
         inspetores={inspetores}
-        defaultValues={
-          session.user.brigadaId ? { brigadaId: session.user.brigadaId } : undefined
-        }
+        estados={estados}
+        defaultValues={{
+          ...(session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
+          ...(defaultEstado ? { estadoId: defaultEstado.id } : {}),
+        }}
       />
     </div>
   )

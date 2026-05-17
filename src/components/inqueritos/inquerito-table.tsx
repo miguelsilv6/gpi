@@ -9,12 +9,21 @@ import { formatDate, isOverdue, cn, nuipcToSlug } from '@/lib/utils'
 import { AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
+interface EstadoLike {
+  id: string
+  codigo: string
+  nome: string
+  cor: string | null
+  terminal: boolean
+  ativo: boolean
+}
+
 interface Inquerito {
   id: string
   nuipc: string
   nai: string | null
   natureza: string
-  estado: string
+  estado: EstadoLike
   faseProcessual: string
   dataPrazo: Date | null
   inspetor: { id: string; nome: string } | null
@@ -22,7 +31,7 @@ interface Inquerito {
   _count: { atividades: number }
 }
 
-interface Inspetor { id: string; nome: string }
+interface Inspetor { id: string; nome: string; brigadaId: string | null }
 interface Brigada { id: string; nome: string }
 
 interface Props {
@@ -31,6 +40,7 @@ interface Props {
   canTransfer: boolean
   inspetores: Inspetor[]
   brigadas: Brigada[]
+  estados: EstadoLike[]
 }
 
 interface RowProps {
@@ -41,7 +51,7 @@ interface RowProps {
 }
 
 const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) {
-  const overdue = isOverdue(inq.dataPrazo) && !['CONCLUIDO', 'ARQUIVADO'].includes(inq.estado)
+  const overdue = isOverdue(inq.dataPrazo) && !inq.estado.terminal
   return (
     <tr
       className={cn(
@@ -75,7 +85,7 @@ const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) 
       </td>
       <td className="px-4 py-3 max-w-[200px] truncate">{inq.natureza}</td>
       <td className="px-4 py-3">
-        <EstadoBadge estado={inq.estado as never} />
+        <EstadoBadge estado={inq.estado} />
       </td>
       <td className="px-4 py-3">
         <FaseBadge fase={inq.faseProcessual as never} />
@@ -93,7 +103,7 @@ const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) 
   )
 })
 
-export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, brigadas }: Props) {
+export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, brigadas, estados }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const allIds = inqueritos.map((i) => i.id)
@@ -176,7 +186,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
               nuipc={inq.nuipc}
               nai={inq.nai}
               natureza={inq.natureza}
-              estado={inq.estado as never}
+              estado={inq.estado}
               faseProcessual={inq.faseProcessual as never}
               dataPrazo={inq.dataPrazo}
               inspetorNome={inq.inspetor?.nome}
@@ -198,6 +208,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
           canTransfer={canTransfer}
           inspetores={inspetores}
           brigadas={brigadas}
+          estados={estados}
         />
       )}
     </>

@@ -12,18 +12,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { inqueritoSchema, type InqueritoFormData } from '@/lib/validations/inquerito'
-import { ESTADO_LABELS, FASE_LABELS } from '@/lib/constants'
+import { FASE_LABELS } from '@/lib/constants'
 import { nuipcToSlug } from '@/lib/utils'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { Loader2 } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
+interface Estado { id: string; codigo: string; nome: string; terminal: boolean; ativo: boolean }
 
 interface InqueritoFormProps {
   defaultValues?: Partial<InqueritoFormData>
   brigadas: Brigada[]
   inspetores: Inspetor[]
+  estados: Estado[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
 }
@@ -32,10 +34,17 @@ export function InqueritoForm({
   defaultValues,
   brigadas,
   inspetores,
+  estados,
   nuipcOriginal,
   mode,
 }: InqueritoFormProps) {
   const router = useRouter()
+
+  const defaultEstadoId =
+    defaultValues?.estadoId ??
+    estados.find((e) => e.codigo === 'ABERTO')?.id ??
+    estados[0]?.id ??
+    ''
 
   const {
     register,
@@ -46,7 +55,7 @@ export function InqueritoForm({
   } = useForm<InqueritoFormData>({
     resolver: zodResolver(inqueritoSchema),
     defaultValues: {
-      estado: 'ABERTO',
+      estadoId: defaultEstadoId,
       faseProcessual: 'INQUERITO',
       ...defaultValues,
     },
@@ -168,24 +177,24 @@ export function InqueritoForm({
             <div className="space-y-1.5">
               <Label>Estado *</Label>
               <Select
-                defaultValue={defaultValues?.estado ?? 'ABERTO'}
-                onValueChange={(v) => setValue('estado', v as InqueritoFormData['estado'])}
+                value={watch('estadoId') || ''}
+                onValueChange={(v) => setValue('estadoId', v ?? '', { shouldDirty: true })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecionar estado">
                     {(v: string) =>
-                      ESTADO_LABELS[v as keyof typeof ESTADO_LABELS] ?? 'Selecionar estado'
+                      estados.find((e) => e.id === v)?.nome ?? 'Selecionar estado'
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(ESTADO_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  {estados.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {errors.estado && (
-                <p className="text-xs text-red-600">{errors.estado.message}</p>
+              {errors.estadoId && (
+                <p className="text-xs text-red-600">{errors.estadoId.message}</p>
               )}
             </div>
 

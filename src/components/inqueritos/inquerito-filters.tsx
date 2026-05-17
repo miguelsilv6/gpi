@@ -5,8 +5,14 @@ import { useCallback, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { ESTADO_LABELS, FASE_LABELS } from '@/lib/constants'
+import { FASE_LABELS } from '@/lib/constants'
 import { Search, X, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react'
+
+interface EstadoFilterOption {
+  id: string
+  codigo: string
+  nome: string
+}
 
 const SORT_OPTIONS: Record<string, string> = {
   'updatedAt:desc': 'Última alteração',
@@ -16,7 +22,7 @@ const SORT_OPTIONS: Record<string, string> = {
   'nuipc:asc': 'NUIPC (A→Z)',
 }
 
-export function InqueritoFilters() {
+export function InqueritoFilters({ estados }: { estados: EstadoFilterOption[] }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -73,16 +79,21 @@ export function InqueritoFilters() {
         </div>
 
         <Select
-          value={searchParams.get('estado') || ''}
+          value={searchParams.get('estado') || 'all'}
           onValueChange={(v) => update({ estado: !v || v === 'all' ? null : v })}
         >
           <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Estado" />
+            <SelectValue placeholder="Estado">
+              {(v: string) => {
+                if (!v || v === 'all') return 'Todos os estados'
+                return estados.find((e) => e.codigo === v)?.nome ?? v
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os estados</SelectItem>
-            {Object.entries(ESTADO_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
+            {estados.map((e) => (
+              <SelectItem key={e.id} value={e.codigo}>{e.nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>

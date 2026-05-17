@@ -38,6 +38,7 @@ export default async function InqueritoDetailPage({
   const inquerito = await prisma.inquerito.findFirst({
     where: { nuipc, deletedAt: null, ...roleWhere },
     include: {
+      estado: { select: { id: true, codigo: true, nome: true, cor: true, terminal: true } },
       brigada: { select: { id: true, nome: true } },
       inspetor: { select: { id: true, nome: true, email: true } },
       _count: { select: { atividades: true } },

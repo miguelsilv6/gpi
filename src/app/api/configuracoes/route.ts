@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { writeAudit, diff } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -40,11 +41,32 @@ export async function PUT(req: NextRequest) {
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
+    const before = await prisma.configuracaoSistema.findUnique({ where: { id: 'singleton' } })
+
     const config = await prisma.configuracaoSistema.upsert({
       where: { id: 'singleton' },
       update: parsed.data,
       create: { id: 'singleton', ...parsed.data },
     })
+
+    const changes = before
+      ? diff(before, config, [
+          'prazoAlertaDias',
+          'backupScheduleCron',
+          'emailRemetenteNome',
+          'emailRemetenteAddr',
+        ])
+      : null
+    if (changes || !before) {
+      await writeAudit({
+        req,
+        acao: before ? 'UPDATE_CONFIG_SISTEMA' : 'CREATE_CONFIG_SISTEMA',
+        entidade: 'ConfiguracaoSistema',
+        entidadeId: 'singleton',
+        utilizadorId: session.user.id,
+        detalhes: (changes ?? parsed.data) as never,
+      })
+    }
 
     return Response.json(config)
   } catch (error) {

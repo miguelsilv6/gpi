@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const estado = searchParams.get('estado') ?? ''
+    const estadoCodigo = searchParams.get('estado') ?? ''
     const faseProcessual = searchParams.get('faseProcessual') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const where = {
       deletedAt: null,
       ...roleWhere,
-      ...(estado && { estado: estado as never }),
+      ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
       ...(faseProcessual && { faseProcessual: faseProcessual as never }),
       ...(brigadaId && { brigadaId }),
     }
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       select: {
         nuipc: true,
         natureza: true,
-        estado: true,
+        estado: { select: { codigo: true, nome: true } },
         faseProcessual: true,
         dataAbertura: true,
         dataPrazo: true,
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       entidadeId: '__bulk_export__',
       utilizadorId: session.user.id,
       detalhes: {
-        filtros: { estado, faseProcessual, brigadaId },
+        filtros: { estadoCodigo, faseProcessual, brigadaId },
         quantidade: inqueritos.length,
       },
     })
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
     const rows = inqueritos.map((i) => [
       i.nuipc,
       i.natureza,
-      i.estado,
+      i.estado.nome,
       i.faseProcessual,
       i.dataAbertura ? new Date(i.dataAbertura).toLocaleDateString('pt-PT') : '',
       i.dataPrazo ? new Date(i.dataPrazo).toLocaleDateString('pt-PT') : '',

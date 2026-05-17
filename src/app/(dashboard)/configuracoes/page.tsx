@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { EstadosTab } from './estados-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -307,7 +308,7 @@ function AtividadesTab() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'atividades'
+type Tab = 'sistema' | 'estados' | 'atividades'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -363,7 +364,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0">
-        {(['sistema', 'atividades'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'atividades'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -374,7 +375,7 @@ export default function ConfiguracoesPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
-            {t === 'sistema' ? 'Sistema' : 'Atividades'}
+            {t === 'sistema' ? 'Sistema' : t === 'estados' ? 'Estados' : 'Atividades'}
           </button>
         ))}
       </div>
@@ -454,6 +455,9 @@ export default function ConfiguracoesPage() {
           </Button>
         </form>
       )}
+
+      {/* Estados tab */}
+      {tab === 'estados' && <EstadosTab />}
 
       {/* Atividades tab */}
       {tab === 'atividades' && <AtividadesTab />}

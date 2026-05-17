@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -45,6 +46,11 @@ export default function PerfilPage() {
 
   const profileForm = useForm<ProfileData>({ resolver: zodResolver(profileSchema) })
   const passwordForm = useForm<PasswordData>({ resolver: zodResolver(passwordSchema) })
+
+  useUnsavedChangesWarning(
+    (profileForm.formState.isDirty && !profileForm.formState.isSubmitting && !profileForm.formState.isSubmitSuccessful) ||
+      (passwordForm.formState.isDirty && !passwordForm.formState.isSubmitting && !passwordForm.formState.isSubmitSuccessful),
+  )
 
   useEffect(() => {
     fetch('/api/perfil')

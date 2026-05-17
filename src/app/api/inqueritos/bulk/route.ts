@@ -3,9 +3,9 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
-import { writeAudit } from '@/lib/audit'
 import { bulkActionSchema } from '@/lib/validations/inquerito'
 import { canTransition } from '@/lib/inquerito-state'
+import { findEstadoById } from '@/lib/estados'
 import type { Role } from '@/generated/prisma/enums'
 import type { Prisma } from '@/generated/prisma/client'
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const parsed = bulkActionSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { ids, action, inspetorId, estado, faseProcessual, brigadaId } = parsed.data
+    const { ids, action, inspetorId, estadoId, faseProcessual, brigadaId } = parsed.data
 
     if (ids.length > MAX_BULK) {
       return apiError(`Máximo ${MAX_BULK} inquéritos por operação`, 400)
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     // Required payload per action
     if (action === 'assign' && inspetorId === undefined) return apiError('inspetorId obrigatório', 400)
-    if (action === 'changeState' && !estado) return apiError('estado obrigatório', 400)
+    if (action === 'changeState' && !estadoId) return apiError('estadoId obrigatório', 400)
     if (action === 'changeFase' && !faseProcessual) return apiError('faseProcessual obrigatória', 400)
     if (action === 'transfer' && !brigadaId) return apiError('brigadaId obrigatório', 400)
 
@@ -55,9 +55,10 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         nuipc: true,
-        estado: true,
+        estadoId: true,
         brigadaId: true,
         inspetorId: true,
+        estado: { select: { codigo: true, terminal: true } },
       },
     })
 
@@ -70,7 +71,6 @@ export async function POST(req: NextRequest) {
         select: { ativo: true, brigadaId: true },
       })
       if (!inspetor || !inspetor.ativo) return apiError('Inspetor inválido', 400)
-      // All targets must belong to the inspetor's brigada
       const mismatched = targets.filter((t) => t.brigadaId !== inspetor.brigadaId)
       if (mismatched.length > 0) {
         return apiError(
@@ -88,8 +88,11 @@ export async function POST(req: NextRequest) {
       if (!brigada || !brigada.ativa) return apiError('Brigada destino inválida', 400)
     }
 
-    if (action === 'changeState' && estado) {
-      const invalid = targets.filter((t) => !canTransition(t.estado, estado))
+    let targetEstado: { id: string; codigo: string; terminal: boolean; ativo: boolean } | null = null
+    if (action === 'changeState' && estadoId) {
+      targetEstado = await findEstadoById(estadoId)
+      if (!targetEstado || !targetEstado.ativo) return apiError('Estado inválido', 400)
+      const invalid = targets.filter((t) => !canTransition(t.estado, targetEstado!))
       if (invalid.length > 0) {
         return apiError(
           `Transição inválida para ${invalid.length} inquérito(s) (alguns em estado terminal)`,
@@ -101,11 +104,10 @@ export async function POST(req: NextRequest) {
     const validIds = targets.map((t) => t.id)
     const auditAcao = `BULK_${action.toUpperCase()}`
 
-    // Execute in a transaction so audit + update succeed together
     await prisma.$transaction(async (tx) => {
       const data: Prisma.InqueritoUncheckedUpdateManyInput = {}
       if (action === 'assign') data.inspetorId = inspetorId ?? null
-      if (action === 'changeState' && estado) data.estado = estado
+      if (action === 'changeState' && estadoId) data.estadoId = estadoId
       if (action === 'changeFase' && faseProcessual) data.faseProcessual = faseProcessual
       if (action === 'transfer' && brigadaId) {
         data.brigadaId = brigadaId
@@ -126,11 +128,14 @@ export async function POST(req: NextRequest) {
           detalhes: {
             nuipc: t.nuipc,
             before: {
-              estado: t.estado,
+              estadoCodigo: t.estado.codigo,
               brigadaId: t.brigadaId,
               inspetorId: t.inspetorId,
             },
-            after: data,
+            after:
+              action === 'changeState' && targetEstado
+                ? { estadoCodigo: targetEstado.codigo }
+                : data,
           } as never,
         })),
       })

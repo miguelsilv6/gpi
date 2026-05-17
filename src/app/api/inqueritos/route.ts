@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { checkPermission, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
+import { findEstadoById } from '@/lib/estados'
+import { isTerminal } from '@/lib/inquerito-state'
 import type { Role } from '@/generated/prisma/enums'
 
 export async function GET(req: NextRequest) {
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit
 
     const search = searchParams.get('search') ?? ''
-    const estado = searchParams.get('estado') ?? ''
+    const estadoCodigo = searchParams.get('estado') ?? ''
     const faseProcessual = searchParams.get('faseProcessual') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
     const inspetorId = searchParams.get('inspetorId') ?? ''
@@ -40,14 +42,14 @@ export async function GET(req: NextRequest) {
           { natureza: { contains: search, mode: 'insensitive' as const } },
         ],
       }),
-      ...(estado && { estado: estado as never }),
+      ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
       ...(faseProcessual && { faseProcessual: faseProcessual as never }),
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
       ...(semInspetor && { inspetorId: null }),
       ...(overdue && {
         dataPrazo: { lt: new Date() },
-        estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] as never[] },
+        estado: { terminal: false },
       }),
       ...((dataAberturaFrom || dataAberturaTo) && {
         dataAbertura: {
@@ -62,7 +64,6 @@ export async function GET(req: NextRequest) {
       dataAbertura: true,
       dataPrazo: true,
       nuipc: true,
-      estado: true,
     }
     const orderBy = (ALLOWED_SORT[sort] ? { [sort]: order } : { updatedAt: 'desc' }) as never
 
@@ -73,6 +74,7 @@ export async function GET(req: NextRequest) {
         take: limit,
         orderBy,
         include: {
+          estado: { select: { id: true, codigo: true, nome: true, cor: true, terminal: true } },
           brigada: { select: { id: true, nome: true } },
           inspetor: { select: { id: true, nome: true } },
           _count: { select: { atividades: true } },
@@ -101,8 +103,20 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data
-    // Normalize empty string → null for optional FK
     const inspetorId = data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null
+
+    // Resolve estado and validate
+    const estado = await findEstadoById(data.estadoId)
+    if (!estado || !estado.ativo) return apiError('Estado inválido', 400)
+
+    // Date/state consistency: terminal estado requires dataConclusao
+    const conclusao = data.dataConclusao ? new Date(data.dataConclusao) : null
+    if (isTerminal(estado) && !conclusao) {
+      return apiError('Estado terminal exige data de conclusão', 400)
+    }
+    if (!isTerminal(estado) && conclusao) {
+      return apiError('Data de conclusão só se aplica a estados terminais', 400)
+    }
 
     // Validate inspetor (if any) belongs to the brigada
     if (inspetorId) {
@@ -121,11 +135,11 @@ export async function POST(req: NextRequest) {
         nuipc: data.nuipc,
         nai: data.nai || null,
         natureza: data.natureza,
-        estado: data.estado,
+        estadoId: data.estadoId,
         faseProcessual: data.faseProcessual,
         dataAbertura: new Date(data.dataAbertura),
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
-        dataConclusao: data.dataConclusao ? new Date(data.dataConclusao) : null,
+        dataConclusao: conclusao,
         notas: data.notas ?? null,
         brigadaId: data.brigadaId,
         inspetorId,
@@ -141,7 +155,7 @@ export async function POST(req: NextRequest) {
       detalhes: {
         nuipc: inquerito.nuipc,
         natureza: inquerito.natureza,
-        estado: inquerito.estado,
+        estadoCodigo: estado.codigo,
         brigadaId: inquerito.brigadaId,
         inspetorId: inquerito.inspetorId ?? null,
       },

@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     }
 
     const [
-      porEstado,
+      porEstadoRaw,
       porFase,
       porBrigada,
       porNatureza,
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       vencidos,
       semInspetor,
     ] = await Promise.all([
-      prisma.inquerito.groupBy({ by: ['estado'], where, _count: true }),
+      prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
       prisma.inquerito.groupBy({ by: ['faseProcessual'], where, _count: true }),
       prisma.inquerito.groupBy({
         by: ['brigadaId'],
@@ -71,26 +71,42 @@ export async function GET(req: NextRequest) {
         where: {
           ...where,
           dataPrazo: { lt: new Date() },
-          estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] },
+          estado: { terminal: false },
         },
       }),
       prisma.inquerito.count({
-        where: { ...where, inspetorId: null, estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] } },
+        where: { ...where, inspetorId: null, estado: { terminal: false } },
       }),
     ])
 
-    // Enrich brigadaId groupBy with names
-    const brigadas = await prisma.brigada.findMany({
-      where: { id: { in: porBrigada.map((b) => b.brigadaId) } },
-      select: { id: true, nome: true },
-    })
+    // Enrich groupBy with related labels
+    const [brigadas, estados] = await Promise.all([
+      prisma.brigada.findMany({
+        where: { id: { in: porBrigada.map((b) => b.brigadaId) } },
+        select: { id: true, nome: true },
+      }),
+      prisma.estadoInquerito.findMany({
+        where: { id: { in: porEstadoRaw.map((e) => e.estadoId) } },
+        select: { id: true, codigo: true, nome: true, cor: true },
+      }),
+    ])
     const brigadaNomes = Object.fromEntries(brigadas.map((b) => [b.id, b.nome]))
+    const estadoById = new Map(estados.map((e) => [e.id, e]))
 
     return Response.json({
       total,
       vencidos,
       semInspetor,
-      porEstado: porEstado.map((r) => ({ estado: r.estado, count: r._count })),
+      porEstado: porEstadoRaw.map((r) => {
+        const e = estadoById.get(r.estadoId)
+        return {
+          estadoId: r.estadoId,
+          codigo: e?.codigo ?? '',
+          nome: e?.nome ?? '',
+          cor: e?.cor ?? null,
+          count: r._count,
+        }
+      }),
       porFase: porFase.map((r) => ({ fase: r.faseProcessual, count: r._count })),
       porBrigada: porBrigada.map((r) => ({
         brigadaId: r.brigadaId,

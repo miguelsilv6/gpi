@@ -3,14 +3,21 @@ import { EstadoBadge } from './estado-badge'
 import { FaseBadge } from './fase-badge'
 import { formatDate, isOverdue, nuipcToSlug } from '@/lib/utils'
 import { AlertTriangle, Calendar, User } from 'lucide-react'
-import type { EstadoInquerito, FaseProcessual } from '@/generated/prisma/enums'
+import type { FaseProcessual } from '@/generated/prisma/enums'
 import { cn } from '@/lib/utils'
+
+interface EstadoLike {
+  codigo: string
+  nome: string
+  cor: string | null
+  terminal: boolean
+}
 
 interface InqueritoCardProps {
   nuipc: string
   nai?: string | null
   natureza: string
-  estado: EstadoInquerito
+  estado: EstadoLike
   faseProcessual: FaseProcessual
   dataPrazo: Date | null
   inspetorNome?: string | null
@@ -29,7 +36,7 @@ export function InqueritoCard({
   brigadaNome,
   atividadesCount = 0,
 }: InqueritoCardProps) {
-  const overdue = isOverdue(dataPrazo) && !['CONCLUIDO', 'ARQUIVADO'].includes(estado)
+  const overdue = isOverdue(dataPrazo) && !estado.terminal
 
   return (
     <Link

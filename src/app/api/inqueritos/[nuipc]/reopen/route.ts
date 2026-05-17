@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
+import { getReopenEstado } from '@/lib/estados'
 import { slugToNuipc } from '@/lib/utils'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
@@ -30,17 +31,25 @@ export async function POST(
     const { nuipc: slug } = await params
     const nuipc = slugToNuipc(slug)
 
-    const existing = await prisma.inquerito.findUnique({ where: { nuipc } })
+    const existing = await prisma.inquerito.findUnique({
+      where: { nuipc },
+      include: { estado: { select: { codigo: true, terminal: true } } },
+    })
     if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
 
-    if (existing.estado !== 'CONCLUIDO' && existing.estado !== 'ARQUIVADO') {
-      return apiError('Apenas inquéritos concluídos ou arquivados podem ser reabertos', 409)
+    if (!existing.estado.terminal) {
+      return apiError('Apenas inquéritos em estado terminal podem ser reabertos', 409)
+    }
+
+    const reopenEstado = await getReopenEstado()
+    if (!reopenEstado || !reopenEstado.ativo) {
+      return apiError('Estado de reabertura não configurado ou inativo', 500)
     }
 
     const updated = await prisma.inquerito.update({
       where: { nuipc },
       data: {
-        estado: 'EM_INVESTIGACAO',
+        estadoId: reopenEstado.id,
         dataConclusao: null,
       },
     })
@@ -52,8 +61,8 @@ export async function POST(
       entidadeId: updated.id,
       utilizadorId: session.user.id,
       detalhes: {
-        estadoAnterior: existing.estado,
-        estadoNovo: updated.estado,
+        estadoAnterior: existing.estado.codigo,
+        estadoNovo: reopenEstado.codigo,
         motivo: parsed.data.motivo,
       },
     })

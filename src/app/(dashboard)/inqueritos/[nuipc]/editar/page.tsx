@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { InqueritoForm } from '@/components/inqueritos/inquerito-form'
+import { listEstados } from '@/lib/estados'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -36,7 +37,7 @@ export default async function EditarInqueritoPage({
 
   if (!canEdit) redirect(`/inqueritos/${nuipcToSlug(nuipc)}`)
 
-  const [brigadas, inspetores] = await Promise.all([
+  const [brigadas, inspetores, estados] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -47,6 +48,7 @@ export default async function EditarInqueritoPage({
       orderBy: { nome: 'asc' },
       select: { id: true, nome: true, brigadaId: true },
     }),
+    listEstados({ onlyActive: true }),
   ])
 
   const formatForInput = (d: Date | null) =>
@@ -76,10 +78,11 @@ export default async function EditarInqueritoPage({
         nuipcOriginal={nuipc}
         brigadas={brigadas}
         inspetores={inspetores}
+        estados={estados}
         defaultValues={{
           nuipc: inquerito.nuipc,
           natureza: inquerito.natureza,
-          estado: inquerito.estado,
+          estadoId: inquerito.estadoId,
           faseProcessual: inquerito.faseProcessual,
           dataAbertura: format(inquerito.dataAbertura, 'yyyy-MM-dd'),
           dataPrazo: formatForInput(inquerito.dataPrazo),

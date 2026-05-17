@@ -10,11 +10,16 @@ import {
 } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
+import { findEstadoById } from '@/lib/estados'
 import { notifyInqueritoAtribuido } from '@/lib/notifications'
 import { slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { canTransition } from '@/lib/inquerito-state'
+import { canTransition, isTerminal } from '@/lib/inquerito-state'
 import { diff, writeAudit } from '@/lib/audit'
 import type { Role } from '@/generated/prisma/enums'
+
+const ESTADO_INCLUDE = {
+  select: { id: true, codigo: true, nome: true, cor: true, terminal: true, ativo: true },
+} as const
 
 export async function GET(
   _req: NextRequest,
@@ -30,6 +35,7 @@ export async function GET(
     const inquerito = await prisma.inquerito.findFirst({
       where: { nuipc, deletedAt: null, ...roleWhere },
       include: {
+        estado: ESTADO_INCLUDE,
         brigada: { select: { id: true, nome: true } },
         inspetor: { select: { id: true, nome: true, email: true } },
         atividades: {
@@ -56,7 +62,10 @@ export async function PUT(
     const nuipc = slugToNuipc(slug)
     const role = session.user.role as Role
 
-    const existing = await prisma.inquerito.findUnique({ where: { nuipc } })
+    const existing = await prisma.inquerito.findUnique({
+      where: { nuipc },
+      include: { estado: ESTADO_INCLUDE },
+    })
     if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
 
     if (!canEditInquerito(role, session.user.id, session.user.brigadaId, existing)) {
@@ -68,25 +77,35 @@ export async function PUT(
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
     const data = parsed.data
+    const inspetorId = data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null
 
-    // Terminal-state lock: arquivado is read-only via PUT.
-    // CONCLUIDO is editable for non-state-changing fields (closures need amendments).
-    if (existing.estado === 'ARQUIVADO' && data.estado === 'ARQUIVADO') {
+    // Resolve target estado
+    const targetEstado = await findEstadoById(data.estadoId)
+    if (!targetEstado || !targetEstado.ativo) return apiError('Estado inválido', 400)
+
+    // ARQUIVADO-like full lock: arquivado existing + same target → blocked
+    if (existing.estado.codigo === 'ARQUIVADO' && targetEstado.codigo === 'ARQUIVADO') {
       return apiError('Inquérito arquivado é só de leitura. Use a reabertura.', 409)
     }
 
     // State machine
-    if (data.estado !== existing.estado && !canTransition(existing.estado, data.estado)) {
+    if (data.estadoId !== existing.estadoId && !canTransition(existing.estado, targetEstado)) {
       return apiError(
-        `Transição inválida: ${existing.estado} → ${data.estado}. Use a reabertura se necessário.`,
+        `Transição inválida: ${existing.estado.codigo} → ${targetEstado.codigo}. Use a reabertura se necessário.`,
         409,
       )
     }
 
-    // Going from non-terminal to terminal: only via dedicated endpoint? No — allowed here
-    // but it stamps dataConclusao via the schema's superRefine.
+    // Date / state consistency
+    const conclusao = data.dataConclusao ? new Date(data.dataConclusao) : null
+    if (isTerminal(targetEstado) && !conclusao) {
+      return apiError('Estado terminal exige data de conclusão', 400)
+    }
+    if (!isTerminal(targetEstado) && conclusao) {
+      return apiError('Data de conclusão só se aplica a estados terminais', 400)
+    }
 
-    // NUIPC change: validate uniqueness and that the change is permitted (admin/coordenador)
+    // NUIPC change: validate uniqueness and that the change is permitted
     if (data.nuipc !== nuipc) {
       if (!hasPermission(role, 'inquerito:edit:all')) {
         return apiError('Apenas coordenação/administração pode alterar o NUIPC', 403)
@@ -100,10 +119,7 @@ export async function PUT(
       return apiError('Use o endpoint de transferência para alterar a brigada', 409)
     }
 
-    // Normalize empty string → null for optional FK
-    const inspetorId = data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null
-
-    // Inspetor change: validate inspetor belongs to the inquérito's brigada
+    // Inspetor change: validate brigada match
     if (inspetorId && inspetorId !== existing.inspetorId) {
       const inspetor = await prisma.utilizador.findUnique({
         where: { id: inspetorId },
@@ -121,21 +137,44 @@ export async function PUT(
         nuipc: data.nuipc,
         nai: data.nai || null,
         natureza: data.natureza,
-        estado: data.estado,
+        estadoId: data.estadoId,
         faseProcessual: data.faseProcessual,
         dataAbertura: new Date(data.dataAbertura),
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
-        dataConclusao: data.dataConclusao ? new Date(data.dataConclusao) : null,
+        dataConclusao: conclusao,
         notas: data.notas ?? null,
         inspetorId,
       },
     })
 
-    const changes = diff(existing, updated, [
+    // Audit diff. We log estado as the codigo (stable across renames).
+    const before = {
+      nuipc: existing.nuipc,
+      nai: existing.nai,
+      natureza: existing.natureza,
+      estadoCodigo: existing.estado.codigo,
+      faseProcessual: existing.faseProcessual,
+      dataAbertura: existing.dataAbertura,
+      dataPrazo: existing.dataPrazo,
+      dataConclusao: existing.dataConclusao,
+      inspetorId: existing.inspetorId,
+    }
+    const after = {
+      nuipc: updated.nuipc,
+      nai: updated.nai,
+      natureza: updated.natureza,
+      estadoCodigo: targetEstado.codigo,
+      faseProcessual: updated.faseProcessual,
+      dataAbertura: updated.dataAbertura,
+      dataPrazo: updated.dataPrazo,
+      dataConclusao: updated.dataConclusao,
+      inspetorId: updated.inspetorId,
+    }
+    const changes = diff(before, after, [
       'nuipc',
       'nai',
       'natureza',
-      'estado',
+      'estadoCodigo',
       'faseProcessual',
       'dataAbertura',
       'dataPrazo',
@@ -154,9 +193,7 @@ export async function PUT(
       })
     }
 
-    // Notify on inspetor assignment
-    const inspetorChanged =
-      updated.inspetorId && updated.inspetorId !== existing.inspetorId
+    const inspetorChanged = updated.inspetorId && updated.inspetorId !== existing.inspetorId
     if (inspetorChanged) {
       const inspetor = await prisma.utilizador.findUnique({
         where: { id: updated.inspetorId! },
@@ -186,7 +223,6 @@ export async function PUT(
   }
 }
 
-// Soft delete (ADMINISTRACAO only)
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ nuipc: string }> },
@@ -200,7 +236,10 @@ export async function DELETE(
 
     const { nuipc: slug } = await params
     const nuipc = slugToNuipc(slug)
-    const existing = await prisma.inquerito.findUnique({ where: { nuipc } })
+    const existing = await prisma.inquerito.findUnique({
+      where: { nuipc },
+      include: { estado: ESTADO_INCLUDE },
+    })
     if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
 
     await prisma.inquerito.update({
@@ -214,7 +253,7 @@ export async function DELETE(
       entidade: 'Inquerito',
       entidadeId: existing.id,
       utilizadorId: session.user.id,
-      detalhes: { nuipc: existing.nuipc, estado: existing.estado },
+      detalhes: { nuipc: existing.nuipc, estadoCodigo: existing.estado.codigo },
     })
 
     revalidatePath('/inqueritos')
@@ -224,4 +263,3 @@ export async function DELETE(
     return handleApiError(error)
   }
 }
-

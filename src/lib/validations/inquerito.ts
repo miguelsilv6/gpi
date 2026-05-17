@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-const ESTADOS = ['ABERTO', 'EM_INVESTIGACAO', 'SUSPENSO', 'CONCLUIDO', 'ARQUIVADO'] as const
 const FASES = ['INQUERITO', 'INSTRUCAO', 'JULGAMENTO', 'RECURSO', 'TRANSITO_EM_JULGADO'] as const
 
 function parseDate(s: string | null | undefined): Date | null {
@@ -9,12 +8,18 @@ function parseDate(s: string | null | undefined): Date | null {
   return Number.isFinite(d.getTime()) ? d : null
 }
 
+/**
+ * Note: the terminal-vs-dataConclusao consistency check used to be expressed
+ * here as a Zod refinement against the enum. With dynamic estados, the route
+ * handlers now do that check using the EstadoInquerito row (which has the
+ * `terminal` flag). This schema stays purely shape-level.
+ */
 export const inqueritoSchema = z
   .object({
     nuipc: z.string().min(1, 'NUIPC obrigatório'),
     nai: z.string().max(100).optional().nullable(),
     natureza: z.string().min(1, 'Natureza obrigatória').max(200),
-    estado: z.enum(ESTADOS),
+    estadoId: z.string().min(1, 'Estado obrigatório'),
     faseProcessual: z.enum(FASES),
     dataAbertura: z.string().min(1, 'Data de abertura obrigatória'),
     dataPrazo: z.string().optional().nullable(),
@@ -81,23 +86,6 @@ export const inqueritoSchema = z
         message: 'Data de conclusão não pode ser futura',
       })
     }
-
-    // dataConclusao required iff estado is terminal
-    const isTerminal = data.estado === 'CONCLUIDO' || data.estado === 'ARQUIVADO'
-    if (isTerminal && !conclusao) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['dataConclusao'],
-        message: 'Estado terminal exige data de conclusão',
-      })
-    }
-    if (!isTerminal && conclusao) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['dataConclusao'],
-        message: 'Data de conclusão só se aplica a estados terminais',
-      })
-    }
   })
 
 export type InqueritoFormData = z.infer<typeof inqueritoSchema>
@@ -106,7 +94,7 @@ export const bulkActionSchema = z.object({
   ids: z.array(z.string()).min(1),
   action: z.enum(['assign', 'changeState', 'changeFase', 'transfer']),
   inspetorId: z.string().nullable().optional(),
-  estado: z.enum(ESTADOS).optional(),
+  estadoId: z.string().optional(),
   faseProcessual: z.enum(FASES).optional(),
   brigadaId: z.string().optional(),
 })

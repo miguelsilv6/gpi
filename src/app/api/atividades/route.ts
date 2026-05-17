@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { writeAudit } from '@/lib/audit'
 import { notifyAtividadeAdicionada } from '@/lib/notifications'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
@@ -37,15 +38,17 @@ export async function POST(req: NextRequest) {
     // Find inquiry and check access
     const inquerito = await prisma.inquerito.findUnique({
       where: { id: inqueritoid },
-      include: { inspetor: { select: { id: true, email: true, nome: true } } },
+      include: {
+        inspetor: { select: { id: true, email: true, nome: true } },
+        estado: { select: { terminal: true } },
+      },
     })
     if (!inquerito || inquerito.deletedAt) return apiError('Inquérito não encontrado', 404)
 
-    // Block on terminal states — activities are investigative records,
-    // they shouldn't be added to closed/archived cases.
-    if (inquerito.estado === 'CONCLUIDO' || inquerito.estado === 'ARQUIVADO') {
+    // Block on terminal states — activities are investigative records.
+    if (inquerito.estado.terminal) {
       return apiError(
-        'Não é possível adicionar atividades a um inquérito concluído ou arquivado',
+        'Não é possível adicionar atividades a um inquérito em estado terminal',
         409,
       )
     }
@@ -72,6 +75,20 @@ export async function POST(req: NextRequest) {
       },
       include: {
         realizadaPor: { select: { id: true, nome: true } },
+      },
+    })
+
+    await writeAudit({
+      req,
+      acao: 'CREATE_ATIVIDADE',
+      entidade: 'Atividade',
+      entidadeId: atividade.id,
+      utilizadorId: session.user.id,
+      detalhes: {
+        inqueritoid,
+        descricao,
+        quantidade: quantidade ?? null,
+        dataPrazo: dataPrazo ?? null,
       },
     })
 

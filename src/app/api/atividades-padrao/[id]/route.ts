@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { writeAudit, diff } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -28,7 +29,30 @@ export async function PUT(
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
+    const existing = await prisma.atividadePadrao.findUnique({ where: { id } })
+    if (!existing) return apiError('Atividade não encontrada', 404)
+
     const updated = await prisma.atividadePadrao.update({ where: { id }, data: parsed.data })
+
+    const changes = diff(existing, updated, [
+      'nome',
+      'descricao',
+      'ativa',
+      'ordem',
+      'temPrazo',
+      'temQuantidade',
+    ])
+    if (changes) {
+      await writeAudit({
+        req,
+        acao: 'UPDATE_ATIVIDADE_PADRAO',
+        entidade: 'AtividadePadrao',
+        entidadeId: id,
+        utilizadorId: session.user.id,
+        detalhes: changes as never,
+      })
+    }
+
     return Response.json(updated)
   } catch (error) {
     return handleApiError(error)
@@ -36,7 +60,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -45,7 +69,33 @@ export async function DELETE(
     if (!hasPermission(role, 'sistema:config')) return apiError('Sem permissão', 403)
 
     const { id } = await params
+
+    const existing = await prisma.atividadePadrao.findUnique({ where: { id } })
+    if (!existing) return apiError('Atividade não encontrada', 404)
+
+    // Atividades from inquéritos reference this by `descricao` (snapshot of `nome`),
+    // not by FK — so deletion is technically safe, but it removes the option for
+    // future entries. We prefer soft-delete via the `ativa` flag.
+    // For consistency: count atividades whose descricao matches the nome.
+    const inUse = await prisma.atividade.count({ where: { descricao: existing.nome } })
+    if (inUse > 0) {
+      return apiError(
+        `Atividade padrão em uso em ${inUse} atividade(s). Desative em vez de eliminar.`,
+        409,
+      )
+    }
+
     await prisma.atividadePadrao.delete({ where: { id } })
+
+    await writeAudit({
+      req,
+      acao: 'DELETE_ATIVIDADE_PADRAO',
+      entidade: 'AtividadePadrao',
+      entidadeId: id,
+      utilizadorId: session.user.id,
+      detalhes: { nome: existing.nome },
+    })
+
     return new Response(null, { status: 204 })
   } catch (error) {
     return handleApiError(error)

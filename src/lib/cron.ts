@@ -28,7 +28,7 @@ async function runDeadlineCheck() {
   const approaching = await prisma.inquerito.findMany({
     where: {
       dataPrazo: { gte: new Date(), lte: threshold },
-      estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] },
+      estado: { terminal: false },
       inspetorId: { not: null },
     },
     include: { inspetor: { select: { id: true, email: true } } },
@@ -38,7 +38,7 @@ async function runDeadlineCheck() {
   const overdue = await prisma.inquerito.findMany({
     where: {
       dataPrazo: { lt: new Date() },
-      estado: { notIn: ['CONCLUIDO', 'ARQUIVADO'] },
+      estado: { terminal: false },
       inspetorId: { not: null },
     },
     include: { inspetor: { select: { id: true, email: true } } },

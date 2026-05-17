@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { writeAudit, diff } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -67,16 +68,16 @@ export async function PUT(
       data: parsed.data,
     })
 
-    // Audit log when deactivating a brigada
-    if (parsed.data.ativa === false && brigada.ativa) {
-      await prisma.auditLog.create({
-        data: {
-          acao: 'DEACTIVATE_BRIGADA',
-          entidade: 'Brigada',
-          entidadeId: id,
-          utilizadorId: session.user.id,
-          detalhes: { nome: brigada.nome },
-        },
+    const changes = diff(brigada, updated, ['nome', 'descricao', 'ativa'])
+    if (changes) {
+      const deactivating = parsed.data.ativa === false && brigada.ativa
+      await writeAudit({
+        req,
+        acao: deactivating ? 'DEACTIVATE_BRIGADA' : 'UPDATE_BRIGADA',
+        entidade: 'Brigada',
+        entidadeId: id,
+        utilizadorId: session.user.id,
+        detalhes: changes as never,
       })
     }
 
@@ -87,7 +88,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -106,6 +107,16 @@ export async function DELETE(
     }
 
     await prisma.brigada.delete({ where: { id } })
+
+    await writeAudit({
+      req,
+      acao: 'DELETE_BRIGADA',
+      entidade: 'Brigada',
+      entidadeId: id,
+      utilizadorId: session.user.id,
+      detalhes: { nome: brigada.nome },
+    })
+
     return new Response(null, { status: 204 })
   } catch (error) {
     return handleApiError(error)
