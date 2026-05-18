@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { NAV_ITEMS } from './nav-items'
 import type { Role } from '@/generated/prisma/enums'
 import { Shield } from 'lucide-react'
+import { APP_VERSION } from '@/lib/version'
 
 interface SidebarNavProps {
   role: Role
@@ -49,6 +50,12 @@ export function SidebarNav({ role, onNavigate }: SidebarNavProps) {
           )
         })}
       </nav>
+
+      <div className="px-4 py-3 border-t">
+        <p className="text-[11px] text-muted-foreground leading-none">
+          Versão <span className="font-mono">{APP_VERSION}</span>
+        </p>
+      </div>
     </div>
   )
 }

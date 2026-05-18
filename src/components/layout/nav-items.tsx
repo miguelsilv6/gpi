@@ -5,6 +5,7 @@ import {
   Users,
   Shield,
   BarChart3,
+  CalendarRange,
   Bell,
   Settings,
   ClipboardList,
@@ -48,6 +49,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Estatísticas',
     href: '/estatisticas',
     icon: BarChart3,
+    roles: ['INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Estatística Mensal',
+    href: '/estatistica-mensal',
+    icon: CalendarRange,
     roles: ['INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
   },
   {
