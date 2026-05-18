@@ -1,8 +1,8 @@
 'use client'
 
 import {
-  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
 
 // Maps a state codigo to a hex color, falling back to the `cor` field on the
@@ -18,8 +18,6 @@ const COR_HEX: Record<string, string> = {
   slate: '#64748b',
 }
 
-const FASE_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444']
-
 interface PorEstado {
   estadoId: string
   codigo: string
@@ -27,18 +25,9 @@ interface PorEstado {
   cor: string | null
   count: number
 }
-interface PorFase { fase: string; count: number }
 interface PorBrigada { brigadaId: string; nome: string; count: number }
 interface PorInspetor { inspetorId: string; nome: string; count: number }
 interface PorNatureza { natureza: string; count: number }
-
-const FASE_LABELS: Record<string, string> = {
-  INQUERITO: 'Inquérito',
-  INSTRUCAO: 'Instrução',
-  JULGAMENTO: 'Julgamento',
-  RECURSO: 'Recurso',
-  TRANSITO_EM_JULGADO: 'Trânsito',
-}
 
 export function EstadoBarChart({ data }: { data: PorEstado[] }) {
   return (
@@ -54,33 +43,6 @@ export function EstadoBarChart({ data }: { data: PorEstado[] }) {
           ))}
         </Bar>
       </BarChart>
-    </ResponsiveContainer>
-  )
-}
-
-export function FasePieChart({ data }: { data: PorFase[] }) {
-  const formatted = data.map((d) => ({ ...d, label: FASE_LABELS[d.fase] ?? d.fase }))
-  return (
-    <ResponsiveContainer width="100%" height={220}>
-      <PieChart>
-        <Pie
-          data={formatted}
-          dataKey="count"
-          nameKey="label"
-          cx="50%"
-          cy="50%"
-          outerRadius={80}
-          label={(props: { label?: string; percent?: number }) =>
-            `${props.label ?? ''} ${((props.percent ?? 0) * 100).toFixed(0)}%`
-          }
-          labelLine={false}
-        >
-          {formatted.map((_, i) => (
-            <Cell key={i} fill={FASE_COLORS[i % FASE_COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value) => [value, 'Inquéritos']} />
-      </PieChart>
     </ResponsiveContainer>
   )
 }

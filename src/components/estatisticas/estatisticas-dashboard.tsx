@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import {
   EstadoBarChart,
-  FasePieChart,
   BrigadaBarChart,
   InspetorBarChart,
   NaturezaBarChart,
@@ -29,7 +28,6 @@ interface Stats {
   vencidos: number
   semInspetor: number
   porEstado: { estadoId: string; codigo: string; nome: string; cor: string | null; count: number }[]
-  porFase: { fase: string; count: number }[]
   porBrigada: { brigadaId: string; nome: string; count: number }[]
   porInspetor: { inspetorId: string; nome: string; count: number }[]
   porNatureza: { natureza: string; count: number }[]
@@ -320,14 +318,6 @@ export function EstatisticasDashboard({
               </CardHeader>
               <CardContent>
                 <EstadoBarChart data={stats.porEstado} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Por Fase Processual</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FasePieChart data={stats.porFase} />
               </CardContent>
             </Card>
           </div>

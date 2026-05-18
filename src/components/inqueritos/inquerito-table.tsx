@@ -2,7 +2,6 @@
 
 import { memo, useCallback, useState } from 'react'
 import { EstadoBadge } from './estado-badge'
-import { FaseBadge } from './fase-badge'
 import { BulkActionBar } from './bulk-action-bar'
 import { InqueritoCard } from './inquerito-card'
 import { formatDate, isOverdue, cn, nuipcToSlug } from '@/lib/utils'
@@ -23,8 +22,8 @@ interface Inquerito {
   nuipc: string
   nai: string | null
   natureza: string
+  crime: { id: string; nome: string } | null
   estado: EstadoLike
-  faseProcessual: string
   dataPrazo: Date | null
   inspetor: { id: string; nome: string } | null
   brigada: { id: string; nome: string }
@@ -83,12 +82,11 @@ const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) 
           </p>
         )}
       </td>
-      <td className="px-4 py-3 max-w-[200px] truncate">{inq.natureza}</td>
-      <td className="px-4 py-3">
-        <EstadoBadge estado={inq.estado} />
+      <td className="px-4 py-3 max-w-[220px] truncate">
+        {inq.crime?.nome ?? inq.natureza}
       </td>
       <td className="px-4 py-3">
-        <FaseBadge fase={inq.faseProcessual as never} />
+        <EstadoBadge estado={inq.estado} />
       </td>
       <td className="px-4 py-3 text-muted-foreground">
         {inq.inspetor?.nome ?? <span className="text-muted-foreground/50 italic">Não atribuído</span>}
@@ -145,9 +143,8 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
                 </th>
               )}
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">NUIPC</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Natureza</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Crime</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Estado</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Fase</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Inspetor</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Prazo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ativ.</th>
@@ -156,7 +153,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
           <tbody className="divide-y">
             {inqueritos.length === 0 ? (
               <tr>
-                <td colSpan={canBulk ? 8 : 7} className="px-4 py-12 text-center text-muted-foreground">
+                <td colSpan={canBulk ? 7 : 6} className="px-4 py-12 text-center text-muted-foreground">
                   Nenhum inquérito encontrado.
                 </td>
               </tr>
@@ -185,9 +182,8 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
               key={inq.id}
               nuipc={inq.nuipc}
               nai={inq.nai}
-              natureza={inq.natureza}
+              natureza={inq.crime?.nome ?? inq.natureza}
               estado={inq.estado}
-              faseProcessual={inq.faseProcessual as never}
               dataPrazo={inq.dataPrazo}
               inspetorNome={inq.inspetor?.nome}
               brigadaNome={inq.brigada.nome}

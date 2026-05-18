@@ -15,7 +15,7 @@ export default async function NovoInqueritoPage() {
   const role = session.user.role as Role
   if (!hasPermission(role, 'inquerito:create')) redirect('/inqueritos')
 
-  const [brigadas, inspetores, estados, defaultEstado] = await Promise.all([
+  const [brigadas, inspetores, estados, defaultEstado, crimes] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -28,6 +28,11 @@ export default async function NovoInqueritoPage() {
     }),
     listEstados({ onlyActive: true }),
     findEstadoByCodigo('ABERTO'),
+    prisma.crime.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
   ])
 
   return (
@@ -52,6 +57,7 @@ export default async function NovoInqueritoPage() {
         brigadas={brigadas}
         inspetores={inspetores}
         estados={estados}
+        crimes={crimes}
         defaultValues={{
           ...(session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
           ...(defaultEstado ? { estadoId: defaultEstado.id } : {}),

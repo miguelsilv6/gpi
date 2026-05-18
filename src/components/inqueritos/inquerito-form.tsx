@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { inqueritoSchema, type InqueritoFormData } from '@/lib/validations/inquerito'
-import { FASE_LABELS } from '@/lib/constants'
 import { nuipcToSlug } from '@/lib/utils'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { Loader2 } from 'lucide-react'
@@ -20,12 +19,14 @@ import { Loader2 } from 'lucide-react'
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
 interface Estado { id: string; codigo: string; nome: string; terminal: boolean; ativo: boolean }
+interface Crime { id: string; nome: string; ativo: boolean }
 
 interface InqueritoFormProps {
   defaultValues?: Partial<InqueritoFormData>
   brigadas: Brigada[]
   inspetores: Inspetor[]
   estados: Estado[]
+  crimes: Crime[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
 }
@@ -35,6 +36,7 @@ export function InqueritoForm({
   brigadas,
   inspetores,
   estados,
+  crimes,
   nuipcOriginal,
   mode,
 }: InqueritoFormProps) {
@@ -46,6 +48,17 @@ export function InqueritoForm({
     estados[0]?.id ??
     ''
 
+  // Crimes available in the dropdown: active OR the one currently selected
+  // (so editing an inquérito whose crime was later deactivated still shows it).
+  const crimesForSelect = useMemo(() => {
+    const ativos = crimes.filter((c) => c.ativo)
+    const current = defaultValues?.crimeId
+      ? crimes.find((c) => c.id === defaultValues.crimeId)
+      : null
+    if (current && !current.ativo) return [current, ...ativos]
+    return ativos
+  }, [crimes, defaultValues?.crimeId])
+
   const {
     register,
     handleSubmit,
@@ -56,7 +69,6 @@ export function InqueritoForm({
     resolver: zodResolver(inqueritoSchema),
     defaultValues: {
       estadoId: defaultEstadoId,
-      faseProcessual: 'INQUERITO',
       ...defaultValues,
     },
   })
@@ -96,6 +108,7 @@ export function InqueritoForm({
 
   const selectedBrigadaId = watch('brigadaId')
   const selectedInspetorId = watch('inspetorId')
+  const selectedCrimeId = watch('crimeId')
 
   const filteredInspetores = useMemo(
     () => inspetores.filter((i) => i.brigadaId === selectedBrigadaId),
@@ -155,14 +168,34 @@ export function InqueritoForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="natureza">Natureza do crime *</Label>
-            <Input
-              id="natureza"
-              placeholder="Ex: Furto qualificado, Tráfico de estupefacientes..."
-              {...register('natureza')}
-            />
-            {errors.natureza && (
-              <p className="text-xs text-red-600">{errors.natureza.message}</p>
+            <Label>Crime *</Label>
+            <Select
+              value={selectedCrimeId || ''}
+              onValueChange={(v) => setValue('crimeId', v ?? '', { shouldDirty: true })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar crime">
+                  {(v: string) =>
+                    crimesForSelect.find((c) => c.id === v)?.nome ?? 'Selecionar crime'
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {crimesForSelect.length === 0 ? (
+                  <SelectItem value="__empty" disabled>
+                    Sem crimes configurados — adicione em Configurações
+                  </SelectItem>
+                ) : (
+                  crimesForSelect.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}{!c.ativo ? ' (inativo)' : ''}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {errors.crimeId && (
+              <p className="text-xs text-red-600">{errors.crimeId.message}</p>
             )}
           </div>
         </CardContent>
@@ -170,7 +203,7 @@ export function InqueritoForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Estado e Fase</CardTitle>
+          <CardTitle className="text-base">Estado e Prazos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -195,34 +228,6 @@ export function InqueritoForm({
               </Select>
               {errors.estadoId && (
                 <p className="text-xs text-red-600">{errors.estadoId.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Fase processual *</Label>
-              <Select
-                value={watch('faseProcessual') || 'INQUERITO'}
-                onValueChange={(v) =>
-                  setValue('faseProcessual', v as InqueritoFormData['faseProcessual'], {
-                    shouldDirty: true,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar fase">
-                    {(v: string) =>
-                      FASE_LABELS[v as keyof typeof FASE_LABELS] ?? 'Selecionar fase'
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(FASE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.faseProcessual && (
-                <p className="text-xs text-red-600">{errors.faseProcessual.message}</p>
               )}
             </div>
 

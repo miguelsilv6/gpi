@@ -36,15 +36,7 @@ interface BulkActionBarProps {
   estados: Estado[]
 }
 
-const FASE_LABELS: Record<string, string> = {
-  INQUERITO: 'Inquérito',
-  INSTRUCAO: 'Instrução',
-  JULGAMENTO: 'Julgamento',
-  RECURSO: 'Recurso',
-  TRANSITO_EM_JULGADO: 'Trânsito em Julgado',
-}
-
-type ActionType = 'assign' | 'changeState' | 'changeFase' | 'transfer' | null
+type ActionType = 'assign' | 'changeState' | 'transfer' | null
 
 // Type-to-confirm threshold — destrutivo a partir daqui
 const HARD_CONFIRM_THRESHOLD = 5
@@ -87,7 +79,6 @@ export function BulkActionBar({
     const extra: Record<string, string> = {}
     if (activeAction === 'assign') extra.inspetorId = selectedValue
     if (activeAction === 'changeState') extra.estadoId = selectedValue
-    if (activeAction === 'changeFase') extra.faseProcessual = selectedValue
     if (activeAction === 'transfer') extra.brigadaId = selectedValue
 
     const res = await fetch('/api/inqueritos/bulk', {
@@ -136,11 +127,6 @@ export function BulkActionBar({
       label: 'Novo estado',
       options: estados.map((e) => ({ value: e.id, label: e.nome })),
     },
-    changeFase: {
-      title: 'Alterar fase processual',
-      label: 'Nova fase',
-      options: Object.entries(FASE_LABELS).map(([v, l]) => ({ value: v, label: l })),
-    },
     transfer: {
       title: 'Transferir brigada',
       label: 'Brigada de destino',
@@ -165,9 +151,6 @@ export function BulkActionBar({
           </Button>
           <Button size="sm" variant="outline" disabled={loading} onClick={() => openDialog('changeState')}>
             Alterar estado
-          </Button>
-          <Button size="sm" variant="outline" disabled={loading} onClick={() => openDialog('changeFase')}>
-            Alterar fase
           </Button>
           {canTransfer && (
             <Button size="sm" variant="outline" disabled={loading} onClick={() => openDialog('transfer')}>

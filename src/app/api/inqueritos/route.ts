@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     const search = searchParams.get('search') ?? ''
     const estadoCodigo = searchParams.get('estado') ?? ''
-    const faseProcessual = searchParams.get('faseProcessual') ?? ''
+    const crimeId = searchParams.get('crimeId') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
     const inspetorId = searchParams.get('inspetorId') ?? ''
     const overdue = searchParams.get('overdue') === '1'
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
         ],
       }),
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
-      ...(faseProcessual && { faseProcessual: faseProcessual as never }),
+      ...(crimeId && { crimeId }),
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
       ...(semInspetor && { inspetorId: null }),
@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
         orderBy,
         include: {
           estado: { select: { id: true, codigo: true, nome: true, cor: true, terminal: true } },
+          crime: { select: { id: true, nome: true } },
           brigada: { select: { id: true, nome: true } },
           inspetor: { select: { id: true, nome: true } },
           _count: { select: { atividades: true } },
@@ -109,6 +110,13 @@ export async function POST(req: NextRequest) {
     const estado = await findEstadoById(data.estadoId)
     if (!estado || !estado.ativo) return apiError('Estado inválido', 400)
 
+    // Resolve crime and validate
+    const crime = await prisma.crime.findUnique({
+      where: { id: data.crimeId },
+      select: { id: true, nome: true, ativo: true },
+    })
+    if (!crime || !crime.ativo) return apiError('Crime inválido', 400)
+
     // Date/state consistency: terminal estado requires dataConclusao
     const conclusao = data.dataConclusao ? new Date(data.dataConclusao) : null
     if (isTerminal(estado) && !conclusao) {
@@ -134,9 +142,10 @@ export async function POST(req: NextRequest) {
       data: {
         nuipc: data.nuipc,
         nai: data.nai || null,
-        natureza: data.natureza,
+        // natureza is denormalized from crime.nome while the legacy column still exists
+        natureza: crime.nome,
+        crimeId: crime.id,
         estadoId: data.estadoId,
-        faseProcessual: data.faseProcessual,
         dataAbertura: new Date(data.dataAbertura),
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,
@@ -154,7 +163,7 @@ export async function POST(req: NextRequest) {
       utilizadorId: session.user.id,
       detalhes: {
         nuipc: inquerito.nuipc,
-        natureza: inquerito.natureza,
+        crimeNome: crime.nome,
         estadoCodigo: estado.codigo,
         brigadaId: inquerito.brigadaId,
         inspetorId: inquerito.inspetorId ?? null,

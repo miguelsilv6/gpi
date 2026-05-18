@@ -5,13 +5,17 @@ import { useCallback, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { FASE_LABELS } from '@/lib/constants'
 import { Search, X, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react'
 import { EstadosMultiSelect } from './estados-multi-select'
 
 interface EstadoFilterOption {
   id: string
   codigo: string
+  nome: string
+}
+
+interface CrimeFilterOption {
+  id: string
   nome: string
 }
 
@@ -26,10 +30,12 @@ const SORT_OPTIONS: Record<string, string> = {
 export function InqueritoFilters({
   estados,
   estadosDefault = [],
+  crimes,
 }: {
   estados: EstadoFilterOption[]
   /** System-wide default applied when the URL has no `estado` param. */
   estadosDefault?: string[]
+  crimes: CrimeFilterOption[]
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -79,7 +85,7 @@ export function InqueritoFilters({
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Pesquisar NUIPC, NAI ou natureza..."
+            placeholder="Pesquisar NUIPC, NAI ou crime..."
             className="pl-8"
             defaultValue={searchParams.get('search') ?? ''}
             onChange={(e) => update({ search: e.target.value || null })}
@@ -101,21 +107,21 @@ export function InqueritoFilters({
         />
 
         <Select
-          value={searchParams.get('faseProcessual') || 'all'}
-          onValueChange={(v) => update({ faseProcessual: !v || v === 'all' ? null : v })}
+          value={searchParams.get('crimeId') || 'all'}
+          onValueChange={(v) => update({ crimeId: !v || v === 'all' ? null : v })}
         >
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Fase processual">
+          <SelectTrigger className="w-full sm:w-52">
+            <SelectValue placeholder="Crime">
               {(v: string) => {
-                if (!v || v === 'all') return 'Todas as fases'
-                return FASE_LABELS[v as keyof typeof FASE_LABELS] ?? 'Fase processual'
+                if (!v || v === 'all') return 'Todos os crimes'
+                return crimes.find((c) => c.id === v)?.nome ?? 'Crime'
               }}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as fases</SelectItem>
-            {Object.entries(FASE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
+            <SelectItem value="all">Todos os crimes</SelectItem>
+            {crimes.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>

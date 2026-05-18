@@ -1,5 +1,3 @@
-import type { FaseProcessual } from '@/generated/prisma/enums'
-
 // Fallback labels for the 5 standard estados (used when no DB data is loaded).
 // The canonical source is the EstadoInquerito table; use it when possible.
 export const ESTADO_LABELS_FALLBACK: Record<string, string> = {
@@ -49,22 +47,6 @@ export const PROTECTED_ESTADO_CODIGOS = new Set<string>([
 
 // State to set when reopening a closed/archived inquérito.
 export const REOPEN_ESTADO_CODIGO = 'EM_INVESTIGACAO'
-
-export const FASE_LABELS: Record<FaseProcessual, string> = {
-  INQUERITO: 'Inquérito',
-  INSTRUCAO: 'Instrução',
-  JULGAMENTO: 'Julgamento',
-  RECURSO: 'Recurso',
-  TRANSITO_EM_JULGADO: 'Trânsito em Julgado',
-}
-
-export const FASE_COLORS: Record<FaseProcessual, string> = {
-  INQUERITO: 'bg-slate-100 text-slate-700 border-slate-200',
-  INSTRUCAO: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  JULGAMENTO: 'bg-violet-100 text-violet-800 border-violet-200',
-  RECURSO: 'bg-rose-100 text-rose-800 border-rose-200',
-  TRANSITO_EM_JULGADO: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-}
 
 export const NUIPC_REGEX = /^\d{4}\/\d+\/[A-Z]+$/
 

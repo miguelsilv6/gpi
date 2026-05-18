@@ -36,6 +36,7 @@ export async function GET(
       where: { nuipc, deletedAt: null, ...roleWhere },
       include: {
         estado: ESTADO_INCLUDE,
+        crime: { select: { id: true, nome: true } },
         brigada: { select: { id: true, nome: true } },
         inspetor: { select: { id: true, nome: true, email: true } },
         atividades: {
@@ -82,6 +83,13 @@ export async function PUT(
     // Resolve target estado
     const targetEstado = await findEstadoById(data.estadoId)
     if (!targetEstado || !targetEstado.ativo) return apiError('Estado inválido', 400)
+
+    // Resolve target crime
+    const targetCrime = await prisma.crime.findUnique({
+      where: { id: data.crimeId },
+      select: { id: true, nome: true, ativo: true },
+    })
+    if (!targetCrime || !targetCrime.ativo) return apiError('Crime inválido', 400)
 
     // Terminal-state full lock: if the inquérito is in a terminal state AND the
     // user is not transitioning out of it (same target), editing is forbidden.
@@ -141,9 +149,10 @@ export async function PUT(
       data: {
         nuipc: data.nuipc,
         nai: data.nai || null,
-        natureza: data.natureza,
+        // natureza is denormalized from crime.nome while the legacy column exists
+        natureza: targetCrime.nome,
+        crimeId: targetCrime.id,
         estadoId: data.estadoId,
-        faseProcessual: data.faseProcessual,
         dataAbertura: new Date(data.dataAbertura),
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,
@@ -156,9 +165,8 @@ export async function PUT(
     const before = {
       nuipc: existing.nuipc,
       nai: existing.nai,
-      natureza: existing.natureza,
+      crimeId: existing.crimeId,
       estadoCodigo: existing.estado.codigo,
-      faseProcessual: existing.faseProcessual,
       dataAbertura: existing.dataAbertura,
       dataPrazo: existing.dataPrazo,
       dataConclusao: existing.dataConclusao,
@@ -167,9 +175,8 @@ export async function PUT(
     const after = {
       nuipc: updated.nuipc,
       nai: updated.nai,
-      natureza: updated.natureza,
+      crimeId: updated.crimeId,
       estadoCodigo: targetEstado.codigo,
-      faseProcessual: updated.faseProcessual,
       dataAbertura: updated.dataAbertura,
       dataPrazo: updated.dataPrazo,
       dataConclusao: updated.dataConclusao,
@@ -178,9 +185,8 @@ export async function PUT(
     const changes = diff(before, after, [
       'nuipc',
       'nai',
-      'natureza',
+      'crimeId',
       'estadoCodigo',
-      'faseProcessual',
       'dataAbertura',
       'dataPrazo',
       'dataConclusao',

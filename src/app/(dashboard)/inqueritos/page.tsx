@@ -11,13 +11,13 @@ import { ExportButton } from '@/components/inqueritos/export-button'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { listEstados } from '@/lib/estados'
-import type { Role, FaseProcessual } from '@/generated/prisma/enums'
+import type { Role } from '@/generated/prisma/enums'
 
 interface SearchParams {
   page?: string
   search?: string
   estado?: string
-  faseProcessual?: string
+  crimeId?: string
   brigadaId?: string
   inspetorId?: string
   overdue?: string
@@ -84,7 +84,7 @@ export default async function InqueritosPage({
     ...(estadoCodigos.length > 0 && {
       estado: { codigo: { in: estadoCodigos } },
     }),
-    ...(sp.faseProcessual && { faseProcessual: sp.faseProcessual as FaseProcessual }),
+    ...(sp.crimeId && { crimeId: sp.crimeId }),
     ...(sp.brigadaId && { brigadaId: sp.brigadaId }),
     ...(sp.inspetorId && { inspetorId: sp.inspetorId }),
     ...(sp.semInspetor === '1' && { inspetorId: null }),
@@ -105,7 +105,7 @@ export default async function InqueritosPage({
   const canBulk = hasPermission(role, 'inquerito:bulk:brigade')
   const canTransfer = hasPermission(role, 'inquerito:transfer')
 
-  const [inqueritos, total, inspetores, brigadas, estados] = await Promise.all([
+  const [inqueritos, total, inspetores, brigadas, estados, crimes] = await Promise.all([
     prisma.inquerito.findMany({
       where,
       skip: (page - 1) * limit,
@@ -113,6 +113,7 @@ export default async function InqueritosPage({
       orderBy: { [sort]: order } as never,
       include: {
         estado: { select: { id: true, codigo: true, nome: true, cor: true, terminal: true, ativo: true } },
+        crime: { select: { id: true, nome: true } },
         brigada: { select: { id: true, nome: true } },
         inspetor: { select: { id: true, nome: true } },
         _count: { select: { atividades: true } },
@@ -134,6 +135,11 @@ export default async function InqueritosPage({
         })
       : Promise.resolve([]),
     listEstados({ onlyActive: true }),
+    prisma.crime.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true },
+    }),
   ])
 
   const totalPages = Math.ceil(total / limit)
@@ -174,6 +180,7 @@ export default async function InqueritosPage({
         <InqueritoFilters
           estados={estados}
           estadosDefault={estadosDefault}
+          crimes={crimes}
         />
       </Suspense>
 

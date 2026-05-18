@@ -69,7 +69,6 @@ export async function GET(req: NextRequest) {
 
     const [
       porEstadoRaw,
-      porFase,
       porBrigada,
       porInspetorRaw,
       porNatureza,
@@ -78,7 +77,6 @@ export async function GET(req: NextRequest) {
       semInspetor,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
-      prisma.inquerito.groupBy({ by: ['faseProcessual'], where, _count: true }),
       prisma.inquerito.groupBy({
         by: ['brigadaId'],
         where,
@@ -150,7 +148,6 @@ export async function GET(req: NextRequest) {
           count: r._count,
         }
       }),
-      porFase: porFase.map((r) => ({ fase: r.faseProcessual, count: r._count })),
       porBrigada: porBrigada.map((r) => ({
         brigadaId: r.brigadaId,
         nome: brigadaNomes[r.brigadaId] ?? r.brigadaId,

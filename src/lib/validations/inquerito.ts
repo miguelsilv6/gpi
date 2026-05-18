@@ -1,7 +1,5 @@
 import { z } from 'zod'
 
-const FASES = ['INQUERITO', 'INSTRUCAO', 'JULGAMENTO', 'RECURSO', 'TRANSITO_EM_JULGADO'] as const
-
 function parseDate(s: string | null | undefined): Date | null {
   if (!s) return null
   const d = new Date(s)
@@ -18,9 +16,8 @@ export const inqueritoSchema = z
   .object({
     nuipc: z.string().min(1, 'NUIPC obrigatório'),
     nai: z.string().max(100).optional().nullable(),
-    natureza: z.string().min(1, 'Natureza obrigatória').max(200),
+    crimeId: z.string().min(1, 'Crime obrigatório'),
     estadoId: z.string().min(1, 'Estado obrigatório'),
-    faseProcessual: z.enum(FASES),
     dataAbertura: z.string().min(1, 'Data de abertura obrigatória'),
     dataPrazo: z.string().optional().nullable(),
     dataConclusao: z.string().optional().nullable(),
@@ -101,9 +98,8 @@ export type InqueritoFormData = z.infer<typeof inqueritoSchema>
 
 export const bulkActionSchema = z.object({
   ids: z.array(z.string()).min(1),
-  action: z.enum(['assign', 'changeState', 'changeFase', 'transfer']),
+  action: z.enum(['assign', 'changeState', 'transfer']),
   inspetorId: z.string().nullable().optional(),
   estadoId: z.string().optional(),
-  faseProcessual: z.enum(FASES).optional(),
   brigadaId: z.string().optional(),
 })
