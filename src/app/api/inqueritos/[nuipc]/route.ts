@@ -158,6 +158,11 @@ export async function PUT(
         dataConclusao: conclusao,
         notas: data.notas ?? null,
         inspetorId,
+        tribunal: data.tribunal?.trim() || null,
+        procurador: data.procurador?.trim() || null,
+        oficialJustica: data.oficialJustica?.trim() || null,
+        voip: data.voip?.trim() || null,
+        notasTribunal: data.notasTribunal?.trim() || null,
       },
     })
 
@@ -171,6 +176,11 @@ export async function PUT(
       dataPrazo: existing.dataPrazo,
       dataConclusao: existing.dataConclusao,
       inspetorId: existing.inspetorId,
+      tribunal: existing.tribunal,
+      procurador: existing.procurador,
+      oficialJustica: existing.oficialJustica,
+      voip: existing.voip,
+      notasTribunal: existing.notasTribunal,
     }
     const after = {
       nuipc: updated.nuipc,
@@ -181,6 +191,11 @@ export async function PUT(
       dataPrazo: updated.dataPrazo,
       dataConclusao: updated.dataConclusao,
       inspetorId: updated.inspetorId,
+      tribunal: updated.tribunal,
+      procurador: updated.procurador,
+      oficialJustica: updated.oficialJustica,
+      voip: updated.voip,
+      notasTribunal: updated.notasTribunal,
     }
     const changes = diff(before, after, [
       'nuipc',
@@ -191,6 +206,11 @@ export async function PUT(
       'dataPrazo',
       'dataConclusao',
       'inspetorId',
+      'tribunal',
+      'procurador',
+      'oficialJustica',
+      'voip',
+      'notasTribunal',
     ])
 
     if (changes) {

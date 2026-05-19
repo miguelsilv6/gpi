@@ -86,7 +86,10 @@ export default function AddAtividadePage() {
       .finally(() => setLoadingPadrao(false))
   }, [slug])
 
-  const defaultDatetime = new Date().toISOString().slice(0, 16)
+  // Format today as YYYY-MM-DD in LOCAL time so the date picker doesn't show
+  // "yesterday" between midnight UTC and midnight Portugal time.
+  const today = new Date()
+  const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
   const {
     register,
@@ -97,7 +100,7 @@ export default function AddAtividadePage() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { dataRealizacao: defaultDatetime },
+    defaultValues: { dataRealizacao: defaultDate },
   })
 
   const selectedNome = watch('descricao')
@@ -180,10 +183,14 @@ export default function AddAtividadePage() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
-            {/* Datetime */}
+            {/* Date — defaults to today; affects which month the activity
+                counts for in Estatística Mensal. */}
             <div className="space-y-1.5">
               <Label htmlFor="dataRealizacao">Data de realização</Label>
-              <Input id="dataRealizacao" type="datetime-local" {...register('dataRealizacao')} />
+              <Input id="dataRealizacao" type="date" {...register('dataRealizacao')} />
+              <p className="text-xs text-muted-foreground">
+                A atividade conta para a estatística do mês desta data.
+              </p>
             </div>
 
             {/* Activity type dropdown */}

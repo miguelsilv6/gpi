@@ -24,6 +24,12 @@ export const inqueritoSchema = z
     notas: z.string().optional().nullable(),
     brigadaId: z.string().min(1, 'Brigada obrigatória'),
     inspetorId: z.string().optional().nullable(),
+    // Tribunal / Ministério Público — all optional
+    tribunal: z.string().max(200).optional().nullable(),
+    procurador: z.string().max(200).optional().nullable(),
+    oficialJustica: z.string().max(200).optional().nullable(),
+    voip: z.string().max(100).optional().nullable(),
+    notasTribunal: z.string().max(2000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
     const abertura = parseDate(data.dataAbertura)

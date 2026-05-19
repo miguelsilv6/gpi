@@ -21,9 +21,13 @@ const ACAO_LABELS: Record<string, string> = {
   TRANSFER_INQUERITO: 'Transferido entre brigadas',
   REOPEN_INQUERITO: 'Inquérito reaberto',
   DELETE_INQUERITO: 'Inquérito apagado',
+  CREATE_ATIVIDADE: 'Atividade adicionada',
+  UPDATE_ATIVIDADE: 'Atividade alterada',
+  DELETE_ATIVIDADE: 'Atividade eliminada',
+  EXPORT_INQUERITO_DETAIL: 'Exportado em CSV',
+  EXPORT_INQUERITO_PRINT: 'Exportado em PDF / impressão',
   BULK_ASSIGN: 'Atribuição em massa',
   BULK_CHANGESTATE: 'Alteração de estado em massa',
-  BULK_CHANGEFASE: 'Alteração de fase em massa',
   BULK_TRANSFER: 'Transferência em massa',
 }
 

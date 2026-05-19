@@ -83,13 +83,18 @@ export async function GET(req: NextRequest) {
         _count: true,
         orderBy: { _count: { brigadaId: 'desc' } },
       }),
-      prisma.inquerito.groupBy({
-        by: ['inspetorId'],
-        where: { ...where, inspetorId: { not: null } },
-        _count: true,
-        orderBy: { _count: { inspetorId: 'desc' } },
-        take: 20,
-      }),
+      // Skip the inspetor breakdown when an inspetor is already selected —
+      // the chart would be a single bar, which adds no information. The UI
+      // replaces it with atividadesInspetor (below).
+      inspetorId
+        ? Promise.resolve([] as { inspetorId: string | null; _count: number }[])
+        : prisma.inquerito.groupBy({
+            by: ['inspetorId'],
+            where: { ...where, inspetorId: { not: null } },
+            _count: true,
+            orderBy: { _count: { inspetorId: 'desc' } },
+            take: 20,
+          }),
       prisma.inquerito.groupBy({
         by: ['natureza'],
         where,
@@ -109,6 +114,59 @@ export async function GET(req: NextRequest) {
         where: { ...where, inspetorId: null, estado: { terminal: false } },
       }),
     ])
+
+    // Atividade breakdown for the selected inspetor (only when filtered).
+    // The date filter is applied to atividade.dataRealizacao (not
+    // inquerito.dataAbertura) — that matches what the user wants to know:
+    // "what did this inspetor do in this period?"
+    let atividadesInspetor: {
+      descricao: string
+      count: number
+      sumQuantidade: number
+      temQuantidade: boolean
+    }[] = []
+    let atividadesInspetorTotal = 0
+    if (inspetorId) {
+      const periodWhere = {
+        ...(dataInicio && { gte: new Date(dataInicio) }),
+        ...(dataFim && { lte: new Date(dataFim) }),
+      }
+      const atividades = await prisma.atividade.findMany({
+        where: {
+          inquerito: { inspetorId, deletedAt: null },
+          ...(dataInicio || dataFim ? { dataRealizacao: periodWhere } : {}),
+        },
+        select: { descricao: true, quantidade: true },
+      })
+
+      // Map descricao → padrão metadata so the UI knows when to show "1× (total: 4)".
+      const padroes = await prisma.atividadePadrao.findMany({
+        where: { nome: { in: Array.from(new Set(atividades.map((a) => a.descricao))) } },
+        select: { nome: true, temQuantidade: true },
+      })
+      const temQtdByNome = new Map(padroes.map((p) => [p.nome, p.temQuantidade]))
+
+      const acc = new Map<string, { count: number; sumQ: number; temQ: boolean }>()
+      for (const a of atividades) {
+        const cur = acc.get(a.descricao) ?? {
+          count: 0,
+          sumQ: 0,
+          temQ: temQtdByNome.get(a.descricao) ?? false,
+        }
+        cur.count++
+        if (cur.temQ && a.quantidade && a.quantidade > 0) cur.sumQ += a.quantidade
+        acc.set(a.descricao, cur)
+      }
+      atividadesInspetor = Array.from(acc.entries())
+        .map(([descricao, v]) => ({
+          descricao,
+          count: v.count,
+          sumQuantidade: v.sumQ,
+          temQuantidade: v.temQ,
+        }))
+        .sort((a, b) => b.count - a.count)
+      atividadesInspetorTotal = atividades.length
+    }
 
     // Enrich groupBy with related labels
     const inspetorIds = porInspetorRaw
@@ -161,6 +219,8 @@ export async function GET(req: NextRequest) {
           count: r._count,
         })),
       porNatureza: porNatureza.map((r) => ({ natureza: r.natureza, count: r._count })),
+      atividadesInspetor,
+      atividadesInspetorTotal,
     })
   } catch (error) {
     return handleApiError(error)

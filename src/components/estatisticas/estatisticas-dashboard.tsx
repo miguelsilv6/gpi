@@ -18,7 +18,7 @@ import {
   InspetorBarChart,
   NaturezaBarChart,
 } from './charts'
-import { AlertTriangle, FileText, Users, X } from 'lucide-react'
+import { AlertTriangle, FileText, Users, X, ClipboardList } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
@@ -31,6 +31,13 @@ interface Stats {
   porBrigada: { brigadaId: string; nome: string; count: number }[]
   porInspetor: { inspetorId: string; nome: string; count: number }[]
   porNatureza: { natureza: string; count: number }[]
+  atividadesInspetor: {
+    descricao: string
+    count: number
+    sumQuantidade: number
+    temQuantidade: boolean
+  }[]
+  atividadesInspetorTotal: number
 }
 
 interface Props {
@@ -334,15 +341,73 @@ export function EstatisticasDashboard({
                 </CardContent>
               </Card>
             )}
-            {stats.porInspetor.length > 0 && (
+            {/* When an inspetor is selected, the "Por Inspetor" chart would be a
+                single bar — replace it with a breakdown of that inspetor's
+                actividades in the selected period (filtered by
+                atividade.dataRealizacao, not inquérito.dataAbertura). */}
+            {inspetorFilter ? (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Por Inspetor</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                    <ClipboardList className="h-4 w-4" />
+                    Atividades do Inspetor
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <InspetorBarChart data={stats.porInspetor} />
+                <CardContent className="space-y-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold tabular-nums">
+                      {stats.atividadesInspetorTotal}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      atividade{stats.atividadesInspetorTotal === 1 ? '' : 's'} no período
+                    </span>
+                  </div>
+
+                  {stats.atividadesInspetor.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-3">
+                      Sem atividades registadas nestes filtros.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {stats.atividadesInspetor.map((a) => {
+                        // Atividades-padrão com `temQuantidade` reportam a quantidade
+                        // somada; as restantes reportam o número de linhas.
+                        const display =
+                          a.temQuantidade && a.sumQuantidade > 0
+                            ? a.sumQuantidade
+                            : a.count
+                        return (
+                          <div
+                            key={a.descricao}
+                            className="flex items-center justify-between text-sm gap-3"
+                          >
+                            <span className="text-muted-foreground truncate">
+                              {a.descricao}
+                            </span>
+                            <span className="font-medium tabular-nums shrink-0">
+                              {display}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground pt-2 border-t">
+                    Período aplicado à data de realização da atividade.
+                  </p>
                 </CardContent>
               </Card>
+            ) : (
+              stats.porInspetor.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Por Inspetor</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <InspetorBarChart data={stats.porInspetor} />
+                  </CardContent>
+                </Card>
+              )
             )}
             {stats.porNatureza.length > 0 && (
               <Card>
