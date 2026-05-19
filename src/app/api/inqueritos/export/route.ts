@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const estadoCodigo = searchParams.get('estado') ?? ''
-    const faseProcessual = searchParams.get('faseProcessual') ?? ''
+    const crimeId = searchParams.get('crimeId') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
 
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       deletedAt: null,
       ...roleWhere,
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
-      ...(faseProcessual && { faseProcessual: faseProcessual as never }),
+      ...(crimeId && { crimeId }),
       ...(brigadaId && { brigadaId }),
     }
 
@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
       select: {
         nuipc: true,
         natureza: true,
+        crime: { select: { nome: true } },
         estado: { select: { codigo: true, nome: true } },
-        faseProcessual: true,
         dataAbertura: true,
         dataPrazo: true,
         dataConclusao: true,
@@ -71,16 +71,15 @@ export async function GET(req: NextRequest) {
       entidadeId: '__bulk_export__',
       utilizadorId: session.user.id,
       detalhes: {
-        filtros: { estadoCodigo, faseProcessual, brigadaId },
+        filtros: { estadoCodigo, crimeId, brigadaId },
         quantidade: inqueritos.length,
       },
     })
 
     const headers = [
       'NUIPC',
-      'Natureza',
+      'Crime',
       'Estado',
-      'Fase Processual',
       'Data Abertura',
       'Prazo',
       'Data Conclusão',
@@ -89,9 +88,8 @@ export async function GET(req: NextRequest) {
     ]
     const rows = inqueritos.map((i) => [
       i.nuipc,
-      i.natureza,
+      i.crime?.nome ?? i.natureza,
       i.estado.nome,
-      i.faseProcessual,
       i.dataAbertura ? new Date(i.dataAbertura).toLocaleDateString('pt-PT') : '',
       i.dataPrazo ? new Date(i.dataPrazo).toLocaleDateString('pt-PT') : '',
       i.dataConclusao ? new Date(i.dataConclusao).toLocaleDateString('pt-PT') : '',

@@ -1,9 +1,7 @@
 import Link from 'next/link'
 import { EstadoBadge } from './estado-badge'
-import { FaseBadge } from './fase-badge'
 import { formatDate, isOverdue, nuipcToSlug } from '@/lib/utils'
 import { AlertTriangle, Calendar, User } from 'lucide-react'
-import type { FaseProcessual } from '@/generated/prisma/enums'
 import { cn } from '@/lib/utils'
 
 interface EstadoLike {
@@ -18,7 +16,6 @@ interface InqueritoCardProps {
   nai?: string | null
   natureza: string
   estado: EstadoLike
-  faseProcessual: FaseProcessual
   dataPrazo: Date | null
   inspetorNome?: string | null
   brigadaNome?: string
@@ -30,7 +27,6 @@ export function InqueritoCard({
   nai,
   natureza,
   estado,
-  faseProcessual,
   dataPrazo,
   inspetorNome,
   brigadaNome,
@@ -58,7 +54,6 @@ export function InqueritoCard({
         </div>
         <div className="flex flex-col gap-1 items-end shrink-0">
           <EstadoBadge estado={estado} />
-          <FaseBadge fase={faseProcessual} />
         </div>
       </div>
 

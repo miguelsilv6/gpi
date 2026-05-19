@@ -37,7 +37,7 @@ export default async function EditarInqueritoPage({
 
   if (!canEdit) redirect(`/inqueritos/${nuipcToSlug(nuipc)}`)
 
-  const [brigadas, inspetores, estados] = await Promise.all([
+  const [brigadas, inspetores, estados, crimes] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -49,6 +49,10 @@ export default async function EditarInqueritoPage({
       select: { id: true, nome: true, brigadaId: true },
     }),
     listEstados({ onlyActive: true }),
+    prisma.crime.findMany({
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
   ])
 
   const formatForInput = (d: Date | null) =>
@@ -79,11 +83,12 @@ export default async function EditarInqueritoPage({
         brigadas={brigadas}
         inspetores={inspetores}
         estados={estados}
+        crimes={crimes}
         defaultValues={{
           nuipc: inquerito.nuipc,
-          natureza: inquerito.natureza,
+          nai: inquerito.nai ?? undefined,
+          crimeId: inquerito.crimeId ?? '',
           estadoId: inquerito.estadoId,
-          faseProcessual: inquerito.faseProcessual,
           dataAbertura: format(inquerito.dataAbertura, 'yyyy-MM-dd'),
           dataPrazo: formatForInput(inquerito.dataPrazo),
           dataConclusao: formatForInput(inquerito.dataConclusao),

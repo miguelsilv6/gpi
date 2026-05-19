@@ -15,14 +15,6 @@ enum Role {
   ADMINISTRACAO
 }
 
-enum FaseProcessual {
-  INQUERITO
-  INSTRUCAO
-  JULGAMENTO
-  RECURSO
-  TRANSITO_EM_JULGADO
-}
-
 enum TipoNotificacao {
   PRAZO_APROXIMANDO
   PRAZO_ULTRAPASSADO
@@ -74,18 +66,20 @@ model Utilizador {
 }
 
 model Inquerito {
-  id             String         @id @default(cuid())
-  nuipc          String         @unique
-  nai            String?        @unique
+  id             String   @id @default(cuid())
+  nuipc          String   @unique
+  nai            String?  @unique
+  // Free-text natureza, kept for transitional backfill. Once `crimeId` is
+  // populated for every row (via scripts/migrate-natureza-to-crime.ts) and
+  // the UI no longer reads from this field, a future migration drops it.
   natureza       String
-  faseProcessual FaseProcessual @default(INQUERITO)
   dataAbertura   DateTime
   dataPrazo      DateTime?
   dataConclusao  DateTime?
   notas          String?
   deletedAt      DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   estado   EstadoInquerito @relation(fields: [estadoId], references: [id])
   estadoId String
@@ -96,13 +90,16 @@ model Inquerito {
   inspetor   Utilizador? @relation("InspetorAtribuido", fields: [inspetorId], references: [id])
   inspetorId String?
 
+  crime    Crime?  @relation(fields: [crimeId], references: [id])
+  crimeId  String?
+
   atividades   Atividade[]
   notificacoes Notificacao[]
 
   @@index([brigadaId])
   @@index([inspetorId])
   @@index([estadoId])
-  @@index([faseProcessual])
+  @@index([crimeId])
   @@index([dataPrazo])
   @@index([nuipc])
   @@index([nai])
@@ -126,6 +123,20 @@ model EstadoInquerito {
 
   inqueritos                   Inquerito[]
   atividadesPadraoQueTransitam AtividadePadrao[]
+
+  @@index([ativo, ordem])
+}
+
+model Crime {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  descricao String?
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inqueritos Inquerito[]
 
   @@index([ativo, ordem])
 }

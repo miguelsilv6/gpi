@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const parsed = bulkActionSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { ids, action, inspetorId, estadoId, faseProcessual, brigadaId } = parsed.data
+    const { ids, action, inspetorId, estadoId, brigadaId } = parsed.data
 
     if (ids.length > MAX_BULK) {
       return apiError(`Máximo ${MAX_BULK} inquéritos por operação`, 400)
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return apiError('Sem permissão para transferir inquéritos', 403)
     }
     if (
-      (action === 'assign' || action === 'changeState' || action === 'changeFase') &&
+      (action === 'assign' || action === 'changeState') &&
       !hasPermission(role, 'inquerito:bulk:brigade')
     ) {
       return apiError('Sem permissão para operações em massa', 403)
@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
     // Required payload per action
     if (action === 'assign' && inspetorId === undefined) return apiError('inspetorId obrigatório', 400)
     if (action === 'changeState' && !estadoId) return apiError('estadoId obrigatório', 400)
-    if (action === 'changeFase' && !faseProcessual) return apiError('faseProcessual obrigatória', 400)
     if (action === 'transfer' && !brigadaId) return apiError('brigadaId obrigatório', 400)
 
     // Scope: INSPETOR_CHEFE limited to own brigada
@@ -110,7 +109,6 @@ export async function POST(req: NextRequest) {
       const data: Prisma.InqueritoUncheckedUpdateManyInput = {}
       if (action === 'assign') data.inspetorId = inspetorId ?? null
       if (action === 'changeState' && estadoId) data.estadoId = estadoId
-      if (action === 'changeFase' && faseProcessual) data.faseProcessual = faseProcessual
       if (action === 'transfer' && brigadaId) {
         data.brigadaId = brigadaId
         data.inspetorId = null

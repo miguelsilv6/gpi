@@ -110,6 +110,25 @@ async function main() {
     },
   })
 
+  // Crimes (catálogo base — pode ser editado em /configuracoes)
+  const CRIMES_SEED = [
+    { nome: 'Furto qualificado', ordem: 1 },
+    { nome: 'Tráfico de estupefacientes', ordem: 2 },
+    { nome: 'Burla informática', ordem: 3 },
+    { nome: 'Roubo', ordem: 4 },
+    { nome: 'Ofensa à integridade física', ordem: 5 },
+    { nome: 'Violência doméstica', ordem: 6 },
+  ]
+  const crimesByNome: Record<string, { id: string }> = {}
+  for (const c of CRIMES_SEED) {
+    const r = await prisma.crime.upsert({
+      where: { nome: c.nome },
+      update: {},
+      create: c,
+    })
+    crimesByNome[c.nome] = r
+  }
+
   // Configuração do sistema (singleton)
   await prisma.configuracaoSistema.upsert({
     where: { id: 'singleton' },
@@ -130,8 +149,8 @@ async function main() {
     create: {
       nuipc: '2024/000001/YUSTR',
       natureza: 'Furto qualificado',
+      crimeId: crimesByNome['Furto qualificado']!.id,
       estadoId: estadosByCodigo.EM_INVESTIGACAO!.id,
-      faseProcessual: 'INQUERITO',
       dataAbertura: new Date('2024-01-15'),
       dataPrazo: new Date('2026-07-15'),
       brigadaId: brigadaAlfa.id,
@@ -146,8 +165,8 @@ async function main() {
     create: {
       nuipc: '2024/000002/YUSTR',
       natureza: 'Tráfico de estupefacientes',
+      crimeId: crimesByNome['Tráfico de estupefacientes']!.id,
       estadoId: estadosByCodigo.ABERTO!.id,
-      faseProcessual: 'INSTRUCAO',
       dataAbertura: new Date('2024-03-20'),
       dataPrazo: new Date('2026-06-01'),
       brigadaId: brigadaAlfa.id,
@@ -161,8 +180,8 @@ async function main() {
     create: {
       nuipc: '2024/000003/YUSTR',
       natureza: 'Burla informática',
+      crimeId: crimesByNome['Burla informática']!.id,
       estadoId: estadosByCodigo.CONCLUIDO!.id,
-      faseProcessual: 'JULGAMENTO',
       dataAbertura: new Date('2023-06-10'),
       dataConclusao: new Date('2025-12-01'),
       brigadaId: brigadaBeta.id,

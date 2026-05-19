@@ -5,7 +5,6 @@ import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
 import { EstadoBadge } from '@/components/inqueritos/estado-badge'
-import { FaseBadge } from '@/components/inqueritos/fase-badge'
 import { AuditHistory } from '@/components/inqueritos/audit-history'
 import { ReopenDialog } from '@/components/inqueritos/reopen-dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -39,6 +38,7 @@ export default async function InqueritoDetailPage({
     where: { nuipc, deletedAt: null, ...roleWhere },
     include: {
       estado: { select: { id: true, codigo: true, nome: true, cor: true, terminal: true } },
+      crime: { select: { id: true, nome: true } },
       brigada: { select: { id: true, nome: true } },
       inspetor: { select: { id: true, nome: true, email: true } },
       _count: { select: { atividades: true } },
@@ -120,10 +120,11 @@ export default async function InqueritoDetailPage({
               NAI: {inquerito.nai}
             </p>
           )}
-          <p className="text-muted-foreground mt-1">{inquerito.natureza}</p>
+          <p className="text-muted-foreground mt-1">
+            {inquerito.crime?.nome ?? inquerito.natureza}
+          </p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <EstadoBadge estado={inquerito.estado} />
-            <FaseBadge fase={inquerito.faseProcessual} />
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">

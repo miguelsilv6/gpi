@@ -10,10 +10,10 @@ export function ExportButton() {
   function handleExport() {
     const params = new URLSearchParams()
     const estado = searchParams.get('estado')
-    const faseProcessual = searchParams.get('faseProcessual')
+    const crimeId = searchParams.get('crimeId')
     const brigadaId = searchParams.get('brigadaId')
     if (estado) params.set('estado', estado)
-    if (faseProcessual) params.set('faseProcessual', faseProcessual)
+    if (crimeId) params.set('crimeId', crimeId)
     if (brigadaId) params.set('brigadaId', brigadaId)
 
     const url = `/api/inqueritos/export${params.size > 0 ? `?${params.toString()}` : ''}`

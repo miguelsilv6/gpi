@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { ROLE_LABELS } from '@/lib/rbac'
-import { FASE_LABELS } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 import {
   FolderOpen,
@@ -46,6 +45,7 @@ export default async function DashboardPage() {
         brigada: { select: { nome: true } },
         inspetor: { select: { nome: true } },
         estado: { select: { codigo: true, nome: true, cor: true } },
+        crime: { select: { nome: true } },
       },
     }),
   ])
@@ -127,7 +127,9 @@ export default async function DashboardPage() {
                 >
                   <div className="min-w-0">
                     <p className="font-mono text-sm font-medium truncate">{inq.nuipc}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{inq.natureza}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {inq.crime?.nome ?? inq.natureza}
+                    </p>
                     {inq.inspetor && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {inq.inspetor.nome}
@@ -137,9 +139,6 @@ export default async function DashboardPage() {
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                       {inq.estado.nome}
-                    </Badge>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                      {FASE_LABELS[inq.faseProcessual]}
                     </Badge>
                     {inq.dataPrazo && (
                       <span className="text-[10px] text-muted-foreground">

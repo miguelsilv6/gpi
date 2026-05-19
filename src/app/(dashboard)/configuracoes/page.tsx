@@ -27,6 +27,7 @@ import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
+import { CrimesTab } from './crimes-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -611,7 +612,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'atividades'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -712,7 +713,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0">
-        {(['sistema', 'estados', 'atividades'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'atividades'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -723,7 +724,13 @@ export default function ConfiguracoesPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
-            {t === 'sistema' ? 'Sistema' : t === 'estados' ? 'Estados' : 'Atividades'}
+            {t === 'sistema'
+              ? 'Sistema'
+              : t === 'estados'
+                ? 'Estados'
+                : t === 'crimes'
+                  ? 'Crimes'
+                  : 'Atividades'}
           </button>
         ))}
       </div>
@@ -854,6 +861,9 @@ export default function ConfiguracoesPage() {
 
       {/* Estados tab */}
       {tab === 'estados' && <EstadosTab />}
+
+      {/* Crimes tab */}
+      {tab === 'crimes' && <CrimesTab />}
 
       {/* Atividades tab */}
       {tab === 'atividades' && <AtividadesTab estados={estados} />}
