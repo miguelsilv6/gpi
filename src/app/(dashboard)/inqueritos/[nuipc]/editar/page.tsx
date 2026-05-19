@@ -95,6 +95,11 @@ export default async function EditarInqueritoPage({
           notas: inquerito.notas ?? undefined,
           brigadaId: inquerito.brigadaId,
           inspetorId: inquerito.inspetorId ?? undefined,
+          tribunal: inquerito.tribunal ?? undefined,
+          procurador: inquerito.procurador ?? undefined,
+          oficialJustica: inquerito.oficialJustica ?? undefined,
+          voip: inquerito.voip ?? undefined,
+          notasTribunal: inquerito.notasTribunal ?? undefined,
         }}
       />
     </div>

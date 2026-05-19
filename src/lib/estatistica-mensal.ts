@@ -33,11 +33,11 @@ export async function buildEstatisticaMensal(
   const startDate = new Date(Date.UTC(ano, mes - 1, 1))
   const endDate = new Date(Date.UTC(ano, mes, 1))
 
-  const [atividadesPadrao, brigadas] = await Promise.all([
+  const [padroesRaw, brigadas] = await Promise.all([
     prisma.atividadePadrao.findMany({
       where: { ativa: true, contaParaEstatistica: true },
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true },
+      select: { id: true, nome: true, temQuantidade: true },
     }),
     prisma.brigada.findMany({
       where: {
@@ -49,11 +49,16 @@ export async function buildEstatisticaMensal(
     }),
   ])
 
-  const padraoNomes = atividadesPadrao.map((p) => p.nome)
+  // External shape stays the same (id, nome) — the temQuantidade flag is an
+  // implementation detail of the aggregation.
+  const atividadesPadrao = padroesRaw.map((p) => ({ id: p.id, nome: p.nome }))
+
+  const padraoNomes = padroesRaw.map((p) => p.nome)
+  const temQuantidadeByNome = new Map(padroesRaw.map((p) => [p.nome, p.temQuantidade]))
   const brigadaIds = new Set(brigadas.map((b) => b.id))
 
   const counts: Record<string, Record<string, number>> = {}
-  for (const p of atividadesPadrao) {
+  for (const p of padroesRaw) {
     counts[p.nome] = {}
     for (const b of brigadas) counts[p.nome][b.id] = 0
   }
@@ -72,6 +77,7 @@ export async function buildEstatisticaMensal(
       },
       select: {
         descricao: true,
+        quantidade: true,
         inquerito: { select: { brigadaId: true } },
       },
     })
@@ -81,8 +87,16 @@ export async function buildEstatisticaMensal(
       if (!brigadaIds.has(brigadaId)) continue
       const row = counts[a.descricao]
       if (!row) continue
-      row[brigadaId] = (row[brigadaId] ?? 0) + 1
-      totalGeral++
+      // For atividades-padrão flagged as `temQuantidade`, each row carries
+      // an explicit count (e.g. "Detenção: 4" is one row with quantidade=4,
+      // not four separate rows). Treat a missing/zero quantidade as 1 so
+      // the row still shows up — that matches how the per-inquérito
+      // "Resumo por tipo" widget displays it.
+      const increment = temQuantidadeByNome.get(a.descricao)
+        ? (a.quantidade && a.quantidade > 0 ? a.quantidade : 1)
+        : 1
+      row[brigadaId] = (row[brigadaId] ?? 0) + increment
+      totalGeral += increment
     }
   }
 

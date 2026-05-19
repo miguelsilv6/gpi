@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChevronLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, Loader2, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { ConfirmDeleteDialog } from '@/components/ui/confirm-delete-dialog'
 
 const schema = z.object({
   nome: z.string().min(1, 'Nome obrigatório'),
@@ -21,7 +22,15 @@ const schema = z.object({
   role: z.enum(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO']),
   brigadaId: z.string().optional().nullable(),
   ativo: z.boolean(),
+  lt: z.number().int().positive('LT deve ser um número positivo').optional(),
+  telemovel: z.string().trim().max(40).optional().or(z.literal('')),
 })
+
+const ltSetValueAs = (v: unknown): number | undefined => {
+  if (v === '' || v === null || v === undefined) return undefined
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : undefined
+}
 
 type FormData = z.infer<typeof schema>
 
@@ -39,7 +48,10 @@ export default function EditarUtilizadorPage() {
   const id = params.id as string
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState('')
+  const [userEmail, setUserEmail] = useState('')
   const [brigadas, setBrigadas] = useState<{ id: string; nome: string }[]>([])
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const {
     register,
@@ -60,6 +72,7 @@ export default function EditarUtilizadorPage() {
     ])
       .then(([user, brigList]) => {
         setUserName(user.nome)
+        setUserEmail(user.email)
         if (Array.isArray(brigList)) setBrigadas(brigList)
         reset({
           nome: user.nome,
@@ -68,6 +81,8 @@ export default function EditarUtilizadorPage() {
           role: user.role,
           brigadaId: user.brigadaId ?? '',
           ativo: user.ativo,
+          lt: user.lt ?? undefined,
+          telemovel: user.telemovel ?? '',
         })
         setLoading(false)
       })
@@ -82,6 +97,8 @@ export default function EditarUtilizadorPage() {
       ...data,
       password: data.password || undefined,
       brigadaId: data.brigadaId || null,
+      lt: data.lt ?? null,
+      telemovel: data.telemovel?.trim() || null,
     }
 
     const res = await fetch(`/api/utilizadores/${id}`, {
@@ -101,19 +118,24 @@ export default function EditarUtilizadorPage() {
     router.refresh()
   }
 
-  async function handleDeactivate() {
-    if (!confirm('Desactivar este utilizador?')) return
-
-    const res = await fetch(`/api/utilizadores/${id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      const err = await res.json()
-      toast.error(err.error ?? 'Erro ao desactivar')
-      return
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/utilizadores/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao eliminar utilizador')
+        setDeleting(false)
+        return
+      }
+      toast.success('Utilizador eliminado')
+      setDeleteOpen(false)
+      router.push('/utilizadores')
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede ao eliminar utilizador')
+      setDeleting(false)
     }
-
-    toast.success('Utilizador desactivado')
-    router.push('/utilizadores')
-    router.refresh()
   }
 
   if (loading) return <div className="text-muted-foreground text-sm">A carregar...</div>
@@ -151,6 +173,32 @@ export default function EditarUtilizadorPage() {
               <Label htmlFor="email">Email *</Label>
               <Input id="email" type="email" {...register('email')} />
               {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="lt">N.º de LT</Label>
+                <Input
+                  id="lt"
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="Único"
+                  {...register('lt', { setValueAs: ltSetValueAs })}
+                />
+                {errors.lt && <p className="text-xs text-red-600">{errors.lt.message}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="telemovel">Telemóvel</Label>
+                <Input
+                  id="telemovel"
+                  type="tel"
+                  placeholder="912 345 678"
+                  {...register('telemovel')}
+                />
+                {errors.telemovel && <p className="text-xs text-red-600">{errors.telemovel.message}</p>}
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -210,14 +258,29 @@ export default function EditarUtilizadorPage() {
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={handleDeactivate}
+                onClick={() => setDeleteOpen(true)}
+                className="gap-1.5"
               >
-                Desactivar
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      <ConfirmDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Eliminar utilizador"
+        entityLabel={`${userName} <${userEmail}>`}
+        description="A conta é desactivada imediatamente, as sessões activas são revogadas, e o utilizador deixa de poder iniciar sessão. O histórico de auditoria (inquéritos criados, atividades registadas) permanece intacto para fins legais."
+        confirmToken={userEmail}
+        inputLabel="Para confirmar, digite o email"
+        destructiveLabel="Eliminar utilizador"
+        onConfirm={handleDelete}
+        loading={deleting}
+      />
     </div>
   )
 }

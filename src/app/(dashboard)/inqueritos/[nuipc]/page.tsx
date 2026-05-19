@@ -7,11 +7,13 @@ import { isTerminal } from '@/lib/inquerito-state'
 import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { AuditHistory } from '@/components/inqueritos/audit-history'
 import { ReopenDialog } from '@/components/inqueritos/reopen-dialog'
+import { DeleteInqueritoButton } from '@/components/inqueritos/delete-inquerito-button'
+import { AtividadeActions } from '@/components/inqueritos/atividade-actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { formatDate, formatDateTime, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell, Gavel, Download, FileDown } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -60,12 +62,12 @@ export default async function InqueritoDetailPage({
   // Filtered to only count activity types that are flagged
   // `contaParaEstatistica`. Atividades whose padrão was deleted are NOT
   // included either (they can't be matched).
-  const nomesQueContam = (
-    await prisma.atividadePadrao.findMany({
-      where: { contaParaEstatistica: true },
-      select: { nome: true },
-    })
-  ).map((p) => p.nome)
+  const padroesQueContam = await prisma.atividadePadrao.findMany({
+    where: { contaParaEstatistica: true },
+    select: { nome: true, temQuantidade: true },
+  })
+  const nomesQueContam = padroesQueContam.map((p) => p.nome)
+  const temQtdByNome = new Map(padroesQueContam.map((p) => [p.nome, p.temQuantidade]))
 
   const summary = nomesQueContam.length
     ? await prisma.atividade.groupBy({
@@ -85,6 +87,8 @@ export default async function InqueritoDetailPage({
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
   const canReopen = hasPermission(role, 'inquerito:reopen')
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
+  const canDelete = hasPermission(role, 'inquerito:delete')
+  const canExport = hasPermission(role, 'inquerito:export')
   const terminal = isTerminal(inquerito.estado)
 
   const overdue =
@@ -128,6 +132,31 @@ export default async function InqueritoDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
+          {canExport && (
+            <>
+              <Button size="sm" variant="outline">
+                <a
+                  href={`/api/inqueritos/${inqSlug}/export?format=csv`}
+                  className="flex items-center gap-1.5"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  CSV
+                </a>
+              </Button>
+              <Button size="sm" variant="outline">
+                <a
+                  href={`/inqueritos/${inqSlug}/print`}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center gap-1.5"
+                  title="Abre uma vista pronta para imprimir / guardar como PDF"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  PDF
+                </a>
+              </Button>
+            </>
+          )}
           {canEdit && !terminal && (
             <Button size="sm" variant="outline">
               <Link href={`/inqueritos/${inqSlug}/editar`} className="flex items-center gap-1.5">
@@ -137,6 +166,7 @@ export default async function InqueritoDetailPage({
             </Button>
           )}
           {canReopen && terminal && <ReopenDialog slug={inqSlug} />}
+          {canDelete && <DeleteInqueritoButton nuipc={inquerito.nuipc} />}
         </div>
       </div>
 
@@ -194,6 +224,53 @@ export default async function InqueritoDetailPage({
         </Card>
       </div>
 
+      {(inquerito.tribunal ||
+        inquerito.procurador ||
+        inquerito.oficialJustica ||
+        inquerito.voip ||
+        inquerito.notasTribunal) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+              <Gavel className="h-4 w-4" />
+              Tribunal / M.P.
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {inquerito.tribunal && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Tribunal / M.P.</span>
+                <span className="font-medium text-right">{inquerito.tribunal}</span>
+              </div>
+            )}
+            {inquerito.procurador && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Procurador/a</span>
+                <span className="font-medium text-right">{inquerito.procurador}</span>
+              </div>
+            )}
+            {inquerito.oficialJustica && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Oficial de Justiça</span>
+                <span className="font-medium text-right">{inquerito.oficialJustica}</span>
+              </div>
+            )}
+            {inquerito.voip && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">VoIP / Contacto</span>
+                <span className="font-medium text-right font-mono">{inquerito.voip}</span>
+              </div>
+            )}
+            {inquerito.notasTribunal && (
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-1">Notas</p>
+                <p className="text-sm whitespace-pre-wrap">{inquerito.notasTribunal}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {inquerito.notas && (
         <Card>
           <CardHeader className="pb-3">
@@ -221,22 +298,25 @@ export default async function InqueritoDetailPage({
             <div className="space-y-2">
               {summary
                 .sort((a, b) => b._count._all - a._count._all)
-                .map((s) => (
-                  <div
-                    key={s.descricao}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-muted-foreground">{s.descricao}</span>
-                    <span className="font-medium tabular-nums">
-                      {s._count._all}×
-                      {s._sum.quantidade != null && (
-                        <span className="ml-1 text-xs text-muted-foreground">
-                          (total: {s._sum.quantidade})
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                ))}
+                .map((s) => {
+                  // Atividades-padrão com `temQuantidade` mostram a quantidade
+                  // somada (e.g. uma atividade com quantidade=4 mostra "4").
+                  // As restantes mostram o número de linhas registadas.
+                  const temQtd = temQtdByNome.get(s.descricao) ?? false
+                  const display =
+                    temQtd && s._sum.quantidade != null && s._sum.quantidade > 0
+                      ? s._sum.quantidade
+                      : s._count._all
+                  return (
+                    <div
+                      key={s.descricao}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span className="text-muted-foreground">{s.descricao}</span>
+                      <span className="font-medium tabular-nums">{display}</span>
+                    </div>
+                  )
+                })}
             </div>
           </CardContent>
         </Card>
@@ -267,6 +347,12 @@ export default async function InqueritoDetailPage({
               <div className="space-y-4">
                 {atividades.map((atv, idx) => {
                   const atvOverdue = atv.dataPrazo && new Date(atv.dataPrazo) < new Date()
+                  // Mirror the API's canMutate rule so we only show edit/delete
+                  // when the action would succeed.
+                  const canMutateAtv =
+                    canEdit &&
+                    !terminal &&
+                    (role === 'INSPETOR' ? atv.realizadaPor.id === session.user.id : true)
                   return (
                     <div key={atv.id}>
                       {idx > 0 && <Separator className="mb-4" />}
@@ -280,6 +366,15 @@ export default async function InqueritoDetailPage({
                             <span className="text-xs text-muted-foreground">
                               {formatDateTime(atv.dataRealizacao)}
                             </span>
+                            {canMutateAtv && (
+                              <div className="ml-auto">
+                                <AtividadeActions
+                                  atividadeId={atv.id}
+                                  descricao={atv.descricao}
+                                  inqueritoSlug={inqSlug}
+                                />
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">

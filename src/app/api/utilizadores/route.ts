@@ -13,6 +13,8 @@ const schema = z.object({
   password: z.string().min(8, 'Password mínimo 8 caracteres'),
   role: z.enum(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO']),
   brigadaId: z.string().optional().nullable(),
+  lt: z.number().int().positive('LT deve ser um número positivo').max(2_147_483_647).optional().nullable(),
+  telemovel: z.string().trim().max(40).optional().nullable(),
 })
 
 export async function GET(req: NextRequest) {
@@ -49,6 +51,8 @@ export async function GET(req: NextRequest) {
         chefeSupremo: true,
         lastLoginAt: true,
         createdAt: true,
+        lt: true,
+        telemovel: true,
       },
     })
 
@@ -68,11 +72,17 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { nome, password, role: newRole, brigadaId } = parsed.data
+    const { nome, password, role: newRole, brigadaId, lt, telemovel } = parsed.data
     const email = parsed.data.email.toLowerCase().trim()
+    const telemovelTrimmed = telemovel?.trim() || null
 
     const exists = await prisma.utilizador.findUnique({ where: { email } })
     if (exists) return apiError('Já existe um utilizador com este email', 409)
+
+    if (lt != null) {
+      const ltExists = await prisma.utilizador.findUnique({ where: { lt } })
+      if (ltExists) return apiError(`Já existe um utilizador com o LT ${lt}`, 409)
+    }
 
     if (brigadaId) {
       const brigada = await prisma.brigada.findUnique({ where: { id: brigadaId } })
@@ -82,9 +92,18 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12)
 
     const utilizador = await prisma.utilizador.create({
-      data: { nome, email, passwordHash, role: newRole, brigadaId: brigadaId ?? null },
+      data: {
+        nome,
+        email,
+        passwordHash,
+        role: newRole,
+        brigadaId: brigadaId ?? null,
+        lt: lt ?? null,
+        telemovel: telemovelTrimmed,
+      },
       select: {
-        id: true, nome: true, email: true, role: true, ativo: true, brigadaId: true,
+        id: true, nome: true, email: true, role: true, ativo: true,
+        brigadaId: true, lt: true, telemovel: true,
       },
     })
 

@@ -14,6 +14,8 @@ const schema = z.object({
   role: z.enum(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO']).optional(),
   brigadaId: z.string().optional().nullable(),
   ativo: z.boolean().optional(),
+  lt: z.number().int().positive('LT deve ser um número positivo').max(2_147_483_647).optional().nullable(),
+  telemovel: z.string().trim().max(40).optional().nullable(),
 })
 
 export async function GET(
@@ -33,6 +35,7 @@ export async function GET(
         brigadaId: true, brigada: { select: { id: true, nome: true } },
         chefeSupremo: true, lastLoginAt: true, lastLoginIp: true,
         createdAt: true,
+        lt: true, telemovel: true,
       },
     })
     if (!utilizador) return apiError('Utilizador não encontrado', 404)
@@ -103,14 +106,29 @@ export async function PUT(
       if (exists) return apiError('Já existe um utilizador com este email', 409)
     }
 
+    // LT uniqueness check — only when the caller is actually changing it.
+    if (
+      parsed.data.lt !== undefined &&
+      parsed.data.lt !== null &&
+      parsed.data.lt !== utilizador.lt
+    ) {
+      const ltExists = await prisma.utilizador.findUnique({ where: { lt: parsed.data.lt } })
+      if (ltExists && ltExists.id !== utilizador.id) {
+        return apiError(`Já existe um utilizador com o LT ${parsed.data.lt}`, 409)
+      }
+    }
+
     if (parsed.data.brigadaId) {
       const brigada = await prisma.brigada.findUnique({ where: { id: parsed.data.brigadaId } })
       if (!brigada) return apiError('Brigada não encontrada', 404)
     }
 
-    const { password, email: _email, ...rest } = parsed.data
+    const { password, email: _email, telemovel, ...rest } = parsed.data
     const data: Record<string, unknown> = { ...rest }
     if (normalizedEmail) data.email = normalizedEmail
+    if (telemovel !== undefined) {
+      data.telemovel = telemovel?.trim() || null
+    }
     if (password) {
       data.passwordHash = await bcrypt.hash(password, 12)
     }
@@ -128,6 +146,7 @@ export async function PUT(
       data,
       select: {
         id: true, nome: true, email: true, role: true, ativo: true, brigadaId: true,
+        lt: true, telemovel: true,
       },
     })
 

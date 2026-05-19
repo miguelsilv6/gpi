@@ -152,6 +152,11 @@ export async function POST(req: NextRequest) {
         notas: data.notas ?? null,
         brigadaId: data.brigadaId,
         inspetorId,
+        tribunal: data.tribunal?.trim() || null,
+        procurador: data.procurador?.trim() || null,
+        oficialJustica: data.oficialJustica?.trim() || null,
+        voip: data.voip?.trim() || null,
+        notasTribunal: data.notasTribunal?.trim() || null,
       },
     })
 

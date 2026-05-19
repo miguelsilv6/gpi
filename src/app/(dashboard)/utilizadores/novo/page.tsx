@@ -20,7 +20,17 @@ const schema = z.object({
   password: z.string().min(8, 'Mínimo 8 caracteres'),
   role: z.enum(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO']),
   brigadaId: z.string().optional(),
+  lt: z.number().int().positive('LT deve ser um número positivo').optional(),
+  telemovel: z.string().trim().max(40).optional(),
 })
+
+// Converts an HTML number input value to (number | undefined). The input itself
+// is registered as text so empty strings round-trip cleanly.
+const ltSetValueAs = (v: unknown): number | undefined => {
+  if (v === '' || v === null || v === undefined) return undefined
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : undefined
+}
 
 type FormData = z.infer<typeof schema>
 
@@ -58,10 +68,15 @@ export default function NovoUtilizadorPage() {
   watch('role')
 
   async function onSubmit(data: FormData) {
+    const payload = {
+      ...data,
+      lt: data.lt ?? null,
+      telemovel: data.telemovel?.trim() || null,
+    }
     const res = await fetch('/api/utilizadores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
 
     if (!res.ok) {
@@ -107,6 +122,32 @@ export default function NovoUtilizadorPage() {
               <Label htmlFor="email">Email *</Label>
               <Input id="email" type="email" {...register('email')} placeholder="utilizador@gpi.pt" />
               {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="lt">N.º de LT</Label>
+                <Input
+                  id="lt"
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="Único"
+                  {...register('lt', { setValueAs: ltSetValueAs })}
+                />
+                {errors.lt && <p className="text-xs text-red-600">{errors.lt.message}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="telemovel">Telemóvel</Label>
+                <Input
+                  id="telemovel"
+                  type="tel"
+                  placeholder="912 345 678"
+                  {...register('telemovel')}
+                />
+                {errors.telemovel && <p className="text-xs text-red-600">{errors.telemovel.message}</p>}
+              </div>
             </div>
 
             <div className="space-y-1.5">

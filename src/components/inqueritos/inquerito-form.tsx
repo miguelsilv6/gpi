@@ -315,6 +315,72 @@ export function InqueritoForm({
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Tribunal / M.P.</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="tribunal">Tribunal / M.P.</Label>
+              <Input
+                id="tribunal"
+                placeholder="Tribunal onde corre a investigação"
+                {...register('tribunal')}
+              />
+              {errors.tribunal && (
+                <p className="text-xs text-red-600">{errors.tribunal.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="procurador">Procurador/a</Label>
+              <Input
+                id="procurador"
+                placeholder="Procurador/a titular"
+                {...register('procurador')}
+              />
+              {errors.procurador && (
+                <p className="text-xs text-red-600">{errors.procurador.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="oficialJustica">Oficial de Justiça</Label>
+              <Input
+                id="oficialJustica"
+                placeholder="Nome do oficial de justiça"
+                {...register('oficialJustica')}
+              />
+              {errors.oficialJustica && (
+                <p className="text-xs text-red-600">{errors.oficialJustica.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="voip">VoIP / Contacto</Label>
+              <Input
+                id="voip"
+                placeholder="Contacto directo do M.P. ou oficial"
+                {...register('voip')}
+              />
+              {errors.voip && (
+                <p className="text-xs text-red-600">{errors.voip.message}</p>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="notasTribunal">Notas (tribunal)</Label>
+            <Textarea
+              id="notasTribunal"
+              placeholder="Notas sobre o tribunal, procurador/a, oficial de justiça..."
+              rows={3}
+              {...register('notasTribunal')}
+            />
+            {errors.notasTribunal && (
+              <p className="text-xs text-red-600">{errors.notasTribunal.message}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Notas</CardTitle>
         </CardHeader>
         <CardContent>

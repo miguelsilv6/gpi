@@ -40,6 +40,10 @@ model Utilizador {
   id           String   @id @default(cuid())
   nome         String
   email        String   @unique
+  // Internal identification number (e.g. "número de LT"). Unique when set,
+  // optional so legacy accounts and seed users don't have to backfill yet.
+  lt           Int?     @unique
+  telemovel    String?
   passwordHash String
   role         Role
   ativo        Boolean  @default(true)
@@ -77,6 +81,12 @@ model Inquerito {
   dataPrazo      DateTime?
   dataConclusao  DateTime?
   notas          String?
+  // Tribunal / Ministério Público — all optional, free-text.
+  tribunal       String?
+  procurador     String?
+  oficialJustica String?
+  voip           String?
+  notasTribunal  String?
   deletedAt      DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
