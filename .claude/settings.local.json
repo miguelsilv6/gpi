@@ -36,7 +36,8 @@
       "Bash(mkdir -p \"/Users/miguelsilva/Downloads/gestao-processos/src/app/api/inqueritos/[nuipc]\")",
       "mcp__Claude_Preview__preview_start",
       "Bash(git add *)",
-      "PowerShell(netstat -ano)"
+      "PowerShell(netstat -ano)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
