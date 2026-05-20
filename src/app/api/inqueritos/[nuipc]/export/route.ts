@@ -95,6 +95,21 @@ export async function GET(
       ['Oficial de Justiça', inquerito.oficialJustica],
       ['VoIP / Contacto', inquerito.voip],
       ['Notas (tribunal)', inquerito.notasTribunal],
+      ['Denunciante (nome/designação)', inquerito.denuncianteNome],
+      ['Denunciante (tipo)',
+        inquerito.denuncianteTipo === 'SINGULAR'
+          ? 'Pessoa singular'
+          : inquerito.denuncianteTipo === 'COLETIVA'
+            ? 'Pessoa coletiva'
+            : ''],
+      ['Denunciante (NIF/NIPC)', inquerito.denuncianteNif],
+      ['Denunciante (morada)', inquerito.denuncianteMorada],
+      ['Denunciante (código postal)', inquerito.denuncianteCodPostal],
+      ['Denunciante (localidade)', inquerito.denuncianteLocalidade],
+      ['Denunciante (contacto)', inquerito.denuncianteContacto],
+      ['Denunciante (email)', inquerito.denuncianteEmail],
+      ['Denunciante (responsável)', inquerito.denuncianteResponsavel],
+      ['Denunciante (notas)', inquerito.denuncianteNotas],
       ['Notas', inquerito.notas],
       ['Criado em', fmtDateTime(inquerito.createdAt)],
       ['Última atualização', fmtDateTime(inquerito.updatedAt)],

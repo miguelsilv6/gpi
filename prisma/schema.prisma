@@ -16,6 +16,7 @@ enum Role {
 }
 
 enum TipoNotificacao {
+  BACKUP_FALHOU
   PRAZO_APROXIMANDO
   PRAZO_ULTRAPASSADO
   ATIVIDADE_ADICIONADA
@@ -87,6 +88,19 @@ model Inquerito {
   oficialJustica String?
   voip           String?
   notasTribunal  String?
+  // Denunciante (queixoso) — all optional. Tipo é 'SINGULAR' | 'COLETIVA'
+  // ao nível da aplicação (nullable String para não exigir migração quando
+  // surgirem novos tipos). NIF para singulares; NIPC para coletivas.
+  denuncianteNome        String?
+  denuncianteTipo        String?
+  denuncianteNif         String?
+  denuncianteMorada      String?
+  denuncianteCodPostal   String?
+  denuncianteLocalidade  String?
+  denuncianteContacto    String?
+  denuncianteEmail       String?
+  denuncianteResponsavel String?
+  denuncianteNotas       String?
   deletedAt      DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -235,6 +249,10 @@ model LoginAttempt {
 model ConfiguracaoSistema {
   id                              String   @id @default("singleton")
   backupScheduleCron              String   @default("0 2 * * *")
+  // Quando true, o middleware bloqueia utilizadores não-ADMINISTRACAO com 503.
+  // Activado/desactivado pelo endpoint de restauro e disponível como toggle
+  // manual em /configurações para janelas de manutenção planeadas.
+  maintenanceMode                 Boolean  @default(false)
   prazoAlertaDias                 Int      @default(7)
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")

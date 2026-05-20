@@ -37,7 +37,9 @@ export default async function BrigadasPage({ searchParams }: PageProps) {
         where: { ativo: true },
         select: { id: true, nome: true, role: true },
       },
-      _count: { select: { inqueritos: true } },
+      // Excluir soft-deleted para o counter alinhar com a listagem
+      // /inqueritos (que sempre filtra deletedAt: null).
+      _count: { select: { inqueritos: { where: { deletedAt: null } } } },
     },
   })
 

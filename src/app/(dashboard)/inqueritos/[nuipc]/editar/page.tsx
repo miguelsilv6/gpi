@@ -100,6 +100,16 @@ export default async function EditarInqueritoPage({
           oficialJustica: inquerito.oficialJustica ?? undefined,
           voip: inquerito.voip ?? undefined,
           notasTribunal: inquerito.notasTribunal ?? undefined,
+          denuncianteNome: inquerito.denuncianteNome ?? undefined,
+          denuncianteTipo: (inquerito.denuncianteTipo as 'SINGULAR' | 'COLETIVA' | null) ?? undefined,
+          denuncianteNif: inquerito.denuncianteNif ?? undefined,
+          denuncianteMorada: inquerito.denuncianteMorada ?? undefined,
+          denuncianteCodPostal: inquerito.denuncianteCodPostal ?? undefined,
+          denuncianteLocalidade: inquerito.denuncianteLocalidade ?? undefined,
+          denuncianteContacto: inquerito.denuncianteContacto ?? undefined,
+          denuncianteEmail: inquerito.denuncianteEmail ?? undefined,
+          denuncianteResponsavel: inquerito.denuncianteResponsavel ?? undefined,
+          denuncianteNotas: inquerito.denuncianteNotas ?? undefined,
         }}
       />
     </div>

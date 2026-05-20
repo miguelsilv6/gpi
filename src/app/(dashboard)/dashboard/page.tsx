@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { ROLE_LABELS } from '@/lib/rbac'
 import type { Role } from '@/generated/prisma/enums'
-import { FolderOpen, Activity, Monitor, Send } from 'lucide-react'
+import { FolderOpen, Activity, MonitorCog, Send } from 'lucide-react'
 import { formatDate, nuipcToSlug } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
           <Card className="transition-colors hover:bg-accent/30 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground">Aguarda Exames</CardTitle>
-              <Monitor className="h-4 w-4 text-purple-500" />
+              <MonitorCog className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-purple-700">{aguardaExames}</p>

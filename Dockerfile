@@ -33,7 +33,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/src/generated ./src/generated
 
-RUN apk add --no-cache postgresql-client bash
+# Pin postgresql-client major version to match the Postgres server (16).
+# coreutils + util-linux are needed by scripts/backup.sh (df --output, flock).
+RUN apk add --no-cache postgresql16-client bash coreutils util-linux
 
 USER nextjs
 

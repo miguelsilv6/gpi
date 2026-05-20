@@ -12,6 +12,7 @@ const schema = z.object({
   emailRemetenteNome: z.string().min(1).max(100).optional(),
   emailRemetenteAddr: z.string().email().optional(),
   inqueritoFiltroEstadosDefault: z.array(z.string().min(1).max(40)).max(20).optional(),
+  maintenanceMode: z.boolean().optional(),
 })
 
 export async function GET() {
@@ -58,18 +59,21 @@ export async function PUT(req: NextRequest) {
             backupScheduleCron: before.backupScheduleCron,
             emailRemetenteNome: before.emailRemetenteNome,
             emailRemetenteAddr: before.emailRemetenteAddr,
+            maintenanceMode: before.maintenanceMode,
           },
           {
             prazoAlertaDias: config.prazoAlertaDias,
             backupScheduleCron: config.backupScheduleCron,
             emailRemetenteNome: config.emailRemetenteNome,
             emailRemetenteAddr: config.emailRemetenteAddr,
+            maintenanceMode: config.maintenanceMode,
           },
           [
             'prazoAlertaDias',
             'backupScheduleCron',
             'emailRemetenteNome',
             'emailRemetenteAddr',
+            'maintenanceMode',
           ],
         )
       : null

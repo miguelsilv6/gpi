@@ -200,6 +200,58 @@ export default async function InqueritoPrintPage({
           </dd>
         </dl>
 
+        {(inquerito.denuncianteNome ||
+          inquerito.denuncianteNif ||
+          inquerito.denuncianteMorada ||
+          inquerito.denuncianteCodPostal ||
+          inquerito.denuncianteLocalidade ||
+          inquerito.denuncianteContacto ||
+          inquerito.denuncianteEmail ||
+          inquerito.denuncianteResponsavel ||
+          inquerito.denuncianteNotas) && (
+          <>
+            <h2>Denunciante</h2>
+            <dl className="meta-grid">
+              {inquerito.denuncianteNome && (
+                <>
+                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' ? 'Designação' : 'Nome'}</dt>
+                  <dd>
+                    {inquerito.denuncianteNome}
+                    {inquerito.denuncianteTipo === 'COLETIVA' && ' (pessoa coletiva)'}
+                    {inquerito.denuncianteTipo === 'SINGULAR' && ' (pessoa singular)'}
+                  </dd>
+                </>
+              )}
+              {inquerito.denuncianteNif && (
+                <>
+                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : 'NIF'}</dt>
+                  <dd>{inquerito.denuncianteNif}</dd>
+                </>
+              )}
+              {(inquerito.denuncianteMorada || inquerito.denuncianteCodPostal || inquerito.denuncianteLocalidade) && (
+                <>
+                  <dt>Morada</dt>
+                  <dd>
+                    {[
+                      inquerito.denuncianteMorada,
+                      [inquerito.denuncianteCodPostal, inquerito.denuncianteLocalidade].filter(Boolean).join(' '),
+                    ].filter(Boolean).join(', ')}
+                  </dd>
+                </>
+              )}
+              {inquerito.denuncianteContacto && (<><dt>Contacto</dt><dd>{inquerito.denuncianteContacto}</dd></>)}
+              {inquerito.denuncianteEmail && (<><dt>Email</dt><dd>{inquerito.denuncianteEmail}</dd></>)}
+              {inquerito.denuncianteResponsavel && (<><dt>Responsável</dt><dd>{inquerito.denuncianteResponsavel}</dd></>)}
+            </dl>
+            {inquerito.denuncianteNotas && (
+              <>
+                <h3>Notas sobre o denunciante</h3>
+                <div className="pre">{inquerito.denuncianteNotas}</div>
+              </>
+            )}
+          </>
+        )}
+
         {(inquerito.tribunal ||
           inquerito.procurador ||
           inquerito.oficialJustica ||

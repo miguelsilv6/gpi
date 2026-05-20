@@ -381,6 +381,126 @@ export function InqueritoForm({
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Denunciante</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="denuncianteNome">Nome / Designação</Label>
+              <Input
+                id="denuncianteNome"
+                placeholder="Nome completo (singular) ou designação (coletiva)"
+                {...register('denuncianteNome')}
+              />
+              {errors.denuncianteNome && (
+                <p className="text-xs text-red-600">{errors.denuncianteNome.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tipo</Label>
+              <Select
+                value={watch('denuncianteTipo') || '__none__'}
+                onValueChange={(v) =>
+                  setValue(
+                    'denuncianteTipo',
+                    !v || v === '__none__' ? null : (v as 'SINGULAR' | 'COLETIVA'),
+                    { shouldDirty: true },
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="—">
+                    {(v: string) =>
+                      v === 'SINGULAR'
+                        ? 'Pessoa singular'
+                        : v === 'COLETIVA'
+                          ? 'Pessoa coletiva'
+                          : '—'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  <SelectItem value="SINGULAR">Pessoa singular</SelectItem>
+                  <SelectItem value="COLETIVA">Pessoa coletiva</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="denuncianteNif">NIF / NIPC</Label>
+              <Input
+                id="denuncianteNif"
+                placeholder="123456789"
+                className="font-mono"
+                {...register('denuncianteNif')}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="denuncianteMorada">Morada (rua)</Label>
+              <Input
+                id="denuncianteMorada"
+                placeholder="Rua e número"
+                {...register('denuncianteMorada')}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="denuncianteCodPostal">Código postal</Label>
+              <Input
+                id="denuncianteCodPostal"
+                placeholder="0000-000"
+                className="font-mono"
+                {...register('denuncianteCodPostal')}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="denuncianteLocalidade">Localidade</Label>
+              <Input
+                id="denuncianteLocalidade"
+                placeholder="Lisboa"
+                {...register('denuncianteLocalidade')}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="denuncianteContacto">Contacto telefónico</Label>
+              <Input
+                id="denuncianteContacto"
+                type="tel"
+                placeholder="912 345 678"
+                {...register('denuncianteContacto')}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="denuncianteEmail">Email</Label>
+              <Input
+                id="denuncianteEmail"
+                type="email"
+                placeholder="denunciante@exemplo.pt"
+                {...register('denuncianteEmail')}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="denuncianteResponsavel">Responsável (pessoa coletiva)</Label>
+              <Input
+                id="denuncianteResponsavel"
+                placeholder="Nome do interlocutor"
+                {...register('denuncianteResponsavel')}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="denuncianteNotas">Notas sobre o denunciante</Label>
+            <Textarea
+              id="denuncianteNotas"
+              placeholder="Observações..."
+              rows={3}
+              {...register('denuncianteNotas')}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Notas</CardTitle>
         </CardHeader>
         <CardContent>

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { formatDate, formatDateTime, formatDateTimeWithSeconds, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell, Gavel, Download, FileDown, Check } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell, Gavel, Download, FileDown, Check, UserSquare } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -236,6 +236,92 @@ export default async function InqueritoDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {(inquerito.denuncianteNome ||
+        inquerito.denuncianteNif ||
+        inquerito.denuncianteMorada ||
+        inquerito.denuncianteCodPostal ||
+        inquerito.denuncianteLocalidade ||
+        inquerito.denuncianteContacto ||
+        inquerito.denuncianteEmail ||
+        inquerito.denuncianteResponsavel ||
+        inquerito.denuncianteNotas) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+              <UserSquare className="h-4 w-4" />
+              Denunciante
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {inquerito.denuncianteNome && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">
+                  {inquerito.denuncianteTipo === 'COLETIVA' ? 'Designação' : 'Nome'}
+                </span>
+                <span className="font-medium text-right">
+                  {inquerito.denuncianteNome}
+                  {inquerito.denuncianteTipo === 'COLETIVA' && (
+                    <span className="ml-2 text-xs text-muted-foreground">(pessoa coletiva)</span>
+                  )}
+                  {inquerito.denuncianteTipo === 'SINGULAR' && (
+                    <span className="ml-2 text-xs text-muted-foreground">(pessoa singular)</span>
+                  )}
+                </span>
+              </div>
+            )}
+            {inquerito.denuncianteNif && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">
+                  {inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : 'NIF'}
+                </span>
+                <span className="font-medium text-right font-mono">{inquerito.denuncianteNif}</span>
+              </div>
+            )}
+            {(inquerito.denuncianteMorada ||
+              inquerito.denuncianteCodPostal ||
+              inquerito.denuncianteLocalidade) && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Morada</span>
+                <span className="font-medium text-right">
+                  {[
+                    inquerito.denuncianteMorada,
+                    [inquerito.denuncianteCodPostal, inquerito.denuncianteLocalidade]
+                      .filter(Boolean)
+                      .join(' '),
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                </span>
+              </div>
+            )}
+            {inquerito.denuncianteContacto && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Contacto</span>
+                <span className="font-medium text-right font-mono">{inquerito.denuncianteContacto}</span>
+              </div>
+            )}
+            {inquerito.denuncianteEmail && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Email</span>
+                <span className="font-medium text-right">{inquerito.denuncianteEmail}</span>
+              </div>
+            )}
+            {inquerito.denuncianteResponsavel && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Responsável</span>
+                <span className="font-medium text-right">{inquerito.denuncianteResponsavel}</span>
+              </div>
+            )}
+            {inquerito.denuncianteNotas && (
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-1">Notas</p>
+                <p className="text-sm whitespace-pre-wrap">{inquerito.denuncianteNotas}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {(inquerito.tribunal ||
         inquerito.procurador ||

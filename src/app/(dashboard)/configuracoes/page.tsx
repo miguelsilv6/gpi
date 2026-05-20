@@ -28,6 +28,7 @@ import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
+import { BackupsTab } from './backups-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -689,7 +690,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades' | 'backups'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -794,7 +795,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0">
-        {(['sistema', 'estados', 'crimes', 'atividades'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'atividades', 'backups'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -811,7 +812,9 @@ export default function ConfiguracoesPage() {
                 ? 'Estados'
                 : t === 'crimes'
                   ? 'Crimes'
-                  : 'Atividades'}
+                  : t === 'atividades'
+                    ? 'Atividades'
+                    : 'Backups'}
           </button>
         ))}
       </div>
@@ -840,28 +843,6 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Backups</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="backupScheduleCron">Agendamento (cron expression)</Label>
-                <Input
-                  id="backupScheduleCron"
-                  {...register('backupScheduleCron')}
-                  placeholder="0 2 * * *"
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Ex: <code>0 2 * * *</code> = todos os dias às 02:00
-                </p>
-                {errors.backupScheduleCron && (
-                  <p className="text-xs text-red-600">{errors.backupScheduleCron.message}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>
@@ -948,6 +929,9 @@ export default function ConfiguracoesPage() {
 
       {/* Atividades tab */}
       {tab === 'atividades' && <AtividadesTab estados={estados} />}
+
+      {/* Backups tab */}
+      {tab === 'backups' && <BackupsTab />}
     </div>
   )
 }

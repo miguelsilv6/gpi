@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { InqueritoTable } from '@/components/inqueritos/inquerito-table'
-import { ChevronLeft, Monitor } from 'lucide-react'
+import { ChevronLeft, MonitorCog } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -64,7 +64,7 @@ export default async function AguardaExamesPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Monitor className="h-5 w-5 text-purple-500" />
+        <MonitorCog className="h-5 w-5 text-purple-500" />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Aguarda Exames</h1>
           <p className="text-muted-foreground text-sm">

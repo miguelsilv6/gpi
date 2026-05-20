@@ -42,3 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Backups directory — bind-mounted volume; dumps must never be committed.
+/backups/
