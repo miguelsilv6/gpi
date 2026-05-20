@@ -28,6 +28,7 @@ import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
+import { BackupsTab } from './backups-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -49,6 +50,8 @@ interface EstadoOption {
 
 // ─── Atividade Padrão ─────────────────────────────────────────────────────────
 
+type CategoriaDashboard = 'AGUARDA_EXAMES' | 'ENVIADO' | null
+
 interface AtividadePadrao {
   id: string
   nome: string
@@ -59,9 +62,16 @@ interface AtividadePadrao {
   temQuantidade: boolean
   contaParaEstatistica: boolean
   transicaoEstadoId: string | null
+  categoriaDashboard: CategoriaDashboard
 }
 
 const TRANSICAO_NONE = '__none__'
+const CATEGORIA_NONE = '__none__'
+
+const CATEGORIA_DASHBOARD_LABELS: Record<Exclude<CategoriaDashboard, null>, string> = {
+  AGUARDA_EXAMES: 'Aguarda exames',
+  ENVIADO: 'Enviado',
+}
 
 function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [atividades, setAtividades] = useState<AtividadePadrao[]>([])
@@ -73,6 +83,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [newTemQuantidade, setNewTemQuantidade] = useState(false)
   const [newContaParaEstatistica, setNewContaParaEstatistica] = useState(true)
   const [newTransicaoEstadoId, setNewTransicaoEstadoId] = useState<string>('')
+  const [newCategoriaDashboard, setNewCategoriaDashboard] = useState<CategoriaDashboard>(null)
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [editNome, setEditNome] = useState('')
@@ -81,6 +92,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [editTemQuantidade, setEditTemQuantidade] = useState(false)
   const [editContaParaEstatistica, setEditContaParaEstatistica] = useState(true)
   const [editTransicaoEstadoId, setEditTransicaoEstadoId] = useState<string>('')
+  const [editCategoriaDashboard, setEditCategoriaDashboard] = useState<CategoriaDashboard>(null)
   const [deleteCandidate, setDeleteCandidate] = useState<AtividadePadrao | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteInUseCount, setDeleteInUseCount] = useState<number | null>(null)
@@ -110,6 +122,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
         temQuantidade: newTemQuantidade,
         contaParaEstatistica: newContaParaEstatistica,
         transicaoEstadoId: newTransicaoEstadoId || null,
+        categoriaDashboard: newCategoriaDashboard,
       }),
     })
     setSaving(false)
@@ -125,6 +138,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
     setNewTemQuantidade(false)
     setNewContaParaEstatistica(true)
     setNewTransicaoEstadoId('')
+    setNewCategoriaDashboard(null)
     setAdding(false)
     load()
   }
@@ -211,6 +225,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
     setEditTemQuantidade(a.temQuantidade)
     setEditContaParaEstatistica(a.contaParaEstatistica)
     setEditTransicaoEstadoId(a.transicaoEstadoId ?? '')
+    setEditCategoriaDashboard(a.categoriaDashboard)
   }
 
   async function handleEditSave(id: string) {
@@ -225,6 +240,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
         temQuantidade: editTemQuantidade,
         contaParaEstatistica: editContaParaEstatistica,
         transicaoEstadoId: editTransicaoEstadoId || null,
+        categoriaDashboard: editCategoriaDashboard,
       }),
     })
     if (!res.ok) {
@@ -340,6 +356,33 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                 para o escolhido (respeitando a máquina de estados).
               </p>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newCategoria">Categoria no Dashboard</Label>
+              <Select
+                value={newCategoriaDashboard ?? CATEGORIA_NONE}
+                onValueChange={(v) =>
+                  setNewCategoriaDashboard(!v || v === CATEGORIA_NONE ? null : (v as Exclude<CategoriaDashboard, null>))
+                }
+              >
+                <SelectTrigger id="newCategoria">
+                  <SelectValue>
+                    {(v: string) => {
+                      if (!v || v === CATEGORIA_NONE) return 'Nenhuma'
+                      return CATEGORIA_DASHBOARD_LABELS[v as Exclude<CategoriaDashboard, null>] ?? 'Nenhuma'
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={CATEGORIA_NONE}>Nenhuma</SelectItem>
+                  <SelectItem value="AGUARDA_EXAMES">Aguarda exames</SelectItem>
+                  <SelectItem value="ENVIADO">Enviado</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Inquéritos com atividades deste tipo ainda por concluir contam para o cartão
+                do Dashboard correspondente.
+              </p>
+            </div>
             <div className="flex gap-2 pt-1">
               <Button size="sm" onClick={handleAdd} disabled={saving || !newNome.trim()}>
                 {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
@@ -348,6 +391,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
               <Button size="sm" variant="ghost" onClick={() => {
                 setAdding(false); setNewNome(''); setNewDescricao('')
                 setNewTemPrazo(false); setNewTemQuantidade(false)
+                setNewCategoriaDashboard(null)
               }}>
                 Cancelar
               </Button>
@@ -446,6 +490,31 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Label className="text-xs text-muted-foreground">Categoria Dashboard</Label>
+                    <Select
+                      value={editCategoriaDashboard ?? CATEGORIA_NONE}
+                      onValueChange={(v) =>
+                        setEditCategoriaDashboard(
+                          !v || v === CATEGORIA_NONE ? null : (v as Exclude<CategoriaDashboard, null>),
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[200px] text-xs">
+                        <SelectValue>
+                          {(v: string) => {
+                            if (!v || v === CATEGORIA_NONE) return 'Nenhuma'
+                            return CATEGORIA_DASHBOARD_LABELS[v as Exclude<CategoriaDashboard, null>] ?? 'Nenhuma'
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={CATEGORIA_NONE}>Nenhuma</SelectItem>
+                        <SelectItem value="AGUARDA_EXAMES">Aguarda exames</SelectItem>
+                        <SelectItem value="ENVIADO">Enviado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -473,6 +542,15 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                         </span>
                       )
                     })()}
+                    {/* Categoria Dashboard badge */}
+                    {a.categoriaDashboard && (
+                      <span
+                        title="Categoria que conta para o cartão do Dashboard"
+                        className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300"
+                      >
+                        ★ {CATEGORIA_DASHBOARD_LABELS[a.categoriaDashboard]}
+                      </span>
+                    )}
                     {/* Prazo toggle */}
                     <button
                       onClick={() => handleToggleField(a, 'temPrazo')}
@@ -612,7 +690,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades' | 'backups'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -704,8 +782,12 @@ export default function ConfiguracoesPage() {
 
   if (loading) return <div className="text-sm text-muted-foreground">A carregar...</div>
 
+  // The Atividades + Estados + Crimes tabs render rows with many inline badges
+  // and action icons; max-w-xl (576px) used to truncate them. Bumped to
+  // max-w-4xl (896px). The Sistema form panels were always single-column so
+  // they remain comfortable at this width.
   return (
-    <div className="space-y-4 max-w-xl">
+    <div className="space-y-4 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
         <p className="text-muted-foreground text-sm">Configurações do sistema</p>
@@ -713,7 +795,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0">
-        {(['sistema', 'estados', 'crimes', 'atividades'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'atividades', 'backups'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -730,7 +812,9 @@ export default function ConfiguracoesPage() {
                 ? 'Estados'
                 : t === 'crimes'
                   ? 'Crimes'
-                  : 'Atividades'}
+                  : t === 'atividades'
+                    ? 'Atividades'
+                    : 'Backups'}
           </button>
         ))}
       </div>
@@ -759,28 +843,6 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Backups</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="backupScheduleCron">Agendamento (cron expression)</Label>
-                <Input
-                  id="backupScheduleCron"
-                  {...register('backupScheduleCron')}
-                  placeholder="0 2 * * *"
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Ex: <code>0 2 * * *</code> = todos os dias às 02:00
-                </p>
-                {errors.backupScheduleCron && (
-                  <p className="text-xs text-red-600">{errors.backupScheduleCron.message}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>
@@ -867,6 +929,9 @@ export default function ConfiguracoesPage() {
 
       {/* Atividades tab */}
       {tab === 'atividades' && <AtividadesTab estados={estados} />}
+
+      {/* Backups tab */}
+      {tab === 'backups' && <BackupsTab />}
     </div>
   )
 }

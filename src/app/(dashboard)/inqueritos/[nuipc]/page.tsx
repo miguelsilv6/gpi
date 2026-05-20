@@ -12,8 +12,8 @@ import { AtividadeActions } from '@/components/inqueritos/atividade-actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { formatDate, formatDateTime, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell, Gavel, Download, FileDown } from 'lucide-react'
+import { formatDate, formatDateTime, formatDateTimeWithSeconds, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell, Gavel, Download, FileDown, Check, UserSquare } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -52,7 +52,9 @@ export default async function InqueritoDetailPage({
   // Pagination for atividades
   const atividades = await prisma.atividade.findMany({
     where: { inqueritoid: inquerito.id },
-    orderBy: { dataRealizacao: 'desc' },
+    // Sorted by createdAt because that's what the page now displays — keeps
+    // visual order coherent with the timestamp shown next to each entry.
+    orderBy: { createdAt: 'desc' },
     skip: (ativPageNum - 1) * ATIVIDADES_PAGE_SIZE,
     take: ATIVIDADES_PAGE_SIZE,
     include: { realizadaPor: { select: { id: true, nome: true } } },
@@ -62,12 +64,23 @@ export default async function InqueritoDetailPage({
   // Filtered to only count activity types that are flagged
   // `contaParaEstatistica`. Atividades whose padrão was deleted are NOT
   // included either (they can't be matched).
-  const padroesQueContam = await prisma.atividadePadrao.findMany({
-    where: { contaParaEstatistica: true },
-    select: { nome: true, temQuantidade: true },
+  // We pull all padrões in one go (not just those that count for statistics)
+  // so the rendering layer can look up `temPrazo` / `categoriaDashboard` for
+  // each atividade and decide which "Concluir" control to render.
+  const todosPadroes = await prisma.atividadePadrao.findMany({
+    select: {
+      nome: true,
+      temPrazo: true,
+      temQuantidade: true,
+      contaParaEstatistica: true,
+      categoriaDashboard: true,
+    },
   })
-  const nomesQueContam = padroesQueContam.map((p) => p.nome)
-  const temQtdByNome = new Map(padroesQueContam.map((p) => [p.nome, p.temQuantidade]))
+  const padraoByNome = new Map(todosPadroes.map((p) => [p.nome, p]))
+  const nomesQueContam = todosPadroes
+    .filter((p) => p.contaParaEstatistica)
+    .map((p) => p.nome)
+  const temQtdByNome = new Map(todosPadroes.map((p) => [p.nome, p.temQuantidade]))
 
   const summary = nomesQueContam.length
     ? await prisma.atividade.groupBy({
@@ -224,6 +237,92 @@ export default async function InqueritoDetailPage({
         </Card>
       </div>
 
+      {(inquerito.denuncianteNome ||
+        inquerito.denuncianteNif ||
+        inquerito.denuncianteMorada ||
+        inquerito.denuncianteCodPostal ||
+        inquerito.denuncianteLocalidade ||
+        inquerito.denuncianteContacto ||
+        inquerito.denuncianteEmail ||
+        inquerito.denuncianteResponsavel ||
+        inquerito.denuncianteNotas) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+              <UserSquare className="h-4 w-4" />
+              Denunciante
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {inquerito.denuncianteNome && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">
+                  {inquerito.denuncianteTipo === 'COLETIVA' ? 'Designação' : 'Nome'}
+                </span>
+                <span className="font-medium text-right">
+                  {inquerito.denuncianteNome}
+                  {inquerito.denuncianteTipo === 'COLETIVA' && (
+                    <span className="ml-2 text-xs text-muted-foreground">(pessoa coletiva)</span>
+                  )}
+                  {inquerito.denuncianteTipo === 'SINGULAR' && (
+                    <span className="ml-2 text-xs text-muted-foreground">(pessoa singular)</span>
+                  )}
+                </span>
+              </div>
+            )}
+            {inquerito.denuncianteNif && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">
+                  {inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : 'NIF'}
+                </span>
+                <span className="font-medium text-right font-mono">{inquerito.denuncianteNif}</span>
+              </div>
+            )}
+            {(inquerito.denuncianteMorada ||
+              inquerito.denuncianteCodPostal ||
+              inquerito.denuncianteLocalidade) && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Morada</span>
+                <span className="font-medium text-right">
+                  {[
+                    inquerito.denuncianteMorada,
+                    [inquerito.denuncianteCodPostal, inquerito.denuncianteLocalidade]
+                      .filter(Boolean)
+                      .join(' '),
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                </span>
+              </div>
+            )}
+            {inquerito.denuncianteContacto && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Contacto</span>
+                <span className="font-medium text-right font-mono">{inquerito.denuncianteContacto}</span>
+              </div>
+            )}
+            {inquerito.denuncianteEmail && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Email</span>
+                <span className="font-medium text-right">{inquerito.denuncianteEmail}</span>
+              </div>
+            )}
+            {inquerito.denuncianteResponsavel && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Responsável</span>
+                <span className="font-medium text-right">{inquerito.denuncianteResponsavel}</span>
+              </div>
+            )}
+            {inquerito.denuncianteNotas && (
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-1">Notas</p>
+                <p className="text-sm whitespace-pre-wrap">{inquerito.denuncianteNotas}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {(inquerito.tribunal ||
         inquerito.procurador ||
         inquerito.oficialJustica ||
@@ -346,13 +445,29 @@ export default async function InqueritoDetailPage({
             <>
               <div className="space-y-4">
                 {atividades.map((atv, idx) => {
-                  const atvOverdue = atv.dataPrazo && new Date(atv.dataPrazo) < new Date()
+                  const concluida = atv.concluidaEm != null
+                  const atvOverdue =
+                    !concluida && atv.dataPrazo && new Date(atv.dataPrazo) < new Date()
                   // Mirror the API's canMutate rule so we only show edit/delete
                   // when the action would succeed.
                   const canMutateAtv =
                     canEdit &&
                     !terminal &&
                     (role === 'INSPETOR' ? atv.realizadaPor.id === session.user.id : true)
+                  // Resolve the "Concluir" control shape from the padrão.
+                  // - ENVIADO              → "Confirmar devolução"
+                  // - AGUARDA_EXAMES       → "Confirmar conclusão de Exame"
+                  // - temPrazo (no cat)    → plain "Concluído" icon button
+                  // - other / unknown     → no conclude button
+                  const padraoMeta = padraoByNome.get(atv.descricao)
+                  const conclusaoMode: 'devolucao' | 'exame' | 'prazo' | null =
+                    padraoMeta?.categoriaDashboard === 'ENVIADO'
+                      ? 'devolucao'
+                      : padraoMeta?.categoriaDashboard === 'AGUARDA_EXAMES'
+                        ? 'exame'
+                        : padraoMeta?.temPrazo
+                          ? 'prazo'
+                          : null
                   return (
                     <div key={atv.id}>
                       {idx > 0 && <Separator className="mb-4" />}
@@ -363,8 +478,11 @@ export default async function InqueritoDetailPage({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium">{atv.realizadaPor.nome}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDateTime(atv.dataRealizacao)}
+                            <span
+                              className="text-xs text-muted-foreground"
+                              title={`Realizada em ${formatDate(atv.dataRealizacao)}`}
+                            >
+                              {formatDateTimeWithSeconds(atv.createdAt)}
                             </span>
                             {canMutateAtv && (
                               <div className="ml-auto">
@@ -372,6 +490,12 @@ export default async function InqueritoDetailPage({
                                   atividadeId={atv.id}
                                   descricao={atv.descricao}
                                   inqueritoSlug={inqSlug}
+                                  concluidaEm={
+                                    atv.concluidaEm
+                                      ? new Date(atv.concluidaEm).toISOString()
+                                      : null
+                                  }
+                                  conclusaoMode={conclusaoMode}
                                 />
                               </div>
                             )}
@@ -385,16 +509,23 @@ export default async function InqueritoDetailPage({
                                 Qtd: {atv.quantidade}
                               </span>
                             )}
-                            {atv.dataPrazo && (
-                              <span className={cn(
-                                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                                atvOverdue
-                                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                  : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-                              )}>
-                                <Bell className="h-3 w-3" />
-                                Prazo: {formatDate(atv.dataPrazo)}
+                            {concluida ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                <Check className="h-3 w-3" />
+                                Concluída em {formatDate(atv.concluidaEm!)}
                               </span>
+                            ) : (
+                              atv.dataPrazo && (
+                                <span className={cn(
+                                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                                  atvOverdue
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                    : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+                                )}>
+                                  <Bell className="h-3 w-3" />
+                                  Prazo: {formatDate(atv.dataPrazo)}
+                                </span>
+                              )
                             )}
                           </div>
                           {atv.observacoes && (

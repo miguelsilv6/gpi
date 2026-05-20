@@ -18,7 +18,7 @@ import {
   InspetorBarChart,
   NaturezaBarChart,
 } from './charts'
-import { AlertTriangle, FileText, Users, X, ClipboardList } from 'lucide-react'
+import { AlertTriangle, FileText, Users, X, ClipboardList, MonitorCog, Send } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
@@ -27,6 +27,8 @@ interface Stats {
   total: number
   vencidos: number
   semInspetor: number
+  aguardaExames: number
+  enviados: number
   porEstado: { estadoId: string; codigo: string; nome: string; cor: string | null; count: number }[]
   porBrigada: { brigadaId: string; nome: string; count: number }[]
   porInspetor: { inspetorId: string; nome: string; count: number }[]
@@ -287,7 +289,7 @@ export function EstatisticasDashboard({
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -313,6 +315,24 @@ export function EstatisticasDashboard({
                   <span className="text-sm text-muted-foreground">Sem inspetor</span>
                 </div>
                 <p className="text-3xl font-bold mt-1">{stats.semInspetor}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <MonitorCog className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm text-muted-foreground">Aguarda Exames</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-purple-700">{stats.aguardaExames}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm text-muted-foreground">Enviados</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-blue-700">{stats.enviados}</p>
               </CardContent>
             </Card>
           </div>

@@ -5,7 +5,7 @@ import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { headers } from 'next/headers'
-import { slugToNuipc, formatDate, formatDateTime } from '@/lib/utils'
+import { slugToNuipc, formatDate, formatDateTime, formatDateTimeWithSeconds } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 import type { Metadata } from 'next'
 import type { Role } from '@/generated/prisma/enums'
@@ -46,7 +46,9 @@ export default async function InqueritoPrintPage({
       brigada: { select: { nome: true } },
       inspetor: { select: { nome: true, email: true } },
       atividades: {
-        orderBy: { dataRealizacao: 'desc' },
+        // Ordenado pela data de inserção (createdAt) para coincidir com o que
+        // é mostrado e com a página de detalhe do inquérito.
+        orderBy: { createdAt: 'desc' },
         include: { realizadaPor: { select: { nome: true } } },
       },
     },
@@ -198,6 +200,58 @@ export default async function InqueritoPrintPage({
           </dd>
         </dl>
 
+        {(inquerito.denuncianteNome ||
+          inquerito.denuncianteNif ||
+          inquerito.denuncianteMorada ||
+          inquerito.denuncianteCodPostal ||
+          inquerito.denuncianteLocalidade ||
+          inquerito.denuncianteContacto ||
+          inquerito.denuncianteEmail ||
+          inquerito.denuncianteResponsavel ||
+          inquerito.denuncianteNotas) && (
+          <>
+            <h2>Denunciante</h2>
+            <dl className="meta-grid">
+              {inquerito.denuncianteNome && (
+                <>
+                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' ? 'Designação' : 'Nome'}</dt>
+                  <dd>
+                    {inquerito.denuncianteNome}
+                    {inquerito.denuncianteTipo === 'COLETIVA' && ' (pessoa coletiva)'}
+                    {inquerito.denuncianteTipo === 'SINGULAR' && ' (pessoa singular)'}
+                  </dd>
+                </>
+              )}
+              {inquerito.denuncianteNif && (
+                <>
+                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : 'NIF'}</dt>
+                  <dd>{inquerito.denuncianteNif}</dd>
+                </>
+              )}
+              {(inquerito.denuncianteMorada || inquerito.denuncianteCodPostal || inquerito.denuncianteLocalidade) && (
+                <>
+                  <dt>Morada</dt>
+                  <dd>
+                    {[
+                      inquerito.denuncianteMorada,
+                      [inquerito.denuncianteCodPostal, inquerito.denuncianteLocalidade].filter(Boolean).join(' '),
+                    ].filter(Boolean).join(', ')}
+                  </dd>
+                </>
+              )}
+              {inquerito.denuncianteContacto && (<><dt>Contacto</dt><dd>{inquerito.denuncianteContacto}</dd></>)}
+              {inquerito.denuncianteEmail && (<><dt>Email</dt><dd>{inquerito.denuncianteEmail}</dd></>)}
+              {inquerito.denuncianteResponsavel && (<><dt>Responsável</dt><dd>{inquerito.denuncianteResponsavel}</dd></>)}
+            </dl>
+            {inquerito.denuncianteNotas && (
+              <>
+                <h3>Notas sobre o denunciante</h3>
+                <div className="pre">{inquerito.denuncianteNotas}</div>
+              </>
+            )}
+          </>
+        )}
+
         {(inquerito.tribunal ||
           inquerito.procurador ||
           inquerito.oficialJustica ||
@@ -235,14 +289,20 @@ export default async function InqueritoPrintPage({
             <div key={a.id} className="atividade">
               <div className="row1">
                 <span className="desc">{a.descricao}</span>
-                <span className="when">{formatDate(a.dataRealizacao)}</span>
+                <span className="when" title={`Realizada em ${formatDate(a.dataRealizacao)}`}>
+                  {formatDateTimeWithSeconds(a.createdAt)}
+                </span>
                 <span className="who">{a.realizadaPor.nome}</span>
               </div>
-              {(a.quantidade != null || a.dataPrazo) && (
+              {(a.quantidade != null || a.dataPrazo || a.concluidaEm) && (
                 <div className="meta">
                   {a.quantidade != null && <>Quantidade: <strong>{a.quantidade}</strong></>}
                   {a.quantidade != null && a.dataPrazo && <> · </>}
                   {a.dataPrazo && <>Prazo: {formatDate(a.dataPrazo)}</>}
+                  {(a.quantidade != null || a.dataPrazo) && a.concluidaEm && <> · </>}
+                  {a.concluidaEm && (
+                    <>Concluída em <strong>{formatDate(a.concluidaEm)}</strong></>
+                  )}
                 </div>
               )}
               {a.observacoes && <div className="obs pre">{a.observacoes}</div>}

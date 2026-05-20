@@ -23,7 +23,13 @@ export async function GET() {
     const brigadas = await prisma.brigada.findMany({
       orderBy: { nome: 'asc' },
       include: {
-        _count: { select: { utilizadores: true, inqueritos: true } },
+        _count: {
+          select: {
+            utilizadores: true,
+            // Excluir soft-deleted para o counter alinhar com as listagens.
+            inqueritos: { where: { deletedAt: null } },
+          },
+        },
       },
     })
 

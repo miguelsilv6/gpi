@@ -17,6 +17,14 @@ export function formatDateTime(date: Date | string | null | undefined): string {
   return format(new Date(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
 }
 
+/** Like formatDateTime, but includes seconds. Used for the atividade
+ *  "data de inserção" so the operator can distinguish entries created
+ *  within the same minute. */
+export function formatDateTimeWithSeconds(date: Date | string | null | undefined): string {
+  if (!date) return '—'
+  return format(new Date(date), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+}
+
 export function formatRelative(date: Date | string | null | undefined): string {
   if (!date) return '—'
   return formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR })

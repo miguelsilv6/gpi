@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { InqueritoFilters } from '@/components/inqueritos/inquerito-filters'
 import { InqueritoTable } from '@/components/inqueritos/inquerito-table'
 import { ExportButton } from '@/components/inqueritos/export-button'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { listEstados } from '@/lib/estados'
 import type { Role } from '@/generated/prisma/enums'
@@ -104,6 +104,8 @@ export default async function InqueritosPage({
   const canCreate = hasPermission(role, 'inquerito:create')
   const canBulk = hasPermission(role, 'inquerito:bulk:brigade')
   const canTransfer = hasPermission(role, 'inquerito:transfer')
+  const canImport = hasPermission(role, 'inquerito:bulk:all')
+  const showBrigada = hasPermission(role, 'inquerito:read:all')
 
   const [inqueritos, total, inspetores, brigadas, estados, crimes] = await Promise.all([
     prisma.inquerito.findMany({
@@ -165,6 +167,14 @@ export default async function InqueritosPage({
           <Suspense fallback={null}>
             <ExportButton />
           </Suspense>
+          {canImport && (
+            <Button size="sm" variant="outline">
+              <Link href="/inqueritos/importar" className="flex items-center gap-1.5">
+                <Upload className="h-4 w-4" />
+                Importar
+              </Link>
+            </Button>
+          )}
           {canCreate && (
             <Button size="sm">
               <Link href="/inqueritos/novo" className="flex items-center gap-1.5">
@@ -188,6 +198,7 @@ export default async function InqueritosPage({
         inqueritos={inqueritos}
         canBulk={canBulk}
         canTransfer={canTransfer}
+        showBrigada={showBrigada}
         inspetores={inspetores}
         brigadas={brigadas}
         estados={estados}

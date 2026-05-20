@@ -124,6 +124,10 @@ export default async function PrazosPage({
     AND: [
       // Atividade has a deadline
       { dataPrazo: { not: null } },
+      // Atividade still pending (operators can resolve a deadline via the
+      // "Concluir" button on the inquérito detail; resolved atividades drop
+      // out of /prazos and stop triggering cron alerts).
+      { concluidaEm: null },
       // Inquérito is active (not soft-deleted, not in a terminal state)
       { inquerito: { deletedAt: null, estado: { terminal: false } } },
       scopeWhere,

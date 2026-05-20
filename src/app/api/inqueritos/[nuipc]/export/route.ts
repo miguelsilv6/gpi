@@ -58,7 +58,8 @@ export async function GET(
         brigada: { select: { nome: true } },
         inspetor: { select: { nome: true, email: true } },
         atividades: {
-          orderBy: { dataRealizacao: 'desc' },
+          // Sorted by createdAt to match the on-screen detail / print views.
+          orderBy: { createdAt: 'desc' },
           include: { realizadaPor: { select: { nome: true } } },
         },
       },
@@ -94,6 +95,21 @@ export async function GET(
       ['Oficial de Justiça', inquerito.oficialJustica],
       ['VoIP / Contacto', inquerito.voip],
       ['Notas (tribunal)', inquerito.notasTribunal],
+      ['Denunciante (nome/designação)', inquerito.denuncianteNome],
+      ['Denunciante (tipo)',
+        inquerito.denuncianteTipo === 'SINGULAR'
+          ? 'Pessoa singular'
+          : inquerito.denuncianteTipo === 'COLETIVA'
+            ? 'Pessoa coletiva'
+            : ''],
+      ['Denunciante (NIF/NIPC)', inquerito.denuncianteNif],
+      ['Denunciante (morada)', inquerito.denuncianteMorada],
+      ['Denunciante (código postal)', inquerito.denuncianteCodPostal],
+      ['Denunciante (localidade)', inquerito.denuncianteLocalidade],
+      ['Denunciante (contacto)', inquerito.denuncianteContacto],
+      ['Denunciante (email)', inquerito.denuncianteEmail],
+      ['Denunciante (responsável)', inquerito.denuncianteResponsavel],
+      ['Denunciante (notas)', inquerito.denuncianteNotas],
       ['Notas', inquerito.notas],
       ['Criado em', fmtDateTime(inquerito.createdAt)],
       ['Última atualização', fmtDateTime(inquerito.updatedAt)],
@@ -106,10 +122,12 @@ export async function GET(
     lines.push('')
     lines.push(`Atividades (${inquerito.atividades.length})`)
     const atvHeaders = [
+      'Data Inserção',
       'Data Realização',
       'Atividade',
       'Quantidade',
       'Data Prazo',
+      'Concluída em',
       'Realizada por',
       'Observações',
     ]
@@ -117,10 +135,12 @@ export async function GET(
     for (const a of inquerito.atividades) {
       lines.push(
         [
+          fmtDateTime(a.createdAt),
           fmtDate(a.dataRealizacao),
           a.descricao,
           a.quantidade ?? '',
           fmtDate(a.dataPrazo),
+          fmtDate(a.concluidaEm),
           a.realizadaPor.nome,
           a.observacoes ?? '',
         ]

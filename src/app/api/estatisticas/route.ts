@@ -67,6 +67,20 @@ export async function GET(req: NextRequest) {
         : {}),
     }
 
+    // Names of padroes flagged with a dashboard category — needed for the
+    // Aguarda Exames / Enviados counters. Computed once and used in both
+    // counter queries below.
+    const padroesCategoria = await prisma.atividadePadrao.findMany({
+      where: { ativa: true, categoriaDashboard: { not: null } },
+      select: { nome: true, categoriaDashboard: true },
+    })
+    const nomesAguardaExames = padroesCategoria
+      .filter((p) => p.categoriaDashboard === 'AGUARDA_EXAMES')
+      .map((p) => p.nome)
+    const nomesEnviados = padroesCategoria
+      .filter((p) => p.categoriaDashboard === 'ENVIADO')
+      .map((p) => p.nome)
+
     const [
       porEstadoRaw,
       porBrigada,
@@ -75,6 +89,8 @@ export async function GET(req: NextRequest) {
       total,
       vencidos,
       semInspetor,
+      aguardaExames,
+      enviados,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
       prisma.inquerito.groupBy({
@@ -113,6 +129,37 @@ export async function GET(req: NextRequest) {
       prisma.inquerito.count({
         where: { ...where, inspetorId: null, estado: { terminal: false } },
       }),
+      // Aguarda Exames / Enviados — mesma semântica do Dashboard: inquéritos
+      // ativos (não-terminal) que tenham pelo menos uma atividade da
+      // categoria correspondente AINDA não concluída. Respeita os filtros
+      // brigada/inspetor da página; o filtro de data não se aplica (são
+      // contadores "actuais", não períodos).
+      nomesAguardaExames.length === 0
+        ? Promise.resolve(0)
+        : prisma.inquerito.count({
+            where: {
+              ...(brigadaId && { brigadaId }),
+              ...(inspetorId && { inspetorId }),
+              deletedAt: null,
+              estado: { terminal: false },
+              atividades: {
+                some: { descricao: { in: nomesAguardaExames }, concluidaEm: null },
+              },
+            },
+          }),
+      nomesEnviados.length === 0
+        ? Promise.resolve(0)
+        : prisma.inquerito.count({
+            where: {
+              ...(brigadaId && { brigadaId }),
+              ...(inspetorId && { inspetorId }),
+              deletedAt: null,
+              estado: { terminal: false },
+              atividades: {
+                some: { descricao: { in: nomesEnviados }, concluidaEm: null },
+              },
+            },
+          }),
     ])
 
     // Atividade breakdown for the selected inspetor (only when filtered).
@@ -196,6 +243,8 @@ export async function GET(req: NextRequest) {
       total,
       vencidos,
       semInspetor,
+      aguardaExames,
+      enviados,
       porEstado: porEstadoRaw.map((r) => {
         const e = estadoById.get(r.estadoId)
         return {

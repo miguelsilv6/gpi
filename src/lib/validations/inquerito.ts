@@ -30,6 +30,21 @@ export const inqueritoSchema = z
     oficialJustica: z.string().max(200).optional().nullable(),
     voip: z.string().max(100).optional().nullable(),
     notasTribunal: z.string().max(2000).optional().nullable(),
+    // Denunciante — all optional. Tipo aceita apenas valores conhecidos ou
+    // vazio; o esquema mantém a coluna como String? para permitir extensões.
+    denuncianteNome: z.string().max(200).optional().nullable(),
+    denuncianteTipo: z
+      .union([z.enum(['SINGULAR', 'COLETIVA']), z.literal('')])
+      .optional()
+      .nullable(),
+    denuncianteNif: z.string().max(20).optional().nullable(),
+    denuncianteMorada: z.string().max(200).optional().nullable(),
+    denuncianteCodPostal: z.string().max(20).optional().nullable(),
+    denuncianteLocalidade: z.string().max(100).optional().nullable(),
+    denuncianteContacto: z.string().max(40).optional().nullable(),
+    denuncianteEmail: z.string().max(200).optional().nullable(),
+    denuncianteResponsavel: z.string().max(200).optional().nullable(),
+    denuncianteNotas: z.string().max(2000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
     const abertura = parseDate(data.dataAbertura)

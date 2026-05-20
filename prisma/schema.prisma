@@ -16,6 +16,7 @@ enum Role {
 }
 
 enum TipoNotificacao {
+  BACKUP_FALHOU
   PRAZO_APROXIMANDO
   PRAZO_ULTRAPASSADO
   ATIVIDADE_ADICIONADA
@@ -87,6 +88,19 @@ model Inquerito {
   oficialJustica String?
   voip           String?
   notasTribunal  String?
+  // Denunciante (queixoso) — all optional. Tipo é 'SINGULAR' | 'COLETIVA'
+  // ao nível da aplicação (nullable String para não exigir migração quando
+  // surgirem novos tipos). NIF para singulares; NIPC para coletivas.
+  denuncianteNome        String?
+  denuncianteTipo        String?
+  denuncianteNif         String?
+  denuncianteMorada      String?
+  denuncianteCodPostal   String?
+  denuncianteLocalidade  String?
+  denuncianteContacto    String?
+  denuncianteEmail       String?
+  denuncianteResponsavel String?
+  denuncianteNotas       String?
   deletedAt      DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -162,6 +176,11 @@ model Atividade {
   alerta1Enviado Boolean   @default(false)
   alerta2Enviado Boolean   @default(false)
   dataRealizacao DateTime  @default(now())
+  // When set, the work this atividade represents is "done" — used both by
+  // the dashboard counters (Aguarda Exames / Enviados) and the cron to stop
+  // firing alerts. Independent of `dataPrazo`: an atividade without a prazo
+  // can still be marked as completed (a closed event marker).
+  concluidaEm    DateTime?
   createdAt      DateTime  @default(now())
 
   inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
@@ -174,6 +193,7 @@ model Atividade {
   @@index([utilizadorId])
   @@index([inqueritoid, dataRealizacao])
   @@index([dataPrazo])
+  @@index([concluidaEm])
 }
 
 model Notificacao {
@@ -229,6 +249,10 @@ model LoginAttempt {
 model ConfiguracaoSistema {
   id                              String   @id @default("singleton")
   backupScheduleCron              String   @default("0 2 * * *")
+  // Quando true, o middleware bloqueia utilizadores não-ADMINISTRACAO com 503.
+  // Activado/desactivado pelo endpoint de restauro e disponível como toggle
+  // manual em /configurações para janelas de manutenção planeadas.
+  maintenanceMode                 Boolean  @default(false)
   prazoAlertaDias                 Int      @default(7)
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")
@@ -255,10 +279,15 @@ model AtividadePadrao {
   // state machine). Null means no transition.
   transicaoEstado   EstadoInquerito? @relation(fields: [transicaoEstadoId], references: [id], onDelete: SetNull)
   transicaoEstadoId String?
+  // Optional category for the dashboard counters. Values are an app-level
+  // union ('AGUARDA_EXAMES' | 'ENVIADO'); kept as a nullable String so new
+  // categories can be added without a Prisma migration.
+  categoriaDashboard String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([transicaoEstadoId])
+  @@index([categoriaDashboard])
 }
 
 model Sessao {

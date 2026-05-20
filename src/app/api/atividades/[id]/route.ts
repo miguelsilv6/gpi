@@ -22,6 +22,9 @@ const updateSchema = z.object({
   dataPrazo: z.string().optional().nullable(),
   alertaDias1: z.number().int().refine((v) => ALERT_OPTIONS.includes(v)).optional().nullable(),
   alertaDias2: z.number().int().refine((v) => ALERT_OPTIONS.includes(v)).optional().nullable(),
+  // ISO datetime string when concluding, or null to reopen. `undefined` =
+  // not part of this update.
+  concluidaEm: z.string().datetime().nullable().optional(),
 })
 
 /** Returns true if `session.user` may edit/delete `atividade`. */
@@ -104,6 +107,9 @@ export async function PUT(
     }
     if (data.alertaDias1 !== undefined) updateData.alertaDias1 = data.alertaDias1
     if (data.alertaDias2 !== undefined) updateData.alertaDias2 = data.alertaDias2
+    if (data.concluidaEm !== undefined) {
+      updateData.concluidaEm = data.concluidaEm ? new Date(data.concluidaEm) : null
+    }
 
     const updated = await prisma.atividade.update({
       where: { id },
@@ -120,6 +126,7 @@ export async function PUT(
       dataPrazo: existing.dataPrazo,
       alertaDias1: existing.alertaDias1,
       alertaDias2: existing.alertaDias2,
+      concluidaEm: existing.concluidaEm,
     }
     const after = {
       observacoes: updated.observacoes,
@@ -128,6 +135,7 @@ export async function PUT(
       dataPrazo: updated.dataPrazo,
       alertaDias1: updated.alertaDias1,
       alertaDias2: updated.alertaDias2,
+      concluidaEm: updated.concluidaEm,
     }
     const changes = diff(before, after, [
       'observacoes',
@@ -136,6 +144,7 @@ export async function PUT(
       'dataPrazo',
       'alertaDias1',
       'alertaDias2',
+      'concluidaEm',
     ])
 
     if (changes) {

@@ -163,6 +163,16 @@ export async function PUT(
         oficialJustica: data.oficialJustica?.trim() || null,
         voip: data.voip?.trim() || null,
         notasTribunal: data.notasTribunal?.trim() || null,
+        denuncianteNome: data.denuncianteNome?.trim() || null,
+        denuncianteTipo: data.denuncianteTipo || null,
+        denuncianteNif: data.denuncianteNif?.trim() || null,
+        denuncianteMorada: data.denuncianteMorada?.trim() || null,
+        denuncianteCodPostal: data.denuncianteCodPostal?.trim() || null,
+        denuncianteLocalidade: data.denuncianteLocalidade?.trim() || null,
+        denuncianteContacto: data.denuncianteContacto?.trim() || null,
+        denuncianteEmail: data.denuncianteEmail?.trim() || null,
+        denuncianteResponsavel: data.denuncianteResponsavel?.trim() || null,
+        denuncianteNotas: data.denuncianteNotas?.trim() || null,
       },
     })
 
@@ -181,6 +191,16 @@ export async function PUT(
       oficialJustica: existing.oficialJustica,
       voip: existing.voip,
       notasTribunal: existing.notasTribunal,
+      denuncianteNome: existing.denuncianteNome,
+      denuncianteTipo: existing.denuncianteTipo,
+      denuncianteNif: existing.denuncianteNif,
+      denuncianteMorada: existing.denuncianteMorada,
+      denuncianteCodPostal: existing.denuncianteCodPostal,
+      denuncianteLocalidade: existing.denuncianteLocalidade,
+      denuncianteContacto: existing.denuncianteContacto,
+      denuncianteEmail: existing.denuncianteEmail,
+      denuncianteResponsavel: existing.denuncianteResponsavel,
+      denuncianteNotas: existing.denuncianteNotas,
     }
     const after = {
       nuipc: updated.nuipc,
@@ -196,6 +216,16 @@ export async function PUT(
       oficialJustica: updated.oficialJustica,
       voip: updated.voip,
       notasTribunal: updated.notasTribunal,
+      denuncianteNome: updated.denuncianteNome,
+      denuncianteTipo: updated.denuncianteTipo,
+      denuncianteNif: updated.denuncianteNif,
+      denuncianteMorada: updated.denuncianteMorada,
+      denuncianteCodPostal: updated.denuncianteCodPostal,
+      denuncianteLocalidade: updated.denuncianteLocalidade,
+      denuncianteContacto: updated.denuncianteContacto,
+      denuncianteEmail: updated.denuncianteEmail,
+      denuncianteResponsavel: updated.denuncianteResponsavel,
+      denuncianteNotas: updated.denuncianteNotas,
     }
     const changes = diff(before, after, [
       'nuipc',
@@ -211,6 +241,16 @@ export async function PUT(
       'oficialJustica',
       'voip',
       'notasTribunal',
+      'denuncianteNome',
+      'denuncianteTipo',
+      'denuncianteNif',
+      'denuncianteMorada',
+      'denuncianteCodPostal',
+      'denuncianteLocalidade',
+      'denuncianteContacto',
+      'denuncianteEmail',
+      'denuncianteResponsavel',
+      'denuncianteNotas',
     ])
 
     if (changes) {

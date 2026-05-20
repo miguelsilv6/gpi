@@ -14,6 +14,7 @@ const schema = z.object({
   temQuantidade: z.boolean().optional(),
   contaParaEstatistica: z.boolean().optional(),
   transicaoEstadoId: z.string().nullable().optional(),
+  categoriaDashboard: z.enum(['AGUARDA_EXAMES', 'ENVIADO']).nullable().optional(),
 })
 
 export async function GET() {

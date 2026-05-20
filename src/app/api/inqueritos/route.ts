@@ -157,6 +157,16 @@ export async function POST(req: NextRequest) {
         oficialJustica: data.oficialJustica?.trim() || null,
         voip: data.voip?.trim() || null,
         notasTribunal: data.notasTribunal?.trim() || null,
+        denuncianteNome: data.denuncianteNome?.trim() || null,
+        denuncianteTipo: data.denuncianteTipo || null,
+        denuncianteNif: data.denuncianteNif?.trim() || null,
+        denuncianteMorada: data.denuncianteMorada?.trim() || null,
+        denuncianteCodPostal: data.denuncianteCodPostal?.trim() || null,
+        denuncianteLocalidade: data.denuncianteLocalidade?.trim() || null,
+        denuncianteContacto: data.denuncianteContacto?.trim() || null,
+        denuncianteEmail: data.denuncianteEmail?.trim() || null,
+        denuncianteResponsavel: data.denuncianteResponsavel?.trim() || null,
+        denuncianteNotas: data.denuncianteNotas?.trim() || null,
       },
     })
 

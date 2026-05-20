@@ -18,7 +18,11 @@ COPY --chown=worker:nodejs . .
 
 RUN npx prisma generate
 
-RUN apk add --no-cache bash postgresql-client
+# Pin postgresql-client major version to match the Postgres server image
+# (docker-compose uses postgres:16). pg_dump/psql cross-major can produce
+# incompatible dumps — keep them aligned. Update both this line and the
+# postgres service image together when upgrading.
+RUN apk add --no-cache bash postgresql16-client coreutils util-linux
 
 USER worker
 

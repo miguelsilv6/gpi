@@ -108,6 +108,47 @@ export async function notifyInqueritoAtribuido(opts: {
   })
 }
 
+/**
+ * Notifica todos os utilizadores ADMINISTRACAO activos que uma operação de
+ * backup ou restauro falhou. Crucial para um sistema operacional — uma falha
+ * silenciosa de backup é o cenário clássico em que descobrimos no momento
+ * errado que não há cópias.
+ */
+export async function notifyBackupFailed(opts: {
+  contexto: 'backup_agendado' | 'backup_manual' | 'restauro'
+  error: string
+}) {
+  const admins = await prisma.utilizador.findMany({
+    where: { role: 'ADMINISTRACAO', ativo: true },
+    select: { id: true, email: true },
+  })
+
+  const contextoLabel =
+    opts.contexto === 'backup_agendado'
+      ? 'Backup agendado'
+      : opts.contexto === 'backup_manual'
+        ? 'Backup manual'
+        : 'Restauro'
+
+  const titulo = `${contextoLabel} falhou`
+  // Limitar o tamanho do erro na mensagem — pode ser stderr verboso.
+  const errSnippet = opts.error.length > 500 ? opts.error.slice(0, 500) + '…' : opts.error
+  const mensagem = `Falha em ${contextoLabel.toLowerCase()} do GPI:\n\n${errSnippet}\n\nVerifique os logs do worker para detalhes.`
+
+  await Promise.all(
+    admins.map((a) =>
+      createNotification({
+        utilizadorId: a.id,
+        tipo: 'BACKUP_FALHOU',
+        titulo,
+        mensagem,
+        sendEmail: true,
+        emailAddress: a.email,
+      }),
+    ),
+  )
+}
+
 export async function notifyInqueritoTransferido(opts: {
   inqueritoid: string
   nuipc: string
