@@ -37,6 +37,9 @@ interface Props {
   inqueritos: Inquerito[]
   canBulk: boolean
   canTransfer: boolean
+  /** Show the "Brigada" column. Coord/admin only — the others have a
+   *  brigade-scoped view so the column would be either constant or empty. */
+  showBrigada: boolean
   inspetores: Inspetor[]
   brigadas: Brigada[]
   estados: EstadoLike[]
@@ -45,11 +48,12 @@ interface Props {
 interface RowProps {
   inq: Inquerito
   canBulk: boolean
+  showBrigada: boolean
   isSelected: boolean
   onToggle: (id: string) => void
 }
 
-const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) {
+const Row = memo(function Row({ inq, canBulk, showBrigada, isSelected, onToggle }: RowProps) {
   const overdue = isOverdue(inq.dataPrazo) && !inq.estado.terminal
   return (
     <tr
@@ -88,6 +92,11 @@ const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) 
       <td className="px-4 py-3">
         <EstadoBadge estado={inq.estado} />
       </td>
+      {showBrigada && (
+        <td className="px-4 py-3 text-muted-foreground">
+          {inq.brigada.nome}
+        </td>
+      )}
       <td className="px-4 py-3 text-muted-foreground">
         {inq.inspetor?.nome ?? <span className="text-muted-foreground/50 italic">Não atribuído</span>}
       </td>
@@ -101,7 +110,7 @@ const Row = memo(function Row({ inq, canBulk, isSelected, onToggle }: RowProps) 
   )
 })
 
-export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, brigadas, estados }: Props) {
+export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, inspetores, brigadas, estados }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const allIds = inqueritos.map((i) => i.id)
@@ -145,6 +154,9 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">NUIPC</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Crime</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Estado</th>
+              {showBrigada && (
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Brigada</th>
+              )}
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Inspetor</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Prazo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ativ.</th>
@@ -153,7 +165,10 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
           <tbody className="divide-y">
             {inqueritos.length === 0 ? (
               <tr>
-                <td colSpan={canBulk ? 7 : 6} className="px-4 py-12 text-center text-muted-foreground">
+                <td
+                  colSpan={(canBulk ? 7 : 6) + (showBrigada ? 1 : 0)}
+                  className="px-4 py-12 text-center text-muted-foreground"
+                >
                   Nenhum inquérito encontrado.
                 </td>
               </tr>
@@ -163,6 +178,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, inspetores, b
                   key={inq.id}
                   inq={inq}
                   canBulk={canBulk}
+                  showBrigada={showBrigada}
                   isSelected={selected.has(inq.id)}
                   onToggle={toggle}
                 />

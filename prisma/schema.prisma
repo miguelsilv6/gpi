@@ -162,6 +162,11 @@ model Atividade {
   alerta1Enviado Boolean   @default(false)
   alerta2Enviado Boolean   @default(false)
   dataRealizacao DateTime  @default(now())
+  // When set, the work this atividade represents is "done" — used both by
+  // the dashboard counters (Aguarda Exames / Enviados) and the cron to stop
+  // firing alerts. Independent of `dataPrazo`: an atividade without a prazo
+  // can still be marked as completed (a closed event marker).
+  concluidaEm    DateTime?
   createdAt      DateTime  @default(now())
 
   inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
@@ -174,6 +179,7 @@ model Atividade {
   @@index([utilizadorId])
   @@index([inqueritoid, dataRealizacao])
   @@index([dataPrazo])
+  @@index([concluidaEm])
 }
 
 model Notificacao {
@@ -255,10 +261,15 @@ model AtividadePadrao {
   // state machine). Null means no transition.
   transicaoEstado   EstadoInquerito? @relation(fields: [transicaoEstadoId], references: [id], onDelete: SetNull)
   transicaoEstadoId String?
+  // Optional category for the dashboard counters. Values are an app-level
+  // union ('AGUARDA_EXAMES' | 'ENVIADO'); kept as a nullable String so new
+  // categories can be added without a Prisma migration.
+  categoriaDashboard String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([transicaoEstadoId])
+  @@index([categoriaDashboard])
 }
 
 model Sessao {

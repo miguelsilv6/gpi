@@ -52,6 +52,7 @@ export const ATIVIDADE_PRAZO_SELECT = {
   alertaDias2: true,
   alerta1Enviado: true,
   alerta2Enviado: true,
+  concluidaEm: true,
   realizadaPor: { select: { id: true, nome: true } },
   inquerito: {
     select: {

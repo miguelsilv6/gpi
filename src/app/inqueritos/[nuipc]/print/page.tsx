@@ -5,7 +5,7 @@ import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { headers } from 'next/headers'
-import { slugToNuipc, formatDate, formatDateTime } from '@/lib/utils'
+import { slugToNuipc, formatDate, formatDateTime, formatDateTimeWithSeconds } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 import type { Metadata } from 'next'
 import type { Role } from '@/generated/prisma/enums'
@@ -46,7 +46,9 @@ export default async function InqueritoPrintPage({
       brigada: { select: { nome: true } },
       inspetor: { select: { nome: true, email: true } },
       atividades: {
-        orderBy: { dataRealizacao: 'desc' },
+        // Ordenado pela data de inserção (createdAt) para coincidir com o que
+        // é mostrado e com a página de detalhe do inquérito.
+        orderBy: { createdAt: 'desc' },
         include: { realizadaPor: { select: { nome: true } } },
       },
     },
@@ -235,14 +237,20 @@ export default async function InqueritoPrintPage({
             <div key={a.id} className="atividade">
               <div className="row1">
                 <span className="desc">{a.descricao}</span>
-                <span className="when">{formatDate(a.dataRealizacao)}</span>
+                <span className="when" title={`Realizada em ${formatDate(a.dataRealizacao)}`}>
+                  {formatDateTimeWithSeconds(a.createdAt)}
+                </span>
                 <span className="who">{a.realizadaPor.nome}</span>
               </div>
-              {(a.quantidade != null || a.dataPrazo) && (
+              {(a.quantidade != null || a.dataPrazo || a.concluidaEm) && (
                 <div className="meta">
                   {a.quantidade != null && <>Quantidade: <strong>{a.quantidade}</strong></>}
                   {a.quantidade != null && a.dataPrazo && <> · </>}
                   {a.dataPrazo && <>Prazo: {formatDate(a.dataPrazo)}</>}
+                  {(a.quantidade != null || a.dataPrazo) && a.concluidaEm && <> · </>}
+                  {a.concluidaEm && (
+                    <>Concluída em <strong>{formatDate(a.concluidaEm)}</strong></>
+                  )}
                 </div>
               )}
               {a.observacoes && <div className="obs pre">{a.observacoes}</div>}

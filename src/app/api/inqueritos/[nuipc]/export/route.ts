@@ -58,7 +58,8 @@ export async function GET(
         brigada: { select: { nome: true } },
         inspetor: { select: { nome: true, email: true } },
         atividades: {
-          orderBy: { dataRealizacao: 'desc' },
+          // Sorted by createdAt to match the on-screen detail / print views.
+          orderBy: { createdAt: 'desc' },
           include: { realizadaPor: { select: { nome: true } } },
         },
       },
@@ -106,10 +107,12 @@ export async function GET(
     lines.push('')
     lines.push(`Atividades (${inquerito.atividades.length})`)
     const atvHeaders = [
+      'Data Inserção',
       'Data Realização',
       'Atividade',
       'Quantidade',
       'Data Prazo',
+      'Concluída em',
       'Realizada por',
       'Observações',
     ]
@@ -117,10 +120,12 @@ export async function GET(
     for (const a of inquerito.atividades) {
       lines.push(
         [
+          fmtDateTime(a.createdAt),
           fmtDate(a.dataRealizacao),
           a.descricao,
           a.quantidade ?? '',
           fmtDate(a.dataPrazo),
+          fmtDate(a.concluidaEm),
           a.realizadaPor.nome,
           a.observacoes ?? '',
         ]

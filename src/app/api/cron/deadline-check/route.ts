@@ -86,10 +86,12 @@ export async function POST(req: NextRequest) {
     const today = new Date(now)
     today.setHours(0, 0, 0, 0)
 
-    // Only fetch activities with a deadline not yet passed and at least one alert set
+    // Only fetch activities with a deadline not yet passed, at least one alert set,
+    // and NOT already marked as completed (concluidaEm is null).
     const atividadesComPrazo = await prisma.atividade.findMany({
       where: {
         dataPrazo: { not: null, gte: today },
+        concluidaEm: null,
         OR: [
           { alertaDias1: { not: null }, alerta1Enviado: false },
           { alertaDias2: { not: null }, alerta2Enviado: false },
