@@ -8,13 +8,43 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 ## [Unreleased]
 
 ### Adicionado
-- Nada de momento.
+- **Tab "Notificações" em /configurações** (apenas ADMINISTRACAO). Para
+  cada `TipoNotificacao` o admin escolhe: in-app on/off, email on/off, e
+  roles em CC adicionais.
+- **`model NotificationPolicy`** no schema — uma row por tipo. Aditiva,
+  sem dataloss.
+- **Seed idempotente** que cria a row faltante para cada valor do enum.
+  Defaults reproduzem o comportamento pré-refactor (in-app + email on,
+  ccRoles vazio; excepto `BACKUP_FALHOU` que arranca com
+  `ccRoles=['ADMINISTRACAO']`).
+- **`src/lib/notification-labels.ts`** — labels + descrições + flag
+  `hasNaturalRecipient` centralizados. Refactor de
+  `notificacoes-list.tsx` e `notification-bell.tsx` para reusar (fix
+  lateral: faltavam labels para `BACKUP_FALHOU` e
+  `ATIVIDADE_PRAZO_APROXIMANDO`).
+- **`/api/notification-policies`** (GET + PUT, ambos gated por
+  `sistema:config`). PUT em transação Prisma única, invalida cache,
+  escreve audit `UPDATE_NOTIFICATION_POLICIES` com diff per-tipo.
+- **18 testes novos** (6 unit + 12 integration). Total **101 testes**.
 
 ### Alterado
-- Nada de momento.
+- **`src/lib/notifications.ts` reescrito em torno de `applyPolicy()`**:
+  função central com cache de 60s da policy, constrói destinatários
+  (natural + CC roles, deduplicado), envia in-app/email consoante a
+  policy. Todos os helpers (`notifyAtividadeAdicionada`,
+  `notifyBackupFailed`, `notifyInqueritoAtribuido`,
+  `notifyInqueritoTransferido`, `notifyAtividadePrazo`,
+  `createNotification`) passam a delegar.
+- Call-sites em `src/app/api/{cron,atividades,inqueritos}/*` simplificados
+  — deixaram de passar `inspetorEmail`/`brigadaOrigemChefeEmail`/etc.
+  (resolvidos pelo `applyPolicy` a partir do `naturalUserId`).
+- `notifyBackupFailed` deixou de iterar admins inline; depende agora da
+  policy `BACKUP_FALHOU.ccRoles`.
 
 ### Corrigido
-- Nada de momento.
+- Mapas locais de labels em `notificacoes-list.tsx` e
+  `notification-bell.tsx` estavam incompletos — agora cobrem os 7 tipos
+  via `notification-labels.ts`.
 
 ---
 

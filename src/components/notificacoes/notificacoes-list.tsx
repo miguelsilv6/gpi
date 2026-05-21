@@ -6,14 +6,7 @@ import { Button } from '@/components/ui/button'
 import { formatDateTime, cn, nuipcToSlug } from '@/lib/utils'
 import Link from 'next/link'
 import { toast } from 'sonner'
-
-const TIPO_LABELS: Record<string, string> = {
-  PRAZO_APROXIMANDO: 'Prazo a aproximar-se',
-  PRAZO_ULTRAPASSADO: 'Prazo ultrapassado',
-  ATIVIDADE_ADICIONADA: 'Nova atividade',
-  INQUERITO_ATRIBUIDO: 'Inquérito atribuído',
-  INQUERITO_TRANSFERIDO: 'Inquérito transferido',
-}
+import { tipoNotificacaoLabel } from '@/lib/notification-labels'
 
 interface Notificacao {
   id: string
@@ -104,7 +97,7 @@ export function NotificacoesList({ initialNotificacoes, initialNextCursor }: Pro
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  {TIPO_LABELS[n.tipo] ?? n.tipo}
+                  {tipoNotificacaoLabel(n.tipo)}
                 </p>
                 {n.inquerito && (
                   <Link

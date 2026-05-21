@@ -128,8 +128,6 @@ export async function POST(req: NextRequest) {
       inqueritoid,
       nuipc: inquerito.nuipc,
       inspetorId: inquerito.inspetorId,
-      inspetorEmail: inquerito.inspetor?.email ?? null,
-      inspetorNome: inquerito.inspetor?.nome ?? null,
       addedByUserId: session.user.id,
     }).catch(() => {})
 

@@ -120,7 +120,6 @@ export async function POST(req: NextRequest) {
             inqueritoid: atv.inquerito.id,
             nuipc: atv.inquerito.nuipc,
             utilizadorId: atv.realizadaPor.id,
-            utilizadorEmail: atv.realizadaPor.email,
             diasRestantes,
             alertaNum: 1,
           }).then(() =>
@@ -137,7 +136,6 @@ export async function POST(req: NextRequest) {
             inqueritoid: atv.inquerito.id,
             nuipc: atv.inquerito.nuipc,
             utilizadorId: atv.realizadaPor.id,
-            utilizadorEmail: atv.realizadaPor.email,
             diasRestantes,
             alertaNum: 2,
           }).then(() =>
