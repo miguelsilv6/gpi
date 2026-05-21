@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { PrismaClient } from '../src/generated/prisma/client'
+import { TipoNotificacao, Role } from '../src/generated/prisma/enums'
 import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 
@@ -77,6 +78,27 @@ async function main() {
       emailRemetenteAddr: 'noreply@gpi.pt',
     },
   })
+
+  // ───── Notification policies (idempotente, uma row por TipoNotificacao) ──
+  //
+  // Defaults reproduzem o comportamento pré-Sprint:
+  //   - Todos os tipos: in-app + email on, sem CC roles.
+  //   - Exceção BACKUP_FALHOU: ccRoles=['ADMINISTRACAO'] (antes do refactor
+  //     era hardcoded em notifyBackupFailed).
+  //
+  // `update: {}` é deliberado: se o admin já editou a policy via UI, não
+  // queremos sobrescrever em cada boot. Para preencher rows faltantes
+  // quando se adiciona um tipo novo ao enum, o upsert ainda corre o create.
+  for (const tipo of Object.values(TipoNotificacao)) {
+    const ccRoles: Role[] = tipo === TipoNotificacao.BACKUP_FALHOU
+      ? [Role.ADMINISTRACAO]
+      : []
+    await prisma.notificationPolicy.upsert({
+      where: { tipo },
+      update: {},
+      create: { tipo, inAppEnabled: true, emailEnabled: true, ccRoles },
+    })
+  }
 
   // ───── FRESH-INSTALL ONLY: demo data ──────────────────────────────────────
   //

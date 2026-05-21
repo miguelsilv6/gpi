@@ -90,9 +90,7 @@ export async function POST(req: NextRequest) {
       inqueritoid: updated.id,
       nuipc: updated.nuipc,
       brigadaOrigemChefeId: chefeOrigem?.id ?? null,
-      brigadaOrigemChefeEmail: chefeOrigem?.email ?? null,
       brigadaDestinoChefeId: chefeDestino?.id ?? null,
-      brigadaDestinoChefeEmail: chefeDestino?.email ?? null,
     }).catch(() => {})
 
     revalidatePath('/inqueritos')

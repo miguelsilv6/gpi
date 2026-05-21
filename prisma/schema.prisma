@@ -330,3 +330,24 @@ model PasswordResetToken {
   @@index([utilizadorId])
   @@index([expiresAt])
 }
+
+// Política de envio por tipo de notificação. Uma row por TipoNotificacao
+// (PK = tipo). Editável pelo ADMINISTRACAO em /configurações → Notificações.
+//
+// Semântica de envio:
+//   - inAppEnabled: cria linha em Notificacao
+//   - emailEnabled: chama sendMail() (continua a respeitar DISABLE_EMAIL global)
+//   - ccRoles: utilizadores com estes roles recebem em adição ao destinatário
+//     "natural" do contexto (inspetor do inquérito, criador da atividade, ...).
+//     Lista vazia = só o destinatário natural; ['ADMINISTRACAO'] = todos os
+//     admins activos também recebem.
+//
+// O seed cria a row faltante para cada valor do enum (idempotente). Se o
+// enum ganhar um tipo novo, a próxima boot cria a row com defaults.
+model NotificationPolicy {
+  tipo         TipoNotificacao @id
+  inAppEnabled Boolean         @default(true)
+  emailEnabled Boolean         @default(true)
+  ccRoles      Role[]          @default([])
+  updatedAt    DateTime        @updatedAt
+}

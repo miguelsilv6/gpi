@@ -275,8 +275,6 @@ export async function PUT(
           inqueritoid: updated.id,
           nuipc: updated.nuipc,
           inspetorId: inspetor.id,
-          inspetorEmail: inspetor.email,
-          inspetorNome: inspetor.nome,
         }).catch(() => {})
       }
     }

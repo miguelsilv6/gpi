@@ -5,14 +5,7 @@ import { Bell, Check, CheckCheck, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { cn, nuipcToSlug, formatDateTime } from '@/lib/utils'
 import { toast } from 'sonner'
-
-const TIPO_LABELS: Record<string, string> = {
-  PRAZO_APROXIMANDO: 'Prazo a aproximar-se',
-  PRAZO_ULTRAPASSADO: 'Prazo ultrapassado',
-  ATIVIDADE_ADICIONADA: 'Nova atividade',
-  INQUERITO_ATRIBUIDO: 'Inquérito atribuído',
-  INQUERITO_TRANSFERIDO: 'Inquérito transferido',
-}
+import { tipoNotificacaoLabel } from '@/lib/notification-labels'
 
 interface Notificacao {
   id: string
@@ -175,7 +168,7 @@ export function NotificationBell() {
                 )} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                    {TIPO_LABELS[n.tipo] ?? n.tipo}
+                    {tipoNotificacaoLabel(n.tipo)}
                   </p>
                   {n.inquerito && (
                     <Link
