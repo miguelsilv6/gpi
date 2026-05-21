@@ -39,7 +39,39 @@ export async function GET(req: NextRequest) {
     })
     const userMap = Object.fromEntries(utilizadores.map((u) => [u.id, u.nome]))
 
-    const enriched = items.map((l) => ({ ...l, utilizadorNome: userMap[l.utilizadorId] ?? l.utilizadorId }))
+    // Enrich Inquerito rows with NUIPC + Utilizador rows with email — permite
+    // ao dialog construir links directos para a entidade. Bulk markers
+    // (entidadeId começa por "__") são saltados.
+    const inqueritoIds = items
+      .filter((l) => l.entidade === 'Inquerito' && !l.entidadeId.startsWith('__'))
+      .map((l) => l.entidadeId)
+    const utilizadorEntityIds = items
+      .filter((l) => l.entidade === 'Utilizador' && !l.entidadeId.startsWith('__'))
+      .map((l) => l.entidadeId)
+
+    const [inqueritos, utilizadoresEntity] = await Promise.all([
+      inqueritoIds.length > 0
+        ? prisma.inquerito.findMany({
+            where: { id: { in: inqueritoIds } },
+            select: { id: true, nuipc: true },
+          })
+        : Promise.resolve([] as { id: string; nuipc: string }[]),
+      utilizadorEntityIds.length > 0
+        ? prisma.utilizador.findMany({
+            where: { id: { in: utilizadorEntityIds } },
+            select: { id: true, email: true },
+          })
+        : Promise.resolve([] as { id: string; email: string }[]),
+    ])
+    const nuipcMap = Object.fromEntries(inqueritos.map((i) => [i.id, i.nuipc]))
+    const emailMap = Object.fromEntries(utilizadoresEntity.map((u) => [u.id, u.email]))
+
+    const enriched = items.map((l) => ({
+      ...l,
+      utilizadorNome: userMap[l.utilizadorId] ?? l.utilizadorId,
+      entidadeNuipc: l.entidade === 'Inquerito' ? (nuipcMap[l.entidadeId] ?? null) : null,
+      entidadeEmail: l.entidade === 'Utilizador' ? (emailMap[l.entidadeId] ?? null) : null,
+    }))
 
     return Response.json({ items: enriched, nextCursor })
   } catch (error) {
