@@ -64,6 +64,7 @@ model Utilizador {
   atividadesRealizadas Atividade[]
   notificacoes         Notificacao[]
   sessoes              Sessao[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@index([brigadaId])
   @@index([role])
@@ -305,4 +306,27 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Token de reset de password. O `tokenHash` é o SHA-256 do valor enviado
+// por email — o servidor nunca grava o token em claro, pelo que comprometer
+// a BD não dá acesso retro-activo a contas via tokens activos.
+//
+// `usedAt` marca tokens já consumidos (single-use). `expiresAt` é o cutoff
+// duro (1h após emissão por defeito). Tokens expirados ou usados continuam
+// na tabela como audit trail até a limpeza periódica os apagar.
+model PasswordResetToken {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
+  utilizadorId String
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+  ip           String?
+  userAgent    String?
+
+  utilizador Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+
+  @@index([utilizadorId])
+  @@index([expiresAt])
 }

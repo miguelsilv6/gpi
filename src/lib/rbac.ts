@@ -28,6 +28,7 @@ export type Permission =
   | 'brigada:manage'
   | 'utilizador:manage'
   | 'sistema:config'
+  | 'relatorio:read'
 
 const PERMISSIONS: Record<Role, Permission[]> = {
   INSPETOR: [
@@ -52,6 +53,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'prazo:read:brigade',
     'estatistica:read',
     'brigada:read',
+    'relatorio:read',
   ],
   COORDENADOR: [
     'inquerito:read:own',
@@ -76,12 +78,14 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'estatistica:read',
     'brigada:read',
     'brigada:manage',
+    'relatorio:read',
   ],
   ESTATISTICA: [
     'inquerito:read:all',
     'inquerito:export',
     'estatistica:read',
     'brigada:read',
+    'relatorio:read',
   ],
   ADMINISTRACAO: [
     'inquerito:read:own',
@@ -111,6 +115,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'brigada:manage',
     'utilizador:manage',
     'sistema:config',
+    'relatorio:read',
   ],
 }
 

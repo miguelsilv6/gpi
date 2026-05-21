@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
 
     const where = {
       deletedAt: null,
-      ...roleWhere,
       ...(search && {
         OR: [
           { nuipc: { contains: search, mode: 'insensitive' as const } },
@@ -57,6 +56,9 @@ export async function GET(req: NextRequest) {
           ...(dataAberturaTo && { lte: new Date(dataAberturaTo) }),
         },
       }),
+      // roleWhere LAST: scope-locking não pode ser substituído por query
+      // string (INSPETOR_CHEFE/INSPETOR). Esta ordem é crítica para segurança.
+      ...roleWhere,
     }
 
     const ALLOWED_SORT: Record<string, true> = {

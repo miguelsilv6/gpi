@@ -1,7 +1,10 @@
 import cron, { type ScheduledTask } from 'node-cron'
 import { prisma } from '@/lib/prisma'
 import { createNotification, notifyBackupFailed } from '@/lib/notifications'
+import { childLogger } from '@/lib/logger'
 import { spawnSync } from 'child_process'
+
+const log = childLogger({ subsystem: 'cron' })
 
 const BACKUP_DIR = process.env.BACKUP_DIR ?? '/app/backups'
 // Caminho relativo a partir do CWD do worker (gpi_worker tem WORKDIR /app)
@@ -16,11 +19,11 @@ export function startCronJobs() {
   // Deadline check — corrida agendada estática (alertaDias é parametrizado
   // dentro da rotina, não no schedule).
   cron.schedule('0 8 * * *', async () => {
-    console.log('[cron] Running deadline check...')
+    log.info('Running deadline check')
     try {
       await runDeadlineCheck()
     } catch (err) {
-      console.error('[cron] Deadline check failed:', err)
+      log.error({ err }, 'Deadline check failed')
     }
   })
 
@@ -31,8 +34,8 @@ export function startCronJobs() {
     void reloadBackupSchedule()
   })
 
-  console.log(
-    '[cron] Jobs registered: deadline check @ 08:00 daily; backup (DB-driven, auto-reload @ 1 min)',
+  log.info(
+    'Jobs registered: deadline check @ 08:00 daily; backup (DB-driven, auto-reload @ 1 min)',
   )
 }
 
@@ -49,13 +52,13 @@ async function reloadBackupSchedule() {
     })
     cronString = config?.backupScheduleCron ?? '0 2 * * *'
   } catch (err) {
-    console.error('[cron] Não foi possível ler backupScheduleCron:', err)
+    log.error({ err }, 'Não foi possível ler backupScheduleCron')
     return
   }
 
   if (cronString === backupCron && backupTask) return
   if (!cron.validate(cronString)) {
-    console.error(`[cron] backupScheduleCron inválida ("${cronString}") — ignorada.`)
+    log.error({ cronString }, 'backupScheduleCron inválida — ignorada')
     return
   }
 
@@ -67,7 +70,7 @@ async function reloadBackupSchedule() {
   backupTask = cron.schedule(cronString, () => {
     void runScheduledBackup()
   })
-  console.log(`[cron] Backup agendado: "${cronString}"`)
+  log.info({ cronString }, 'Backup agendado')
 }
 
 /**
@@ -78,9 +81,9 @@ async function reloadBackupSchedule() {
 async function runScheduledBackup() {
   try {
     const filename = await runBackup({ source: 'agendado' })
-    console.log(`[cron] Backup agendado OK: ${filename}`)
+    log.info({ filename }, 'Backup agendado OK')
   } catch (err) {
-    console.error('[cron] Backup agendado falhou:', err)
+    log.error({ err }, 'Backup agendado falhou')
     // notifyBackupFailed já foi chamado por runBackup no catch
   }
 }
@@ -238,6 +241,9 @@ async function runDeadlineCheck() {
   }
 
   await Promise.allSettled(jobs)
-  console.log(`[cron] Deadline check: ${approaching.length} approaching, ${overdue.length} overdue`)
+  log.info(
+    { approaching: approaching.length, overdue: overdue.length },
+    'Deadline check completed',
+  )
 }
 

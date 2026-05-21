@@ -8,6 +8,8 @@ import { hasPermission } from '@/lib/rbac'
 import { notifyBackupFailed } from '@/lib/notifications'
 import { runBackup } from '@/lib/cron'
 import { resolveBackupPath } from '@/lib/backups'
+import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
+import { RATE_LIMITS } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 
 const RESTORE_SCRIPT = 'scripts/restore.sh'
@@ -36,6 +38,12 @@ export async function POST(
     if (!hasPermission(role, 'sistema:config')) {
       return apiError('Sem permissão para restaurar backups', 403)
     }
+
+    const limited = enforceRateLimit({
+      key: `backup:restore:${clientFingerprint(req)}:${session.user.id}`,
+      ...RATE_LIMITS.HEAVY_OPERATIONS,
+    })
+    if (limited) return limited
 
     const body = await req.json().catch(() => null)
     const parsed = bodySchema.safeParse(body)

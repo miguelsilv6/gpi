@@ -6,7 +6,8 @@ import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { parseCSVWithHeader } from '@/lib/csv-parser'
-import { NUIPC_REGEX } from '@/lib/constants'
+import { NUIPC_REGEX, RATE_LIMITS } from '@/lib/constants'
+import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
 import type { Role } from '@/generated/prisma/enums'
 
 const MAX_ROWS = 1000
@@ -91,6 +92,12 @@ export async function POST(req: NextRequest) {
     if (!hasPermission(role, 'inquerito:bulk:all')) {
       return apiError('Sem permissão para importar inquéritos', 403)
     }
+
+    const limited = enforceRateLimit({
+      key: `inquerito:import:${clientFingerprint(req)}:${session.user.id}`,
+      ...RATE_LIMITS.HEAVY_OPERATIONS,
+    })
+    if (limited) return limited
 
     const body = await req.json().catch(() => null)
     const parsed = bodySchema.safeParse(body)

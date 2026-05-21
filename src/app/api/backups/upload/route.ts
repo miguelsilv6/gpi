@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { BACKUP_DIR } from '@/lib/backups'
+import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
+import { RATE_LIMITS } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 
 const MAX_BYTES = 500 * 1024 * 1024 // 500 MB
@@ -22,6 +24,12 @@ export async function POST(req: NextRequest) {
     if (!hasPermission(role, 'sistema:config')) {
       return apiError('Sem permissão', 403)
     }
+
+    const limited = enforceRateLimit({
+      key: `backup:upload:${clientFingerprint(req)}:${session.user.id}`,
+      ...RATE_LIMITS.HEAVY_OPERATIONS,
+    })
+    if (limited) return limited
 
     const form = await req.formData()
     const file = form.get('file')

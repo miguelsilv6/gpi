@@ -1,0 +1,113 @@
+import { describe, test, expect } from 'vitest'
+import { hasPermission } from '@/lib/rbac'
+import type { Role } from '@/generated/prisma/enums'
+
+/**
+ * Testes da matriz RBAC. Servem como documentação executável das permissões
+ * — qualquer alteração ao mapa em `src/lib/rbac.ts` que parta um destes
+ * testes força revisão consciente do impacto em produção.
+ */
+
+const ROLES: Role[] = ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO']
+
+describe('hasPermission', () => {
+  describe('permissions de leitura de inquéritos', () => {
+    test('INSPETOR só lê os próprios', () => {
+      expect(hasPermission('INSPETOR', 'inquerito:read:own')).toBe(true)
+      expect(hasPermission('INSPETOR', 'inquerito:read:brigade')).toBe(false)
+      expect(hasPermission('INSPETOR', 'inquerito:read:all')).toBe(false)
+    })
+
+    test('INSPETOR_CHEFE lê os da sua brigada', () => {
+      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:read:own')).toBe(true)
+      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:read:brigade')).toBe(true)
+      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:read:all')).toBe(false)
+    })
+
+    test('COORDENADOR, ESTATISTICA, ADMINISTRACAO leem todos', () => {
+      expect(hasPermission('COORDENADOR', 'inquerito:read:all')).toBe(true)
+      expect(hasPermission('ESTATISTICA', 'inquerito:read:all')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'inquerito:read:all')).toBe(true)
+    })
+  })
+
+  describe('permissions destrutivas', () => {
+    test('só ADMINISTRACAO pode apagar inquéritos', () => {
+      for (const role of ROLES) {
+        expect(hasPermission(role, 'inquerito:delete')).toBe(role === 'ADMINISTRACAO')
+      }
+    })
+
+    test('só ADMINISTRACAO gere utilizadores', () => {
+      for (const role of ROLES) {
+        expect(hasPermission(role, 'utilizador:manage')).toBe(role === 'ADMINISTRACAO')
+      }
+    })
+
+    test('só ADMINISTRACAO mexe em configurações do sistema', () => {
+      for (const role of ROLES) {
+        expect(hasPermission(role, 'sistema:config')).toBe(role === 'ADMINISTRACAO')
+      }
+    })
+
+    test('só ADMINISTRACAO gere estados de inquérito', () => {
+      for (const role of ROLES) {
+        expect(hasPermission(role, 'inquerito:estados:manage')).toBe(role === 'ADMINISTRACAO')
+      }
+    })
+
+    test('só ADMINISTRACAO gere o catálogo de crimes', () => {
+      for (const role of ROLES) {
+        expect(hasPermission(role, 'crime:manage')).toBe(role === 'ADMINISTRACAO')
+      }
+    })
+  })
+
+  describe('permissions de bulk operations', () => {
+    test('INSPETOR não pode fazer bulk', () => {
+      expect(hasPermission('INSPETOR', 'inquerito:bulk:brigade')).toBe(false)
+      expect(hasPermission('INSPETOR', 'inquerito:bulk:all')).toBe(false)
+    })
+
+    test('INSPETOR_CHEFE pode bulk dentro da brigada mas não global', () => {
+      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:bulk:brigade')).toBe(true)
+      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:bulk:all')).toBe(false)
+    })
+
+    test('COORDENADOR e ADMINISTRACAO podem bulk global', () => {
+      expect(hasPermission('COORDENADOR', 'inquerito:bulk:all')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'inquerito:bulk:all')).toBe(true)
+    })
+  })
+
+  describe('permissions de relatório (introduzidos no Sprint Relatórios)', () => {
+    test('INSPETOR não tem relatorio:read', () => {
+      expect(hasPermission('INSPETOR', 'relatorio:read')).toBe(false)
+    })
+
+    test('INSPETOR_CHEFE / COORDENADOR / ESTATISTICA / ADMINISTRACAO têm relatorio:read', () => {
+      expect(hasPermission('INSPETOR_CHEFE', 'relatorio:read')).toBe(true)
+      expect(hasPermission('COORDENADOR', 'relatorio:read')).toBe(true)
+      expect(hasPermission('ESTATISTICA', 'relatorio:read')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'relatorio:read')).toBe(true)
+    })
+  })
+
+  describe('permissions de exportação', () => {
+    test('INSPETOR não exporta', () => {
+      expect(hasPermission('INSPETOR', 'inquerito:export')).toBe(false)
+    })
+
+    test('INSPETOR_CHEFE em diante exporta', () => {
+      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:export')).toBe(true)
+      expect(hasPermission('COORDENADOR', 'inquerito:export')).toBe(true)
+      expect(hasPermission('ESTATISTICA', 'inquerito:export')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'inquerito:export')).toBe(true)
+    })
+  })
+
+  test('hasPermission devolve false para permissão desconhecida', () => {
+    // @ts-expect-error testando defesa contra string solta
+    expect(hasPermission('ADMINISTRACAO', 'permissao:que:nao:existe')).toBe(false)
+  })
+})

@@ -1,0 +1,14 @@
+# Imagem para correr a suite de testes (unit + integration).
+# Inclui ferramentas que os scripts de backup/restore precisam (pg_dump,
+# flock, bash, coreutils) e é alinhada com a versão do Postgres em
+# produção para evitar drift cross-major.
+FROM node:22-alpine
+
+RUN apk add --no-cache bash postgresql16-client coreutils util-linux
+
+WORKDIR /app
+
+# Não copia node_modules — esperamos um bind-mount para o workspace.
+# Comando default fica em aberto; o CI invoca explicitamente
+# `npm test` ou variantes.
+CMD ["sh"]

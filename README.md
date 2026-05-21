@@ -76,6 +76,20 @@ npm run dev
 
 Ou usa o `docker-compose.yml` (dev — inclui MailHog).
 
+### Testes
+
+A partir da v0.9 a aplicação inclui suite de testes automatizada (Vitest):
+
+```bash
+npm run test:unit          # rápidos, sem BD
+npm run test:integration   # exigem o Postgres de teste (gpi_test_db)
+npm test                   # ambos
+```
+
+Setup do test DB e detalhes em [tests/README.md](tests/README.md).
+
+CI corre automaticamente em cada PR (`.github/workflows/ci.yml`).
+
 ---
 
 ## Arquitectura

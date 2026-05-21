@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Lint + Build + Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gpi_user
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: gpi_test_db
+        ports:
+          - 5432:5432
+        # Healthcheck garante que o Postgres está pronto antes de avançarmos.
+        options: >-
+          --health-cmd "pg_isready -U gpi_user -d gpi_test_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://gpi_user:ci_test_password@localhost:5432/gpi_test_db?schema=public
+      NEXTAUTH_SECRET: ci-only-secret-not-real-do-not-use-elsewhere
+      AUTH_TRUST_HOST: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install postgresql-client (para pg_dump nos testes de backup)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply schema to test DB
+        run: npx prisma db push --accept-data-loss
+
+      - name: TypeScript check (next build also runs tsc)
+        run: npx tsc --noEmit
+
+      - name: Build
+        # `next build` é o sanity-check definitivo do bundle e dos route
+        # handlers (compila todo o codebase). Mais demorado mas mais valioso
+        # do que só tsc.
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Coverage report (informational)
+        if: always()
+        continue-on-error: true
+        run: npm run test:coverage -- --reporter=verbose
+
+  lint-shell-scripts:
+    name: Shell script lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shellcheck on scripts/
+        # Apanha mistakes em scripts/backup.sh e scripts/restore.sh —
+        # safety-net adicional para os pedaços do código que vivem fora do TS.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y shellcheck
+          shellcheck -S warning scripts/*.sh
