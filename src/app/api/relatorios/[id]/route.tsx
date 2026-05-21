@@ -7,8 +7,7 @@ import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
 import { RATE_LIMITS } from '@/lib/constants'
 import { toCSV, toMarkdown, UTF8_BOM } from '@/lib/relatorios/formatters'
 import { RelatorioPDF } from '@/components/relatorios/relatorio-pdf'
-import { pdf, type DocumentProps } from '@react-pdf/renderer'
-import { createElement, type ReactElement } from 'react'
+import { pdf } from '@react-pdf/renderer'
 import type { Role } from '@/generated/prisma/enums'
 
 /**
@@ -102,19 +101,21 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     }
 
     if (format === 'pdf') {
-      // createElement em vez de JSX para manter o ficheiro como .ts (sem
-      // tsconfig de transformação para .tsx em routes API). O cast é
-      // necessário porque `pdf()` espera um ReactElement<DocumentProps> e
-      // o nosso wrapper RelatorioPDF devolve <Document/> mas o TS vê-o
-      // como FunctionComponentElement.
-      const element = createElement(RelatorioPDF, { data: result }) as unknown as ReactElement<DocumentProps>
-      const stream = (await pdf(element).toBuffer()) as unknown as NodeJS.ReadableStream
+      // `pdf().toBuffer()` devolve Promise<NodeJS.ReadableStream> (nome do
+      // método é legado — não devolve Buffer apesar do nome). Consumimos o
+      // stream para Buffer em chunks de ~16KB (defaults do Node), o que é
+      // adequado para PDFs limitados pelos nossos RELATORIO_ROW_LIMIT (~MB).
+      //
+      // Render via JSX (ficheiro .tsx) é mais limpo do que createElement —
+      // a inferência de tipo do `pdf(<RelatorioPDF .../>)` está correcta,
+      // dispensando casts.
+      const stream = await pdf(<RelatorioPDF data={result} />).toBuffer()
       const chunks: Buffer[] = []
       for await (const chunk of stream) {
-        chunks.push(Buffer.from(chunk as Uint8Array))
+        chunks.push(chunk as Buffer)
       }
       const buf = Buffer.concat(chunks)
-      return new Response(new Uint8Array(buf), {
+      return new Response(buf, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="${baseName}.pdf"`,
