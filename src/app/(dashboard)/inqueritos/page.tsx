@@ -73,7 +73,6 @@ export default async function InqueritosPage({
   const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
   const where = {
     deletedAt: null,
-    ...roleWhere,
     ...(sp.search && {
       OR: [
         { nuipc: { contains: sp.search, mode: 'insensitive' as const } },
@@ -99,6 +98,9 @@ export default async function InqueritosPage({
         ...(sp.dataAberturaTo && { lte: new Date(sp.dataAberturaTo) }),
       },
     }),
+    // roleWhere LAST: scope-locking não pode ser substituído por query string
+    // (INSPETOR_CHEFE/INSPETOR). Esta ordem é crítica para segurança.
+    ...roleWhere,
   }
 
   const canCreate = hasPermission(role, 'inquerito:create')

@@ -1,9 +1,17 @@
 import { auth } from '@/auth'
 import { hasPermission, type Permission } from '@/lib/rbac'
 import type { Role } from '@/generated/prisma/enums'
-import type { Prisma } from '@/generated/prisma/client'
 import { Prisma as PrismaLib } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
+
+// Re-export dos helpers de scope. A implementação vive em role-scope.ts
+// (sem dependência de NextAuth) para ser testável em isolamento. Os
+// call-sites continuam a importar de '@/lib/auth-helpers'.
+export {
+  buildAtividadePrazoWhere,
+  buildInqueritoWhere,
+  canEditInquerito,
+} from '@/lib/role-scope'
 
 export async function getSession() {
   const session = await auth()
@@ -34,79 +42,6 @@ export async function checkPermission(permission: Permission) {
     throw new Error('Sem permissão', { cause: 403 })
   }
   return session
-}
-
-/**
- * Atividade where-clause scoped by role for the /prazos page.
- *   INSPETOR        → atividades que ele próprio criou
- *   INSPETOR_CHEFE  → atividades em inquéritos da sua brigada
- *   COORDENADOR/ADMIN → todas
- * Fail-closed for INSPETOR_CHEFE without brigada (configuração inválida).
- */
-export function buildAtividadePrazoWhere(
-  role: Role,
-  userId: string,
-  brigadaId: string | null,
-): Prisma.AtividadeWhereInput {
-  if (role === 'INSPETOR') {
-    return { utilizadorId: userId }
-  }
-  if (role === 'INSPETOR_CHEFE') {
-    if (!brigadaId) {
-      return { id: '__inspetor_chefe_sem_brigada__' }
-    }
-    return { inquerito: { brigadaId } }
-  }
-  return {}
-}
-
-export function buildInqueritoWhere(
-  role: Role,
-  userId: string,
-  brigadaId: string | null,
-): Prisma.InqueritoWhereInput {
-  if (role === 'INSPETOR') {
-    return { inspetorId: userId }
-  }
-  if (role === 'INSPETOR_CHEFE') {
-    // Fail-closed: a chefe without brigada is a misconfiguration. Returning
-    // their own inquéritos as a fallback hides the issue and risks silently
-    // narrowing/expanding permissions.
-    if (!brigadaId) {
-      return { id: '__inspetor_chefe_sem_brigada__' }
-    }
-    return { brigadaId }
-  }
-  return {}
-}
-
-/**
- * Single source of truth for "can this user edit this inquérito?".
- * Use after fetching the inquérito (which gives you the actual brigadaId/inspetorId).
- */
-export function canEditInquerito(
-  role: Role,
-  userId: string,
-  userBrigadaId: string | null,
-  inq: { inspetorId: string | null; brigadaId: string },
-): boolean {
-  if (hasPermission(role, 'inquerito:edit:all')) return true
-  if (
-    role === 'INSPETOR_CHEFE' &&
-    userBrigadaId &&
-    inq.brigadaId === userBrigadaId &&
-    hasPermission(role, 'inquerito:edit:brigade')
-  ) {
-    return true
-  }
-  if (
-    role === 'INSPETOR' &&
-    inq.inspetorId === userId &&
-    hasPermission(role, 'inquerito:edit:own')
-  ) {
-    return true
-  }
-  return false
 }
 
 export function apiError(message: string, status: number) {

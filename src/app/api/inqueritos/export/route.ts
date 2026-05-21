@@ -32,10 +32,12 @@ export async function GET(req: NextRequest) {
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
     const where = {
       deletedAt: null,
-      ...roleWhere,
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
       ...(crimeId && { crimeId }),
       ...(brigadaId && { brigadaId }),
+      // roleWhere LAST: garante que INSPETOR_CHEFE/INSPETOR não escapam ao
+      // scope via injecção de ?brigadaId/?inspetorId na URL.
+      ...roleWhere,
     }
 
     const total = await prisma.inquerito.count({ where })
