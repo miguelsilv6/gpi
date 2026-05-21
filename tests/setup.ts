@@ -15,8 +15,10 @@ if (!process.env.DATABASE_URL) {
     'postgresql://gpi_user:XwbNB6go6J5TSLx1htotc4ef@localhost:5432/gpi_test_db?schema=public'
 }
 
-// Silenciar timing-attack-safe bcrypt warnings nos testes.
-process.env.NODE_ENV = process.env.NODE_ENV ?? 'test'
+// NOTA: NODE_ENV='test' é definido automaticamente pelo Vitest — não
+// precisamos (e nem podemos, em TS estrito) atribuir manualmente porque
+// @types/node declara-o como readonly literal type.
+//
 // Auth secret estável (testes nunca tocam em sessões reais).
 process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET ?? 'test-secret-32-bytes-do-not-use-elsewhere'
 process.env.AUTH_TRUST_HOST = 'true'
