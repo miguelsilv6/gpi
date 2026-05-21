@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { timingSafeEqual, createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createNotification, notifyAtividadePrazo } from '@/lib/notifications'
+import { childLogger } from '@/lib/logger'
+
+const log = childLogger({ subsystem: 'cron/deadline-check' })
 
 function authorized(req: NextRequest) {
   const secret = process.env.CRON_SECRET
@@ -152,7 +155,7 @@ export async function POST(req: NextRequest) {
       notified: jobs.length,
     })
   } catch (error) {
-    console.error('[cron/deadline-check]', error)
+    log.error({ err: error }, 'deadline-check route failed')
     return Response.json({ error: 'Internal error' }, { status: 500 })
   }
 }

@@ -58,3 +58,27 @@ export const ESTADOS_FINAIS_CODIGOS: readonly string[] = ['CONCLUIDO', 'ARQUIVAD
 export const LOGIN_MAX_FAILED_ATTEMPTS = 5
 export const LOGIN_LOCKOUT_MINUTES = 15
 export const LOGIN_ATTEMPT_WINDOW_MINUTES = 30
+
+// Rate-limit defaults — usados em src/lib/rate-limit.ts. Mudar aqui propaga
+// para todos os call-sites; cada endpoint pode override-ar quando justificado.
+export const RATE_LIMITS = {
+  // Login (NextAuth callback): 10 tentativas / IP / minuto. O lockout do
+  // utilizador continua a aplicar-se em paralelo (mesmo email → 5 falhas → 15min).
+  LOGIN_PER_IP: { max: 10, windowMs: 60_000 },
+
+  // Password reset request: 3 / IP / 10min. Mais restritivo porque cada hit
+  // envia um email.
+  PASSWORD_RESET_REQUEST: { max: 3, windowMs: 10 * 60_000 },
+
+  // Password reset confirm: 10 / IP / 10min. Permite múltiplas tentativas
+  // legítimas (e.g. user a reler o email) mas trava brute-force ao token.
+  PASSWORD_RESET_CONFIRM: { max: 10, windowMs: 10 * 60_000 },
+
+  // Operações pesadas: backup manual, restauro, upload, import.
+  // 5 / IP / 5min — suficiente para uso humano, mata scripts agressivos.
+  HEAVY_OPERATIONS: { max: 5, windowMs: 5 * 60_000 },
+
+  // Export de relatórios: 30 / IP / 5min. Permite navegar entre formatos
+  // (CSV → MD → PDF do mesmo relatório).
+  REPORT_EXPORT: { max: 30, windowMs: 5 * 60_000 },
+} as const

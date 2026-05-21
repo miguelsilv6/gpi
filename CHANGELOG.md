@@ -18,6 +18,67 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ---
 
+## [0.9.5] — 2026-05-21 — "Hardening de auth"
+
+Sprint #2 — endurecimento das camadas de autenticação e da pilha
+HTTP da aplicação. 23 testes novos (total 83).
+
+### Adicionado
+- **Rate limiting in-memory** (`src/lib/rate-limit.ts`) — sliding-window,
+  por chave, sem dependências externas. Helpers `checkRateLimit`,
+  `enforceRateLimit`, `clientFingerprint`. Limites canónicos em
+  `src/lib/constants.ts → RATE_LIMITS`.
+- **Endpoints sensíveis protegidos**:
+  - `/api/relatorios/[id]` (export CSV/MD/PDF) — `REPORT_EXPORT`
+  - `/api/backups/upload` — `HEAVY_OPERATIONS`
+  - `/api/backups/[filename]/restore` — `HEAVY_OPERATIONS`
+  - `/api/inqueritos/import` — `HEAVY_OPERATIONS`
+  - `/api/auth/password-reset/request` — `PASSWORD_RESET_REQUEST` (3/IP/10min)
+  - `/api/auth/password-reset/confirm` — `PASSWORD_RESET_CONFIRM`
+- **Security headers** em `next.config.ts` — HSTS, X-Frame-Options DENY,
+  X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin,
+  Permissions-Policy, Content-Security-Policy (script-src e style-src
+  ainda com 'unsafe-inline' por exigência do Next.js — TODO para
+  v1.0: nonce-based via middleware).
+- **Password reset self-service** end-to-end:
+  - `model PasswordResetToken` no schema (tokenHash SHA-256, expiresAt,
+    usedAt, ip, userAgent).
+  - `src/lib/password-reset.ts` — `generateResetToken`,
+    `requestPasswordReset`, `consumePasswordReset`,
+    `cleanupExpiredResetTokens`. Token de 32 bytes (base64url), TTL 1h,
+    single-use. Hash SHA-256 em DB.
+  - `POST /api/auth/password-reset/request` — sempre 200 (não-enumeração).
+  - `POST /api/auth/password-reset/confirm` — bump de tokenVersion
+    invalida sessões activas.
+  - UI: `/password-reset` (form de pedido) e `/password-reset/[token]`
+    (form de confirmação). Link "Esqueci a password" no login.
+  - Audit log: `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`.
+- **Structured logging** com pino (`src/lib/logger.ts`) — JSON em
+  produção, pretty em dev. Redact automático de `password`,
+  `passwordHash`, `token`, `tokenHash` em qualquer profundidade.
+  Substitui `console.*` em `src/lib/cron.ts` e `src/app/api/cron/*`.
+- **`.dockerignore`** — evita levar `node_modules`/`.next` do host
+  para o contexto de build, evitando "invalid file request" em
+  symlinks de `.bin/`.
+
+### Testes
+- `tests/unit/rate-limit.test.ts` — 11 testes (sliding window,
+  isolamento de chaves, 429 com Retry-After, etc.).
+- `tests/integration/password-reset.test.ts` — 12 testes (token gen,
+  request flow, consume flow, expired/used/invalid/weak rejection,
+  cleanup, normalização de email).
+
+### Notas
+- `next.config.ts` deixou de ser stub-only — agora exporta `headers()`.
+  Se algum integrador override-ar este ficheiro, copiar a função.
+- A política CSP actual permite inline scripts (Next.js precisa para
+  hydration). Apertar para nonce-based fica para v1.0 quando vamos
+  introduzir middleware com `crypto.randomBytes`.
+- O logger emite para stdout. Em produção, redirecionar para um
+  agregador (loki/journald/cloudwatch) ao gosto.
+
+---
+
 ## [0.9.0] — 2026-05-21 — "Testabilidade + CI"
 
 Primeira versão com cobertura de testes automatizada. Marca o início do

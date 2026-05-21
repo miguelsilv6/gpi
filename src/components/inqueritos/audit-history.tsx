@@ -38,6 +38,8 @@ const ACAO_LABELS: Record<string, string> = {
   RESTORE_FAILED: 'Falha de restauro',
   DELETE_BACKUP: 'Backup eliminado',
   EXPORT_RELATORIO: 'Relatório exportado',
+  PASSWORD_RESET_REQUESTED: 'Reset de password pedido',
+  PASSWORD_RESET_COMPLETED: 'Password redefinida via reset',
 }
 
 // Friendly labels for known fields. Falls back to the raw key when unknown.

@@ -39,14 +39,20 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user
-      const isOnLogin = request.nextUrl.pathname.startsWith('/login')
-      const isOnApi = request.nextUrl.pathname.startsWith('/api')
+      const path = request.nextUrl.pathname
+      const isOnLogin = path.startsWith('/login')
+      const isOnApi = path.startsWith('/api')
+      // /password-reset (form de pedido) e /password-reset/<token>
+      // (confirmação) têm de ser público — utilizadores sem sessão
+      // precisam de aceder.
+      const isOnPasswordReset = path.startsWith('/password-reset')
 
       if (isOnApi) return true
       if (isOnLogin) {
         if (isLoggedIn) return Response.redirect(new URL('/dashboard', request.nextUrl))
         return true
       }
+      if (isOnPasswordReset) return true
       return isLoggedIn
     },
     jwt({ token, user }) {

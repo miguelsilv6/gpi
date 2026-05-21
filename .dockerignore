@@ -1,0 +1,39 @@
+# Ficheiros e diretórios que NÃO devem ir para o contexto de build do Docker.
+# O builder do contentor faz `npm ci` e `npx prisma generate` por si só —
+# importar o node_modules / .next do host gera invalid file requests para
+# symlinks de .bin/* e perde o ponto de ter Dockerfile reproduzível.
+
+node_modules
+.next
+.next-dev
+out
+.cache
+
+# Git / repo metadata
+.git
+.gitignore
+.github
+
+# Testes (a imagem de produção não precisa deles; o test runner usa bind-mount)
+tests
+vitest.config.ts
+Dockerfile.test
+
+# Backups locais e dumps — nunca devem ir para a imagem
+backups
+*.sql
+*.sql.gz
+
+# Logs / temporários
+*.log
+.tsbuildinfo
+next-env.d.ts
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Claude-specific
+.claude

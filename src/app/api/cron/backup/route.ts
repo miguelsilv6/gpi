@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server'
 import { execSync } from 'child_process'
 import { timingSafeEqual, createHash } from 'crypto'
+import { childLogger } from '@/lib/logger'
+
+const log = childLogger({ subsystem: 'cron/backup' })
 
 function authorized(req: NextRequest) {
   const secret = process.env.CRON_SECRET
@@ -34,7 +37,7 @@ export async function POST(req: NextRequest) {
     })
     return Response.json({ ok: true })
   } catch (error) {
-    console.error('[cron/backup]', error)
+    log.error({ err: error }, 'backup route failed')
     return Response.json({ error: 'Backup failed' }, { status: 500 })
   }
 }

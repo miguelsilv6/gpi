@@ -3,6 +3,8 @@ import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { getRelatorio } from '@/lib/relatorios'
+import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
+import { RATE_LIMITS } from '@/lib/constants'
 import { toCSV, toMarkdown, UTF8_BOM } from '@/lib/relatorios/formatters'
 import { RelatorioPDF } from '@/components/relatorios/relatorio-pdf'
 import { pdf, type DocumentProps } from '@react-pdf/renderer'
@@ -36,6 +38,15 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 
     const { searchParams } = new URL(req.url)
     const format = searchParams.get('format') ?? 'preview'
+
+    // Rate-limit apenas formatos de export — preview é JSON leve.
+    if (format !== 'preview') {
+      const limited = enforceRateLimit({
+        key: `relatorio:export:${clientFingerprint(req)}:${session.user.id}`,
+        ...RATE_LIMITS.REPORT_EXPORT,
+      })
+      if (limited) return limited
+    }
 
     // Executa o handler — INSPETOR_CHEFE é confinado dentro de cada handler.
     const result = await relatorio.handler(searchParams, {

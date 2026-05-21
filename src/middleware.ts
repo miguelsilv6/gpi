@@ -19,6 +19,11 @@ export default auth((req) => {
   const { nextUrl } = req
   const session = req.auth
 
+  // Páginas públicas que não exigem sessão. Sincronizar com authConfig.callbacks.authorized.
+  if (nextUrl.pathname.startsWith('/password-reset')) {
+    return NextResponse.next()
+  }
+
   if (!session?.user) {
     return NextResponse.redirect(new URL('/login', nextUrl))
   }
@@ -40,6 +45,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    '/((?!api|login|_next/static|_next/image|favicon.ico|.*\\.png$).*)',
+    '/((?!api|login|password-reset|_next/static|_next/image|favicon.ico|.*\\.png$).*)',
   ],
 }
