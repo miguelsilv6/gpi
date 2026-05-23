@@ -19,6 +19,8 @@ export const NOTIFICATION_TIPO_LABELS: Record<TipoNotificacao, string> = {
   INQUERITO_ATRIBUIDO: 'Inquérito atribuído',
   INQUERITO_TRANSFERIDO: 'Inquérito transferido entre brigadas',
   BACKUP_FALHOU: 'Falha de backup/restauro',
+  ATUALIZACAO_FALHOU: 'Atualização do sistema falhou',
+  ATUALIZACAO_CONCLUIDA: 'Atualização do sistema concluída',
 }
 
 /**
@@ -34,6 +36,8 @@ export const NOTIFICATION_TIPO_DESCRIPTIONS: Record<TipoNotificacao, string> = {
   INQUERITO_ATRIBUIDO: 'Disparada quando um inquérito é atribuído (ou re-atribuído) a um inspetor.',
   INQUERITO_TRANSFERIDO: 'Disparada quando um inquérito muda de brigada — chefes da origem e do destino são notificados.',
   BACKUP_FALHOU: 'Disparada quando um backup automático, manual ou restauro falha. Sem destinatário "natural" — só envia para os roles CC configurados.',
+  ATUALIZACAO_FALHOU: 'Disparada quando uma atualização automática do sistema falha ou é revertida. Sem destinatário natural — só envia para os roles CC configurados.',
+  ATUALIZACAO_CONCLUIDA: 'Disparada quando uma atualização automática do sistema termina com sucesso. Sem destinatário natural — só envia para os roles CC configurados.',
 }
 
 /**
@@ -53,6 +57,8 @@ export const NOTIFICATION_TIPO_HAS_NATURAL: Record<TipoNotificacao, boolean> = {
   INQUERITO_ATRIBUIDO: true,
   INQUERITO_TRANSFERIDO: true,
   BACKUP_FALHOU: false,
+  ATUALIZACAO_FALHOU: false,
+  ATUALIZACAO_CONCLUIDA: false,
 }
 
 /**

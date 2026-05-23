@@ -19,6 +19,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Git SHA do build, exposto à app via process.env.GIT_SHA (src/lib/version.ts).
+# Passado pelo `docker compose build --build-arg GIT_SHA=$(git rev-parse HEAD)`
+# e fallback para 'dev' quando ausente (ambientes locais).
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=GPI Auto-Updater Timer (verifica trigger a cada 30 segundos)
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=30s
+AccuracySec=10s
+Unit=gpi-updater.service
+
+[Install]
+WantedBy=timers.target

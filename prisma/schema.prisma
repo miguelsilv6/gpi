@@ -23,6 +23,8 @@ enum TipoNotificacao {
   INQUERITO_ATRIBUIDO
   INQUERITO_TRANSFERIDO
   ATIVIDADE_PRAZO_APROXIMANDO
+  ATUALIZACAO_FALHOU
+  ATUALIZACAO_CONCLUIDA
 }
 
 model Brigada {
@@ -65,6 +67,7 @@ model Utilizador {
   notificacoes         Notificacao[]
   sessoes              Sessao[]
   passwordResetTokens  PasswordResetToken[]
+  atualizacoesIniciadas AtualizacaoSistema[]
 
   @@index([brigadaId])
   @@index([role])
@@ -260,7 +263,42 @@ model ConfiguracaoSistema {
   // Default estado codigos applied to /inqueritos when the user has no explicit
   // filter set on the URL. Stored as codigos for stability across renames.
   inqueritoFiltroEstadosDefault   String[] @default([])
+  // Cache da última verificação à GitHub Releases. Escrito pelo worker no
+  // tick agendado e pelo endpoint POST /api/updates/check.
+  latestVersionTag                String?
+  latestVersionCheckedAt          DateTime?
+  latestVersionUrl                String?
+  latestVersionNotes              String?
   updatedAt                       DateTime @updatedAt
+}
+
+// Cada tentativa de atualização da app deixa uma linha aqui. A FSM (campo
+// `state`) é validada em escrita por src/lib/updates/state-machine.ts; este
+// modelo é o ponto único de verdade observado pelo UI e pelo audit.
+model AtualizacaoSistema {
+  id              String   @id @default(cuid())
+  // Idempotency key passada pelo cliente (header Idempotency-Key). Permite
+  // que retries da request POST /api/updates/start não criem duplicados.
+  requestId       String   @unique
+  fromVersion     String
+  toVersion       String
+  fromCommitSha   String
+  toCommitSha     String?
+  // Nome do estado da FSM. Strings em vez de enum para evitar migrações
+  // sempre que se adiciona um estado intermédio.
+  state           String
+  // Filename do gpi_prerestore_*.sql.gz criado antes do update, usado pelo
+  // path de rollback para reverter a BD.
+  preBackupFile   String?
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+  errorMessage    String?
+  rolledBack      Boolean  @default(false)
+  iniciadoPorId   String
+  iniciadoPor     Utilizador @relation(fields: [iniciadoPorId], references: [id])
+
+  @@index([startedAt])
+  @@index([state])
 }
 
 model AtividadePadrao {

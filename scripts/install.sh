@@ -149,6 +149,9 @@ SEED_PASSWORD=Admin123!
 
 CRON_SECRET=$CRON_SECRET
 
+GITHUB_REPO=miguelsilv6/gestao-projetos
+GITHUB_TOKEN=
+
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -159,6 +162,33 @@ SMTP_FROM_EMAIL=noreply@gpi.local
 EOF
   chmod 600 .env
   ok ".env criado em $INSTALL_DIR/.env"
+fi
+
+# ─── Auto-updater (opcional, requer systemd + root) ──────────────────────────
+# Instala o daemon do host que processa update.request.json escrito pela UI.
+# Sem ele, o utilizador ainda pode atualizar manualmente via scripts/update.sh,
+# mas a botão "Atualizar agora" em /configurações fica inerte (a request
+# fica pendente).
+mkdir -p "$INSTALL_DIR/control"
+
+if [ "${GPI_INSTALL_UPDATER:-1}" = "1" ] && [ "$(id -u)" = "0" ] && command -v systemctl >/dev/null 2>&1; then
+  info "A instalar systemd unit do auto-updater..."
+  # Caminhos absolutos no service file: substituímos /opt/gpi pelo INSTALL_DIR real.
+  sed "s|/opt/gpi|$INSTALL_DIR|g" "$INSTALL_DIR/scripts/systemd/gpi-updater.service" \
+    > /etc/systemd/system/gpi-updater.service
+  cp "$INSTALL_DIR/scripts/systemd/gpi-updater.timer" /etc/systemd/system/gpi-updater.timer
+  systemctl daemon-reload
+  systemctl enable --now gpi-updater.timer
+  ok "gpi-updater.timer activado (verifica triggers a cada 30s)"
+else
+  if [ "$(id -u)" != "0" ]; then
+    warn "Auto-updater não instalado (precisa de root). Para instalar manualmente:"
+    echo "    sudo sed 's|/opt/gpi|$INSTALL_DIR|g' $INSTALL_DIR/scripts/systemd/gpi-updater.service > /etc/systemd/system/gpi-updater.service"
+    echo "    sudo cp $INSTALL_DIR/scripts/systemd/gpi-updater.timer /etc/systemd/system/"
+    echo "    sudo systemctl daemon-reload && sudo systemctl enable --now gpi-updater.timer"
+  else
+    warn "Auto-updater não instalado (systemctl não disponível ou GPI_INSTALL_UPDATER=0)."
+  fi
 fi
 
 # Read HOST_PORT for the rest of the script

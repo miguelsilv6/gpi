@@ -90,9 +90,12 @@ async function main() {
   // queremos sobrescrever em cada boot. Para preencher rows faltantes
   // quando se adiciona um tipo novo ao enum, o upsert ainda corre o create.
   for (const tipo of Object.values(TipoNotificacao)) {
-    const ccRoles: Role[] = tipo === TipoNotificacao.BACKUP_FALHOU
-      ? [Role.ADMINISTRACAO]
-      : []
+    const adminCcTypes: TipoNotificacao[] = [
+      TipoNotificacao.BACKUP_FALHOU,
+      TipoNotificacao.ATUALIZACAO_FALHOU,
+      TipoNotificacao.ATUALIZACAO_CONCLUIDA,
+    ]
+    const ccRoles: Role[] = adminCcTypes.includes(tipo) ? [Role.ADMINISTRACAO] : []
     await prisma.notificationPolicy.upsert({
       where: { tipo },
       update: {},

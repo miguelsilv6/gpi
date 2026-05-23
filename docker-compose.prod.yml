@@ -20,6 +20,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
     container_name: gpi_app
     depends_on:
       postgres:
@@ -38,16 +40,23 @@ services:
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-GPI Sistema}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@gpi.local}
       CRON_SECRET: ${CRON_SECRET}
+      GITHUB_REPO: ${GITHUB_REPO:-miguelsilv6/gestao-projetos}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     ports:
       - '0.0.0.0:${HOST_PORT:-3000}:3000'
     volumes:
       - ./backups:/app/backups
+      # Canal de controlo partilhado com o host daemon de auto-update.
+      # O API escreve update.request.json aqui; o daemon escreve update.status.json.
+      - ./control:/app/control
     restart: unless-stopped
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
     container_name: gpi_worker
     depends_on:
       postgres:
@@ -63,8 +72,11 @@ services:
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-GPI Sistema}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@gpi.local}
       CRON_SECRET: ${CRON_SECRET}
+      GITHUB_REPO: ${GITHUB_REPO:-miguelsilv6/gestao-projetos}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
       - ./backups:/app/backups
+      - ./control:/app/control
     restart: unless-stopped
 
 volumes:

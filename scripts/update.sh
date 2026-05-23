@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Atualiza a instalação local de GPI (git pull + rebuild + restart).
 # Dados (BD + backups) são preservados — só código e imagens são tocados.
+#
+# Este script é o caminho MANUAL. Para o caminho automatizado, ver
+# scripts/host-updater.sh (disparado pelo daemon systemd a partir da UI
+# em /configurações → Atualizações).
 
 set -euo pipefail
 
@@ -20,7 +24,8 @@ else DC="docker-compose"; fi
 echo "▸ git pull..."
 git pull --ff-only
 
-echo "▸ Rebuild + restart (mantém volumes)..."
-$DC -f docker-compose.prod.yml up -d --build
+GIT_SHA="$(git rev-parse HEAD)"
+echo "▸ Rebuild + restart (mantém volumes, GIT_SHA=$GIT_SHA)..."
+GIT_SHA="$GIT_SHA" $DC -f docker-compose.prod.yml up -d --build
 
 echo "✓ Update completo."
