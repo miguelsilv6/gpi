@@ -42,7 +42,9 @@ else
 fi
 
 log() {
-  local msg="[gpi-updater] $(date -Iseconds) $*"
+  local ts
+  ts="$(date -Iseconds)"
+  local msg="[gpi-updater] $ts $*"
   echo "$msg"
   echo "$msg" >> "$LOG_FILE" 2>/dev/null || true
 }
