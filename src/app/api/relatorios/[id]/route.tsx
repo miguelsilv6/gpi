@@ -8,6 +8,7 @@ import { RATE_LIMITS } from '@/lib/constants'
 import { toCSV, toMarkdown, UTF8_BOM } from '@/lib/relatorios/formatters'
 import { RelatorioPDF } from '@/components/relatorios/relatorio-pdf'
 import { pdf } from '@react-pdf/renderer'
+import { getBrand } from '@/lib/brand'
 import type { Role } from '@/generated/prisma/enums'
 
 /**
@@ -109,7 +110,17 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       // Render via JSX (ficheiro .tsx) é mais limpo do que createElement —
       // a inferência de tipo do `pdf(<RelatorioPDF .../>)` está correcta,
       // dispensando casts.
-      const stream = await pdf(<RelatorioPDF data={result} />).toBuffer()
+      const brand = await getBrand()
+      const stream = await pdf(
+        <RelatorioPDF
+          data={result}
+          brand={{
+            appName: brand.appName,
+            appShortName: brand.appShortName,
+            pdfFooterText: brand.pdfFooterText,
+          }}
+        />,
+      ).toBuffer()
       const chunks: Buffer[] = []
       for await (const chunk of stream) {
         chunks.push(chunk as Buffer)

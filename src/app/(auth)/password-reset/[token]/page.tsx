@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { useBrand } from '@/components/brand-provider'
 
 const schema = z
   .object({
@@ -42,6 +43,7 @@ export default function PasswordResetConfirmPage({
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const brand = useBrand()
 
   const {
     register,
@@ -86,7 +88,7 @@ export default function PasswordResetConfirmPage({
           <CardDescription className="text-sm">
             {success
               ? 'Password redefinida. A redirecionar para o login…'
-              : 'Define a nova password da tua conta GPI.'}
+              : `Define a nova password da tua conta ${brand.appName}.`}
           </CardDescription>
         </CardHeader>
         <CardContent>

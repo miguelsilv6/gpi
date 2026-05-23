@@ -170,6 +170,7 @@ fi
 # mas a botão "Atualizar agora" em /configurações fica inerte (a request
 # fica pendente).
 mkdir -p "$INSTALL_DIR/control"
+mkdir -p "$INSTALL_DIR/branding"
 
 if [ "${GPI_INSTALL_UPDATER:-1}" = "1" ] && [ "$(id -u)" = "0" ] && command -v systemctl >/dev/null 2>&1; then
   info "A instalar systemd unit do auto-updater..."

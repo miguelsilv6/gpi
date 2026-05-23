@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, Loader2, ArrowLeft, MailCheck } from 'lucide-react'
+import { useBrand } from '@/components/brand-provider'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -25,6 +26,7 @@ type FormData = z.infer<typeof schema>
 export default function PasswordResetRequestPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const brand = useBrand()
 
   const {
     register,
@@ -65,7 +67,7 @@ export default function PasswordResetRequestPage() {
           <CardTitle className="text-2xl font-bold">Redefinir password</CardTitle>
           <CardDescription className="text-sm">
             {submitted
-              ? 'Se o email estiver associado a uma conta GPI, vais receber um link para redefinir.'
+              ? `Se o email estiver associado a uma conta ${brand.appName}, vais receber um link para redefinir.`
               : 'Indica o teu email — enviamos um link para definir uma nova password.'}
           </CardDescription>
         </CardHeader>

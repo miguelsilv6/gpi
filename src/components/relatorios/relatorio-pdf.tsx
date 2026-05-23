@@ -123,7 +123,19 @@ const styles = StyleSheet.create({
   },
 })
 
-export function RelatorioPDF({ data }: { data: RelatorioResult }) {
+export interface RelatorioPDFBrand {
+  appName: string
+  appShortName: string
+  pdfFooterText: string
+}
+
+export function RelatorioPDF({
+  data,
+  brand,
+}: {
+  data: RelatorioResult
+  brand: RelatorioPDFBrand
+}) {
   const filtros = Object.entries(data.filtros).filter(([, v]) => v)
   const numCols = data.columns.length
   const colWidth = `${100 / numCols}%`
@@ -132,8 +144,8 @@ export function RelatorioPDF({ data }: { data: RelatorioResult }) {
     <Document
       title={data.title}
       author={data.geradoPor}
-      creator="GPI"
-      producer="GPI"
+      creator={brand.appName}
+      producer={brand.appName}
     >
       <Page size="A4" style={styles.page} wrap>
         <View>
@@ -221,7 +233,7 @@ export function RelatorioPDF({ data }: { data: RelatorioResult }) {
         )}
 
         <View style={styles.footer} fixed>
-          <Text>GPI · Gestão de Processos de Investigação</Text>
+          <Text>{brand.pdfFooterText}</Text>
           <Text
             render={({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) =>
               `${pageNumber} / ${totalPages}`

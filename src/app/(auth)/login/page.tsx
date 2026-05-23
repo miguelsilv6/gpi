@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useTheme } from 'next-themes'
+import { useBrand, useBrandAssetUrl } from '@/components/brand-provider'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -24,6 +26,11 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
+  const brand = useBrand()
+  const { resolvedTheme } = useTheme()
+  const lightLogo = useBrandAssetUrl('light')
+  const darkLogo = useBrandAssetUrl('dark')
+  const logo = resolvedTheme === 'dark' && darkLogo ? darkLogo : lightLogo
 
   const {
     register,
@@ -55,14 +62,17 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-1 text-center pb-6">
           <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <Shield className="h-8 w-8 text-white" />
-            </div>
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logo} alt="" className="h-14 w-14 rounded-full object-contain" />
+            ) : (
+              <div className="bg-blue-600 p-3 rounded-full">
+                <Shield className="h-8 w-8 text-white" />
+              </div>
+            )}
           </div>
-          <CardTitle className="text-2xl font-bold">GPI</CardTitle>
-          <CardDescription className="text-sm">
-            Gestão de Processos de Investigação
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold">{brand.appName}</CardTitle>
+          <CardDescription className="text-sm">{brand.appDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

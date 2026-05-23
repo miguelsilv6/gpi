@@ -269,6 +269,19 @@ model ConfiguracaoSistema {
   latestVersionCheckedAt          DateTime?
   latestVersionUrl                String?
   latestVersionNotes              String?
+  // Personalização (branding) — null em qualquer campo = usar o default
+  // codificado em src/lib/brand-defaults.ts. Os ficheiros referenciados
+  // (logos, favicon) vivem em BRANDING_DIR (bind mount ./branding).
+  // brandUpdatedAt é usado como cache-busting `?v=<ts>` para os assets.
+  appName                         String?
+  appShortName                    String?
+  appDescription                  String?
+  manifestDescription             String?
+  pdfFooterText                   String?
+  logoLightFilename               String?
+  logoDarkFilename                String?
+  faviconFilename                 String?
+  brandUpdatedAt                  DateTime?
   updatedAt                       DateTime @updatedAt
 }
 
