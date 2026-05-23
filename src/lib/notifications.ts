@@ -284,6 +284,62 @@ export async function notifyBackupFailed(opts: {
   })
 }
 
+/**
+ * Notifica administradores quando o fluxo de auto-atualização falha. O envio
+ * segue a NotificationPolicy do tipo (seed cria com ccRoles=[ADMINISTRACAO]).
+ */
+export async function notifyUpdateFailed(opts: {
+  fromVersion: string
+  toVersion: string
+  phase: string
+  error: string
+  rolledBack: boolean
+}): Promise<void> {
+  const titulo = opts.rolledBack
+    ? `Atualização ${opts.toVersion} revertida`
+    : `Atualização para ${opts.toVersion} falhou`
+
+  const errSnippet =
+    opts.error.length > 500 ? opts.error.slice(0, 500) + '…' : opts.error
+
+  const tailMsg = opts.rolledBack
+    ? 'O sistema foi revertido para a versão anterior. Verifique os logs do worker e do gpi-updater.'
+    : 'O sistema mantém-se em modo de manutenção. Intervenção manual exigida — consulte os logs do gpi-updater no host.'
+
+  const mensagem =
+    `Tentativa de atualização ${opts.fromVersion} → ${opts.toVersion} ` +
+    `falhou na fase ${opts.phase}.\n\n${errSnippet}\n\n${tailMsg}`
+
+  await applyPolicy({
+    tipo: 'ATUALIZACAO_FALHOU',
+    titulo,
+    mensagem,
+    naturalUserId: null,
+  })
+}
+
+/**
+ * Notifica administradores quando uma atualização termina com sucesso.
+ */
+export async function notifyUpdateConcluida(opts: {
+  fromVersion: string
+  toVersion: string
+  durationMs: number
+}): Promise<void> {
+  const minutes = Math.round(opts.durationMs / 60000)
+  const titulo = `Sistema atualizado para ${opts.toVersion}`
+  const mensagem =
+    `A atualização ${opts.fromVersion} → ${opts.toVersion} terminou com sucesso ` +
+    `em cerca de ${minutes} minuto(s). O modo de manutenção foi desativado.`
+
+  await applyPolicy({
+    tipo: 'ATUALIZACAO_CONCLUIDA',
+    titulo,
+    mensagem,
+    naturalUserId: null,
+  })
+}
+
 export async function notifyInqueritoTransferido(opts: {
   inqueritoid: string
   nuipc: string

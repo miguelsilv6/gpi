@@ -35,9 +35,11 @@ describe('Notification labels coverage', () => {
     }
   })
 
-  test('BACKUP_FALHOU é o único sem destinatário natural', () => {
-    const semNatural = enumValues.filter((t) => !NOTIFICATION_TIPO_HAS_NATURAL[t])
-    expect(semNatural).toEqual(['BACKUP_FALHOU'])
+  test('tipos de sistema (sem inquérito/utilizador associado) não têm destinatário natural', () => {
+    const semNatural = enumValues.filter((t) => !NOTIFICATION_TIPO_HAS_NATURAL[t]).sort()
+    expect(semNatural).toEqual(
+      ['ATUALIZACAO_CONCLUIDA', 'ATUALIZACAO_FALHOU', 'BACKUP_FALHOU'].sort(),
+    )
   })
 })
 

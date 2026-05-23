@@ -30,6 +30,7 @@ import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
 import { BackupsTab } from './backups-tab'
 import { NotificacoesTab } from './notificacoes-tab'
+import { AtualizacoesTab } from './atualizacoes-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -691,7 +692,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades' | 'notificacoes' | 'backups'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -795,8 +796,8 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b gap-0">
-        {(['sistema', 'estados', 'crimes', 'atividades', 'notificacoes', 'backups'] as Tab[]).map((t) => (
+      <div className="flex border-b gap-0 flex-wrap">
+        {(['sistema', 'estados', 'crimes', 'atividades', 'notificacoes', 'backups', 'atualizacoes'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -817,7 +818,9 @@ export default function ConfiguracoesPage() {
                     ? 'Atividades'
                     : t === 'notificacoes'
                       ? 'Notificações'
-                      : 'Backups'}
+                      : t === 'backups'
+                        ? 'Backups'
+                        : 'Atualizações'}
           </button>
         ))}
       </div>
@@ -938,6 +941,9 @@ export default function ConfiguracoesPage() {
 
       {/* Backups tab */}
       {tab === 'backups' && <BackupsTab />}
+
+      {/* Atualizações tab */}
+      {tab === 'atualizacoes' && <AtualizacoesTab />}
     </div>
   )
 }

@@ -1,0 +1,16 @@
+[Unit]
+Description=GPI Auto-Updater (one-shot, processa update.request.json se existir)
+After=docker.service
+Requires=docker.service
+ConditionPathExists=/opt/gpi/control/update.request.json
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gpi
+EnvironmentFile=-/etc/default/gpi-updater
+ExecStart=/usr/bin/env bash /opt/gpi/scripts/host-updater.sh
+# A unit é one-shot; o timer dispara em intervalos curtos. ConditionPathExists
+# acima garante que a unit nem arranca se não houver trigger pendente.
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=900
