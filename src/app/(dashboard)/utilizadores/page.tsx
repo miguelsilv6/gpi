@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil } from 'lucide-react'
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
+import { cn, iconButtonClasses } from '@/lib/utils'
 import { Suspense } from 'react'
 import { UtilizadoresFilters } from '@/components/utilizadores/utilizadores-filters'
 import type { Role } from '@/generated/prisma/enums'
@@ -107,7 +107,8 @@ export default async function UtilizadoresPage({ searchParams }: PageProps) {
                 <td className="px-4 py-3 text-right">
                   <Link
                     href={`/utilizadores/${u.id}/editar`}
-                    className="p-1.5 rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground inline-flex"
+                    className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+                    aria-label={`Editar ${u.nome}`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Link>
@@ -144,7 +145,8 @@ export default async function UtilizadoresPage({ searchParams }: PageProps) {
             </div>
             <Link
               href={`/utilizadores/${u.id}/editar`}
-              className="p-1.5 rounded hover:bg-accent transition-colors text-muted-foreground shrink-0"
+              className={cn(iconButtonClasses, 'text-muted-foreground shrink-0')}
+              aria-label={`Editar ${u.nome}`}
             >
               <Pencil className="h-4 w-4" />
             </Link>

@@ -7,6 +7,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Classes base para botões-ícone em tabelas / linhas (edit, delete, etc).
+ * MOBILE-A11Y: garante tap area 44×44 em touch devices (pointer:coarse)
+ * mantendo o visual compacto 28×28 em desktop com rato. Substitui o
+ * anti-pattern `p-1.5 rounded hover:bg-...` que dava ~20px.
+ *
+ * Uso: `<button className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}>`
+ */
+export const iconButtonClasses =
+  'h-7 w-7 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 ' +
+  'inline-flex items-center justify-center rounded hover:bg-muted transition-colors'
+
 export function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '—'
   return format(new Date(date), 'dd/MM/yyyy', { locale: ptBR })

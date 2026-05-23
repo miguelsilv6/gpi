@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Plus, Pencil, Trash2, Check, X, GripVertical } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, iconButtonClasses } from '@/lib/utils'
 import {
   ESTADO_COR_CLASSES,
   ESTADO_COR_DEFAULT,
@@ -418,8 +418,9 @@ export function EstadosTab() {
                         </button>
                         <button
                           onClick={() => startEdit(e)}
-                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                          className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
                           title="Editar"
+                          aria-label={`Editar ${e.nome}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -427,12 +428,14 @@ export function EstadosTab() {
                           onClick={() => handleDelete(e)}
                           disabled={isProtected}
                           className={cn(
-                            'p-1.5 rounded text-muted-foreground',
+                            iconButtonClasses,
+                            'text-muted-foreground',
                             isProtected
-                              ? 'opacity-30 cursor-not-allowed'
+                              ? 'opacity-30 cursor-not-allowed hover:bg-transparent'
                               : 'hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/30',
                           )}
                           title={isProtected ? 'Estado protegido — só pode ser desativado' : 'Eliminar'}
+                          aria-label={`Eliminar ${e.nome}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

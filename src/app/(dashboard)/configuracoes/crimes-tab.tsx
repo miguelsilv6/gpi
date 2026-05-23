@@ -15,7 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, iconButtonClasses } from '@/lib/utils'
 
 interface Crime {
   id: string
@@ -271,13 +271,15 @@ export function CrimesTab() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEditSave(c.id)}
-                        className="p-1.5 rounded hover:bg-muted text-green-600"
+                        className={cn(iconButtonClasses, 'text-green-600')}
+                        aria-label="Guardar"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setEditId(null)}
-                        className="p-1.5 rounded hover:bg-muted text-muted-foreground"
+                        className={cn(iconButtonClasses, 'text-muted-foreground')}
+                        aria-label="Cancelar edição"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -313,14 +315,16 @@ export function CrimesTab() {
                     </button>
                     <button
                       onClick={() => startEdit(c)}
-                      className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                      className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+                      aria-label={`Editar ${c.nome}`}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setDeleteCandidate(c)}
                       title="Apagar ou desativar"
-                      className="p-1.5 rounded hover:bg-muted text-red-500 hover:text-red-700"
+                      aria-label={`Apagar ${c.nome}`}
+                      className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

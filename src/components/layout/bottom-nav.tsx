@@ -24,12 +24,12 @@ export function BottomNav({ role }: BottomNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors min-h-[44px]',
+                'flex-1 flex flex-col items-center justify-center gap-1 px-1 text-xs font-medium transition-colors min-h-[44px]',
                 active ? 'text-blue-600' : 'text-muted-foreground',
               )}
             >
               <item.icon className={cn('h-5 w-5', active && 'text-blue-600')} />
-              <span className="leading-none truncate max-w-[60px] text-center">{item.label}</span>
+              <span className="leading-none truncate max-w-[68px] text-center">{item.label}</span>
             </Link>
           )
         })}

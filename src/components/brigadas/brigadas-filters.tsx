@@ -29,8 +29,8 @@ export function BrigadasFilters() {
   const hasFilters = search || ativa
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="relative flex-1 min-w-[180px]">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
+      <div className="relative flex-1 min-w-0 sm:min-w-[180px]">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
         <Input
           placeholder="Pesquisar por nome..."
@@ -41,7 +41,7 @@ export function BrigadasFilters() {
       </div>
 
       <Select value={ativa || 'all'} onValueChange={(v) => update('ativa', !v || v === 'all' ? '' : v)}>
-        <SelectTrigger className="h-9 w-[130px] text-sm">
+        <SelectTrigger className="h-9 w-full sm:w-[130px] text-sm">
           <SelectValue placeholder="Estado">
             {(v: string) =>
               v === 'true' ? 'Ativas' : v === 'false' ? 'Inativas' : 'Todas'

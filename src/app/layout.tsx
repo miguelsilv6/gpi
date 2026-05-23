@@ -28,8 +28,9 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-// MOBILE-A11Y: NÃO usar maximumScale: 1 — bloqueia zoom para utilizadores
-// com baixa visão (anti-pattern WCAG 2.1 / 1.4.4).
+// MOBILE-A11Y: deliberadamente sem cap de zoom — utilizadores com baixa
+// visão têm de poder fazer pinch-zoom. WCAG 2.1 / 1.4.4. Ver
+// tests/unit/mobile-a11y.test.ts que protege esta decisão.
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,

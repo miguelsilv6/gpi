@@ -25,7 +25,7 @@ import {
   PlayCircle,
   Wrench,
 } from 'lucide-react'
-import { formatDateTime, cn } from '@/lib/utils'
+import { formatDateTime, cn, iconButtonClasses } from '@/lib/utils'
 
 interface BackupRow {
   filename: string
@@ -389,24 +389,27 @@ export function BackupsTab() {
                         <button
                           type="button"
                           onClick={() => handleDownload(f)}
-                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                          className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
                           title="Descarregar"
+                          aria-label={`Descarregar ${f.filename}`}
                         >
                           <Download className="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setRestoreTarget(f)}
-                          className="p-1.5 rounded hover:bg-muted text-amber-600 hover:text-amber-700"
+                          className={cn(iconButtonClasses, 'text-amber-600 hover:text-amber-700')}
                           title="Restaurar"
+                          aria-label={`Restaurar ${f.filename}`}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(f)}
-                          className="p-1.5 rounded hover:bg-muted text-red-500 hover:text-red-700"
+                          className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
                           title="Eliminar"
+                          aria-label={`Eliminar ${f.filename}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

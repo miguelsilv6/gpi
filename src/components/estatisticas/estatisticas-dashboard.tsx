@@ -178,7 +178,7 @@ export function EstatisticasDashboard({
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3 items-end">
         {!lockedToBrigada && (
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Brigada</Label>
@@ -186,7 +186,7 @@ export function EstatisticasDashboard({
               value={brigadaFilter || 'all'}
               onValueChange={(v) => changeBrigada(!v || v === 'all' ? '' : v)}
             >
-              <SelectTrigger className="h-9 w-[180px] text-sm">
+              <SelectTrigger className="h-9 w-full sm:w-[180px] text-sm">
                 <SelectValue placeholder="Todas as brigadas">
                   {(v: string) =>
                     !v || v === 'all'
@@ -212,7 +212,7 @@ export function EstatisticasDashboard({
               value={inspetorFilter || 'all'}
               onValueChange={(v) => setInspetorFilter(!v || v === 'all' ? '' : v)}
             >
-              <SelectTrigger className="h-9 w-[180px] text-sm">
+              <SelectTrigger className="h-9 w-full sm:w-[180px] text-sm">
                 <SelectValue placeholder="Todos os inspetores">
                   {(v: string) =>
                     !v || v === 'all'
@@ -235,7 +235,7 @@ export function EstatisticasDashboard({
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Período</Label>
           <Select value={preset} onValueChange={(v) => applyPreset(v as Preset)}>
-            <SelectTrigger className="h-9 w-[170px] text-sm">
+            <SelectTrigger className="h-9 w-full sm:w-[170px] text-sm">
               <SelectValue placeholder="Período">
                 {(v: string) => PRESET_LABELS[v as Preset] ?? 'Período'}
               </SelectValue>
@@ -254,7 +254,7 @@ export function EstatisticasDashboard({
             type="date"
             value={dataInicio}
             onChange={(e) => onDataChange(setDataInicio, e.target.value)}
-            className="h-9 w-[150px] text-sm"
+            className="h-9 w-full sm:w-[150px] text-sm"
           />
         </div>
         <div className="space-y-1">
@@ -263,7 +263,7 @@ export function EstatisticasDashboard({
             type="date"
             value={dataFim}
             onChange={(e) => onDataChange(setDataFim, e.target.value)}
-            className="h-9 w-[150px] text-sm"
+            className="h-9 w-full sm:w-[150px] text-sm"
           />
         </div>
 
