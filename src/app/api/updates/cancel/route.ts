@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Cancelar antes do backup começar implica nada destrutivo aconteceu —
+    // libertar o modo de manutenção que foi ativado em /start.
+    await prisma.configuracaoSistema.update({
+      where: { id: 'singleton' },
+      data: { maintenanceMode: false },
+    })
+
     await prisma.auditLog.create({
       data: {
         acao: 'UPDATE_CANCELLED',

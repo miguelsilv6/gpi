@@ -4,6 +4,7 @@ import {
   assertTransition,
   isTerminal,
   isInProgress,
+  isActivelyRunning,
   TERMINAL_STATES,
   type UpdateState,
 } from '@/lib/updates/state-machine'
@@ -69,11 +70,19 @@ describe('UpdateState — FSM', () => {
     expect(isTerminal('AVAILABLE')).toBe(false)
   })
 
-  test('isInProgress separa "disponível" e "terminal" do meio do fluxo', () => {
-    expect(isInProgress('AVAILABLE')).toBe(false)
-    expect(isInProgress('DONE')).toBe(false)
-    expect(isInProgress('FAILED')).toBe(false)
+  test('isInProgress cobre todos os estados não-terminais (incluindo AVAILABLE enfileirado)', () => {
+    expect(isInProgress('AVAILABLE')).toBe(true)
     expect(isInProgress('BACKING_UP')).toBe(true)
     expect(isInProgress('ROLLING_BACK')).toBe(true)
+    expect(isInProgress('DONE')).toBe(false)
+    expect(isInProgress('FAILED')).toBe(false)
+    expect(isInProgress('ROLLED_BACK')).toBe(false)
+  })
+
+  test('isActivelyRunning exclui AVAILABLE (enfileirado mas ainda sem trabalho destrutivo)', () => {
+    expect(isActivelyRunning('AVAILABLE')).toBe(false)
+    expect(isActivelyRunning('BACKING_UP')).toBe(true)
+    expect(isActivelyRunning('MIGRATING')).toBe(true)
+    expect(isActivelyRunning('DONE')).toBe(false)
   })
 })

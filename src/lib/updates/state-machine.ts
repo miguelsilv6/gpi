@@ -82,7 +82,20 @@ export const STATE_LABELS: Record<UpdateState, string> = {
   FAILED: 'Falhou',
 }
 
-/** Estados que indicam um update em curso (UI mostra spinner / bloqueia novo start). */
+/**
+ * Estados não-terminais (qualquer atualização que ainda não acabou).
+ * Inclui AVAILABLE — uma linha enfileirada à espera do worker conta como
+ * em curso para fins de mutex anti-concorrência.
+ */
 export function isInProgress(state: UpdateState): boolean {
+  return !isTerminal(state)
+}
+
+/**
+ * Subset de `isInProgress` que indica trabalho ativo (não apenas
+ * enfileirado). Útil para o UI distinguir entre "à espera de começar" e
+ * "a meio das fases destrutivas".
+ */
+export function isActivelyRunning(state: UpdateState): boolean {
   return state !== 'AVAILABLE' && !isTerminal(state)
 }

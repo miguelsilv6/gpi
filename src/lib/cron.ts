@@ -7,9 +7,9 @@ import {
   notifyUpdateConcluida,
 } from '@/lib/notifications'
 import { childLogger } from '@/lib/logger'
-import { spawnSync } from 'child_process'
+import { spawn } from 'child_process'
 import { fetchLatestRelease, isNewerVersion } from '@/lib/updates/github'
-import { reconcileFromStatusFile } from '@/lib/updates/orchestrator'
+import { reconcileFromStatusFile, processAvailableUpdates } from '@/lib/updates/orchestrator'
 import { isTerminal, type UpdateState } from '@/lib/updates/state-machine'
 import { APP_VERSION } from '@/lib/version'
 
@@ -57,8 +57,16 @@ export function startCronJobs() {
     void runUpdateReconciler()
   })
 
+  // Dispatcher de updates em fila: pega em linhas AVAILABLE e executa o
+  // backup pré-atualização (potencialmente vários minutos). Tick a cada
+  // 10s. Promise não-awaited para não bloquear futuros ticks; flock no
+  // backup.sh + state machine recusam dupla execução.
+  cron.schedule('*/10 * * * * *', () => {
+    void runUpdateDispatcher()
+  })
+
   log.info(
-    'Jobs registered: deadline check @ 08:00 daily; backup (DB-driven, auto-reload @ 1 min); update check @ 30 min; update reconciler @ 5s',
+    'Jobs registered: deadline check @ 08:00 daily; backup (DB-driven, auto-reload @ 1 min); update check @ 30 min; update reconciler @ 5s; update dispatcher @ 10s',
   )
 }
 
@@ -130,6 +138,33 @@ interface RunBackupOpts {
  *   - notifica utilizadores ADMINISTRACAO
  *   - propaga o erro (o caller pode capturar conforme contexto)
  */
+interface BackupRunResult {
+  status: number | null
+  stdout: string
+  stderr: string
+  errorMessage: string | null
+}
+
+/**
+ * Wrapper async em torno de `spawn` — devolve quando o processo termina
+ * sem bloquear o event loop. Substitui `spawnSync` que bloqueava o worker
+ * durante minutos em backups de BDs grandes.
+ */
+function runBackupProcess(env: NodeJS.ProcessEnv): Promise<BackupRunResult> {
+  return new Promise((resolve) => {
+    let stdout = ''
+    let stderr = ''
+    let errorMessage: string | null = null
+    const child = spawn('bash', [BACKUP_SCRIPT], { env })
+    child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString('utf8') })
+    child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString('utf8') })
+    child.on('error', (err) => { errorMessage = err.message })
+    child.on('close', (status) => {
+      resolve({ status, stdout, stderr, errorMessage })
+    })
+  })
+}
+
 export async function runBackup(opts: RunBackupOpts): Promise<string> {
   const env = {
     ...process.env,
@@ -140,14 +175,11 @@ export async function runBackup(opts: RunBackupOpts): Promise<string> {
   } as NodeJS.ProcessEnv
 
   const start = Date.now()
-  const result = spawnSync('bash', [BACKUP_SCRIPT], {
-    env,
-    encoding: 'utf8',
-  })
+  const result = await runBackupProcess(env)
   const durationMs = Date.now() - start
 
   if (result.status !== 0) {
-    const stderr = result.stderr || result.stdout || result.error?.message || 'erro desconhecido'
+    const stderr = result.stderr || result.stdout || result.errorMessage || 'erro desconhecido'
     // Audit + notificação
     try {
       await prisma.auditLog.create({
@@ -245,6 +277,19 @@ async function runUpdateCheck(): Promise<void> {
  * `AtualizacaoSistema`. Quando deteta uma transição para um estado terminal,
  * envia a notificação correspondente.
  */
+/**
+ * Pega em atualizações enfileiradas em AVAILABLE e executa o backup
+ * pré-atualização + escreve o ficheiro de trigger. Corre num tick para que
+ * o handler HTTP de /api/updates/start possa devolver 202 imediatamente.
+ */
+async function runUpdateDispatcher(): Promise<void> {
+  try {
+    await processAvailableUpdates()
+  } catch (err) {
+    log.error({ err }, 'Update dispatcher falhou')
+  }
+}
+
 async function runUpdateReconciler(): Promise<void> {
   try {
     // Optimização: se não há nada em curso, salta o read do filesystem.

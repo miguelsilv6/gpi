@@ -93,15 +93,20 @@ export async function readTrigger(): Promise<UpdateTrigger | null> {
 }
 
 /**
- * Inicia uma atualização. Chamada pelo handler POST /api/updates/start.
+ * Enfileira uma atualização. Chamada pelo handler POST /api/updates/start.
+ *
+ * **Retorna imediatamente após criar o registo em AVAILABLE** — o backup
+ * (que pode demorar minutos) corre depois no worker via
+ * `processAvailableUpdates()`. Isto evita bloquear o event loop do app e
+ * timeouts do cliente, e mantém a request HTTP em <100ms.
  *
  * Garantias:
- *  - Recusa se já existir uma atualização em curso (linha não-terminal).
+ *  - Recusa se já existir uma atualização em curso (linha não-terminal,
+ *    incluindo AVAILABLE — uma linha enfileirada conta como concorrente).
  *  - Recusa downgrade (`targetTag` <= versão atual).
  *  - Reutiliza linha existente se o `requestId` (idempotency key) já foi visto.
- *  - Backup obrigatório antes de qualquer escrita de trigger.
- *  - Modo de manutenção ligado antes do backup; só é desligado pelo host
- *    daemon após HEALTHCHECK ok (ou pelo path de rollback em sucesso).
+ *  - Modo de manutenção ligado já aqui — o admin sabe que ao confirmar não
+ *    há volta atrás (excepto via /api/updates/cancel enquanto em AVAILABLE).
  */
 export async function startUpdate(opts: {
   targetTag: string
@@ -118,7 +123,7 @@ export async function startUpdate(opts: {
     return { id: existing.id, alreadyRunning: !isTerminal(existing.state as UpdateState) }
   }
 
-  // Recusa se há outra atualização em curso.
+  // Recusa se há outra atualização em curso (inclui AVAILABLE enfileirada).
   const inFlight = await prisma.atualizacaoSistema.findFirst({
     where: { finishedAt: null },
     orderBy: { startedAt: 'desc' },
@@ -142,9 +147,6 @@ export async function startUpdate(opts: {
   const fromSha = APP_GIT_SHA
   const toVersion = opts.targetTag.replace(/^v/, '')
 
-  // Cria a linha em AVAILABLE → BACKING_UP (ainda numa única transação lógica
-  // do ponto de vista do utilizador, mas em duas escritas para que o ID
-  // exista antes do backup, no caso de o backup demorar muito).
   const row = await prisma.atualizacaoSistema.create({
     data: {
       requestId,
@@ -158,7 +160,7 @@ export async function startUpdate(opts: {
 
   await prisma.auditLog.create({
     data: {
-      acao: 'UPDATE_STARTED',
+      acao: 'UPDATE_ENQUEUED',
       entidade: 'AtualizacaoSistema',
       entidadeId: row.id,
       utilizadorId: opts.userId,
@@ -166,22 +168,56 @@ export async function startUpdate(opts: {
     },
   })
 
-  // Ligar modo de manutenção. Não-admins veem 503 a partir daqui.
+  // Ligar modo de manutenção. Não-admins veem 503 a partir daqui — o ciclo
+  // é confirmado-irreversível excepto pelo cancel enquanto em AVAILABLE.
   await prisma.configuracaoSistema.update({
     where: { id: 'singleton' },
     data: { maintenanceMode: true },
   })
 
-  // Transitar para BACKING_UP e correr o backup. Se falhar, marcar FAILED e
-  // libertar manutenção — nada de destrutivo foi feito ainda.
-  await updateState(row.id, 'AVAILABLE', 'BACKING_UP')
+  return { id: row.id }
+}
+
+/**
+ * Processa atualizações em estado AVAILABLE: corre o backup pré-atualização
+ * (potencialmente vários minutos) e escreve o ficheiro de trigger para o
+ * host daemon.
+ *
+ * Chamado pelo worker num tick (~10s). Idempotente — se já está a correr
+ * para um id, o lock em runBackup (flock no script) e o estado da linha
+ * impedem dupla execução.
+ *
+ * Falhas do backup transitam a linha para FAILED e desligam manutenção
+ * (nada de destrutivo foi tocado).
+ */
+export async function processAvailableUpdates(): Promise<void> {
+  // Procura uma única linha em AVAILABLE — o flock no script garante
+  // mutex se acontecer outra invocação concorrente.
+  const row = await prisma.atualizacaoSistema.findFirst({
+    where: { state: 'AVAILABLE' },
+    orderBy: { startedAt: 'asc' },
+  })
+  if (!row) return
+
+  // Linha pode ter sido cancelada entre a query e aqui — recheck.
+  if (row.state !== 'AVAILABLE') return
+
+  // Reservar a linha: transitar para BACKING_UP. Falha se outro worker
+  // já fez a transição (state machine recusa).
+  try {
+    await updateState(row.id, 'AVAILABLE', 'BACKING_UP')
+  } catch {
+    log.info({ id: row.id }, 'Outro worker já está a processar — saltar')
+    return
+  }
+
   let backupFilename: string
   try {
     backupFilename = await runBackup({
       source: 'pre_restauro',
       prefix: 'gpi_prerestore_',
       retention: 10,
-      utilizadorId: opts.userId,
+      utilizadorId: row.iniciadoPorId,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'erro desconhecido'
@@ -202,11 +238,11 @@ export async function startUpdate(opts: {
         acao: 'UPDATE_FAILED',
         entidade: 'AtualizacaoSistema',
         entidadeId: row.id,
-        utilizadorId: opts.userId,
+        utilizadorId: row.iniciadoPorId,
         detalhes: { phase: 'BACKING_UP', error: msg } as never,
       },
     })
-    throw err
+    return
   }
 
   await prisma.atualizacaoSistema.update({
@@ -214,26 +250,22 @@ export async function startUpdate(opts: {
     data: { preBackupFile: backupFilename },
   })
 
-  // Transitar para PULLING e escrever trigger para o host daemon.
   await updateState(row.id, 'BACKING_UP', 'PULLING')
+
   const trigger: UpdateTrigger = {
-    requestId,
-    fromSha,
-    fromVersion,
-    toTag: opts.targetTag,
+    requestId: row.requestId,
+    fromSha: row.fromCommitSha,
+    fromVersion: row.fromVersion,
+    toTag: row.toVersion.startsWith('v') ? row.toVersion : `v${row.toVersion}`,
     preBackupFile: backupFilename,
     issuedAt: new Date().toISOString(),
   }
   await writeJsonFile(TRIGGER_FILE, trigger)
-  // Escrita inicial de status, para que o UI veja PULLING imediatamente
-  // mesmo antes do daemon picar o trigger.
   await writeJsonFile(STATUS_FILE, {
-    requestId,
+    requestId: row.requestId,
     state: 'PULLING',
     updatedAt: new Date().toISOString(),
   } satisfies UpdateStatus)
-
-  return { id: row.id }
 }
 
 async function updateState(

@@ -145,6 +145,7 @@ export function AtualizacoesTab() {
   const [checking, setChecking] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const pollingRef = useRef<number | null>(null)
 
   async function refreshStatus(silent = false) {
@@ -227,6 +228,26 @@ export function AtualizacoesTab() {
       refreshStatus(true)
     } finally {
       setChecking(false)
+    }
+  }
+
+  async function handleCancel(id: string) {
+    setCancelling(true)
+    try {
+      const res = await fetch('/api/updates/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao cancelar')
+        return
+      }
+      toast.success('Atualização cancelada')
+      refreshStatus(true)
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -383,15 +404,29 @@ export function AtualizacoesTab() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Atualização em curso: v{status.current.fromVersion} → v{status.current.toVersion}
+              {status.current.state === 'AVAILABLE'
+                ? `Atualização enfileirada: v${status.current.fromVersion} → v${status.current.toVersion}`
+                : `Atualização em curso: v${status.current.fromVersion} → v${status.current.toVersion}`}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <StateBadge state={status.current.state} />
               <span className="text-xs text-muted-foreground">
                 iniciado por {status.current.iniciadoPor} às {formatDateTime(status.current.startedAt)}
               </span>
+              {status.current.state === 'AVAILABLE' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto text-red-600 hover:text-red-700"
+                  onClick={() => handleCancel(status.current!.id)}
+                  disabled={cancelling}
+                >
+                  {cancelling && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                  Cancelar
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-7 gap-1">
@@ -421,7 +456,9 @@ export function AtualizacoesTab() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              A app está em modo de manutenção. Esta página vai recarregar automaticamente quando o sistema voltar a estar disponível.
+              {status.current.state === 'AVAILABLE'
+                ? 'À espera de o worker começar o backup (até 10 segundos). Pode cancelar enquanto não começa.'
+                : 'A app está em modo de manutenção. Esta página vai recarregar automaticamente quando o sistema voltar a estar disponível.'}
             </p>
           </CardContent>
         </Card>
