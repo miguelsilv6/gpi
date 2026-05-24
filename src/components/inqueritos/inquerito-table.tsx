@@ -4,8 +4,9 @@ import { memo, useCallback, useState } from 'react'
 import { EstadoBadge } from './estado-badge'
 import { BulkActionBar } from './bulk-action-bar'
 import { InqueritoCard } from './inquerito-card'
+import { Button } from '@/components/ui/button'
 import { formatDate, isOverdue, cn, nuipcToSlug } from '@/lib/utils'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, CheckSquare, X } from 'lucide-react'
 import Link from 'next/link'
 
 interface EstadoLike {
@@ -112,6 +113,10 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, isSelected, onToggle 
 
 export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, inspetores, brigadas, estados }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Mobile-only: indica se os cards estão em modo seleção. Activado por
+  // long-press num card ou pelo botão explícito "Selecionar". Em desktop
+  // os checkboxes da tabela são sempre visíveis, este estado é ignorado.
+  const [mobileSelectionMode, setMobileSelectionMode] = useState(false)
 
   const allIds = inqueritos.map((i) => i.id)
   const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id))
@@ -132,7 +137,22 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
     })
   }, [])
 
-  const clearSelected = useCallback(() => setSelected(new Set()), [])
+  // Sai do modo selecção mobile e limpa selecções de uma só vez —
+  // chamado pelo botão X da BulkActionBar e pelo botão "Cancelar selecção".
+  const clearSelected = useCallback(() => {
+    setSelected(new Set())
+    setMobileSelectionMode(false)
+  }, [])
+
+  // Long-press num card: entra em modo seleção e marca esse card.
+  const handleLongPress = useCallback((id: string) => {
+    setMobileSelectionMode(true)
+    setSelected((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }, [])
 
   return (
     <>
@@ -190,6 +210,42 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
+        {/* Toggle de modo selecção — alternativa acessível ao long-press.
+            Só mostra se há permissões de bulk e existem inquéritos para
+            seleccionar. */}
+        {canBulk && inqueritos.length > 0 && (
+          <div className="flex justify-end">
+            {mobileSelectionMode ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={clearSelected}
+                aria-pressed="true"
+                className="gap-1.5"
+              >
+                <X className="h-3.5 w-3.5" />
+                Cancelar selecção
+                {selected.size > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    ({selected.size})
+                  </span>
+                )}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setMobileSelectionMode(true)}
+                aria-pressed="false"
+                className="gap-1.5"
+              >
+                <CheckSquare className="h-3.5 w-3.5" />
+                Selecionar
+              </Button>
+            )}
+          </div>
+        )}
+
         {inqueritos.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">Nenhum inquérito encontrado.</p>
         ) : (
@@ -204,6 +260,10 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               inspetorNome={inq.inspetor?.nome}
               brigadaNome={inq.brigada.nome}
               atividadesCount={inq._count.atividades}
+              selectionMode={canBulk && mobileSelectionMode}
+              isSelected={selected.has(inq.id)}
+              onToggle={canBulk ? () => toggle(inq.id) : undefined}
+              onLongPress={canBulk ? () => handleLongPress(inq.id) : undefined}
             />
           ))
         )}
