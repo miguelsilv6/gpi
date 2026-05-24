@@ -63,17 +63,20 @@ export function BrigadaBarChart({ data }: { data: PorBrigada[] }) {
 
 export function InspetorBarChart({ data }: { data: PorInspetor[] }) {
   return (
-    <ResponsiveContainer width="100%" height={Math.max(220, data.length * 28)}>
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 4, right: 16, left: 8, bottom: 0 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-        <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-        <YAxis dataKey="nome" type="category" tick={{ fontSize: 11 }} width={140} />
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 60 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis
+          dataKey="nome"
+          tick={{ fontSize: 11 }}
+          interval={0}
+          angle={-35}
+          textAnchor="end"
+          height={70}
+        />
+        <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
         <Tooltip />
-        <Bar dataKey="count" name="Inquéritos" fill="#10b981" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="count" name="Inquéritos" fill="#10b981" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -81,17 +84,20 @@ export function InspetorBarChart({ data }: { data: PorInspetor[] }) {
 
 export function NaturezaBarChart({ data }: { data: PorNatureza[] }) {
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 4, right: 16, left: 8, bottom: 0 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-        <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-        <YAxis dataKey="natureza" type="category" tick={{ fontSize: 11 }} width={130} />
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 60 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis
+          dataKey="natureza"
+          tick={{ fontSize: 11 }}
+          interval={0}
+          angle={-35}
+          textAnchor="end"
+          height={70}
+        />
+        <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
         <Tooltip />
-        <Bar dataKey="count" name="Inquéritos" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="count" name="Inquéritos" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
