@@ -96,17 +96,35 @@ export function NotificationBell() {
   }
 
   async function markRead(id: string) {
-    await fetch(`/api/notificacoes/${id}`, { method: 'PATCH' })
+    // Optimistic update primeiro para feedback imediato; reverte se a
+    // request falhar para que o estado da UI volte a coincidir com o
+    // backend (em vez de ficar permanentemente dessincronizado).
     setNotificacoes((prev) => prev.map((n) => n.id === id ? { ...n, lida: true } : n))
     setCount((c) => Math.max(0, c - 1))
+    let ok = false
+    try {
+      const res = await fetch(`/api/notificacoes/${id}`, { method: 'PATCH' })
+      ok = res.ok
+    } catch { /* network error */ }
+    if (!ok) {
+      setNotificacoes((prev) => prev.map((n) => n.id === id ? { ...n, lida: false } : n))
+      setCount((c) => c + 1)
+      toast.error('Erro a marcar notificação como lida')
+    }
   }
 
   async function markAllRead() {
-    const res = await fetch('/api/notificacoes/read-all', { method: 'POST' })
-    if (res.ok) {
-      setNotificacoes((prev) => prev.map((n) => ({ ...n, lida: true })))
-      setCount(0)
-      toast.success('Todas marcadas como lidas')
+    try {
+      const res = await fetch('/api/notificacoes/read-all', { method: 'POST' })
+      if (res.ok) {
+        setNotificacoes((prev) => prev.map((n) => ({ ...n, lida: true })))
+        setCount(0)
+        toast.success('Todas marcadas como lidas')
+      } else {
+        toast.error('Erro a marcar todas como lidas')
+      }
+    } catch {
+      toast.error('Erro de rede a marcar notificações')
     }
   }
 

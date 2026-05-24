@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -30,7 +30,10 @@ export default function LoginPage() {
   const { resolvedTheme } = useTheme()
   const lightLogo = useBrandAssetUrl('light')
   const darkLogo = useBrandAssetUrl('dark')
-  const logo = resolvedTheme === 'dark' && darkLogo ? darkLogo : lightLogo
+  // Hydration guard: ver sidebar-nav.tsx para detalhes.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const logo = mounted && resolvedTheme === 'dark' && darkLogo ? darkLogo : lightLogo
 
   const {
     register,

@@ -45,10 +45,21 @@ export function NotificacoesList({ initialNotificacoes, initialNextCursor }: Pro
   }
 
   async function markRead(id: string) {
-    await fetch(`/api/notificacoes/${id}`, { method: 'PATCH' })
+    // Optimistic + revert pattern (ver notification-bell.tsx).
     setNotificacoes((prev) =>
       prev.map((n) => (n.id === id ? { ...n, lida: true } : n)),
     )
+    let ok = false
+    try {
+      const res = await fetch(`/api/notificacoes/${id}`, { method: 'PATCH' })
+      ok = res.ok
+    } catch { /* network */ }
+    if (!ok) {
+      setNotificacoes((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, lida: false } : n)),
+      )
+      toast.error('Erro a marcar notificação como lida')
+    }
   }
 
   async function markAllRead() {
