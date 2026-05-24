@@ -128,7 +128,14 @@ export default function EditarUtilizadorPage() {
         setDeleting(false)
         return
       }
-      toast.success('Utilizador eliminado')
+      const body = await res.json().catch(() => ({}))
+      if (body.deactivated) {
+        toast.success(
+          'Utilizador tinha histórico associado — foi desativado (deixa de poder entrar). O histórico fica preservado.',
+        )
+      } else {
+        toast.success('Utilizador eliminado')
+      }
       setDeleteOpen(false)
       router.push('/utilizadores')
       router.refresh()
@@ -274,7 +281,7 @@ export default function EditarUtilizadorPage() {
         onOpenChange={setDeleteOpen}
         title="Eliminar utilizador"
         entityLabel={`${userName} <${userEmail}>`}
-        description="A conta é desactivada imediatamente, as sessões activas são revogadas, e o utilizador deixa de poder iniciar sessão. O histórico de auditoria (inquéritos criados, atividades registadas) permanece intacto para fins legais."
+        description="Se o utilizador não tiver histórico associado (atividades, inquéritos atribuídos), é eliminado por completo. Caso contrário, é apenas desativado — deixa de poder iniciar sessão e as sessões activas são revogadas, mas o histórico permanece intacto para fins legais."
         confirmToken={userEmail}
         inputLabel="Para confirmar, digite o email"
         destructiveLabel="Eliminar utilizador"
