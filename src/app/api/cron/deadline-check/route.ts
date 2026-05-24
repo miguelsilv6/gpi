@@ -95,6 +95,9 @@ export async function POST(req: NextRequest) {
       where: {
         dataPrazo: { not: null, gte: today },
         concluidaEm: null,
+        // Não enviar alertas de prazos de atividades cujo inquérito foi
+        // apagado (soft delete) — o destinatário ficaria confuso.
+        inquerito: { deletedAt: null },
         OR: [
           { alertaDias1: { not: null }, alerta1Enviado: false },
           { alertaDias2: { not: null }, alerta2Enviado: false },

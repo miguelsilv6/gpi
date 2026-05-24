@@ -5,6 +5,8 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider } from '@/components/theme-provider'
+import { BrandProvider } from '@/components/brand-provider'
+import { getBrand } from '@/lib/brand'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -12,37 +14,45 @@ const inter = Inter({
   display: 'swap',
 })
 
-export const metadata: Metadata = {
-  title: 'GPI — Gestão de Processos de Investigação',
-  description: 'Plataforma de gestão de inquéritos criminais',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'GPI',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const b = await getBrand()
+  return {
+    title: { default: `${b.appName} — ${b.appDescription}`, template: `%s · ${b.appName}` },
+    description: b.manifestDescription,
+    manifest: '/manifest.webmanifest',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: b.appShortName,
+    },
+  }
 }
 
+// MOBILE-A11Y: deliberadamente sem cap de zoom — utilizadores com baixa
+// visão têm de poder fazer pinch-zoom. WCAG 2.1 / 1.4.4. Ver
+// tests/unit/mobile-a11y.test.ts que protege esta decisão.
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const brand = await getBrand()
   return (
     <html lang="pt" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <SessionProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster richColors position="top-right" />
-            </TooltipProvider>
+            <BrandProvider value={brand}>
+              <TooltipProvider>
+                {children}
+                <Toaster richColors position="top-right" />
+              </TooltipProvider>
+            </BrandProvider>
           </SessionProvider>
         </ThemeProvider>
       </body>

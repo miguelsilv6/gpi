@@ -14,8 +14,13 @@ export async function GET(req: NextRequest) {
     const role = session.user.role as Role
     const { searchParams } = req.nextUrl
 
-    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
-    const limit = Math.min(50, parseInt(searchParams.get('limit') ?? '20'))
+    // Defesa contra inputs não-numéricos (`?page=abc`): parseInt(.) sem
+    // radix devolve NaN, Math.max(1, NaN) = NaN, e Prisma rebenta. Fallback
+    // para defaults seguros.
+    const pageRaw = parseInt(searchParams.get('page') ?? '1', 10)
+    const limitRaw = parseInt(searchParams.get('limit') ?? '20', 10)
+    const page = Math.max(1, Number.isFinite(pageRaw) ? pageRaw : 1)
+    const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 20))
     const skip = (page - 1) * limit
 
     const search = searchParams.get('search') ?? ''
@@ -50,12 +55,19 @@ export async function GET(req: NextRequest) {
         dataPrazo: { lt: new Date() },
         estado: { terminal: false },
       }),
-      ...((dataAberturaFrom || dataAberturaTo) && {
-        dataAbertura: {
-          ...(dataAberturaFrom && { gte: new Date(dataAberturaFrom) }),
-          ...(dataAberturaTo && { lte: new Date(dataAberturaTo) }),
-        },
-      }),
+      ...((() => {
+        // Datas via query string: validar formato ISO antes de criar Date,
+        // senão `new Date('foo')` devolve Invalid Date e Prisma erra com 500.
+        const parsed: { gte?: Date; lte?: Date } = {}
+        const isValidDate = (s: string) => !Number.isNaN(new Date(s).getTime())
+        if (dataAberturaFrom && isValidDate(dataAberturaFrom)) {
+          parsed.gte = new Date(dataAberturaFrom)
+        }
+        if (dataAberturaTo && isValidDate(dataAberturaTo)) {
+          parsed.lte = new Date(dataAberturaTo)
+        }
+        return Object.keys(parsed).length > 0 ? { dataAbertura: parsed } : {}
+      })()),
       // roleWhere LAST: scope-locking não pode ser substituído por query
       // string (INSPETOR_CHEFE/INSPETOR). Esta ordem é crítica para segurança.
       ...roleWhere,

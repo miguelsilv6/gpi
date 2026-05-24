@@ -83,6 +83,9 @@ export const queryInspetores: RelatorioHandler = async (filters, session) => {
         prisma.atividade.aggregate({
           where: {
             utilizadorId: u.id,
+            // Atividades de inquéritos soft-deleted não devem inflar o
+            // total — o inquérito desapareceu de todos os outros écrans.
+            inquerito: { deletedAt: null },
             ...(periodoRange && { dataRealizacao: periodoRange }),
           },
           _count: { _all: true },
@@ -99,6 +102,7 @@ export const queryInspetores: RelatorioHandler = async (filters, session) => {
         where: {
           utilizadorId: u.id,
           quantidade: null,
+          inquerito: { deletedAt: null },
           ...(periodoRange && { dataRealizacao: periodoRange }),
         },
       })

@@ -1,3 +1,8 @@
+// MOBILE-A11Y: variantes icon-* devem garantir 44×44 tap area em touch
+// devices (WCAG 2.5.5 + iOS HIG). Visualmente mantemos o tamanho compacto
+// para densidade desktop; em pointer:coarse expandimos o hit-box via
+// min-h/min-w sem alterar layout. Não remover essas media queries sem
+// uma alternativa equivalente.
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -25,12 +30,18 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
+        icon: "size-8 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
         "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+          "size-6 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+          "size-7 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+        "icon-lg": "size-9 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
+        // Variante dedicada para botões de ação em tabelas (edit/delete/etc).
+        // Visualmente 28px em desktop; expande para 44×44 em touch via
+        // pointer:coarse. Substitui o anti-pattern `p-1.5 rounded` que dava
+        // tap area de ~20px e falhava o critério WCAG 2.5.5.
+        "icon-table":
+          "h-7 w-7 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 inline-flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors [&_svg:not([class*='size-'])]:size-4",
       },
     },
     defaultVariants: {

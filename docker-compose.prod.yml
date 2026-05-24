@@ -49,6 +49,9 @@ services:
       # Canal de controlo partilhado com o host daemon de auto-update.
       # O API escreve update.request.json aqui; o daemon escreve update.status.json.
       - ./control:/app/control
+      # Branding: logos e favicon enviados pelo admin via /configurações.
+      # Persiste através de updates da app — não é necessário no worker.
+      - ./branding:/app/branding
     restart: unless-stopped
 
   worker:

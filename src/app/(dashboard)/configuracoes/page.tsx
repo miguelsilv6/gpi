@@ -25,12 +25,13 @@ import {
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
 import { BackupsTab } from './backups-tab'
 import { NotificacoesTab } from './notificacoes-tab'
 import { AtualizacoesTab } from './atualizacoes-tab'
+import { AparenciaTab } from './aparencia-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -435,8 +436,8 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                       onChange={(e) => setEditDescricao(e.target.value)}
                     />
                     <div className="flex gap-1">
-                      <button onClick={() => handleEditSave(a.id)} className="p-1.5 rounded hover:bg-muted text-green-600"><Check className="h-4 w-4" /></button>
-                      <button onClick={() => setEditId(null)} className="p-1.5 rounded hover:bg-muted text-muted-foreground"><X className="h-4 w-4" /></button>
+                      <button onClick={() => handleEditSave(a.id)} className={cn(iconButtonClasses, 'text-green-600')} aria-label="Guardar"><Check className="h-4 w-4" /></button>
+                      <button onClick={() => setEditId(null)} className={cn(iconButtonClasses, 'text-muted-foreground')} aria-label="Cancelar edição"><X className="h-4 w-4" /></button>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-4 text-xs">
@@ -604,13 +605,14 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                     >
                       {a.ativa ? 'Ativa' : 'Inativa'}
                     </button>
-                    <button onClick={() => handleEdit(a)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
+                    <button onClick={() => handleEdit(a)} className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')} aria-label={`Editar ${a.nome}`}>
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => openDeleteDialog(a)}
                       title="Apagar ou desativar"
-                      className="p-1.5 rounded hover:bg-muted text-red-500 hover:text-red-700"
+                      aria-label={`Apagar ${a.nome}`}
+                      className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -692,7 +694,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -797,7 +799,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'crimes', 'atividades', 'notificacoes', 'backups', 'atualizacoes'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -820,7 +822,9 @@ export default function ConfiguracoesPage() {
                       ? 'Notificações'
                       : t === 'backups'
                         ? 'Backups'
-                        : 'Atualizações'}
+                        : t === 'atualizacoes'
+                          ? 'Atualizações'
+                          : 'Aparência'}
           </button>
         ))}
       </div>
@@ -944,6 +948,9 @@ export default function ConfiguracoesPage() {
 
       {/* Atualizações tab */}
       {tab === 'atualizacoes' && <AtualizacoesTab />}
+
+      {/* Aparência tab */}
+      {tab === 'aparencia' && <AparenciaTab />}
     </div>
   )
 }

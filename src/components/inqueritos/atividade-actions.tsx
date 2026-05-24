@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { Check, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { ConfirmDeleteDialog } from '@/components/ui/confirm-delete-dialog'
+import { cn, iconButtonClasses } from '@/lib/utils'
 
 /**
  * Defines the shape of the "conclude" button (if any):
@@ -104,8 +105,9 @@ export function AtividadeActions({
           type="button"
           onClick={toggleConcluida}
           disabled={togglingConclude}
-          className="p-1.5 rounded hover:bg-muted text-amber-600 hover:text-amber-700"
+          className={cn(iconButtonClasses, 'text-amber-600 hover:text-amber-700')}
           title="Reabrir atividade"
+          aria-label="Reabrir atividade"
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
@@ -116,8 +118,9 @@ export function AtividadeActions({
           type="button"
           onClick={toggleConcluida}
           disabled={togglingConclude}
-          className="p-1.5 rounded hover:bg-muted text-green-600 hover:text-green-700"
+          className={cn(iconButtonClasses, 'text-green-600 hover:text-green-700')}
           title="Marcar como concluída"
+          aria-label="Marcar atividade como concluída"
         >
           <Check className="h-3.5 w-3.5" />
         </button>
@@ -144,16 +147,18 @@ export function AtividadeActions({
         {concluirControl}
         <Link
           href={`/inqueritos/${inqueritoSlug}/atividade/${atividadeId}/editar`}
-          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+          className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
           title="Editar atividade"
+          aria-label="Editar atividade"
         >
           <Pencil className="h-3.5 w-3.5" />
         </Link>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="p-1.5 rounded hover:bg-muted text-red-500 hover:text-red-700"
+          className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
           title="Eliminar atividade"
+          aria-label="Eliminar atividade"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>

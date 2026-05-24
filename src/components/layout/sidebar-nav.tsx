@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS } from './nav-items'
 import type { Role } from '@/generated/prisma/enums'
 import { Shield } from 'lucide-react'
 import { APP_VERSION } from '@/lib/version'
+import { useBrand, useBrandAssetUrl } from '@/components/brand-provider'
 
 interface SidebarNavProps {
   role: Role
@@ -16,16 +19,33 @@ interface SidebarNavProps {
 export function SidebarNav({ role, onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
   const items = NAV_ITEMS.filter((item) => item.roles.includes(role))
+  const brand = useBrand()
+  const lightLogo = useBrandAssetUrl('light')
+  const darkLogo = useBrandAssetUrl('dark')
+  const { resolvedTheme } = useTheme()
+  // Evita hydration mismatch: o resolvedTheme só está disponível após o
+  // primeiro paint do cliente. Antes disso usamos sempre a variante light
+  // (que coincide com o que o servidor renderizou).
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const logo = mounted && resolvedTheme === 'dark' && darkLogo ? darkLogo : lightLogo
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-5 border-b">
-        <div className="bg-blue-600 p-1.5 rounded-md">
-          <Shield className="h-5 w-5 text-white" />
-        </div>
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt="" className="h-8 w-8 rounded-md object-contain" />
+        ) : (
+          <div className="bg-blue-600 p-1.5 rounded-md">
+            <Shield className="h-5 w-5 text-white" />
+          </div>
+        )}
         <div>
-          <p className="font-bold text-sm leading-none">GPI</p>
-          <p className="text-xs text-muted-foreground leading-none mt-0.5">Gestão de Processos</p>
+          <p className="font-bold text-sm leading-none">{brand.appShortName}</p>
+          <p className="text-xs text-muted-foreground leading-none mt-0.5">
+            {brand.appDescription}
+          </p>
         </div>
       </div>
 

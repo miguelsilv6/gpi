@@ -6,6 +6,7 @@ import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
 import { RATE_LIMITS } from '@/lib/constants'
 import { writeAudit } from '@/lib/audit'
 import { getRequestInfo } from '@/lib/request-info'
+import { getBrand } from '@/lib/brand'
 
 const bodySchema = z.object({
   email: z.string().email('Email inválido'),
@@ -42,12 +43,13 @@ export async function POST(req: NextRequest) {
     // Enviar email com o link de reset. Falhas SMTP são logged mas não
     // viram 500 — não queremos dar pista de que o email existe.
     const resetUrl = `${process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/password-reset/${result.token}`
+    const brand = await getBrand()
     try {
       await sendMail({
         to: email.toLowerCase().trim(),
-        subject: '[GPI] Pedido de redefinição de password',
+        subject: `[${brand.appShortName}] Pedido de redefinição de password`,
         text: [
-          'Recebemos um pedido para redefinir a password da conta GPI associada a este email.',
+          `Recebemos um pedido para redefinir a password da conta ${brand.appName} associada a este email.`,
           '',
           'Para definir uma nova password, abre o link abaixo (válido durante 1 hora):',
           '',
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
           '',
           'Se não foste tu, ignora este email — a tua password permanece inalterada.',
           '',
-          '— GPI',
+          `— ${brand.appName}`,
         ].join('\n'),
       })
     } catch (err) {

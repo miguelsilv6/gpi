@@ -7,6 +7,7 @@ import { writeAudit } from '@/lib/audit'
 import { headers } from 'next/headers'
 import { slugToNuipc, formatDate, formatDateTime, formatDateTimeWithSeconds } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
+import { getBrand } from '@/lib/brand'
 import type { Metadata } from 'next'
 import type { Role } from '@/generated/prisma/enums'
 import { PrintButton } from './print-button'
@@ -76,6 +77,7 @@ export default async function InqueritoPrintPage({
   }
 
   const exportedAt = new Date()
+  const brand = await getBrand()
 
   // All styles are scoped to .gpi-print so they don't leak into the rest of
   // the app (we still share the root <html> and <body> with the rest of the
@@ -175,7 +177,7 @@ export default async function InqueritoPrintPage({
           <div className="small">
             <div>Exportado em {formatDateTime(exportedAt)}</div>
             <div>por {session.user.nome ?? session.user.email}</div>
-            <div>GPI v{APP_VERSION}</div>
+            <div>{brand.appShortName} v{APP_VERSION}</div>
           </div>
         </div>
 
@@ -311,7 +313,7 @@ export default async function InqueritoPrintPage({
         )}
 
         <div className="footer">
-          <span>Documento exportado de GPI · não inclui o histórico de alterações.</span>
+          <span>Documento exportado de {brand.appShortName} · não inclui o histórico de alterações.</span>
           <span>{inquerito.nuipc}</span>
         </div>
       </div>

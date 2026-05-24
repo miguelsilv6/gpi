@@ -95,7 +95,14 @@ export async function DELETE(
     // not by FK — so deletion is technically safe, but it removes the option for
     // future entries. We prefer soft-delete via the `ativa` flag.
     // For consistency: count atividades whose descricao matches the nome.
-    const inUse = await prisma.atividade.count({ where: { descricao: existing.nome } })
+    // Excluímos atividades de inquéritos soft-deleted — não deveriam bloquear
+    // a eliminação de um padrão.
+    const inUse = await prisma.atividade.count({
+      where: {
+        descricao: existing.nome,
+        inquerito: { deletedAt: null },
+      },
+    })
     if (inUse > 0) {
       return apiError(
         `Atividade padrão em uso em ${inUse} atividade(s). Desative em vez de eliminar.`,
