@@ -41,9 +41,14 @@ COPY --from=builder /app/src/generated ./src/generated
 
 # Pin postgresql-client major version to match the Postgres server (16).
 # coreutils + util-linux are needed by scripts/backup.sh (df --output, flock).
-RUN apk add --no-cache postgresql16-client bash coreutils util-linux
+# su-exec é usado pelo entrypoint para dropar privilégios depois de corrigir
+# o ownership dos bind mounts.
+RUN apk add --no-cache postgresql16-client bash coreutils util-linux su-exec
 
-USER nextjs
+# NOTA: deliberadamente SEM `USER nextjs` aqui. O entrypoint arranca como
+# root para fazer chown a /app/backups /app/control /app/branding (bind
+# mounts vindos do host com uid arbitrário) e re-exec'a-se a si próprio
+# como nextjs via su-exec antes de qualquer trabalho real.
 
 EXPOSE 3000
 

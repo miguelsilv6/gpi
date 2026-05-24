@@ -25,8 +25,12 @@ RUN npx prisma generate
 # (docker-compose uses postgres:16). pg_dump/psql cross-major can produce
 # incompatible dumps — keep them aligned. Update both this line and the
 # postgres service image together when upgrading.
-RUN apk add --no-cache bash postgresql16-client coreutils util-linux
+# su-exec é necessário para o entrypoint dropar privilégios depois de
+# corrigir o ownership dos bind mounts.
+RUN apk add --no-cache bash postgresql16-client coreutils util-linux su-exec
 
-USER worker
-
-CMD ["npx", "tsx", "worker.ts"]
+# NOTA: deliberadamente SEM `USER worker` aqui. O entrypoint arranca como
+# root para fazer chown aos bind mounts (./backups, ./control, ./branding)
+# e só depois exec'a como worker via su-exec. Sem isto, o worker (uid 1001)
+# falha com "Permission denied" se o host criou os bind dirs com outro uid.
+ENTRYPOINT ["sh", "/app/scripts/worker-entrypoint.sh"]
