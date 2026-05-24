@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { getRequestInfo } from '@/lib/request-info'
+import { Prisma as PrismaLib } from '@/generated/prisma/client'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import type { Role } from '@/generated/prisma/enums'
@@ -210,13 +211,61 @@ export async function DELETE(
       }
     }
 
+    const { ip, userAgent } = getRequestInfo(req)
+
+    // Decide entre eliminação real e desativação (soft delete).
+    //
+    // Um utilizador SÓ pode ser eliminado por completo se não tiver
+    // histórico operacional associado: atividades registadas, inquéritos
+    // atribuídos, ou atualizações de sistema iniciadas. Estas relações são
+    // FK Restrict/SetNull e representam dados que devem ser preservados (ou
+    // cuja perda silenciosa seria perigosa). Caso contrário, desativamos —
+    // a conta deixa de poder entrar mas o histórico fica intacto para fins
+    // legais. Os audit logs guardam o utilizadorId como snapshot (sem FK),
+    // por isso não impedem a eliminação.
+    //
+    // Caso típico do utilizador de testes nunca usado: zero referências →
+    // eliminação real, desaparece da lista.
+    const [atividadesCount, inqueritosCount, updatesCount] = await Promise.all([
+      prisma.atividade.count({ where: { utilizadorId: id } }),
+      prisma.inquerito.count({ where: { inspetorId: id } }),
+      prisma.atualizacaoSistema.count({ where: { iniciadoPorId: id } }),
+    ])
+    const hasHistory = atividadesCount > 0 || inqueritosCount > 0 || updatesCount > 0
+
+    if (!hasHistory) {
+      // Hard delete. Cascades tratam de notificações/sessões/tokens.
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.auditLog.create({
+            data: {
+              acao: 'DELETE_UTILIZADOR',
+              entidade: 'Utilizador',
+              entidadeId: id,
+              utilizadorId: session.user.id,
+              ip,
+              userAgent,
+              detalhes: { nome: utilizador.nome, email: utilizador.email, hard: true },
+            },
+          })
+          await tx.utilizador.delete({ where: { id } })
+        })
+        return Response.json({ deleted: true, deactivated: false })
+      } catch (err) {
+        // Backstop: se uma FK Restrict que não previmos disparar (P2003),
+        // caímos para soft delete em vez de devolver 500.
+        const isFk =
+          err instanceof PrismaLib.PrismaClientKnownRequestError && err.code === 'P2003'
+        if (!isFk) throw err
+      }
+    }
+
     // Soft delete + invalidate sessions
     await prisma.utilizador.update({
       where: { id },
       data: { ativo: false, tokenVersion: { increment: 1 } },
     })
 
-    const { ip, userAgent } = getRequestInfo(req)
     await prisma.auditLog.create({
       data: {
         acao: 'DEACTIVATE_UTILIZADOR',
@@ -229,7 +278,7 @@ export async function DELETE(
       },
     })
 
-    return new Response(null, { status: 204 })
+    return Response.json({ deleted: false, deactivated: true })
   } catch (error) {
     return handleApiError(error)
   }

@@ -1,0 +1,52 @@
+name: Release
+
+# Publica automaticamente uma GitHub Release quando a versão em
+# package.json muda em main. A funcionalidade de auto-update da app
+# (verificação a /releases/latest a cada 30 min) passa a detetar a nova
+# versão nas instâncias deployed.
+#
+# Fluxo de release: bump do campo "version" em package.json dentro de um
+# PR → merge para main → este workflow cria a tag vX.Y.Z + GitHub Release
+# com notas auto-geradas. Se a versão não mudou (tag já existe), não faz
+# nada. Por isso nem todos os merges geram release — só os que sobem a
+# versão (release discipline intencional).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Tag + GitHub Release on version bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ler versão do package.json
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Verificar se a tag já existe
+        id: check
+        run: |
+          if git rev-parse "v${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag v${{ steps.ver.outputs.version }} já existe — sem release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Criar GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.ver.outputs.version }}" \
+            --title "v${{ steps.ver.outputs.version }}" \
+            --generate-notes

@@ -7,7 +7,32 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.2.0]
+
 ### Adicionado
+- **Auto-atualização via GitHub Releases** (`/configurações` → Atualizações,
+  admin-only) com backup automático + rollback em caso de falha.
+- **Personalização (Aparência)** — nome, descrição, logos claro/escuro e
+  favicon configuráveis pelo admin.
+- **Seleção múltipla em mobile** na lista de inquéritos (long-press ou botão
+  "Selecionar") para aceder às bulk actions, incluindo transferência de
+  brigada.
+- **Workflow de release** (`.github/workflows/release.yml`): publica uma
+  GitHub Release automaticamente quando a versão em `package.json` sobe em
+  `main` — é o que permite às instâncias deployed detetarem novas versões.
+
+### Corrigido
+- Entrypoint Docker corrige ownership dos bind mounts (`./backups`,
+  `./branding`, `./control`) antes de dropar privilégios — resolve o
+  "Permission denied" no backup agendado.
+- Eliminação de utilizador sem histórico passa a remover mesmo o registo
+  (em vez de só desativar com mensagem enganosa).
+- Vários fixes de hydration, integridade de dados (atividades de inquéritos
+  soft-deleted) e validação de inputs.
+- Acessibilidade mobile: touch targets 44px, filtros responsivos, zoom
+  desbloqueado, gráficos de estatística na vertical.
+
+### Adicionado (antes do 0.2.0)
 - **Tab "Notificações" em /configurações** (apenas ADMINISTRACAO). Para
   cada `TipoNotificacao` o admin escolhe: in-app on/off, email on/off, e
   roles em CC adicionais.
