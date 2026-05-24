@@ -10,6 +10,20 @@
 
 set -e
 
+# ──── Bind mount ownership fix ──────────────────────────────────────────────
+# Os bind mounts (./backups, ./control, ./branding) ficam com o uid do
+# operador que correu install.sh — frequentemente diferente do uid 1001 do
+# user `nextjs`. Sem isto, o pg_dump do backup agendado falhava com
+# "Permission denied". Corrigimos sempre, e depois dropamos privilégios.
+if [ "$(id -u)" = "0" ]; then
+  for dir in /app/backups /app/control /app/branding; do
+    if [ -d "$dir" ]; then
+      chown -R nextjs:nodejs "$dir" 2>/dev/null || true
+    fi
+  done
+  exec su-exec nextjs:nodejs "$0" "$@"
+fi
+
 # Baseline guard: instalações criadas com o entrypoint antigo (`prisma db
 # push`) não têm tabela `_prisma_migrations` e o `migrate deploy` recusava-se
 # a correr. Marcamos as migrações existentes como aplicadas para baseline,
