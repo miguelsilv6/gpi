@@ -6,6 +6,7 @@ import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
 import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { AuditHistory } from '@/components/inqueritos/audit-history'
+import { AccessDenied } from '@/components/access-denied'
 import { ReopenDialog } from '@/components/inqueritos/reopen-dialog'
 import { DeleteInqueritoButton } from '@/components/inqueritos/delete-inquerito-button'
 import { AtividadeActions } from '@/components/inqueritos/atividade-actions'
@@ -47,7 +48,25 @@ export default async function InqueritoDetailPage({
     },
   })
 
-  if (!inquerito) notFound()
+  if (!inquerito) {
+    // Distinguir "fora do meu âmbito" de "não existe": se existe sem o
+    // roleWhere, o utilizador não tem acesso (403); senão, 404.
+    const existsOutsideScope = await prisma.inquerito.findFirst({
+      where: { nuipc, deletedAt: null },
+      select: { id: true },
+    })
+    if (existsOutsideScope) {
+      return (
+        <AccessDenied
+          title="Inquérito fora do teu âmbito"
+          message="Este inquérito pertence a outra brigada — não dispões de privilégios para o consultar."
+          backHref="/inqueritos"
+          backLabel="Voltar aos inquéritos"
+        />
+      )
+    }
+    notFound()
+  }
 
   // Pagination for atividades
   const atividades = await prisma.atividade.findMany({

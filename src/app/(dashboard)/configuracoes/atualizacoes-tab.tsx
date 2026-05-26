@@ -181,6 +181,7 @@ function HistoryLogDialog({
   useEffect(() => {
     if (!target) {
       setEntries(null)
+      setLoading(false)
       return
     }
     let cancelled = false

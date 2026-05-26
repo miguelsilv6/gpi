@@ -4,6 +4,7 @@ import { hasPermission } from '@/lib/rbac'
 import { getRelatorio } from '@/lib/relatorios'
 import { prisma } from '@/lib/prisma'
 import { RelatorioView } from '@/components/relatorios/relatorio-view'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function RelatorioDetailPage(
@@ -13,7 +14,9 @@ export default async function RelatorioDetailPage(
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'relatorio:read')) redirect('/dashboard')
+  if (!hasPermission(role, 'relatorio:read')) {
+    return <AccessDenied message="Não dispões de privilégios para ver relatórios." />
+  }
 
   const { id } = await params
   const relatorio = getRelatorio(id)

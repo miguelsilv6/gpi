@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { buildAtividadePrazoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { AccessDenied } from '@/components/access-denied'
 import {
   ATIVIDADE_PRAZO_SELECT,
   endOfMonthExclusive,
@@ -41,12 +42,7 @@ export default async function PrazosPage({
   const role = session.user.role as Role
   if (!hasPermission(role, 'prazo:read:own')) {
     // Página exclusiva a roles operacionais. ESTATISTICA não tem acesso.
-    return (
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">Prazos</h1>
-        <p className="text-sm text-muted-foreground">Sem permissão para ver prazos.</p>
-      </div>
-    )
+    return <AccessDenied message="Não dispões de privilégios para ver prazos." />
   }
 
   // Defensive: chefe sem brigada na sessão devolve sempre lista vazia.

@@ -9,6 +9,7 @@ import { Plus, Users, FileText, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { BrigadasFilters } from '@/components/brigadas/brigadas-filters'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 interface PageProps {
@@ -20,7 +21,9 @@ export default async function BrigadasPage({ searchParams }: PageProps) {
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'brigada:read')) redirect('/dashboard')
+  if (!hasPermission(role, 'brigada:read')) {
+    return <AccessDenied message="Não dispões de privilégios para ver brigadas." />
+  }
 
   const canManage = hasPermission(role, 'brigada:manage')
 

@@ -107,12 +107,14 @@ export async function DELETE(
     if (!brigada) return apiError('Brigada não encontrada', 404)
 
     // Contar separadamente: inquéritos activos (bloqueiam), inquéritos
-    // soft-deleted (são purgados em transacção) e utilizadores ligados
-    // (bloqueiam — o operador tem de os reassociar primeiro).
-    const [activos, softDeletedCount, utilizadoresCount] = await Promise.all([
+    // soft-deleted (são purgados em transacção) e utilizadores ACTIVOS
+    // ligados (bloqueiam — o operador tem de os reassociar primeiro).
+    // Utilizadores desativados NÃO bloqueiam: ficam apenas com brigadaId a
+    // null quando a brigada é removida (FK ON DELETE SET NULL).
+    const [activos, softDeletedCount, utilizadoresAtivosCount] = await Promise.all([
       prisma.inquerito.count({ where: { brigadaId: id, deletedAt: null } }),
       prisma.inquerito.count({ where: { brigadaId: id, deletedAt: { not: null } } }),
-      prisma.utilizador.count({ where: { brigadaId: id } }),
+      prisma.utilizador.count({ where: { brigadaId: id, ativo: true } }),
     ])
 
     if (activos > 0) {
@@ -121,25 +123,31 @@ export async function DELETE(
         409,
       )
     }
-    if (utilizadoresCount > 0) {
+    if (utilizadoresAtivosCount > 0) {
       return apiError(
-        `Não é possível eliminar: a brigada tem ${utilizadoresCount} utilizador(es) associado(s). Mova-os para outra brigada primeiro.`,
+        `Não é possível eliminar: a brigada tem ${utilizadoresAtivosCount} utilizador(es) activo(s) associado(s). Mova-os para outra brigada primeiro.`,
         409,
       )
     }
 
-    // Sem inquéritos activos nem utilizadores → seguro para eliminar.
+    // Sem inquéritos activos nem utilizadores activos → seguro para eliminar.
     // Se houver inquéritos soft-deleted, fazemos hard-delete deles na mesma
     // transacção (os respetivos Atividade caem por cascade; as Notificacao
-    // ficam com inqueritoid = null por SetNull). Isto liberta o FK e permite
-    // a remoção da brigada.
-    await prisma.$transaction(async (tx) => {
+    // ficam com inqueritoid = null por SetNull). Utilizadores desativados
+    // ainda ligados são desassociados explicitamente (o FK também o faria
+    // por SET NULL, mas explicitamos para clareza e auditoria).
+    const detachedInactive = await prisma.$transaction(async (tx) => {
       if (softDeletedCount > 0) {
         await tx.inquerito.deleteMany({
           where: { brigadaId: id, deletedAt: { not: null } },
         })
       }
+      const { count } = await tx.utilizador.updateMany({
+        where: { brigadaId: id },
+        data: { brigadaId: null },
+      })
       await tx.brigada.delete({ where: { id } })
+      return count
     })
 
     await writeAudit({
@@ -151,6 +159,7 @@ export async function DELETE(
       detalhes: {
         nome: brigada.nome,
         purgedSoftDeletedInqueritos: softDeletedCount,
+        detachedInactiveUsers: detachedInactive,
       },
     })
 
