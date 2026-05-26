@@ -29,7 +29,7 @@ import {
   History,
   Package,
 } from 'lucide-react'
-import { formatDateTime, cn } from '@/lib/utils'
+import { formatDateTime, cn, clientRandomId } from '@/lib/utils'
 
 type State =
   | 'AVAILABLE'
@@ -259,7 +259,7 @@ export function AtualizacoesTab() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
+          'Idempotency-Key': clientRandomId(),
         },
         body: JSON.stringify({ targetTag: status.latestTag }),
       })
@@ -271,6 +271,9 @@ export function AtualizacoesTab() {
       toast.success(`Atualização para v${status.latestTag} iniciada`)
       setConfirmOpen(false)
       refreshStatus(true)
+    } catch {
+      // Rede ou erro inesperado — surface em vez de falhar em silêncio.
+      toast.error('Erro de rede ao iniciar atualização')
     } finally {
       setStarting(false)
     }
