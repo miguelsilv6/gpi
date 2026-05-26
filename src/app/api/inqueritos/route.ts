@@ -43,7 +43,6 @@ export async function GET(req: NextRequest) {
         OR: [
           { nuipc: { contains: search, mode: 'insensitive' as const } },
           { nai: { contains: search, mode: 'insensitive' as const } },
-          { natureza: { contains: search, mode: 'insensitive' as const } },
         ],
       }),
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
