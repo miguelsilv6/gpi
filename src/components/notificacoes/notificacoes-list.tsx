@@ -113,6 +113,7 @@ export function NotificacoesList({ initialNotificacoes, initialNextCursor }: Pro
   }
 
   async function clearOne(id: string) {
+    const prev = notificacoes
     setNotificacoes((prev) => prev.filter((n) => n.id !== id))
     let ok = false
     try {
@@ -120,13 +121,7 @@ export function NotificacoesList({ initialNotificacoes, initialNextCursor }: Pro
       ok = res.ok
     } catch { /* network */ }
     if (!ok) {
-      // Restore on failure
-      const res = await fetch('/api/notificacoes')
-      if (res.ok) {
-        const data = await res.json()
-        setNotificacoes(data.items)
-        setNextCursor(data.nextCursor)
-      }
+      setNotificacoes(prev)
       toast.error('Erro ao limpar notificação')
     }
   }
