@@ -9,12 +9,11 @@ import { AuditHistory } from '@/components/inqueritos/audit-history'
 import { AccessDenied } from '@/components/access-denied'
 import { ReopenDialog } from '@/components/inqueritos/reopen-dialog'
 import { DeleteInqueritoButton } from '@/components/inqueritos/delete-inquerito-button'
-import { AtividadeActions } from '@/components/inqueritos/atividade-actions'
+import { AtividadesSection } from '@/components/inqueritos/atividades-section'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { formatDate, formatDateTime, formatDateTimeWithSeconds, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Bell, Gavel, Download, FileDown, Check, UserSquare } from 'lucide-react'
+import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -121,6 +120,39 @@ export default async function InqueritoDetailPage({
   const totalAtivPages = Math.ceil(totalAtividades / ATIVIDADES_PAGE_SIZE)
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
+  // INSPETOR_CHEFE a ver inquérito atribuído a outro membro da brigada: bloquear
+  // edição de atividades por omissão para evitar modificações acidentais.
+  const editLocked = role === 'INSPETOR_CHEFE' && canEdit && inquerito.inspetorId !== session.user.id
+
+  const atividadeItems = atividades.map((atv) => {
+    const padraoMeta = padraoByNome.get(atv.descricao)
+    const conclusaoMode: 'devolucao' | 'exame' | 'prazo' | null =
+      padraoMeta?.categoriaDashboard === 'ENVIADO'
+        ? 'devolucao'
+        : padraoMeta?.categoriaDashboard === 'AGUARDA_EXAMES'
+          ? 'exame'
+          : padraoMeta?.temPrazo
+            ? 'prazo'
+            : null
+    const canMutate =
+      canEdit &&
+      !terminal &&
+      (role === 'INSPETOR' ? atv.realizadaPor.id === session.user.id : true)
+    return {
+      id: atv.id,
+      descricao: atv.descricao,
+      dataRealizacao: atv.dataRealizacao.toISOString(),
+      createdAt: atv.createdAt.toISOString(),
+      concluidaEm: atv.concluidaEm ? atv.concluidaEm.toISOString() : null,
+      dataPrazo: atv.dataPrazo ? atv.dataPrazo.toISOString() : null,
+      quantidade: atv.quantidade,
+      observacoes: atv.observacoes,
+      realizadaPor: atv.realizadaPor,
+      conclusaoMode,
+      canMutate,
+    }
+  })
+
   const canReopen = hasPermission(role, 'inquerito:reopen')
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
   const canDelete = hasPermission(role, 'inquerito:delete')
@@ -444,154 +476,15 @@ export default async function InqueritoDetailPage({
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">
-              Atividades ({totalAtividades})
-            </CardTitle>
-            {!terminal && (
-              <Button size="sm" variant="outline">
-                <Link href={`/inqueritos/${inqSlug}/atividade`} className="flex items-center gap-1.5 text-xs">
-                  + Adicionar
-                </Link>
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {totalAtividades === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              Sem atividades registadas.
-            </p>
-          ) : (
-            <>
-              <div className="space-y-4">
-                {atividades.map((atv, idx) => {
-                  const concluida = atv.concluidaEm != null
-                  const atvOverdue =
-                    !concluida && atv.dataPrazo && new Date(atv.dataPrazo) < new Date()
-                  // Mirror the API's canMutate rule so we only show edit/delete
-                  // when the action would succeed.
-                  const canMutateAtv =
-                    canEdit &&
-                    !terminal &&
-                    (role === 'INSPETOR' ? atv.realizadaPor.id === session.user.id : true)
-                  // Resolve the "Concluir" control shape from the padrão.
-                  // - ENVIADO              → "Confirmar devolução"
-                  // - AGUARDA_EXAMES       → "Confirmar conclusão de Exame"
-                  // - temPrazo (no cat)    → plain "Concluído" icon button
-                  // - other / unknown     → no conclude button
-                  const padraoMeta = padraoByNome.get(atv.descricao)
-                  const conclusaoMode: 'devolucao' | 'exame' | 'prazo' | null =
-                    padraoMeta?.categoriaDashboard === 'ENVIADO'
-                      ? 'devolucao'
-                      : padraoMeta?.categoriaDashboard === 'AGUARDA_EXAMES'
-                        ? 'exame'
-                        : padraoMeta?.temPrazo
-                          ? 'prazo'
-                          : null
-                  return (
-                    <div key={atv.id}>
-                      {idx > 0 && <Separator className="mb-4" />}
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-medium">
-                          {atv.realizadaPor.nome.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium">{atv.realizadaPor.nome}</span>
-                            <span
-                              className="text-xs text-muted-foreground"
-                              title={`Realizada em ${formatDate(atv.dataRealizacao)}`}
-                            >
-                              {formatDateTimeWithSeconds(atv.createdAt)}
-                            </span>
-                            {canMutateAtv && (
-                              <div className="ml-auto">
-                                <AtividadeActions
-                                  atividadeId={atv.id}
-                                  descricao={atv.descricao}
-                                  inqueritoSlug={inqSlug}
-                                  concluidaEm={
-                                    atv.concluidaEm
-                                      ? new Date(atv.concluidaEm).toISOString()
-                                      : null
-                                  }
-                                  conclusaoMode={conclusaoMode}
-                                />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                              {atv.descricao}
-                            </span>
-                            {atv.quantidade != null && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                                Qtd: {atv.quantidade}
-                              </span>
-                            )}
-                            {concluida ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                <Check className="h-3 w-3" />
-                                Concluída em {formatDate(atv.concluidaEm!)}
-                              </span>
-                            ) : (
-                              atv.dataPrazo && (
-                                <span className={cn(
-                                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                                  atvOverdue
-                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                    : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-                                )}>
-                                  <Bell className="h-3 w-3" />
-                                  Prazo: {formatDate(atv.dataPrazo)}
-                                </span>
-                              )
-                            )}
-                          </div>
-                          {atv.observacoes && (
-                            <p className="text-sm mt-1.5 text-muted-foreground whitespace-pre-wrap">
-                              {atv.observacoes}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {totalAtivPages > 1 && (
-                <div className="flex items-center justify-between text-sm mt-6">
-                  <span className="text-muted-foreground">
-                    Página {ativPageNum} de {totalAtivPages}
-                  </span>
-                  <div className="flex gap-2">
-                    {ativPageNum > 1 && (
-                      <Link
-                        href={`/inqueritos/${inqSlug}?ativPage=${ativPageNum - 1}`}
-                        className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
-                      >
-                        Anterior
-                      </Link>
-                    )}
-                    {ativPageNum < totalAtivPages && (
-                      <Link
-                        href={`/inqueritos/${inqSlug}?ativPage=${ativPageNum + 1}`}
-                        className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
-                      >
-                        Próxima
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <AtividadesSection
+        atividades={atividadeItems}
+        totalAtividades={totalAtividades}
+        totalAtivPages={totalAtivPages}
+        ativPageNum={ativPageNum}
+        inqSlug={inqSlug}
+        terminal={terminal}
+        editLocked={editLocked}
+      />
 
       {canSeeAudit && <AuditHistory slug={inqSlug} />}
     </div>
