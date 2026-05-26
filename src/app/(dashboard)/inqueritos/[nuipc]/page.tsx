@@ -53,13 +53,17 @@ export default async function InqueritoDetailPage({
     // roleWhere, o utilizador não tem acesso (403); senão, 404.
     const existsOutsideScope = await prisma.inquerito.findFirst({
       where: { nuipc, deletedAt: null },
-      select: { id: true },
+      select: { id: true, brigadaId: true },
     })
     if (existsOutsideScope) {
+      const isSameBrigada = session.user.brigadaId && existsOutsideScope.brigadaId === session.user.brigadaId
+      const message = isSameBrigada
+        ? 'Este inquérito pertence à tua brigada, mas está atribuído a outro inspetor.'
+        : 'Este inquérito pertence a outra brigada — não dispões de privilégios para o consultar.'
       return (
         <AccessDenied
           title="Inquérito fora do teu âmbito"
-          message="Este inquérito pertence a outra brigada — não dispões de privilégios para o consultar."
+          message={message}
           backHref="/inqueritos"
           backLabel="Voltar aos inquéritos"
         />
