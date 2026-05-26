@@ -13,6 +13,7 @@ interface Notificacao {
   titulo: string
   mensagem: string
   lida: boolean
+  limpa: boolean
   createdAt: string
   inquerito: { nuipc: string } | null
 }

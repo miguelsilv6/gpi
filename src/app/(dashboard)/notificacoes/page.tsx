@@ -10,7 +10,7 @@ export default async function NotificacoesPage() {
   if (!session?.user) redirect('/login')
 
   const notificacoes = await prisma.notificacao.findMany({
-    where: { utilizadorId: session.user.id },
+    where: { utilizadorId: session.user.id, limpa: false },
     orderBy: { createdAt: 'desc' },
     take: PAGE_SIZE + 1,
     include: { inquerito: { select: { nuipc: true } } },
