@@ -26,6 +26,7 @@ import {
   assertTransition,
   isInProgress,
   isTerminal,
+  STATE_LABELS,
   type UpdateState,
 } from './state-machine'
 import { isNewerVersion } from './github'
@@ -51,6 +52,51 @@ export interface UpdateStatus {
   toCommitSha?: string
   errorMessage?: string
   updatedAt: string
+}
+
+export interface UpdateLogEntry {
+  at: string
+  label: string
+  detail?: string
+}
+
+/**
+ * Reconstrói o registo cronológico de um update a partir dos audit logs
+ * (cada transição grava `UPDATE_STATE`; o enqueue/falha/cancelamento têm
+ * acções próprias). Não há tabela de logs dedicada — reutilizamos o que já
+ * é escrito em `auditLog` keyed por entidade='AtualizacaoSistema'.
+ */
+export async function getUpdateLog(id: string): Promise<UpdateLogEntry[]> {
+  const rows = await prisma.auditLog.findMany({
+    where: { entidade: 'AtualizacaoSistema', entidadeId: id },
+    orderBy: { createdAt: 'asc' },
+    select: { acao: true, createdAt: true, detalhes: true },
+  })
+  return rows.map((r) => {
+    const d = (r.detalhes ?? {}) as Record<string, unknown>
+    let label: string
+    let detail: string | undefined
+    switch (r.acao) {
+      case 'UPDATE_ENQUEUED':
+        label = 'Enfileirada'
+        detail =
+          d.fromVersion && d.toVersion ? `v${d.fromVersion} → v${d.toVersion}` : undefined
+        break
+      case 'UPDATE_STATE':
+        label = STATE_LABELS[d.to as UpdateState] ?? String(d.to ?? 'Transição')
+        break
+      case 'UPDATE_FAILED':
+        label = 'Falhou'
+        detail = [d.phase, d.error].filter(Boolean).join(': ') || undefined
+        break
+      case 'UPDATE_CANCELLED':
+        label = 'Cancelada'
+        break
+      default:
+        label = r.acao
+    }
+    return { at: r.createdAt.toISOString(), label, detail }
+  })
 }
 
 async function ensureControlDir(): Promise<void> {

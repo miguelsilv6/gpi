@@ -28,8 +28,9 @@ import {
   CircleArrowUp,
   History,
   Package,
+  ScrollText,
 } from 'lucide-react'
-import { formatDateTime, cn, clientRandomId } from '@/lib/utils'
+import { formatDateTime, cn, clientRandomId, iconButtonClasses } from '@/lib/utils'
 
 type State =
   | 'AVAILABLE'
@@ -90,7 +91,14 @@ interface StatusResponse {
     errorMessage: string | null
     rolledBack: boolean
     iniciadoPor: string
+    log: LogEntry[]
   } | null
+}
+
+interface LogEntry {
+  at: string
+  label: string
+  detail?: string
 }
 
 interface HistoryItem {
@@ -129,6 +137,98 @@ function StateBadge({ state }: { state: State }) {
   )
 }
 
+function formatTime(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+/** Timeline vertical das fases de um update, com timestamp por linha. */
+function UpdateLogTimeline({ entries }: { entries: LogEntry[] }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+        <ScrollText className="h-3.5 w-3.5" />
+        Registo
+      </p>
+      <ol className="space-y-1.5">
+        {entries.map((e, i) => (
+          <li key={i} className="flex items-baseline gap-2 text-xs">
+            <span className="font-mono text-muted-foreground tabular-nums shrink-0">
+              {formatTime(e.at)}
+            </span>
+            <span className="font-medium">{e.label}</span>
+            {e.detail && (
+              <span className="text-muted-foreground truncate">— {e.detail}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+/** Diálogo que carrega e mostra o registo de um update do histórico. */
+function HistoryLogDialog({
+  target,
+  onClose,
+}: {
+  target: { id: string; label: string } | null
+  onClose: () => void
+}) {
+  const [entries, setEntries] = useState<LogEntry[] | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!target) {
+      setEntries(null)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    fetch(`/api/updates/${target.id}/log`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error())))
+      .then((d: { items: LogEntry[] }) => {
+        if (!cancelled) setEntries(d.items)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEntries([])
+          toast.error('Erro ao carregar registo')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [target])
+
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4" />
+            Registo — {target?.label}
+          </DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : entries && entries.length > 0 ? (
+          <UpdateLogTimeline entries={entries} />
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            Sem registo disponível.
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function formatDuration(ms: number | null): string {
   if (ms === null) return '—'
   const seconds = Math.round(ms / 1000)
@@ -146,6 +246,11 @@ export function AtualizacoesTab() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [starting, setStarting] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [logDialog, setLogDialog] = useState<{ id: string; label: string } | null>(null)
+  // Quando os polls falham durante um update (app a reiniciar), mostramos
+  // "a aguardar resposta" em vez de a barra parecer simplesmente congelada.
+  const [pollStalled, setPollStalled] = useState(false)
+  const pollFailuresRef = useRef(0)
   const pollingRef = useRef<number | null>(null)
 
   async function refreshStatus(silent = false) {
@@ -155,6 +260,17 @@ export function AtualizacoesTab() {
         fetch('/api/updates/status'),
         fetch('/api/updates/history?limit=20'),
       ])
+      // Poll falhado (app em baixo durante restart) → conta para o
+      // indicador "a aguardar resposta". 2 falhas seguidas (~4s) ativam-no.
+      if (silent && !statusRes.ok) {
+        pollFailuresRef.current += 1
+        if (pollFailuresRef.current >= 2) setPollStalled(true)
+        return
+      }
+      if (silent && statusRes.ok) {
+        pollFailuresRef.current = 0
+        setPollStalled(false)
+      }
       if (statusRes.ok) {
         const s = (await statusRes.json()) as StatusResponse
         setStatus(s)
@@ -164,7 +280,13 @@ export function AtualizacoesTab() {
         setHistory(h.items)
       }
     } catch {
-      if (!silent) toast.error('Erro ao carregar estado de atualizações')
+      if (silent) {
+        // App provavelmente em baixo (restart) — conta como poll falhado.
+        pollFailuresRef.current += 1
+        if (pollFailuresRef.current >= 2) setPollStalled(true)
+      } else {
+        toast.error('Erro ao carregar estado de atualizações')
+      }
     } finally {
       if (!silent) setLoading(false)
     }
@@ -458,11 +580,23 @@ export function AtualizacoesTab() {
               })}
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              {status.current.state === 'AVAILABLE'
-                ? 'À espera de o worker começar o backup (até 10 segundos). Pode cancelar enquanto não começa.'
-                : 'A app está em modo de manutenção. Esta página vai recarregar automaticamente quando o sistema voltar a estar disponível.'}
-            </p>
+            {pollStalled ? (
+              <p className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Sistema a reiniciar — a aguardar resposta. A página recarrega assim que voltar.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {status.current.state === 'AVAILABLE'
+                  ? 'À espera de o worker começar o backup (até 10 segundos). Pode cancelar enquanto não começa.'
+                  : 'A app está em modo de manutenção. Esta página vai recarregar automaticamente quando o sistema voltar a estar disponível.'}
+              </p>
+            )}
+
+            {/* Registo cronológico (timeline) das fases já registadas. */}
+            {status.current.log.length > 0 && (
+              <UpdateLogTimeline entries={status.current.log} />
+            )}
           </CardContent>
         </Card>
       )}
@@ -532,6 +666,7 @@ export function AtualizacoesTab() {
                   <TableHead>Iniciado por</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Duração</TableHead>
+                  <TableHead className="text-right">Registo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -546,6 +681,17 @@ export function AtualizacoesTab() {
                     <TableCell className="text-xs">{h.iniciadoPor}</TableCell>
                     <TableCell className="text-xs">{formatDateTime(h.startedAt)}</TableCell>
                     <TableCell className="text-xs">{formatDuration(h.durationMs)}</TableCell>
+                    <TableCell className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setLogDialog({ id: h.id, label: `v${h.fromVersion} → v${h.toVersion}` })}
+                        className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground ml-auto')}
+                        title="Ver registo"
+                        aria-label={`Ver registo de v${h.fromVersion} → v${h.toVersion}`}
+                      >
+                        <ScrollText className="h-3.5 w-3.5" />
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -553,6 +699,12 @@ export function AtualizacoesTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Diálogo de registo de um update do histórico */}
+      <HistoryLogDialog
+        target={logDialog}
+        onClose={() => setLogDialog(null)}
+      />
 
       {/* Confirmação */}
       <Dialog open={confirmOpen} onOpenChange={(o) => !o && setConfirmOpen(false)}>

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { APP_VERSION, APP_GIT_SHA_SHORT } from '@/lib/version'
 import { isNewerVersion } from '@/lib/updates/github'
 import { isTerminal, type UpdateState } from '@/lib/updates/state-machine'
+import { getUpdateLog } from '@/lib/updates/orchestrator'
 import type { Role } from '@/generated/prisma/enums'
 
 /**
@@ -49,6 +50,8 @@ export async function GET() {
     const latestState = latest?.state as UpdateState | undefined
     const inProgress = latestState ? !isTerminal(latestState) : false
 
+    const log = latest ? await getUpdateLog(latest.id) : []
+
     return Response.json({
       currentVersion: APP_VERSION,
       currentSha: APP_GIT_SHA_SHORT,
@@ -74,6 +77,7 @@ export async function GET() {
             errorMessage: latest.errorMessage,
             rolledBack: latest.rolledBack,
             iniciadoPor: latest.iniciadoPor.nome,
+            log,
           }
         : null,
     })
