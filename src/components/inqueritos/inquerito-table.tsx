@@ -258,7 +258,6 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               estado={inq.estado}
               dataPrazo={inq.dataPrazo}
               inspetorNome={inq.inspetor?.nome}
-              brigadaNome={inq.brigada.nome}
               atividadesCount={inq._count.atividades}
               selectionMode={canBulk && mobileSelectionMode}
               isSelected={selected.has(inq.id)}

@@ -8,10 +8,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const unreadOnly = searchParams.get('unread') === 'true'
     const countOnly = searchParams.get('count') === 'true'
+    const includeHistory = searchParams.get('history') === 'true'
 
     if (countOnly) {
       const count = await prisma.notificacao.count({
-        where: { utilizadorId: session.user.id, lida: false },
+        where: { utilizadorId: session.user.id, lida: false, limpa: false },
       })
       return Response.json({ count })
     }
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
       where: {
         utilizadorId: session.user.id,
         ...(unreadOnly && { lida: false }),
+        ...(!includeHistory && { limpa: false }),
       },
       orderBy: { createdAt: 'desc' },
       take: PAGE_SIZE + 1,

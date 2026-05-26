@@ -27,7 +27,6 @@ interface InqueritoCardProps {
   estado: EstadoLike
   dataPrazo: Date | null
   inspetorNome?: string | null
-  brigadaNome?: string
   atividadesCount?: number
   /**
    * Quando true, o card mostra checkbox e o tap toggle a seleção em vez
@@ -75,6 +74,7 @@ function useLongPress(onLongPress: (() => void) | undefined) {
       if (!onLongPress) return
       // Botão direito do rato não conta
       if (e.button !== 0) return
+      suppressNextClickRef.current = false
       startPosRef.current = { x: e.clientX, y: e.clientY }
       timerRef.current = setTimeout(() => {
         suppressNextClickRef.current = true
@@ -121,7 +121,6 @@ export function InqueritoCard({
   estado,
   dataPrazo,
   inspetorNome,
-  brigadaNome: _brigadaNome,
   atividadesCount = 0,
   selectionMode = false,
   isSelected = false,
@@ -149,9 +148,11 @@ export function InqueritoCard({
     <Link
       href={`/inqueritos/${nuipcToSlug(nuipc)}`}
       onClick={handleClick}
+      onContextMenu={onLongPress ? (e) => e.preventDefault() : undefined}
       {...pointerHandlers}
       className={cn(
-        'relative block p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors select-none',
+        'relative block p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors',
+        selectionMode && 'select-none',
         // Em selectionMode, indicamos visualmente o estado de seleção
         selectionMode && isSelected && 'border-blue-500 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/30',
         // Touch-action evita que o browser dispare o context menu / text-select
