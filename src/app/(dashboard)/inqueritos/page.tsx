@@ -108,7 +108,7 @@ export default async function InqueritosPage({
   const canImport = hasPermission(role, 'inquerito:bulk:all')
   const showBrigada = hasPermission(role, 'inquerito:read:all')
 
-  const [inqueritos, total, inspetores, brigadas, estados, crimes] = await Promise.all([
+  const [inqueritos, total, inspetores, brigadas, estados, crimes, inspetoresFilter] = await Promise.all([
     prisma.inquerito.findMany({
       where,
       skip: (page - 1) * limit,
@@ -143,6 +143,13 @@ export default async function InqueritosPage({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true },
     }),
+    role === 'INSPETOR_CHEFE' && session.user.brigadaId
+      ? prisma.utilizador.findMany({
+          where: { brigadaId: session.user.brigadaId, ativo: true },
+          orderBy: { nome: 'asc' },
+          select: { id: true, nome: true },
+        })
+      : Promise.resolve([]),
   ])
 
   const totalPages = Math.ceil(total / limit)
@@ -192,6 +199,8 @@ export default async function InqueritosPage({
           estados={estados}
           estadosDefault={estadosDefault}
           crimes={crimes}
+          inspetoresFilter={inspetoresFilter}
+          currentUserId={session.user.id}
         />
       </Suspense>
 

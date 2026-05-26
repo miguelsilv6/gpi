@@ -19,6 +19,11 @@ interface CrimeFilterOption {
   nome: string
 }
 
+interface InspetorFilterOption {
+  id: string
+  nome: string
+}
+
 const SORT_OPTIONS: Record<string, string> = {
   'updatedAt:desc': 'Última alteração',
   'dataAbertura:desc': 'Mais recentes',
@@ -31,11 +36,16 @@ export function InqueritoFilters({
   estados,
   estadosDefault = [],
   crimes,
+  inspetoresFilter = [],
+  currentUserId,
 }: {
   estados: EstadoFilterOption[]
   /** System-wide default applied when the URL has no `estado` param. */
   estadosDefault?: string[]
   crimes: CrimeFilterOption[]
+  /** Filled only for INSPETOR_CHEFE — brigade members for the inspetor filter. */
+  inspetoresFilter?: InspetorFilterOption[]
+  currentUserId?: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -125,6 +135,34 @@ export function InqueritoFilters({
             ))}
           </SelectContent>
         </Select>
+
+        {inspetoresFilter.length > 0 && (
+          <Select
+            value={searchParams.get('inspetorId') || 'all'}
+            onValueChange={(v) => update({ inspetorId: !v || v === 'all' ? null : v })}
+          >
+            <SelectTrigger className="w-full sm:w-52">
+              <SelectValue placeholder="Inspetor">
+                {(v: string) => {
+                  if (!v || v === 'all') return 'Todos os inspetores'
+                  if (v === currentUserId) return 'Meus inquéritos'
+                  return inspetoresFilter.find((i) => i.id === v)?.nome ?? 'Inspetor'
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os inspetores</SelectItem>
+              {currentUserId && (
+                <SelectItem value={currentUserId}>Meus inquéritos</SelectItem>
+              )}
+              {inspetoresFilter
+                .filter((i) => i.id !== currentUserId)
+                .map((i) => (
+                  <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <Select value={currentSort} onValueChange={applySort}>
           <SelectTrigger className="w-full sm:w-44">
