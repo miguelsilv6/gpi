@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { cn, iconButtonClasses } from '@/lib/utils'
+import { AccessDenied } from '@/components/access-denied'
 import { Suspense } from 'react'
 import { UtilizadoresFilters } from '@/components/utilizadores/utilizadores-filters'
 import type { Role } from '@/generated/prisma/enums'
@@ -21,7 +22,9 @@ export default async function UtilizadoresPage({ searchParams }: PageProps) {
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'utilizador:manage')) redirect('/dashboard')
+  if (!hasPermission(role, 'utilizador:manage')) {
+    return <AccessDenied message="Não dispões de privilégios para gerir utilizadores." />
+  }
 
   const { search, role: roleFilter, ativo } = await searchParams
 

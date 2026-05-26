@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { hasPermission } from '@/lib/rbac'
 import { ImportarInqueritosView } from '@/components/inqueritos/importar-inqueritos-view'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function ImportarInqueritosPage() {
@@ -9,7 +10,15 @@ export default async function ImportarInqueritosPage() {
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'inquerito:bulk:all')) redirect('/inqueritos')
+  if (!hasPermission(role, 'inquerito:bulk:all')) {
+    return (
+      <AccessDenied
+        message="Não dispões de privilégios para importar inquéritos."
+        backHref="/inqueritos"
+        backLabel="Voltar aos inquéritos"
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/rbac'
 import { EstatisticasDashboard } from '@/components/estatisticas/estatisticas-dashboard'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function EstatisticasPage() {
@@ -10,7 +11,9 @@ export default async function EstatisticasPage() {
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'estatistica:read')) redirect('/dashboard')
+  if (!hasPermission(role, 'estatistica:read')) {
+    return <AccessDenied message="Não dispões de privilégios para ver estatísticas." />
+  }
 
   // INSPETOR_CHEFE is locked to their own brigada — no brigada filter, no
   // "Por Brigada" chart, inspetores list scoped to their brigada.

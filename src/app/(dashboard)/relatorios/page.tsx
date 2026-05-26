@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ArrowRight } from 'lucide-react'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function RelatoriosIndexPage() {
@@ -14,7 +15,9 @@ export default async function RelatoriosIndexPage() {
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'relatorio:read')) redirect('/dashboard')
+  if (!hasPermission(role, 'relatorio:read')) {
+    return <AccessDenied message="Não dispões de privilégios para ver relatórios." />
+  }
 
   const relatorios = listRelatorios()
 

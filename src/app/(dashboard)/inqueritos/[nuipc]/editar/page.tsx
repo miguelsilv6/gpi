@@ -9,6 +9,7 @@ import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { slugToNuipc, nuipcToSlug } from '@/lib/utils'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function EditarInqueritoPage({
@@ -28,14 +29,39 @@ export default async function EditarInqueritoPage({
     where: { nuipc, ...roleWhere },
   })
 
-  if (!inquerito) notFound()
+  if (!inquerito) {
+    const existsOutsideScope = await prisma.inquerito.findFirst({
+      where: { nuipc, deletedAt: null },
+      select: { id: true },
+    })
+    if (existsOutsideScope) {
+      return (
+        <AccessDenied
+          title="Inquérito fora do teu âmbito"
+          message="Este inquérito pertence a outra brigada — não dispões de privilégios para o consultar."
+          backHref="/inqueritos"
+          backLabel="Voltar aos inquéritos"
+        />
+      )
+    }
+    notFound()
+  }
 
   const canEdit =
     (role === 'INSPETOR' && inquerito.inspetorId === session.user.id) ||
     (role === 'INSPETOR_CHEFE' && inquerito.brigadaId === session.user.brigadaId) ||
     hasPermission(role, 'inquerito:edit:all')
 
-  if (!canEdit) redirect(`/inqueritos/${nuipcToSlug(nuipc)}`)
+  if (!canEdit) {
+    return (
+      <AccessDenied
+        title="Edição não permitida"
+        message="Podes consultar este inquérito, mas não dispões de privilégios para o editar."
+        backHref={`/inqueritos/${nuipcToSlug(nuipc)}`}
+        backLabel="Ver inquérito"
+      />
+    )
+  }
 
   const [brigadas, inspetores, estados, crimes] = await Promise.all([
     prisma.brigada.findMany({

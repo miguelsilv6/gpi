@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { hasPermission } from '@/lib/rbac'
 import { EstatisticaMensalView } from '@/components/estatistica-mensal/estatistica-mensal-view'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function EstatisticaMensalPage() {
@@ -9,7 +10,9 @@ export default async function EstatisticaMensalPage() {
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'estatistica:read')) redirect('/dashboard')
+  if (!hasPermission(role, 'estatistica:read')) {
+    return <AccessDenied message="Não dispões de privilégios para ver estatísticas." />
+  }
 
   const lockedToBrigada = role === 'INSPETOR_CHEFE'
 

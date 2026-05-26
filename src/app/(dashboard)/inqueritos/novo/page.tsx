@@ -6,6 +6,7 @@ import { listEstados, findEstadoByCodigo } from '@/lib/estados'
 import { InqueritoForm } from '@/components/inqueritos/inquerito-form'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { AccessDenied } from '@/components/access-denied'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function NovoInqueritoPage() {
@@ -13,7 +14,15 @@ export default async function NovoInqueritoPage() {
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
-  if (!hasPermission(role, 'inquerito:create')) redirect('/inqueritos')
+  if (!hasPermission(role, 'inquerito:create')) {
+    return (
+      <AccessDenied
+        message="Não dispões de privilégios para criar inquéritos."
+        backHref="/inqueritos"
+        backLabel="Voltar aos inquéritos"
+      />
+    )
+  }
 
   const [brigadas, inspetores, estados, defaultEstado, crimes] = await Promise.all([
     prisma.brigada.findMany({
