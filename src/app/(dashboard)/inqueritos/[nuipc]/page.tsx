@@ -120,6 +120,7 @@ export default async function InqueritoDetailPage({
   const totalAtivPages = Math.ceil(totalAtividades / ATIVIDADES_PAGE_SIZE)
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
+  const terminal = isTerminal(inquerito.estado)
   // INSPETOR_CHEFE a ver inquérito atribuído a outro membro da brigada: bloquear
   // edição de atividades por omissão para evitar modificações acidentais.
   const editLocked = role === 'INSPETOR_CHEFE' && canEdit && inquerito.inspetorId !== session.user.id
@@ -150,6 +151,7 @@ export default async function InqueritoDetailPage({
       realizadaPor: atv.realizadaPor,
       conclusaoMode,
       canMutate,
+      isOverdue: atv.dataPrazo ? isOverdue(atv.dataPrazo) && atv.concluidaEm == null : false,
     }
   })
 
@@ -157,7 +159,6 @@ export default async function InqueritoDetailPage({
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
   const canDelete = hasPermission(role, 'inquerito:delete')
   const canExport = hasPermission(role, 'inquerito:export')
-  const terminal = isTerminal(inquerito.estado)
 
   const overdue =
     isOverdue(inquerito.dataPrazo) && !terminal

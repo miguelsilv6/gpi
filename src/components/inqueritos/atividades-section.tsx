@@ -21,6 +21,7 @@ export interface AtividadeItem {
   realizadaPor: { id: string; nome: string }
   conclusaoMode: ConclusaoMode
   canMutate: boolean
+  isOverdue: boolean
 }
 
 interface Props {
@@ -96,7 +97,7 @@ export function AtividadesSection({
             <div className="space-y-4">
               {atividades.map((atv, idx) => {
                 const concluida = atv.concluidaEm != null
-                const atvOverdue = !concluida && atv.dataPrazo && new Date(atv.dataPrazo) < new Date()
+                const atvOverdue = atv.isOverdue
                 const showActions = editMode && atv.canMutate
 
                 return (
