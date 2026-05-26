@@ -72,23 +72,29 @@ export async function getUpdateLog(id: string): Promise<UpdateLogEntry[]> {
     orderBy: { createdAt: 'asc' },
     select: { acao: true, createdAt: true, detalhes: true },
   })
+  // Coerção segura: os campos de `detalhes` (JSON) são `unknown`. Só
+  // aceitamos strings — evita interpolar objetos como "[object Object]".
+  const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
   return rows.map((r) => {
     const d = (r.detalhes ?? {}) as Record<string, unknown>
     let label: string
     let detail: string | undefined
     switch (r.acao) {
-      case 'UPDATE_ENQUEUED':
+      case 'UPDATE_ENQUEUED': {
+        const from = str(d.fromVersion)
+        const to = str(d.toVersion)
         label = 'Enfileirada'
-        detail =
-          d.fromVersion && d.toVersion ? `v${d.fromVersion} → v${d.toVersion}` : undefined
+        detail = from && to ? `v${from} → v${to}` : undefined
         break
+      }
       case 'UPDATE_STATE':
-        label = STATE_LABELS[d.to as UpdateState] ?? String(d.to ?? 'Transição')
+        label = STATE_LABELS[d.to as UpdateState] ?? str(d.to) ?? 'Transição'
         break
-      case 'UPDATE_FAILED':
+      case 'UPDATE_FAILED': {
         label = 'Falhou'
-        detail = [d.phase, d.error].filter(Boolean).join(': ') || undefined
+        detail = [str(d.phase), str(d.error)].filter(Boolean).join(': ') || undefined
         break
+      }
       case 'UPDATE_CANCELLED':
         label = 'Cancelada'
         break
