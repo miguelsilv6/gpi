@@ -55,6 +55,10 @@ export async function GET(req: NextRequest) {
     }
 
     const where = {
+      // Inquéritos soft-deleted não contam para estatística — alinhado com a
+      // listagem /inqueritos (que filtra deletedAt: null). Sem isto, um
+      // inquérito apagado aparecia nos contadores mas não na lista.
+      deletedAt: null,
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
       ...(dataInicio || dataFim
