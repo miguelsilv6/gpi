@@ -1,0 +1,57 @@
+name: Auto-bump patch version on merge
+
+# Incrementa automaticamente a versão patch em package.json e
+# package-lock.json sempre que um PR é merged para main.
+# O commit de bump aciona o release.yml existente, que cria a GitHub
+# Release correspondente.
+#
+# Loop prevention: o job é ignorado se o commit que disparou o push já
+# for o próprio bump (mensagem começa com "chore(version):").
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Bump patch version
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore(version):')"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Token com permissão de escrita para poder fazer push de volta
+          # para main sem acionar um loop de workflows.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump patch and write files
+        id: bump
+        run: |
+          NEW=$(node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const [major, minor, patch] = pkg.version.split('.').map(Number);
+            pkg.version = major + '.' + minor + '.' + (patch + 1);
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+            lock.version = pkg.version;
+            if (lock.packages && lock.packages['']) lock.packages[''].version = pkg.version;
+            fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+            process.stdout.write(pkg.version);
+          ")
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push bump
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore(version): ${{ steps.bump.outputs.version }}"
+          git push
