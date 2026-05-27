@@ -313,15 +313,21 @@ export default async function InqueritoDetailPage({
             {inquerito.denuncianteNome && (
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground shrink-0">
-                  {inquerito.denuncianteTipo === 'COLETIVA' ? 'Designação' : 'Nome'}
+                  {inquerito.denuncianteTipo === 'COLETIVA' || inquerito.denuncianteTipo === 'ENTIDADE_PUBLICA' ? 'Designação' : 'Nome'}
                 </span>
                 <span className="font-medium text-right">
                   {inquerito.denuncianteNome}
+                  {inquerito.denuncianteTipo === 'SINGULAR' && (
+                    <span className="ml-2 text-xs text-muted-foreground">(pessoa singular)</span>
+                  )}
                   {inquerito.denuncianteTipo === 'COLETIVA' && (
                     <span className="ml-2 text-xs text-muted-foreground">(pessoa coletiva)</span>
                   )}
-                  {inquerito.denuncianteTipo === 'SINGULAR' && (
-                    <span className="ml-2 text-xs text-muted-foreground">(pessoa singular)</span>
+                  {inquerito.denuncianteTipo === 'ENTIDADE_PUBLICA' && (
+                    <span className="ml-2 text-xs text-muted-foreground">(entidade pública)</span>
+                  )}
+                  {inquerito.denuncianteTipo === 'OUTROS' && (
+                    <span className="ml-2 text-xs text-muted-foreground">(outros)</span>
                   )}
                 </span>
               </div>
@@ -329,7 +335,7 @@ export default async function InqueritoDetailPage({
             {inquerito.denuncianteNif && (
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground shrink-0">
-                  {inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : 'NIF'}
+                  {inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : inquerito.denuncianteTipo === 'ENTIDADE_PUBLICA' ? 'NIF/NIPC' : 'NIF'}
                 </span>
                 <span className="font-medium text-right font-mono">{inquerito.denuncianteNif}</span>
               </div>

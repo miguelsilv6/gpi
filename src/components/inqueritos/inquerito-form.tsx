@@ -403,7 +403,7 @@ export function InqueritoForm({
                 onValueChange={(v) =>
                   setValue(
                     'denuncianteTipo',
-                    !v || v === '__none__' ? null : (v as 'SINGULAR' | 'COLETIVA'),
+                    !v || v === '__none__' ? null : (v as 'SINGULAR' | 'COLETIVA' | 'ENTIDADE_PUBLICA' | 'OUTROS'),
                     { shouldDirty: true },
                   )
                 }
@@ -415,7 +415,11 @@ export function InqueritoForm({
                         ? 'Pessoa singular'
                         : v === 'COLETIVA'
                           ? 'Pessoa coletiva'
-                          : '—'
+                          : v === 'ENTIDADE_PUBLICA'
+                            ? 'Entidade pública'
+                            : v === 'OUTROS'
+                              ? 'Outros'
+                              : '—'
                     }
                   </SelectValue>
                 </SelectTrigger>
@@ -423,6 +427,8 @@ export function InqueritoForm({
                   <SelectItem value="__none__">—</SelectItem>
                   <SelectItem value="SINGULAR">Pessoa singular</SelectItem>
                   <SelectItem value="COLETIVA">Pessoa coletiva</SelectItem>
+                  <SelectItem value="ENTIDADE_PUBLICA">Entidade pública</SelectItem>
+                  <SelectItem value="OUTROS">Outros</SelectItem>
                 </SelectContent>
               </Select>
             </div>

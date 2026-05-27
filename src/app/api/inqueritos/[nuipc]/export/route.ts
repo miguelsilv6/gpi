@@ -101,7 +101,11 @@ export async function GET(
           ? 'Pessoa singular'
           : inquerito.denuncianteTipo === 'COLETIVA'
             ? 'Pessoa coletiva'
-            : ''],
+            : inquerito.denuncianteTipo === 'ENTIDADE_PUBLICA'
+              ? 'Entidade pública'
+              : inquerito.denuncianteTipo === 'OUTROS'
+                ? 'Outros'
+                : ''],
       ['Denunciante (NIF/NIPC)', inquerito.denuncianteNif],
       ['Denunciante (morada)', inquerito.denuncianteMorada],
       ['Denunciante (código postal)', inquerito.denuncianteCodPostal],

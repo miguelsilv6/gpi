@@ -11,6 +11,7 @@ import {
   ClipboardList,
   CalendarClock,
   FileBarChart,
+  BarChart2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -51,6 +52,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/estatisticas',
     icon: BarChart3,
     roles: ['INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'As Minhas Estatísticas',
+    href: '/minha-estatistica',
+    icon: BarChart2,
+    roles: ['INSPETOR'],
   },
   {
     label: 'Estatística Mensal',
