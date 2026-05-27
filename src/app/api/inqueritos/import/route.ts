@@ -70,8 +70,8 @@ interface ValidatedRow {
     dataAbertura: Date
     dataPrazo: Date | null
     dataConclusao: Date | null
-    brigadaId: string
-    brigadaNome: string
+    brigadaId: string | null
+    brigadaNome: string | null
     inspetorId: string | null
     inspetorEmail: string | null
     tribunal: string | null
@@ -241,14 +241,13 @@ export async function POST(req: NextRequest) {
         errors.push(`Data de abertura inválida «${dataAberturaStr}»`)
       }
 
-      // — Brigada (optional, defaults to importing user's brigade) —
+      // — Brigada (optional, defaults to importing user's brigade, can be null) —
       const brigadaNome = get('Brigada')
       let brigada = brigadaNome ? brigadaByNome.get(brigadaNome.toLowerCase()) : null
       if (brigadaNome && !brigada) {
         errors.push(`Brigada «${brigadaNome}» não existe ou está inativa`)
       } else if (!brigadaNome) {
-        brigada = defaultBrigada
-        if (!brigada) errors.push('Brigada obrigatória (sem brigada predefinida para este utilizador)')
+        brigada = defaultBrigada // may be null — that is allowed
       }
 
       // — Prazo / Data Conclusão —
@@ -308,7 +307,7 @@ export async function POST(req: NextRequest) {
       const denuncianteNotas = get('Denunciante Notas') || null
 
       const result: ValidatedRow = { line, raw: cells, errors }
-      if (errors.length === 0 && effectiveEstado && brigada && dataAbertura) {
+      if (errors.length === 0 && effectiveEstado && dataAbertura) {
         result.payload = {
           nuipc,
           nai,
@@ -320,8 +319,8 @@ export async function POST(req: NextRequest) {
           dataAbertura,
           dataPrazo,
           dataConclusao,
-          brigadaId: brigada.id,
-          brigadaNome: brigada.nome,
+          brigadaId: brigada?.id ?? null,
+          brigadaNome: brigada?.nome ?? null,
           inspetorId,
           inspetorEmail: inspetorEmail || null,
           tribunal,
