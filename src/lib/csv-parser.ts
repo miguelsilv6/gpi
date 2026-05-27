@@ -12,9 +12,21 @@ export function parseCSV(input: string): string[][] {
   // BOM
   if (input.charCodeAt(0) === 0xfeff) input = input.slice(1)
 
-  // Auto-detect delimiter from the first line
-  const firstLine = input.split(/\r?\n/)[0] ?? ''
-  const delimiter = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ','
+  // Auto-detect delimiter from the first line (ignoring delimiters inside quotes)
+  const firstLineEnd = input.indexOf('\n')
+  const firstLine = firstLineEnd === -1 ? input : input.slice(0, firstLineEnd).replace(/\r$/, '')
+  let commas = 0
+  let semicolons = 0
+  let inQuotesDetect = false
+  for (let i = 0; i < firstLine.length; i++) {
+    const c = firstLine[i]
+    if (c === '"') { inQuotesDetect = !inQuotesDetect }
+    else if (!inQuotesDetect) {
+      if (c === ',') commas++
+      else if (c === ';') semicolons++
+    }
+  }
+  const delimiter = semicolons > commas ? ';' : ','
 
   const rows: string[][] = []
   let row: string[] = []
