@@ -171,7 +171,7 @@ export default async function DashboardPage() {
                     {role === 'INSPETOR'
                       ? inq.denuncianteNome && (
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {inq.denuncianteNome}
+                            Denunciante: {inq.denuncianteNome}
                           </p>
                         )
                       : inq.inspetor && (

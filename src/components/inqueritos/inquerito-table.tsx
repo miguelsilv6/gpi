@@ -267,7 +267,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               natureza={inq.crime?.nome ?? inq.natureza}
               estado={inq.estado}
               dataPrazo={inq.dataPrazo}
-              inspetorNome={showDenunciante ? inq.denuncianteNome : inq.inspetor?.nome}
+              inspetorNome={showDenunciante ? (inq.denuncianteNome ? `Denunciante: ${inq.denuncianteNome}` : null) : inq.inspetor?.nome}
               atividadesCount={inq._count.atividades}
               selectionMode={canBulk && mobileSelectionMode}
               isSelected={selected.has(inq.id)}
