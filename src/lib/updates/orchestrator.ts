@@ -72,8 +72,6 @@ export async function getUpdateLog(id: string): Promise<UpdateLogEntry[]> {
     orderBy: { createdAt: 'asc' },
     select: { acao: true, createdAt: true, detalhes: true },
   })
-  // Coerção segura: os campos de `detalhes` (JSON) são `unknown`. Só
-  // aceitamos strings — evita interpolar objetos como "[object Object]".
   const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
   return rows.map((r) => {
     const d = (r.detalhes ?? {}) as Record<string, any>
@@ -97,6 +95,13 @@ export async function getUpdateLog(id: string): Promise<UpdateLogEntry[]> {
       }
       case 'UPDATE_CANCELLED':
         label = 'Cancelada'
+        break
+      case 'UPDATE_FORCE_ABORTED':
+        label = 'Abortada (forçado)'
+        detail = str(d.previousState) ? `estava em ${d.previousState}` : undefined
+        break
+      case 'UPDATE_LOG':
+        label = str(d.msg) ?? '—'
         break
       default:
         label = r.acao
@@ -400,6 +405,9 @@ export async function reconcileFromStatusFile(): Promise<void> {
     },
   })
 
+  // Sync daemon log lines written since the last tick.
+  await syncDaemonLogs(row.id, status.requestId).catch(() => {})
+
   // Em estados terminais limpamos os ficheiros de controlo para que uma
   // próxima atualização não os apanhe stale. Tentativa best-effort.
   if (isTerminal(next)) {
@@ -438,11 +446,105 @@ function isValidJump(from: UpdateState, to: UpdateState): boolean {
 }
 
 async function cleanupControlFiles(): Promise<void> {
-  for (const f of [TRIGGER_FILE, STATUS_FILE]) {
+  for (const f of [TRIGGER_FILE, STATUS_FILE, 'update.log.jsonl']) {
     try {
       await fs.unlink(path.join(CONTROL_DIR, f))
     } catch {
       // ENOENT é o caso normal — ignorar
     }
   }
+}
+
+/**
+ * Lê `update.log.jsonl` do control dir (escrito pelo host daemon) e
+ * sincroniza linhas novas para `auditLog` como entradas UPDATE_LOG.
+ * Idempotente: conta as entradas já existentes e salta esse número de linhas.
+ */
+async function syncDaemonLogs(updateId: string, requestId: string): Promise<void> {
+  const logPath = path.join(CONTROL_DIR, 'update.log.jsonl')
+  let raw: string
+  try {
+    raw = await fs.readFile(logPath, 'utf8')
+  } catch {
+    return
+  }
+
+  const entries = raw
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => { try { return JSON.parse(l) as Record<string, unknown> } catch { return null } })
+    .filter((e): e is Record<string, unknown> => !!e && e.requestId === requestId)
+
+  if (entries.length === 0) return
+
+  const already = await prisma.auditLog.count({
+    where: { entidade: 'AtualizacaoSistema', entidadeId: updateId, acao: 'UPDATE_LOG' },
+  })
+  const newEntries = entries.slice(already)
+  if (newEntries.length === 0) return
+
+  await prisma.auditLog.createMany({
+    data: newEntries.map((e) => ({
+      acao: 'UPDATE_LOG',
+      entidade: 'AtualizacaoSistema',
+      entidadeId: updateId,
+      utilizadorId: '__daemon__',
+      // `createdAt` uses the daemon timestamp so the log appears in
+      // chronological order even when synced in a batch.
+      createdAt: typeof e.t === 'string' ? new Date(e.t) : new Date(),
+      detalhes: { msg: typeof e.msg === 'string' ? e.msg : String(e.msg) } as never,
+    })),
+  })
+}
+
+/**
+ * Força a transição de um update preso para FAILED, independentemente do
+ * estado actual. Apenas para ADMINISTRACAO (a rota valida o papel antes de
+ * chamar esta função). Limpa os ficheiros de controlo e desativa o modo de
+ * manutenção.
+ */
+export async function forceAbortUpdate(id: string, userId: string): Promise<void> {
+  const row = await prisma.atualizacaoSistema.findUnique({ where: { id } })
+  if (!row) {
+    const e = new Error('Atualização não encontrada')
+    ;(e as Error & { cause?: number }).cause = 404
+    throw e
+  }
+  const state = row.state as UpdateState
+  if (isTerminal(state)) {
+    const e = new Error('A atualização já se encontra num estado terminal')
+    ;(e as Error & { cause?: number }).cause = 409
+    throw e
+  }
+
+  // Sync any remaining daemon logs before we mark it FAILED.
+  await syncDaemonLogs(id, row.requestId).catch(() => {})
+
+  await prisma.atualizacaoSistema.update({
+    where: { id },
+    data: {
+      state: 'FAILED',
+      finishedAt: new Date(),
+      errorMessage: `Abortada manualmente (estava em ${state})`,
+    },
+  })
+
+  await cleanupControlFiles()
+
+  await prisma.configuracaoSistema.update({
+    where: { id: 'singleton' },
+    data: { maintenanceMode: false },
+  })
+
+  await prisma.auditLog.create({
+    data: {
+      acao: 'UPDATE_FORCE_ABORTED',
+      entidade: 'AtualizacaoSistema',
+      entidadeId: id,
+      utilizadorId: userId,
+      detalhes: { previousState: state } as never,
+    },
+  })
+
+  log.warn({ id, userId, previousState: state }, 'Update abortado por força')
 }

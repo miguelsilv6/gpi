@@ -34,6 +34,7 @@ LOCK_FILE="${LOCK_FILE:-/var/lock/gpi-updater.lock}"
 TRIGGER_FILE="$CONTROL_DIR/update.request.json"
 STATUS_FILE="$CONTROL_DIR/update.status.json"
 LOG_FILE="${LOG_FILE:-/var/log/gpi-updater.log}"
+LOG_JSONL="$CONTROL_DIR/update.log.jsonl"
 
 if docker compose version >/dev/null 2>&1; then
   DC="docker compose"
@@ -47,6 +48,14 @@ log() {
   local msg="[gpi-updater] $ts $*"
   echo "$msg"
   echo "$msg" >> "$LOG_FILE" 2>/dev/null || true
+  # Append structured entry to the shared JSONL log (only after REQUEST_ID is known).
+  [ -z "${REQUEST_ID:-}" ] && return 0
+  local iso
+  iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  python3 -c "
+import json, sys
+print(json.dumps({'t': sys.argv[1], 'requestId': sys.argv[2], 'msg': sys.argv[3]}))
+" "$iso" "$REQUEST_ID" "$*" >> "$LOG_JSONL" 2>/dev/null || true
 }
 
 # Escrita atómica do ficheiro de status. Usa python3 para serializar JSON
@@ -86,9 +95,9 @@ print(data.get(os.environ["KEY"], ""))
 '
 }
 
-# Apaga o trigger para que este daemon não o re-processe.
+# Apaga o trigger e o log JSONL para que este daemon não os re-processe.
 consume_trigger() {
-  rm -f "$TRIGGER_FILE"
+  rm -f "$TRIGGER_FILE" "$LOG_JSONL"
 }
 
 # Limpa o modo de manutenção via psql no container postgres. Não bloqueante.

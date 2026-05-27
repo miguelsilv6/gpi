@@ -29,6 +29,7 @@ import {
   History,
   Package,
   ScrollText,
+  Ban,
 } from 'lucide-react'
 import { formatDateTime, cn, clientRandomId, iconButtonClasses } from '@/lib/utils'
 
@@ -247,6 +248,8 @@ export function AtualizacoesTab() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [starting, setStarting] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [forceAborting, setForceAborting] = useState(false)
+  const [confirmForceAbortOpen, setConfirmForceAbortOpen] = useState(false)
   const [logDialog, setLogDialog] = useState<{ id: string; label: string } | null>(null)
   // Quando os polls falham durante um update (app a reiniciar), mostramos
   // "a aguardar resposta" em vez de a barra parecer simplesmente congelada.
@@ -371,6 +374,27 @@ export function AtualizacoesTab() {
       refreshStatus(true)
     } finally {
       setCancelling(false)
+    }
+  }
+
+  async function handleForceAbort(id: string) {
+    setForceAborting(true)
+    try {
+      const res = await fetch('/api/updates/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, force: true }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao forçar cancelamento')
+        return
+      }
+      toast.success('Atualização abortada e modo de manutenção desativado')
+      refreshStatus(true)
+    } finally {
+      setForceAborting(false)
+      setConfirmForceAbortOpen(false)
     }
   }
 
@@ -553,6 +577,18 @@ export function AtualizacoesTab() {
                   Cancelar
                 </Button>
               )}
+              {status.current.state !== 'AVAILABLE' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto text-red-700 hover:text-red-800"
+                  onClick={() => setConfirmForceAbortOpen(true)}
+                  disabled={forceAborting}
+                >
+                  <Ban className="mr-1.5 h-3 w-3" />
+                  Forçar cancelamento
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-7 gap-1">
@@ -708,6 +744,47 @@ export function AtualizacoesTab() {
       />
 
       {/* Confirmação */}
+      <Dialog open={confirmForceAbortOpen} onOpenChange={(o) => !o && setConfirmForceAbortOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <Ban className="h-4 w-4" />
+              Forçar cancelamento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p>
+              Esta ação interrompe imediatamente o processo de atualização no estado{' '}
+              <strong>{status.current ? STATE_LABELS[status.current.state] : ''}</strong> e marca-o como{' '}
+              <strong>Falhou</strong>.
+            </p>
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+              <li>O processo do host pode continuar a correr — pare manualmente o <span className="font-mono">gpi-updater</span> se necessário.</li>
+              <li>O modo de manutenção é desativado.</li>
+              <li>Os ficheiros de controlo são removidos.</li>
+              <li>Use apenas quando a atualização ficou presa e não avança.</li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmForceAbortOpen(false)}
+              disabled={forceAborting}
+            >
+              Não cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => status.current && handleForceAbort(status.current.id)}
+              disabled={forceAborting}
+            >
+              {forceAborting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Forçar cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={confirmOpen} onOpenChange={(o) => !o && setConfirmOpen(false)}>
         <DialogContent>
           <DialogHeader>
