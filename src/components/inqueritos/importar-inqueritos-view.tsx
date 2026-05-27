@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 interface ReportRow {
   line: number
   nuipc: string
+  nai: string
   crime: string
   brigada: string
   inspetor: string
@@ -137,18 +138,21 @@ export function ImportarInqueritosView() {
               </Link>
             </div>
             <p className="text-xs text-muted-foreground">
-              Colunas obrigatórias: <code>NUIPC</code>, <code>Crime</code>,{' '}
-              <code>Estado</code>, <code>Data Abertura</code>,{' '}
-              <code>Brigada</code>. Opcionais: <code>NAI</code>,{' '}
-              <code>Prazo</code>, <code>Data Conclusão</code>,{' '}
-              <code>Inspetor (email)</code>, <code>Tribunal</code>,{' '}
-              <code>Procurador</code>, <code>Oficial de Justiça</code>,{' '}
-              <code>VoIP</code>, <code>Notas Tribunal</code>, <code>Notas</code>.
+              Colunas obrigatórias: <code>NUIPC</code>, <code>NAI</code>. Todas as outras colunas são opcionais:{' '}
+              <code>Crime</code>, <code>Estado</code>, <code>Data Abertura</code>,{' '}
+              <code>Brigada</code>, <code>Inspetor (email)</code>, <code>Prazo</code>,{' '}
+              <code>Data Conclusão</code>, <code>Tribunal</code>, <code>Procurador</code>,{' '}
+              <code>Oficial de Justiça</code>, <code>VoIP</code>,{' '}
+              <code>Notas Tribunal</code>, <code>Notas</code>,{' '}
+              <code>Denunciante Nome</code>, <code>Denunciante NIF</code>,{' '}
+              <code>Denunciante Morada</code>, <code>Denunciante Contacto</code>,{' '}
+              <code>Denunciante Email</code>.
             </p>
             <p className="text-xs text-muted-foreground">
-              Datas em <code>AAAA-MM-DD</code> ou <code>DD/MM/AAAA</code>. Estado pelo código
-              (ex: <code>ABERTO</code>) ou pelo nome. Crime/Brigada/Inspetor têm de existir
-              previamente no catálogo (pesquisa case-insensitive).
+              Datas em <code>AAAA-MM-DD</code> ou <code>DD/MM/AAAA</code>. Quando omitidos:
+              Estado usa o primeiro estado ativo, Data Abertura usa a data de hoje,
+              Brigada usa a brigada do utilizador atual.
+              Crime/Brigada/Inspetor têm de existir previamente no catálogo (pesquisa case-insensitive).
             </p>
           </div>
 
@@ -225,6 +229,7 @@ export function ImportarInqueritosView() {
                     <TableHead className="w-12">L.</TableHead>
                     <TableHead className="w-20">Estado</TableHead>
                     <TableHead>NUIPC</TableHead>
+                    <TableHead>NAI</TableHead>
                     <TableHead>Crime</TableHead>
                     <TableHead>Brigada</TableHead>
                     <TableHead>Inspetor</TableHead>
@@ -253,6 +258,7 @@ export function ImportarInqueritosView() {
                           )}
                         </TableCell>
                         <TableCell className="font-mono text-xs">{r.nuipc}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.nai || <span className="text-muted-foreground italic">—</span>}</TableCell>
                         <TableCell className="text-xs">{r.crime}</TableCell>
                         <TableCell className="text-xs">{r.brigada}</TableCell>
                         <TableCell className="text-xs">{r.inspetor || <span className="text-muted-foreground italic">—</span>}</TableCell>
