@@ -45,10 +45,12 @@ export async function POST(req: NextRequest) {
     if (!brigadaDestino) return apiError('Brigada não encontrada', 404)
     if (!brigadaDestino.ativa) return apiError('Brigada destino não está activa', 409)
 
-    const brigadaOrigem = await prisma.brigada.findUnique({
-      where: { id: inquerito.brigadaId },
-      select: { nome: true },
-    })
+    const brigadaOrigem = inquerito.brigadaId
+      ? await prisma.brigada.findUnique({
+          where: { id: inquerito.brigadaId },
+          select: { nome: true },
+        })
+      : null
 
     const { ip, userAgent } = getRequestInfo(req)
 

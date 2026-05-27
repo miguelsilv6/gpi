@@ -33,7 +33,7 @@ function canMutate(
   userId: string,
   brigadaId: string | null,
   atividade: { utilizadorId: string },
-  inquerito: { inspetorId: string | null; brigadaId: string },
+  inquerito: { inspetorId: string | null; brigadaId: string | null },
 ): boolean {
   // ESTATISTICA never writes atividades
   if (role === 'ESTATISTICA') return false

@@ -90,7 +90,7 @@ export function PrazosList({
                 )}
                 {showBrigada && (
                   <td className="px-4 py-3 text-muted-foreground">
-                    {p.inquerito.brigada.nome}
+                    {p.inquerito.brigada?.nome ?? '—'}
                   </td>
                 )}
                 <td className="px-4 py-3 text-center text-xs text-muted-foreground">
@@ -129,7 +129,7 @@ export function PrazosList({
                 )}
                 {showBrigada && (
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Brigada: <span className="text-foreground">{p.inquerito.brigada.nome}</span>
+                    Brigada: <span className="text-foreground">{p.inquerito.brigada?.nome ?? '—'}</span>
                   </p>
                 )}
               </div>

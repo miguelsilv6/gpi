@@ -84,11 +84,11 @@ export async function buildEstatisticaMensal(
 
     for (const a of atividades) {
       const brigadaId = a.inquerito.brigadaId
-      if (!brigadaIds.has(brigadaId)) continue
+      if (!brigadaId || !brigadaIds.has(brigadaId)) continue
       const row = counts[a.descricao]
       if (!row) continue
       // For atividades-padrão flagged as `temQuantidade`, each row carries
-      // an explicit count (e.g. "Detenção: 4" is one row with quantidade=4,
+      // an explicit count (e.g. "Detenção: 4" is one row com quantidade=4,
       // not four separate rows). Treat a missing/zero quantidade as 1 so
       // the row still shows up — that matches how the per-inquérito
       // "Resumo por tipo" widget displays it.

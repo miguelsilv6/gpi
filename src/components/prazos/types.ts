@@ -12,7 +12,7 @@ export interface PrazoItem {
   inquerito: {
     id: string
     nuipc: string
-    brigada: { id: string; nome: string }
+    brigada: { id: string; nome: string } | null
     estado: {
       id: string
       codigo: string

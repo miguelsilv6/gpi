@@ -279,7 +279,7 @@ export default async function InqueritoDetailPage({
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Brigada</span>
-              <span className="font-medium">{inquerito.brigada.nome}</span>
+              <span className="font-medium">{inquerito.brigada?.nome ?? '—'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Inspetor</span>

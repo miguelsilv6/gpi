@@ -123,7 +123,7 @@ export default async function EditarInqueritoPage({
           dataPrazo: formatForInput(inquerito.dataPrazo),
           dataConclusao: formatForInput(inquerito.dataConclusao),
           notas: inquerito.notas ?? undefined,
-          brigadaId: inquerito.brigadaId,
+          brigadaId: inquerito.brigadaId ?? undefined,
           inspetorId: inquerito.inspetorId ?? undefined,
           tribunal: inquerito.tribunal ?? undefined,
           procurador: inquerito.procurador ?? undefined,

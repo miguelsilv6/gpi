@@ -27,7 +27,7 @@ interface Inquerito {
   estado: EstadoLike
   dataPrazo: Date | null
   inspetor: { id: string; nome: string } | null
-  brigada: { id: string; nome: string }
+  brigada: { id: string; nome: string } | null
   _count: { atividades: number }
 }
 
@@ -95,7 +95,7 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, isSelected, onToggle 
       </td>
       {showBrigada && (
         <td className="px-4 py-3 text-muted-foreground">
-          {inq.brigada.nome}
+          {inq.brigada?.nome ?? '—'}
         </td>
       )}
       <td className="px-4 py-3 text-muted-foreground">
