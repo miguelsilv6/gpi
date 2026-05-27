@@ -23,6 +23,7 @@ interface Inquerito {
   nuipc: string
   nai: string | null
   natureza: string
+  denuncianteNome: string | null
   crime: { id: string; nome: string } | null
   estado: EstadoLike
   dataPrazo: Date | null
@@ -41,6 +42,8 @@ interface Props {
   /** Show the "Brigada" column. Coord/admin only — the others have a
    *  brigade-scoped view so the column would be either constant or empty. */
   showBrigada: boolean
+  /** When true, show Denunciante name instead of Inspetor name (INSPETOR role). */
+  showDenunciante: boolean
   inspetores: Inspetor[]
   brigadas: Brigada[]
   estados: EstadoLike[]
@@ -50,11 +53,12 @@ interface RowProps {
   inq: Inquerito
   canBulk: boolean
   showBrigada: boolean
+  showDenunciante: boolean
   isSelected: boolean
   onToggle: (id: string) => void
 }
 
-const Row = memo(function Row({ inq, canBulk, showBrigada, isSelected, onToggle }: RowProps) {
+const Row = memo(function Row({ inq, canBulk, showBrigada, showDenunciante, isSelected, onToggle }: RowProps) {
   const overdue = isOverdue(inq.dataPrazo) && !inq.estado.terminal
   return (
     <tr
@@ -99,7 +103,10 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, isSelected, onToggle 
         </td>
       )}
       <td className="px-4 py-3 text-muted-foreground">
-        {inq.inspetor?.nome ?? <span className="text-muted-foreground/50 italic">Não atribuído</span>}
+        {showDenunciante
+          ? (inq.denuncianteNome ?? <span className="text-muted-foreground/50 italic">—</span>)
+          : (inq.inspetor?.nome ?? <span className="text-muted-foreground/50 italic">Não atribuído</span>)
+        }
       </td>
       <td className={cn('px-4 py-3', overdue && 'text-red-600 font-medium')}>
         {formatDate(inq.dataPrazo)}
@@ -111,7 +118,7 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, isSelected, onToggle 
   )
 })
 
-export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, inspetores, brigadas, estados }: Props) {
+export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, showDenunciante, inspetores, brigadas, estados }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   // Mobile-only: indica se os cards estão em modo seleção. Activado por
   // long-press num card ou pelo botão explícito "Selecionar". Em desktop
@@ -177,7 +184,9 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               {showBrigada && (
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Brigada</th>
               )}
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Inspetor</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                {showDenunciante ? 'Denunciante' : 'Inspetor'}
+              </th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Prazo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ativ.</th>
             </tr>
@@ -199,6 +208,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
                   inq={inq}
                   canBulk={canBulk}
                   showBrigada={showBrigada}
+                  showDenunciante={showDenunciante}
                   isSelected={selected.has(inq.id)}
                   onToggle={toggle}
                 />
@@ -257,7 +267,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               natureza={inq.crime?.nome ?? inq.natureza}
               estado={inq.estado}
               dataPrazo={inq.dataPrazo}
-              inspetorNome={inq.inspetor?.nome}
+              inspetorNome={showDenunciante ? inq.denuncianteNome : inq.inspetor?.nome}
               atividadesCount={inq._count.atividades}
               selectionMode={canBulk && mobileSelectionMode}
               isSelected={selected.has(inq.id)}
