@@ -225,7 +225,7 @@ export async function GET(req: NextRequest) {
       .filter((id): id is string => id !== null)
     const [brigadas, estados, inspetores] = await Promise.all([
       prisma.brigada.findMany({
-        where: { id: { in: porBrigada.map((b) => b.brigadaId) } },
+        where: { id: { in: porBrigada.map((b) => b.brigadaId).filter((id): id is string => id !== null) } },
         select: { id: true, nome: true },
       }),
       prisma.estadoInquerito.findMany({
@@ -261,7 +261,7 @@ export async function GET(req: NextRequest) {
       }),
       porBrigada: porBrigada.map((r) => ({
         brigadaId: r.brigadaId,
-        nome: brigadaNomes[r.brigadaId] ?? r.brigadaId,
+        nome: (r.brigadaId ? brigadaNomes[r.brigadaId] : null) ?? r.brigadaId ?? '—',
         count: r._count,
       })),
       porInspetor: porInspetorRaw

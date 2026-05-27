@@ -63,7 +63,7 @@ export function canEditInquerito(
   role: Role,
   userId: string,
   userBrigadaId: string | null,
-  inq: { inspetorId: string | null; brigadaId: string },
+  inq: { inspetorId: string | null; brigadaId: string | null },
 ): boolean {
   if (hasPermission(role, 'inquerito:edit:all')) return true
   if (

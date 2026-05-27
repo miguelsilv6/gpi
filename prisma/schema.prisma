@@ -112,8 +112,8 @@ model Inquerito {
   estado   EstadoInquerito @relation(fields: [estadoId], references: [id])
   estadoId String
 
-  brigada   Brigada @relation(fields: [brigadaId], references: [id])
-  brigadaId String
+  brigada   Brigada? @relation(fields: [brigadaId], references: [id])
+  brigadaId String?
 
   inspetor   Utilizador? @relation("InspetorAtribuido", fields: [inspetorId], references: [id])
   inspetorId String?

@@ -48,7 +48,7 @@ export const PROTECTED_ESTADO_CODIGOS = new Set<string>([
 // State to set when reopening a closed/archived inquérito.
 export const REOPEN_ESTADO_CODIGO = 'EM_INVESTIGACAO'
 
-export const NUIPC_REGEX = /^\d{4}\/\d+\/[A-Z]+$/
+export const NUIPC_REGEX = /^\d+\/\d{2}\.\d+[A-Z][A-Z0-9]*$/i
 
 // Terminal-state codigos (kept for backwards-compat lookups; the canonical
 // source is the EstadoInquerito.terminal flag in the DB).
