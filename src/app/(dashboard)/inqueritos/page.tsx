@@ -209,6 +209,7 @@ export default async function InqueritosPage({
         canBulk={canBulk}
         canTransfer={canTransfer}
         showBrigada={showBrigada}
+        showDenunciante={role === 'INSPETOR'}
         inspetores={inspetores}
         brigadas={brigadas}
         estados={estados}

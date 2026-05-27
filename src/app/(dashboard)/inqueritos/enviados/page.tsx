@@ -87,6 +87,7 @@ export default async function EnviadosPage() {
           canBulk={false}
           canTransfer={false}
           showBrigada={showBrigada}
+          showDenunciante={role === 'INSPETOR'}
           inspetores={[]}
           brigadas={[]}
           estados={[]}

@@ -168,11 +168,18 @@ export default async function DashboardPage() {
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {inq.crime?.nome ?? inq.natureza}
                     </p>
-                    {inq.inspetor && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {inq.inspetor.nome}
-                      </p>
-                    )}
+                    {role === 'INSPETOR'
+                      ? inq.denuncianteNome && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Denunciante: {inq.denuncianteNome}
+                          </p>
+                        )
+                      : inq.inspetor && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {inq.inspetor.nome}
+                          </p>
+                        )
+                    }
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">

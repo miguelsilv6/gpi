@@ -89,6 +89,7 @@ export default async function AguardaExamesPage() {
           canBulk={false}
           canTransfer={false}
           showBrigada={showBrigada}
+          showDenunciante={role === 'INSPETOR'}
           inspetores={[]}
           brigadas={[]}
           estados={[]}
