@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
       ...(dataInicio || dataFim
         ? {
             dataAbertura: {
-              ...(dataInicio && { gte: new Date(dataInicio) }),
-              ...(dataFim && { lte: new Date(dataFim) }),
+              ...(dataInicio && { gte: new Date(`${dataInicio}T00:00:00.000Z`) }),
+              ...(dataFim && { lte: new Date(`${dataFim}T23:59:59.999Z`) }),
             },
           }
         : {}),
@@ -80,8 +80,7 @@ export async function GET(req: NextRequest) {
         ? Promise.resolve(0)
         : prisma.inquerito.count({
             where: {
-              inspetorId,
-              deletedAt: null,
+              ...where,
               estado: { terminal: false },
               atividades: { some: { descricao: { in: nomesAguardaExames }, concluidaEm: null } },
             },
@@ -90,8 +89,7 @@ export async function GET(req: NextRequest) {
         ? Promise.resolve(0)
         : prisma.inquerito.count({
             where: {
-              inspetorId,
-              deletedAt: null,
+              ...where,
               estado: { terminal: false },
               atividades: { some: { descricao: { in: nomesEnviados }, concluidaEm: null } },
             },
@@ -100,14 +98,17 @@ export async function GET(req: NextRequest) {
       prisma.inquerito.findMany({ where, select: { dataAbertura: true, nuipc: true } }),
     ])
 
-    // Atividades do inspetor no período selecionado.
+    // Atividades registadas pelo próprio inspetor no período selecionado.
+    // Filtra por utilizadorId (quem registou) e não apenas por inquerito.inspetorId,
+    // para não contar trabalho registado por outros em inquéritos do inspetor.
     const periodWhere = {
-      ...(dataInicio && { gte: new Date(dataInicio) }),
-      ...(dataFim && { lte: new Date(dataFim) }),
+      ...(dataInicio && { gte: new Date(`${dataInicio}T00:00:00.000Z`) }),
+      ...(dataFim && { lte: new Date(`${dataFim}T23:59:59.999Z`) }),
     }
     const atividades = await prisma.atividade.findMany({
       where: {
-        inquerito: { inspetorId, deletedAt: null },
+        utilizadorId: inspetorId,
+        inquerito: { deletedAt: null },
         ...(dataInicio || dataFim ? { dataRealizacao: periodWhere } : {}),
       },
       select: { descricao: true, quantidade: true },
