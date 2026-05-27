@@ -20,14 +20,14 @@ const bodySchema = z.object({
 
 const REQUIRED_HEADERS = [
   'NUIPC',
+  'NAI',
+] as const
+
+const OPTIONAL_HEADERS = [
   'Crime',
   'Estado',
   'Data Abertura',
   'Brigada',
-] as const
-
-const OPTIONAL_HEADERS = [
-  'NAI',
   'Prazo',
   'Data Conclusão',
   'Inspetor (email)',
@@ -37,6 +37,16 @@ const OPTIONAL_HEADERS = [
   'VoIP',
   'Notas Tribunal',
   'Notas',
+  'Denunciante Nome',
+  'Denunciante Tipo',
+  'Denunciante NIF',
+  'Denunciante Morada',
+  'Denunciante Cód. Postal',
+  'Denunciante Localidade',
+  'Denunciante Contacto',
+  'Denunciante Email',
+  'Denunciante Responsável',
+  'Denunciante Notas',
 ] as const
 
 type AllHeaders = (typeof REQUIRED_HEADERS)[number] | (typeof OPTIONAL_HEADERS)[number]
@@ -51,8 +61,8 @@ interface ValidatedRow {
   /** Normalized payload — only populated when errors is empty. */
   payload?: {
     nuipc: string
-    nai: string | null
-    crimeId: string
+    nai: string
+    crimeId: string | null
     crimeNome: string
     estadoId: string
     estadoCodigo: string
@@ -70,6 +80,16 @@ interface ValidatedRow {
     voip: string | null
     notasTribunal: string | null
     notas: string | null
+    denuncianteNome: string | null
+    denuncianteTipo: string | null
+    denuncianteNif: string | null
+    denuncianteMorada: string | null
+    denuncianteCodPostal: string | null
+    denuncianteLocalidade: string | null
+    denuncianteContacto: string | null
+    denuncianteEmail: string | null
+    denuncianteResponsavel: string | null
+    denuncianteNotas: string | null
   }
 }
 
@@ -125,7 +145,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ─ Hydrate catalogue tables once for fast lookups ───────────────────────
-    const [estados, brigadas, crimes, existingNuipcs, inspetores] = await Promise.all([
+    const [estados, brigadas, crimes, existingNuipcs, existingNais, inspetores] = await Promise.all([
       prisma.estadoInquerito.findMany({
         where: { ativo: true },
         select: { id: true, codigo: true, nome: true, terminal: true },
@@ -146,6 +166,14 @@ export async function POST(req: NextRequest) {
           select: { nuipc: true },
         })
         .then((rows) => new Set(rows.map((r) => r.nuipc))),
+      prisma.inquerito
+        .findMany({
+          where: {
+            nai: { in: raw.map((r) => (r['NAI'] ?? '').trim()).filter(Boolean) },
+          },
+          select: { nai: true },
+        })
+        .then((rows) => new Set(rows.map((r) => r.nai).filter(Boolean) as string[])),
       prisma.utilizador.findMany({
         where: { ativo: true, role: { in: ['INSPETOR', 'INSPETOR_CHEFE'] } },
         select: { id: true, email: true, brigadaId: true },
@@ -154,17 +182,28 @@ export async function POST(req: NextRequest) {
 
     const estadoByCodigo = new Map(estados.map((e) => [e.codigo.toUpperCase(), e]))
     const estadoByNome = new Map(estados.map((e) => [e.nome.toLowerCase(), e]))
+    // Default estado: first active non-terminal estado (fallback when column omitted)
+    const defaultEstado = estados.find((e) => !e.terminal) ?? null
+
     const brigadaByNome = new Map(brigadas.map((b) => [b.nome.toLowerCase(), b]))
+    const brigadaById = new Map(brigadas.map((b) => [b.id, b]))
+    // Fallback brigade: the importing user's own brigade (if assigned)
+    const defaultBrigada = session.user.brigadaId
+      ? (brigadaById.get(session.user.brigadaId) ?? null)
+      : null
+
     const crimeByNome = new Map(crimes.map((c) => [c.nome.toLowerCase(), c]))
     const inspetorByEmail = new Map(inspetores.map((u) => [u.email.toLowerCase(), u]))
 
     // ─ Validate per row ─────────────────────────────────────────────────────
     const seenNuipcs = new Set<string>()
+    const seenNais = new Set<string>()
     const validated: ValidatedRow[] = raw.map((cells, idx) => {
       const line = idx + 2 // 1 is the header
       const errors: string[] = []
       const get = (k: AllHeaders) => (cells[k] ?? '').trim()
 
+      // — NUIPC (required) —
       const nuipc = get('NUIPC')
       if (!nuipc) errors.push('NUIPC obrigatório')
       else if (!NUIPC_REGEX.test(nuipc)) errors.push('NUIPC com formato inválido')
@@ -172,27 +211,47 @@ export async function POST(req: NextRequest) {
       else if (existingNuipcs.has(nuipc)) errors.push('NUIPC já existe na base de dados')
       else seenNuipcs.add(nuipc)
 
+      // — NAI (required) —
+      const nai = get('NAI')
+      if (!nai) errors.push('NAI obrigatória')
+      else if (seenNais.has(nai)) errors.push('NAI duplicada no ficheiro')
+      else if (existingNais.has(nai)) errors.push('NAI já existe na base de dados')
+      else seenNais.add(nai)
+
+      // — Crime (optional) —
       const crimeNome = get('Crime')
       const crime = crimeNome ? crimeByNome.get(crimeNome.toLowerCase()) : null
-      if (!crimeNome) errors.push('Crime obrigatório')
-      else if (!crime) errors.push(`Crime «${crimeNome}» não existe no catálogo`)
+      if (crimeNome && !crime) errors.push(`Crime «${crimeNome}» não existe no catálogo`)
 
+      // — Estado (optional, defaults to first active non-terminal) —
       const estadoText = get('Estado')
       let estado = estadoByCodigo.get(estadoText.toUpperCase())
       if (!estado) estado = estadoByNome.get(estadoText.toLowerCase())
-      if (!estadoText) errors.push('Estado obrigatório')
-      else if (!estado) errors.push(`Estado «${estadoText}» não existe ou está inativo`)
+      if (estadoText && !estado) {
+        errors.push(`Estado «${estadoText}» não existe ou está inativo`)
+      } else if (!estadoText && !defaultEstado) {
+        errors.push('Estado obrigatório (sem estado ativo disponível no sistema)')
+      }
+      const effectiveEstado = estado ?? defaultEstado
 
+      // — Data Abertura (optional, defaults to today) —
       const dataAberturaStr = get('Data Abertura')
-      const dataAbertura = parseDate(dataAberturaStr)
-      if (!dataAberturaStr) errors.push('Data de abertura obrigatória')
-      else if (!dataAbertura) errors.push(`Data de abertura inválida «${dataAberturaStr}»`)
+      const dataAbertura = dataAberturaStr ? parseDate(dataAberturaStr) : new Date()
+      if (dataAberturaStr && !dataAbertura) {
+        errors.push(`Data de abertura inválida «${dataAberturaStr}»`)
+      }
 
+      // — Brigada (optional, defaults to importing user's brigade) —
       const brigadaNome = get('Brigada')
-      const brigada = brigadaNome ? brigadaByNome.get(brigadaNome.toLowerCase()) : null
-      if (!brigadaNome) errors.push('Brigada obrigatória')
-      else if (!brigada) errors.push(`Brigada «${brigadaNome}» não existe ou está inativa`)
+      let brigada = brigadaNome ? brigadaByNome.get(brigadaNome.toLowerCase()) : null
+      if (brigadaNome && !brigada) {
+        errors.push(`Brigada «${brigadaNome}» não existe ou está inativa`)
+      } else if (!brigadaNome) {
+        brigada = defaultBrigada
+        if (!brigada) errors.push('Brigada obrigatória (sem brigada predefinida para este utilizador)')
+      }
 
+      // — Prazo / Data Conclusão —
       const prazoStr = get('Prazo')
       const dataPrazo = prazoStr ? parseDate(prazoStr) : null
       if (prazoStr && !dataPrazo) errors.push(`Prazo inválido «${prazoStr}»`)
@@ -208,13 +267,14 @@ export async function POST(req: NextRequest) {
       if (dataAbertura && dataConclusao && dataConclusao < dataAbertura) {
         errors.push('Data de conclusão anterior à data de abertura')
       }
-      if (estado && estado.terminal && !dataConclusao) {
+      if (effectiveEstado && effectiveEstado.terminal && !dataConclusao) {
         errors.push('Estado terminal exige data de conclusão')
       }
-      if (estado && !estado.terminal && dataConclusao) {
+      if (effectiveEstado && !effectiveEstado.terminal && dataConclusao) {
         errors.push('Data de conclusão só se aplica a estados terminais')
       }
 
+      // — Inspetor —
       const inspetorEmail = get('Inspetor (email)').toLowerCase() || ''
       let inspetorId: string | null = null
       if (inspetorEmail) {
@@ -227,7 +287,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const nai = get('NAI') || null
+      // — Outros campos opcionais —
       const tribunal = get('Tribunal') || null
       const procurador = get('Procurador') || null
       const oficialJustica = get('Oficial de Justiça') || null
@@ -235,16 +295,28 @@ export async function POST(req: NextRequest) {
       const notasTribunal = get('Notas Tribunal') || null
       const notas = get('Notas') || null
 
+      // — Denunciante —
+      const denuncianteNome = get('Denunciante Nome') || null
+      const denuncianteTipo = get('Denunciante Tipo') || null
+      const denuncianteNif = get('Denunciante NIF') || null
+      const denuncianteMorada = get('Denunciante Morada') || null
+      const denuncianteCodPostal = get('Denunciante Cód. Postal') || null
+      const denuncianteLocalidade = get('Denunciante Localidade') || null
+      const denuncianteContacto = get('Denunciante Contacto') || null
+      const denuncianteEmail = get('Denunciante Email') || null
+      const denuncianteResponsavel = get('Denunciante Responsável') || null
+      const denuncianteNotas = get('Denunciante Notas') || null
+
       const result: ValidatedRow = { line, raw: cells, errors }
-      if (errors.length === 0 && crime && estado && brigada && dataAbertura) {
+      if (errors.length === 0 && effectiveEstado && brigada && dataAbertura) {
         result.payload = {
           nuipc,
           nai,
-          crimeId: crime.id,
-          crimeNome: crime.nome,
-          estadoId: estado.id,
-          estadoCodigo: estado.codigo,
-          estadoTerminal: estado.terminal,
+          crimeId: crime?.id ?? null,
+          crimeNome: crime?.nome ?? '',
+          estadoId: effectiveEstado.id,
+          estadoCodigo: effectiveEstado.codigo,
+          estadoTerminal: effectiveEstado.terminal,
           dataAbertura,
           dataPrazo,
           dataConclusao,
@@ -258,6 +330,16 @@ export async function POST(req: NextRequest) {
           voip,
           notasTribunal,
           notas,
+          denuncianteNome,
+          denuncianteTipo,
+          denuncianteNif,
+          denuncianteMorada,
+          denuncianteCodPostal,
+          denuncianteLocalidade,
+          denuncianteContacto,
+          denuncianteEmail,
+          denuncianteResponsavel,
+          denuncianteNotas,
         }
       }
       return result
@@ -276,6 +358,7 @@ export async function POST(req: NextRequest) {
       rows: validated.map((r) => ({
         line: r.line,
         nuipc: r.raw['NUIPC'] ?? '',
+        nai: r.raw['NAI'] ?? '',
         crime: r.raw['Crime'] ?? '',
         brigada: r.raw['Brigada'] ?? '',
         inspetor: r.raw['Inspetor (email)'] ?? '',
@@ -301,7 +384,6 @@ export async function POST(req: NextRequest) {
     const userId = session.user.id
 
     await prisma.$transaction(async (tx) => {
-      // Bulk-create the inquéritos
       await tx.inquerito.createMany({
         data: valid.map((v) => ({
           nuipc: v.nuipc,
@@ -320,17 +402,25 @@ export async function POST(req: NextRequest) {
           oficialJustica: v.oficialJustica,
           voip: v.voip,
           notasTribunal: v.notasTribunal,
+          denuncianteNome: v.denuncianteNome,
+          denuncianteTipo: v.denuncianteTipo,
+          denuncianteNif: v.denuncianteNif,
+          denuncianteMorada: v.denuncianteMorada,
+          denuncianteCodPostal: v.denuncianteCodPostal,
+          denuncianteLocalidade: v.denuncianteLocalidade,
+          denuncianteContacto: v.denuncianteContacto,
+          denuncianteEmail: v.denuncianteEmail,
+          denuncianteResponsavel: v.denuncianteResponsavel,
+          denuncianteNotas: v.denuncianteNotas,
         })),
       })
 
-      // Look up the freshly-created rows to get their ids for the audit log
       const created = await tx.inquerito.findMany({
         where: { nuipc: { in: valid.map((v) => v.nuipc) } },
         select: { id: true, nuipc: true, brigadaId: true, inspetorId: true },
       })
       const idByNuipc = new Map(created.map((c) => [c.nuipc, c.id]))
 
-      // Bulk-write CREATE_INQUERITO audit entries
       await tx.auditLog.createMany({
         data: valid.map((v) => ({
           acao: 'CREATE_INQUERITO',
@@ -368,35 +458,46 @@ export async function POST(req: NextRequest) {
 }
 
 // Template CSV for users to download / fill in.
+// Includes all importable fields (REQUIRED + OPTIONAL), excluding unified
+// fields: natureza (unified with Crime), internal IDs and system timestamps.
 export async function GET() {
-  const headers = [
-    ...REQUIRED_HEADERS,
-    ...OPTIONAL_HEADERS,
+  const allHeaders = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS]
+  const example: string[] = [
+    '2024/000999/YUSTR', // NUIPC
+    'NAI-2024-999',      // NAI
+    'Furto qualificado', // Crime
+    'ABERTO',            // Estado
+    '2024-10-15',        // Data Abertura
+    'Brigada Alfa',      // Brigada
+    '2025-04-15',        // Prazo
+    '',                  // Data Conclusão
+    'inspetor@gpi.pt',   // Inspetor (email)
+    'Tribunal Judicial de Lisboa', // Tribunal
+    'Dra. Maria Silva',  // Procurador
+    'Sr. João Costa',    // Oficial de Justiça
+    '+351 21 000 0000',  // VoIP
+    'Despacho aguardado', // Notas Tribunal
+    'Furto em residência', // Notas
+    'João Manuel Silva', // Denunciante Nome
+    'SINGULAR',          // Denunciante Tipo
+    '123456789',         // Denunciante NIF
+    'Rua das Flores, 10', // Denunciante Morada
+    '1000-001',          // Denunciante Cód. Postal
+    'Lisboa',            // Denunciante Localidade
+    '+351 91 000 0000',  // Denunciante Contacto
+    'joao.silva@email.pt', // Denunciante Email
+    '',                  // Denunciante Responsável
+    '',                  // Denunciante Notas
   ]
-  const example = [
-    '2024/000999/YUSTR',
-    'Furto qualificado',
-    'ABERTO',
-    '2024-10-15',
-    'Brigada Alfa',
-    '', // NAI
-    '2025-04-15', // Prazo
-    '', // Data Conclusão
-    'inspetor@gpi.pt',
-    'Tribunal Judicial de Lisboa',
-    'Dra. Maria Silva',
-    'Sr. João Costa',
-    '+351 21 000 0000',
-    'Despacho aguardado',
-    'Furto em residência',
-  ]
+  const escapeCell = (v: string) =>
+    v.includes(',') || v.includes('"') || v.includes('\n')
+      ? `"${v.replace(/"/g, '""')}"`
+      : v
   const csv =
     '﻿' +
-    headers.map((h) => (h.includes(',') ? `"${h}"` : h)).join(',') +
+    allHeaders.map(escapeCell).join(',') +
     '\n' +
-    example
-      .map((v) => (v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g, '""')}"` : v))
-      .join(',') +
+    example.map(escapeCell).join(',') +
     '\n'
   return new Response(csv, {
     headers: {
