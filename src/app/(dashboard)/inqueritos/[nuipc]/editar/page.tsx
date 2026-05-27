@@ -131,7 +131,7 @@ export default async function EditarInqueritoPage({
           voip: inquerito.voip ?? undefined,
           notasTribunal: inquerito.notasTribunal ?? undefined,
           denuncianteNome: inquerito.denuncianteNome ?? undefined,
-          denuncianteTipo: (inquerito.denuncianteTipo as 'SINGULAR' | 'COLETIVA' | null) ?? undefined,
+          denuncianteTipo: (inquerito.denuncianteTipo as 'SINGULAR' | 'COLETIVA' | 'ENTIDADE_PUBLICA' | 'OUTROS' | null) ?? undefined,
           denuncianteNif: inquerito.denuncianteNif ?? undefined,
           denuncianteMorada: inquerito.denuncianteMorada ?? undefined,
           denuncianteCodPostal: inquerito.denuncianteCodPostal ?? undefined,

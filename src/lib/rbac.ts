@@ -24,6 +24,7 @@ export type Permission =
   | 'prazo:read:brigade'
   | 'prazo:read:all'
   | 'estatistica:read'
+  | 'estatistica:own'
   | 'brigada:read'
   | 'brigada:manage'
   | 'utilizador:manage'
@@ -36,6 +37,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:edit:own',
     'atividade:create:own',
     'prazo:read:own',
+    'estatistica:own',
   ],
   INSPETOR_CHEFE: [
     'inquerito:read:own',

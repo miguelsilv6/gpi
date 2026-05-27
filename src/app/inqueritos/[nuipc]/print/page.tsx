@@ -216,17 +216,19 @@ export default async function InqueritoPrintPage({
             <dl className="meta-grid">
               {inquerito.denuncianteNome && (
                 <>
-                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' ? 'Designação' : 'Nome'}</dt>
+                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' || inquerito.denuncianteTipo === 'ENTIDADE_PUBLICA' ? 'Designação' : 'Nome'}</dt>
                   <dd>
                     {inquerito.denuncianteNome}
-                    {inquerito.denuncianteTipo === 'COLETIVA' && ' (pessoa coletiva)'}
                     {inquerito.denuncianteTipo === 'SINGULAR' && ' (pessoa singular)'}
+                    {inquerito.denuncianteTipo === 'COLETIVA' && ' (pessoa coletiva)'}
+                    {inquerito.denuncianteTipo === 'ENTIDADE_PUBLICA' && ' (entidade pública)'}
+                    {inquerito.denuncianteTipo === 'OUTROS' && ' (outros)'}
                   </dd>
                 </>
               )}
               {inquerito.denuncianteNif && (
                 <>
-                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : 'NIF'}</dt>
+                  <dt>{inquerito.denuncianteTipo === 'COLETIVA' ? 'NIPC' : inquerito.denuncianteTipo === 'ENTIDADE_PUBLICA' ? 'NIF/NIPC' : 'NIF'}</dt>
                   <dd>{inquerito.denuncianteNif}</dd>
                 </>
               )}

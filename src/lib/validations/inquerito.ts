@@ -34,7 +34,7 @@ export const inqueritoSchema = z
     // vazio; o esquema mantém a coluna como String? para permitir extensões.
     denuncianteNome: z.string().max(200).optional().nullable(),
     denuncianteTipo: z
-      .union([z.enum(['SINGULAR', 'COLETIVA']), z.literal('')])
+      .union([z.enum(['SINGULAR', 'COLETIVA', 'ENTIDADE_PUBLICA', 'OUTROS']), z.literal('')])
       .optional()
       .nullable(),
     denuncianteNif: z.string().max(20).optional().nullable(),
