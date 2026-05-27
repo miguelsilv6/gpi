@@ -203,8 +203,8 @@ export async function POST(req: NextRequest) {
       const errors: string[] = []
       const get = (k: AllHeaders) => (cells[k] ?? '').trim()
 
-      // — NUIPC (required) —
-      const nuipc = get('NUIPC')
+      // — NUIPC (required) — normalised to uppercase to ensure consistent DB checks
+      const nuipc = get('NUIPC').toUpperCase()
       if (!nuipc) errors.push('NUIPC obrigatório')
       else if (!NUIPC_REGEX.test(nuipc)) errors.push('NUIPC com formato inválido')
       else if (seenNuipcs.has(nuipc)) errors.push('NUIPC duplicado no ficheiro')
