@@ -17,8 +17,9 @@ import {
   BrigadaBarChart,
   InspetorBarChart,
   NaturezaBarChart,
+  AnoBarChart,
 } from './charts'
-import { FileText, Users, X, ClipboardList, MonitorCog, Send } from 'lucide-react'
+import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
@@ -29,10 +30,12 @@ interface Stats {
   semInspetor: number
   aguardaExames: number
   enviados: number
+  arquivados: number
   porEstado: { estadoId: string; codigo: string; nome: string; cor: string | null; count: number }[]
   porBrigada: { brigadaId: string; nome: string; count: number }[]
   porInspetor: { inspetorId: string; nome: string; count: number }[]
   porNatureza: { natureza: string; count: number }[]
+  porAno: { ano: string; count: number }[]
   atividadesInspetor: {
     descricao: string
     count: number
@@ -326,6 +329,15 @@ export function EstatisticasDashboard({
                 <p className="text-3xl font-bold mt-1 text-blue-700">{stats.enviados}</p>
               </CardContent>
             </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Archive className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-muted-foreground">Arquivados</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-gray-600">{stats.arquivados}</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Charts row 1 */}
@@ -338,6 +350,16 @@ export function EstatisticasDashboard({
                 <EstadoBarChart data={stats.porEstado} />
               </CardContent>
             </Card>
+            {stats.porAno.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Por Ano de Abertura</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AnoBarChart data={stats.porAno} />
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Charts row 2 */}

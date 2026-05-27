@@ -95,6 +95,8 @@ export async function GET(req: NextRequest) {
       semInspetor,
       aguardaExames,
       enviados,
+      arquivados,
+      anoRaw,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
       prisma.inquerito.groupBy({
@@ -164,6 +166,13 @@ export async function GET(req: NextRequest) {
               },
             },
           }),
+      prisma.inquerito.count({
+        where: { ...where, estado: { codigo: 'ARQUIVADO' } },
+      }),
+      prisma.inquerito.findMany({
+        where,
+        select: { dataAbertura: true, nuipc: true },
+      }),
     ])
 
     // Atividade breakdown for the selected inspetor (only when filtered).
@@ -219,6 +228,25 @@ export async function GET(req: NextRequest) {
       atividadesInspetorTotal = atividades.length
     }
 
+    // Year breakdown — use dataAbertura when available, otherwise extract
+    // the 2-digit year from NUIPC (format: digits/YY.sequenceCOURT).
+    function yearFromNuipc(nuipc: string): string {
+      const m = /\/(\d{2})\./.exec(nuipc)
+      if (!m) return '?'
+      const yy = parseInt(m[1]!, 10)
+      return String(yy <= 50 ? 2000 + yy : 1900 + yy)
+    }
+    const anoMap = new Map<string, number>()
+    for (const inq of anoRaw) {
+      const ano = inq.dataAbertura
+        ? String(inq.dataAbertura.getFullYear())
+        : yearFromNuipc(inq.nuipc)
+      anoMap.set(ano, (anoMap.get(ano) ?? 0) + 1)
+    }
+    const porAno = Array.from(anoMap.entries())
+      .map(([ano, count]) => ({ ano, count }))
+      .sort((a, b) => a.ano.localeCompare(b.ano))
+
     // Enrich groupBy with related labels
     const inspetorIds = porInspetorRaw
       .map((r) => r.inspetorId)
@@ -249,6 +277,8 @@ export async function GET(req: NextRequest) {
       semInspetor,
       aguardaExames,
       enviados,
+      arquivados,
+      porAno,
       porEstado: porEstadoRaw.map((r) => {
         const e = estadoById.get(r.estadoId)
         return {
