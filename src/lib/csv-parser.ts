@@ -1,7 +1,9 @@
 /**
  * Minimal RFC 4180 CSV parser. Sufficient for "save as CSV" from Excel /
- * LibreOffice — handles quoted fields with embedded commas, double-escaped
- * quotes, and CR/LF line endings. Strips the UTF-8 BOM if present.
+ * LibreOffice — handles quoted fields with embedded commas or semicolons,
+ * double-escaped quotes, and CR/LF line endings. Strips the UTF-8 BOM if
+ * present. Auto-detects delimiter: if the first line contains more semicolons
+ * than commas it uses semicolons; otherwise commas.
  *
  * Returns rows as arrays of strings. Empty trailing lines are dropped.
  * Throws on a malformed quote (unterminated string, garbage after quote).
@@ -9,6 +11,10 @@
 export function parseCSV(input: string): string[][] {
   // BOM
   if (input.charCodeAt(0) === 0xfeff) input = input.slice(1)
+
+  // Auto-detect delimiter from the first line
+  const firstLine = input.split(/\r?\n/)[0] ?? ''
+  const delimiter = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ','
 
   const rows: string[][] = []
   let row: string[] = []
@@ -40,7 +46,7 @@ export function parseCSV(input: string): string[][] {
         i++
         // After closing quote we expect a delimiter, EOL, or EOF.
         const next = input[i]
-        if (next !== undefined && next !== ',' && next !== '\n' && next !== '\r') {
+        if (next !== undefined && next !== delimiter && next !== '\n' && next !== '\r') {
           throw new Error(`CSV: caracter inesperado após aspas (pos ${i})`)
         }
         continue
@@ -58,7 +64,7 @@ export function parseCSV(input: string): string[][] {
       i++
       continue
     }
-    if (c === ',') { flushField(); i++; continue }
+    if (c === delimiter) { flushField(); i++; continue }
     if (c === '\r') {
       // CRLF or CR alone
       if (input[i + 1] === '\n') { flushRow(); i += 2; continue }
