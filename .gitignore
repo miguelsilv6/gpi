@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Backups directory — bind-mounted volume; dumps must never be committed.
 /backups/
+
+# Claude Code internal worktrees (created by agent isolation mode)
+.claude/worktrees/
