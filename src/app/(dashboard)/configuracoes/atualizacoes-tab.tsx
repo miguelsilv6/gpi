@@ -30,6 +30,7 @@ import {
   Package,
   ScrollText,
   Ban,
+  X,
 } from 'lucide-react'
 import { formatDateTime, cn, clientRandomId, iconButtonClasses } from '@/lib/utils'
 
@@ -251,6 +252,12 @@ export function AtualizacoesTab() {
   const [forceAborting, setForceAborting] = useState(false)
   const [confirmForceAbortOpen, setConfirmForceAbortOpen] = useState(false)
   const [logDialog, setLogDialog] = useState<{ id: string; label: string } | null>(null)
+  // O painel de falha só aparece se o update falhou DURANTE esta sessão
+  // (wasInProgressRef foi true). Ao navegar, o componente desmonta e o estado
+  // reseta — o painel não volta a aparecer em visitas subsequentes.
+  const wasInProgressRef = useRef(false)
+  const [showFailurePanel, setShowFailurePanel] = useState(false)
+  const [failurePanelDismissed, setFailurePanelDismissed] = useState(false)
   // Quando os polls falham durante um update (app a reiniciar), mostramos
   // "a aguardar resposta" em vez de a barra parecer simplesmente congelada.
   const [pollStalled, setPollStalled] = useState(false)
@@ -320,6 +327,24 @@ export function AtualizacoesTab() {
       }
     }
   }, [status?.inProgress])
+
+  // Rastreia se houve um update em progresso nesta sessão para controlar
+  // a visibilidade do painel de falha.
+  useEffect(() => {
+    if (!status) return
+    if (status.inProgress) {
+      wasInProgressRef.current = true
+      setFailurePanelDismissed(false)
+    } else if (wasInProgressRef.current) {
+      const st = status.current?.state
+      if (st === 'FAILED' || st === 'ROLLED_BACK') {
+        setShowFailurePanel(true)
+      } else if (st === 'DONE') {
+        wasInProgressRef.current = false
+        setShowFailurePanel(false)
+      }
+    }
+  }, [status?.inProgress, status?.current?.state])
 
   // Quando um update acaba de transitar para DONE, refresh da página para
   // que a sidebar mostre a nova versão (depois de o container reiniciar).
@@ -440,8 +465,6 @@ export function AtualizacoesTab() {
 
   const currentState = status.current?.state
   const inProgress = status.inProgress
-  const showFailureAlert =
-    status.current && (status.current.state === 'FAILED' || status.current.state === 'ROLLED_BACK')
 
   return (
     <div className="space-y-4">
@@ -638,23 +661,33 @@ export function AtualizacoesTab() {
         </Card>
       )}
 
-      {/* Alerta de falha recente */}
-      {showFailureAlert && status.current && (
+      {/* Alerta de falha — só visível se a falha aconteceu nesta sessão */}
+      {showFailurePanel && !failurePanelDismissed && status.current && (
         <Card className={cn(
           status.current.state === 'FAILED'
             ? 'border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20'
             : 'border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20',
         )}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              {status.current.state === 'FAILED' ? (
-                <CircleAlert className="h-4 w-4 text-red-600" />
-              ) : (
-                <CircleCheck className="h-4 w-4 text-orange-600" />
-              )}
-              {status.current.state === 'FAILED'
-                ? 'Última tentativa falhou'
-                : 'Última atualização foi revertida'}
+            <CardTitle className="text-base flex items-center gap-2 justify-between">
+              <span className="flex items-center gap-2">
+                {status.current.state === 'FAILED' ? (
+                  <CircleAlert className="h-4 w-4 text-red-600" />
+                ) : (
+                  <CircleCheck className="h-4 w-4 text-orange-600" />
+                )}
+                {status.current.state === 'FAILED'
+                  ? 'Última tentativa falhou'
+                  : 'Última atualização foi revertida'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setFailurePanelDismissed(true)}
+                className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+                aria-label="Fechar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
@@ -703,12 +736,15 @@ export function AtualizacoesTab() {
                   <TableHead>Iniciado por</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Duração</TableHead>
-                  <TableHead className="text-right">Registo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {history.map((h) => (
-                  <TableRow key={h.id}>
+                  <TableRow
+                    key={h.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setLogDialog({ id: h.id, label: `v${h.fromVersion} → v${h.toVersion}` })}
+                  >
                     <TableCell className="font-mono text-xs">
                       v{h.fromVersion} → v{h.toVersion}
                     </TableCell>
@@ -717,17 +753,9 @@ export function AtualizacoesTab() {
                     </TableCell>
                     <TableCell className="text-xs">{h.iniciadoPor}</TableCell>
                     <TableCell className="text-xs">{formatDateTime(h.startedAt)}</TableCell>
-                    <TableCell className="text-xs">{formatDuration(h.durationMs)}</TableCell>
-                    <TableCell className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => setLogDialog({ id: h.id, label: `v${h.fromVersion} → v${h.toVersion}` })}
-                        className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground ml-auto')}
-                        title="Ver registo"
-                        aria-label={`Ver registo de v${h.fromVersion} → v${h.toVersion}`}
-                      >
-                        <ScrollText className="h-3.5 w-3.5" />
-                      </button>
+                    <TableCell className="text-xs flex items-center justify-between gap-2">
+                      {formatDuration(h.durationMs)}
+                      <ScrollText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     </TableCell>
                   </TableRow>
                 ))}
