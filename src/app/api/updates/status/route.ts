@@ -52,16 +52,23 @@ export async function GET() {
 
     const log = latest ? await getUpdateLog(latest.id) : []
 
+    // If the cached GitHub tag is older than what's currently running (e.g. a
+    // GitHub Release wasn't created yet after an auto-version bump), show the
+    // current app version so the UI doesn't display a confusingly lower number.
+    const rawLatestTag = config?.latestVersionTag ?? null
+    const latestTag =
+      rawLatestTag && !isNewerVersion(rawLatestTag, APP_VERSION)
+        ? APP_VERSION
+        : rawLatestTag
+
     return Response.json({
       currentVersion: APP_VERSION,
       currentSha: APP_GIT_SHA_SHORT,
-      latestTag: config?.latestVersionTag ?? null,
+      latestTag,
       latestUrl: config?.latestVersionUrl ?? null,
       latestNotes: config?.latestVersionNotes ?? null,
       checkedAt: config?.latestVersionCheckedAt?.toISOString() ?? null,
-      updateAvailable:
-        !!config?.latestVersionTag &&
-        isNewerVersion(config.latestVersionTag, APP_VERSION),
+      updateAvailable: !!latestTag && isNewerVersion(latestTag, APP_VERSION),
       maintenanceMode: config?.maintenanceMode ?? false,
       inProgress,
       current: latest

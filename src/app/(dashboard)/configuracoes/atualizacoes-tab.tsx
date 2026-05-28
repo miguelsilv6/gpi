@@ -221,7 +221,9 @@ function HistoryLogDialog({
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : entries && entries.length > 0 ? (
-          <UpdateLogTimeline entries={entries} />
+          <div className="overflow-y-auto max-h-[60vh]">
+            <UpdateLogTimeline entries={entries} />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-6">
             Sem registo disponível.
