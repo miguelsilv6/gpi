@@ -344,7 +344,7 @@ export function EstatisticasDashboard({
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Por Estado</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Estado</CardTitle>
               </CardHeader>
               <CardContent>
                 <EstadoBarChart data={stats.porEstado} />
@@ -353,7 +353,7 @@ export function EstatisticasDashboard({
             {stats.porAno.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Por Ano de Abertura</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Ano de abertura</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <AnoBarChart data={stats.porAno} />
@@ -445,7 +445,7 @@ export function EstatisticasDashboard({
             {stats.porNatureza.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Top Naturezas</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Tipo de crime</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <NaturezaBarChart data={stats.porNatureza} />

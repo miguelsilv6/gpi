@@ -17,7 +17,7 @@ export default async function MinhaEstatisticaPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">As Minhas Estatísticas</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Estatística</h1>
         <p className="text-muted-foreground text-sm">Análise dos seus inquéritos</p>
       </div>
       <EstatisticaInspetorDashboard />

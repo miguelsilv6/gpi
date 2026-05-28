@@ -17,7 +17,7 @@ import {
   NaturezaBarChart,
   AnoBarChart,
 } from './charts'
-import { FileText, ClipboardList, MonitorCog, Send, Archive, AlertTriangle, X } from 'lucide-react'
+import { FileText, MonitorCog, Send, Archive, X } from 'lucide-react'
 
 interface Stats {
   total: number
@@ -190,7 +190,7 @@ export function EstatisticaInspetorDashboard() {
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -198,15 +198,6 @@ export function EstatisticaInspetorDashboard() {
                   <span className="text-sm text-muted-foreground">Total</span>
                 </div>
                 <p className="text-3xl font-bold mt-1">{stats.total}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm text-muted-foreground">Vencidos</span>
-                </div>
-                <p className="text-3xl font-bold mt-1 text-amber-600">{stats.vencidos}</p>
               </CardContent>
             </Card>
             <Card>
@@ -242,7 +233,7 @@ export function EstatisticaInspetorDashboard() {
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Por Estado</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Estado</CardTitle>
               </CardHeader>
               <CardContent>
                 <EstadoBarChart data={stats.porEstado} />
@@ -251,7 +242,7 @@ export function EstatisticaInspetorDashboard() {
             {stats.porAno.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Por Ano de Abertura</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Ano de abertura</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <AnoBarChart data={stats.porAno} />
@@ -261,63 +252,18 @@ export function EstatisticaInspetorDashboard() {
           </div>
 
           {/* Charts row 2 */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Atividades do inspetor */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                  <ClipboardList className="h-4 w-4" />
-                  As Minhas Atividades
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tabular-nums">
-                    {stats.atividadesInspetorTotal}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    atividade{stats.atividadesInspetorTotal === 1 ? '' : 's'} no período
-                  </span>
-                </div>
-
-                {stats.atividadesInspetor.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-3">
-                    Sem atividades registadas neste período.
-                  </p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {stats.atividadesInspetor.map((a) => {
-                      const display =
-                        a.temQuantidade && a.sumQuantidade > 0 ? a.sumQuantidade : a.count
-                      return (
-                        <div
-                          key={a.descricao}
-                          className="flex items-center justify-between text-sm gap-3"
-                        >
-                          <span className="text-muted-foreground truncate">{a.descricao}</span>
-                          <span className="font-medium tabular-nums shrink-0">{display}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-                <p className="text-[11px] text-muted-foreground pt-2 border-t">
-                  Período aplicado à data de realização da atividade.
-                </p>
-              </CardContent>
-            </Card>
-
-            {stats.porNatureza.length > 0 && (
+          {stats.porNatureza.length > 0 && (
+            <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Top Naturezas</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Tipo de crime</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <NaturezaBarChart data={stats.porNatureza} />
                 </CardContent>
               </Card>
-            )}
-          </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="text-sm text-muted-foreground py-8 text-center">

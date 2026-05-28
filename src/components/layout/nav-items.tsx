@@ -54,7 +54,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
   },
   {
-    label: 'As Minhas Estatísticas',
+    label: 'Estatística',
     href: '/minha-estatistica',
     icon: BarChart2,
     roles: ['INSPETOR'],
