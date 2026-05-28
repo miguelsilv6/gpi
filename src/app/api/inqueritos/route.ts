@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { checkPermission, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
-import { findEstadoById } from '@/lib/estados'
+import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import { isTerminal } from '@/lib/inquerito-state'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -151,6 +151,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Auto-transition: creating an inquérito already assigned to a brigada or
+    // inspector while in ABERTO → move directly to DISTRIBUIDO.
+    let finalEstadoId = data.estadoId
+    if ((inspetorId || data.brigadaId) && estado.codigo === 'ABERTO') {
+      const distribuido = await getDistribuidoEstado()
+      if (distribuido?.ativo) {
+        finalEstadoId = distribuido.id
+        // Reflect the effective estado in the local reference used below.
+        Object.assign(estado, distribuido)
+      }
+    }
+
     const inquerito = await prisma.inquerito.create({
       data: {
         nuipc: data.nuipc,
@@ -158,7 +170,7 @@ export async function POST(req: NextRequest) {
         // natureza is denormalized from crime.nome while the legacy column still exists
         natureza: crime.nome,
         crimeId: crime.id,
-        estadoId: data.estadoId,
+        estadoId: finalEstadoId,
         dataAbertura: new Date(data.dataAbertura),
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,

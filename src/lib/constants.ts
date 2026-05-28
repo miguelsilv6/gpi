@@ -1,7 +1,8 @@
-// Fallback labels for the 5 standard estados (used when no DB data is loaded).
+// Fallback labels for the standard estados (used when no DB data is loaded).
 // The canonical source is the EstadoInquerito table; use it when possible.
 export const ESTADO_LABELS_FALLBACK: Record<string, string> = {
   ABERTO: 'Aberto',
+  DISTRIBUIDO: 'Distribuído',
   EM_INVESTIGACAO: 'Em Investigação',
   SUSPENSO: 'Suspenso',
   CONCLUIDO: 'Concluído',
@@ -25,9 +26,10 @@ export const ESTADO_COR_DEFAULT = 'bg-gray-100 text-gray-700 border-gray-200'
 export const ESTADO_COR_OPTIONS = ['blue', 'yellow', 'orange', 'green', 'gray', 'red', 'purple', 'slate']
 
 // Standard codigos (these are what the SEED creates and what code-paths reference).
-// New estados can be added via configurações but these 5 are always there.
+// New estados can be added via configurações but these are always there.
 export const ESTADO_CODIGOS = {
   ABERTO: 'ABERTO',
+  DISTRIBUIDO: 'DISTRIBUIDO',
   EM_INVESTIGACAO: 'EM_INVESTIGACAO',
   SUSPENSO: 'SUSPENSO',
   CONCLUIDO: 'CONCLUIDO',
@@ -39,6 +41,7 @@ export const ESTADO_CODIGOS = {
 // like the default reopen state.
 export const PROTECTED_ESTADO_CODIGOS = new Set<string>([
   'ABERTO',
+  'DISTRIBUIDO',
   'EM_INVESTIGACAO',
   'SUSPENSO',
   'CONCLUIDO',

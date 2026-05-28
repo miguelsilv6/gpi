@@ -10,7 +10,7 @@ import {
 } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
-import { findEstadoById } from '@/lib/estados'
+import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import { notifyInqueritoAtribuido } from '@/lib/notifications'
 import { slugToNuipc, nuipcToSlug } from '@/lib/utils'
 import { canTransition, isTerminal } from '@/lib/inquerito-state'
@@ -144,6 +144,22 @@ export async function PUT(
       }
     }
 
+    // Auto-transition: inspector newly assigned on an ABERTO inquérito, and
+    // the user hasn't explicitly chosen a different estado → set DISTRIBUIDO.
+    let finalEstadoId = data.estadoId
+    if (
+      inspetorId &&
+      !existing.inspetorId &&
+      existing.estado.codigo === 'ABERTO' &&
+      data.estadoId === existing.estadoId
+    ) {
+      const distribuido = await getDistribuidoEstado()
+      if (distribuido?.ativo) {
+        finalEstadoId = distribuido.id
+        Object.assign(targetEstado, distribuido)
+      }
+    }
+
     const updated = await prisma.inquerito.update({
       where: { nuipc },
       data: {
@@ -152,7 +168,7 @@ export async function PUT(
         // natureza is denormalized from crime.nome while the legacy column exists
         natureza: targetCrime.nome,
         crimeId: targetCrime.id,
-        estadoId: data.estadoId,
+        estadoId: finalEstadoId,
         dataAbertura: new Date(data.dataAbertura),
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,

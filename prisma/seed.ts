@@ -26,15 +26,17 @@ async function main() {
 
   const ESTADOS_SEED = [
     { codigo: 'ABERTO', nome: 'Aberto', ordem: 1, terminal: false, cor: 'blue' },
-    { codigo: 'EM_INVESTIGACAO', nome: 'Em Investigação', ordem: 2, terminal: false, cor: 'yellow' },
-    { codigo: 'SUSPENSO', nome: 'Suspenso', ordem: 3, terminal: false, cor: 'orange' },
-    { codigo: 'CONCLUIDO', nome: 'Concluído', ordem: 4, terminal: true, cor: 'green' },
-    { codigo: 'ARQUIVADO', nome: 'Arquivado', ordem: 5, terminal: true, cor: 'gray' },
+    { codigo: 'DISTRIBUIDO', nome: 'Distribuído', ordem: 2, terminal: false, cor: 'purple' },
+    { codigo: 'EM_INVESTIGACAO', nome: 'Em Investigação', ordem: 3, terminal: false, cor: 'yellow' },
+    { codigo: 'SUSPENSO', nome: 'Suspenso', ordem: 4, terminal: false, cor: 'orange' },
+    { codigo: 'CONCLUIDO', nome: 'Concluído', ordem: 5, terminal: true, cor: 'green' },
+    { codigo: 'ARQUIVADO', nome: 'Arquivado', ordem: 6, terminal: true, cor: 'gray' },
   ]
   for (const e of ESTADOS_SEED) {
     await prisma.estadoInquerito.upsert({
       where: { codigo: e.codigo },
-      update: {},
+      // Keep ordem in sync when re-seeding so order is always consistent.
+      update: { ordem: e.ordem },
       create: e,
     })
   }

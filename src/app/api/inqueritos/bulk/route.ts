@@ -6,7 +6,7 @@ import { hasPermission } from '@/lib/rbac'
 import { getRequestInfo } from '@/lib/request-info'
 import { bulkActionSchema } from '@/lib/validations/inquerito'
 import { canTransition } from '@/lib/inquerito-state'
-import { findEstadoById } from '@/lib/estados'
+import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import type { Role } from '@/generated/prisma/enums'
 import type { Prisma } from '@/generated/prisma/client'
 
@@ -105,19 +105,44 @@ export async function POST(req: NextRequest) {
     const auditAcao = `BULK_${action.toUpperCase()}`
     const { ip, userAgent } = getRequestInfo(req)
 
+    // Auto-transition for bulk assign: ABERTO inquiries that are getting an
+    // inspector for the first time move to DISTRIBUIDO automatically.
+    const distribuidoEstado =
+      action === 'assign' && inspetorId ? await getDistribuidoEstado() : null
+
     await prisma.$transaction(async (tx) => {
-      const data: Prisma.InqueritoUncheckedUpdateManyInput = {}
-      if (action === 'assign') data.inspetorId = inspetorId ?? null
-      if (action === 'changeState' && estadoId) data.estadoId = estadoId
+      const updateData: Prisma.InqueritoUncheckedUpdateManyInput = {}
+      if (action === 'assign') updateData.inspetorId = inspetorId ?? null
+      if (action === 'changeState' && estadoId) updateData.estadoId = estadoId
       if (action === 'transfer' && brigadaId) {
-        data.brigadaId = brigadaId
-        data.inspetorId = null
+        updateData.brigadaId = brigadaId
+        updateData.inspetorId = null
       }
 
-      await tx.inquerito.updateMany({
-        where: { id: { in: validIds } },
-        data,
-      })
+      if (action === 'assign' && distribuidoEstado?.ativo) {
+        // Split: ABERTO without inspector → also set estado to DISTRIBUIDO.
+        const toDistribuido = targets
+          .filter((t) => t.estado.codigo === 'ABERTO' && !t.inspetorId)
+          .map((t) => t.id)
+        const others = validIds.filter((id) => !toDistribuido.includes(id))
+        if (toDistribuido.length > 0) {
+          await tx.inquerito.updateMany({
+            where: { id: { in: toDistribuido } },
+            data: { inspetorId, estadoId: distribuidoEstado.id },
+          })
+        }
+        if (others.length > 0) {
+          await tx.inquerito.updateMany({
+            where: { id: { in: others } },
+            data: { inspetorId },
+          })
+        }
+      } else {
+        await tx.inquerito.updateMany({
+          where: { id: { in: validIds } },
+          data: updateData,
+        })
+      }
 
       await tx.auditLog.createMany({
         data: targets.map((t) => ({
@@ -137,7 +162,7 @@ export async function POST(req: NextRequest) {
             after:
               action === 'changeState' && targetEstado
                 ? { estadoCodigo: targetEstado.codigo }
-                : data,
+                : updateData,
           } as never,
         })),
       })
