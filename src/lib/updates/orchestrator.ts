@@ -85,9 +85,16 @@ export async function getUpdateLog(id: string): Promise<UpdateLogEntry[]> {
         detail = from && to ? `v${from} → v${to}` : undefined
         break
       }
-      case 'UPDATE_STATE':
-        label = STATE_LABELS[d.to as UpdateState] ?? str(d.to) ?? 'Transição'
+      case 'UPDATE_STATE': {
+        const toState = str(d.to)
+        const fromState = str(d.from)
+        label = (toState && STATE_LABELS[toState as UpdateState]) ?? toState ?? 'Transição'
+        if (fromState) {
+          const fromLabel = STATE_LABELS[fromState as UpdateState] ?? fromState
+          detail = `${fromLabel} → ${label}`
+        }
         break
+      }
       case 'UPDATE_FAILED': {
         label = 'Falhou'
         detail = [str(d.phase), str(d.error)].filter(Boolean).join(': ') || undefined
@@ -98,7 +105,7 @@ export async function getUpdateLog(id: string): Promise<UpdateLogEntry[]> {
         break
       case 'UPDATE_FORCE_ABORTED':
         label = 'Abortada (forçado)'
-        detail = str(d.previousState) ? `estava em ${d.previousState}` : undefined
+        detail = str(d.previousState) ? `estava em ${STATE_LABELS[d.previousState as UpdateState] ?? d.previousState}` : undefined
         break
       case 'UPDATE_LOG':
         label = str(d.msg) ?? '—'

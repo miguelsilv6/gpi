@@ -62,15 +62,19 @@ export async function POST() {
       })
     }
 
+    // If the GitHub latest is older than our running version, show the current
+    // app version so the UI doesn't display a confusingly lower number.
+    const rawTag = release?.tag ?? config?.latestVersionTag ?? null
+    const latestTag =
+      rawTag && !isNewerVersion(rawTag, APP_VERSION) ? APP_VERSION : rawTag
+
     return Response.json({
       currentVersion: APP_VERSION,
-      latestTag: release?.tag ?? config?.latestVersionTag ?? null,
+      latestTag,
       latestUrl: release?.url ?? config?.latestVersionUrl ?? null,
       latestNotes: release?.notes ?? config?.latestVersionNotes ?? null,
       checkedAt: new Date().toISOString(),
-      updateAvailable: release
-        ? isNewerVersion(release.tag, APP_VERSION)
-        : !!config?.latestVersionTag && isNewerVersion(config.latestVersionTag, APP_VERSION),
+      updateAvailable: !!latestTag && isNewerVersion(latestTag, APP_VERSION),
       cached: false,
     })
   } catch (error) {
