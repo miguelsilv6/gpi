@@ -30,14 +30,19 @@ interface EtiquetaInputProps {
 export function EtiquetaInput({ value, onChange, ownTags, initialTags = [] }: EtiquetaInputProps) {
   const [text, setText] = useState('')
   const [creating, setCreating] = useState(false)
+  const [focused, setFocused] = useState(false)
 
-  // Mapa id→nome acumulando: tags próprias + as já aplicadas + as criadas agora.
-  const [known, setKnown] = useState<Map<string, string>>(() => {
+  // Etiquetas criadas localmente durante esta sessão (não vieram nas props).
+  const [localTags, setLocalTags] = useState<EtiquetaLike[]>([])
+
+  // Mapa id→nome derivado reativamente: tags próprias + já aplicadas + criadas agora.
+  const known = useMemo(() => {
     const m = new Map<string, string>()
     for (const t of ownTags) m.set(t.id, t.nome)
     for (const t of initialTags) m.set(t.id, t.nome)
+    for (const t of localTags) m.set(t.id, t.nome)
     return m
-  })
+  }, [ownTags, initialTags, localTags])
 
   const nomeFor = (id: string) => known.get(id) ?? id
 
@@ -63,12 +68,9 @@ export function EtiquetaInput({ value, onChange, ownTags, initialTags = [] }: Et
   }, [trimmed, known])
 
   function addId(id: string, nome: string) {
-    setKnown((prev) => {
-      if (prev.has(id)) return prev
-      const next = new Map(prev)
-      next.set(id, nome)
-      return next
-    })
+    if (!known.has(id)) {
+      setLocalTags((prev) => [...prev, { id, nome }])
+    }
     if (!value.includes(id)) onChange([...value, id])
     setText('')
   }
@@ -145,10 +147,12 @@ export function EtiquetaInput({ value, onChange, ownTags, initialTags = [] }: Et
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 200)}
           placeholder="Escreva e prima Enter para criar/atribuir uma etiqueta"
           aria-label="Adicionar etiqueta"
         />
-        {(suggestions.length > 0 || (trimmed && !exactMatch)) && (
+        {focused && (suggestions.length > 0 || (trimmed && !exactMatch)) && (
           <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover shadow-md">
             {suggestions.map((s) => (
               <button

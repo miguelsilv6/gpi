@@ -226,12 +226,15 @@ export async function DELETE(
     //
     // Caso típico do utilizador de testes nunca usado: zero referências →
     // eliminação real, desaparece da lista.
-    const [hasAtividades, hasInqueritos, hasUpdates] = await Promise.all([
+    const [hasAtividades, hasInqueritos, hasUpdates, hasEtiquetasEmUso] = await Promise.all([
       prisma.atividade.findFirst({ where: { utilizadorId: id }, select: { id: true } }),
       prisma.inquerito.findFirst({ where: { inspetorId: id }, select: { id: true } }),
       prisma.atualizacaoSistema.findFirst({ where: { iniciadoPorId: id }, select: { id: true } }),
+      // Etiquetas aplicadas a inquéritos "viajam" com eles — eliminá-las ao
+      // apagar o criador corromperia registos visíveis a outros utilizadores.
+      prisma.etiqueta.findFirst({ where: { criadoPorId: id, inqueritos: { some: {} } }, select: { id: true } }),
     ])
-    const hasHistory = !!(hasAtividades || hasInqueritos || hasUpdates)
+    const hasHistory = !!(hasAtividades || hasInqueritos || hasUpdates || hasEtiquetasEmUso)
 
     if (!hasHistory) {
       // Hard delete. Cascades tratam de notificações/sessões/tokens.
