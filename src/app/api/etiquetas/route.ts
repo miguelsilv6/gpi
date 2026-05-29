@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
 
     const data = parsed.data
     const nome = data.nome.trim()
+    if (!nome) return apiError('Nome é obrigatório', 400)
 
     const existing = await prisma.etiqueta.findFirst({
       where: { nome: { equals: nome, mode: 'insensitive' } },

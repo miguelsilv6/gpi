@@ -162,7 +162,9 @@ export async function POST(req: NextRequest) {
             after:
               action === 'changeState' && targetEstado
                 ? { estadoCodigo: targetEstado.codigo }
-                : updateData,
+                : (action === 'assign' && distribuidoEstado?.ativo && t.estado.codigo === 'ABERTO' && !t.inspetorId)
+                  ? { ...updateData, estadoCodigo: distribuidoEstado.codigo }
+                  : updateData,
           } as never,
         })),
       })

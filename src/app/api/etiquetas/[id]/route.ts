@@ -40,6 +40,7 @@ export async function PUT(
     // Refuse a rename collision against another etiqueta
     if (data.nome !== undefined) {
       const nome = data.nome.trim()
+      if (!nome) return apiError('Nome é obrigatório', 400)
       const collision = await prisma.etiqueta.findFirst({
         where: {
           nome: { equals: nome, mode: 'insensitive' },

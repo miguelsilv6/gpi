@@ -15,6 +15,8 @@ const STATE_ACOES = [
   'UPDATE_INQUERITO',
   'AUTO_TRANSITION_INQUERITO',
   'REOPEN_INQUERITO',
+  'BULK_CHANGESTATE',
+  'BULK_ASSIGN',
 ] as const
 
 /**
@@ -77,6 +79,12 @@ export async function getEstadoTimeline(inqueritoId: string): Promise<EstadoTime
         codigo = str(d.estadoNovo)
         motivo = str(d.motivo)
         break
+      case 'BULK_CHANGESTATE':
+      case 'BULK_ASSIGN': {
+        const after = (d.after ?? {}) as Record<string, unknown>
+        codigo = str(after.estadoCodigo)
+        break
+      }
     }
 
     if (!codigo) continue

@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
             from: { brigadaId: inquerito.brigadaId, nome: brigadaOrigem?.nome ?? null },
             to: { brigadaId, nome: brigadaDestino.nome },
             inspetorRemovido: inquerito.inspetorId,
+            ...(distribuidoEstado?.ativo ? { estadoNovo: distribuidoEstado.codigo } : {}),
           } as never,
         },
       })
