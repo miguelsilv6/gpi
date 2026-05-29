@@ -9,8 +9,8 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { EstadoBadge } from './estado-badge'
+import { EtiquetaList } from './etiqueta-badge'
 import { formatDate, isOverdue, nuipcToSlug } from '@/lib/utils'
-import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { AlertTriangle, Calendar, Check, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -21,7 +21,7 @@ interface EstadoLike {
   terminal: boolean
 }
 
-interface EtiquetaLike { id: string; nome: string; cor: string | null }
+interface EtiquetaLike { id: string; nome: string }
 
 interface InqueritoCardProps {
   nuipc: string
@@ -194,19 +194,7 @@ export function InqueritoCard({
             )}
             <p className="text-sm text-muted-foreground mt-0.5 truncate">{natureza}</p>
             {etiquetas.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {etiquetas.map((e) => (
-                  <span
-                    key={e.id}
-                    className={cn(
-                      'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border',
-                      e.cor ? ESTADO_COR_CLASSES[e.cor] ?? ESTADO_COR_DEFAULT : ESTADO_COR_DEFAULT,
-                    )}
-                  >
-                    {e.nome}
-                  </span>
-                ))}
-              </div>
+              <EtiquetaList etiquetas={etiquetas} max={3} className="mt-1.5" />
             )}
           </div>
         </div>

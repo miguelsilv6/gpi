@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { inqueritoSchema, type InqueritoFormData } from '@/lib/validations/inquerito'
-import { nuipcToSlug, cn } from '@/lib/utils'
-import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
+import { nuipcToSlug } from '@/lib/utils'
+import { EtiquetaInput } from './etiqueta-input'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { Loader2 } from 'lucide-react'
 
@@ -21,7 +21,7 @@ interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
 interface Estado { id: string; codigo: string; nome: string; terminal: boolean; ativo: boolean }
 interface Crime { id: string; nome: string; ativo: boolean }
-interface Etiqueta { id: string; nome: string; cor: string | null; ativo: boolean }
+interface Etiqueta { id: string; nome: string }
 
 interface InqueritoFormProps {
   defaultValues?: Partial<InqueritoFormData>
@@ -29,7 +29,10 @@ interface InqueritoFormProps {
   inspetores: Inspetor[]
   estados: Estado[]
   crimes: Crime[]
-  etiquetas: Etiqueta[]
+  /** Etiquetas pessoais do utilizador — sugestões para o seletor. */
+  etiquetasDisponiveis: Etiqueta[]
+  /** Etiquetas já aplicadas ao inquérito (modo edição), para render inicial. */
+  etiquetasAtribuidas?: Etiqueta[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
 }
@@ -40,7 +43,8 @@ export function InqueritoForm({
   inspetores,
   estados,
   crimes,
-  etiquetas,
+  etiquetasDisponiveis,
+  etiquetasAtribuidas = [],
   nuipcOriginal,
   mode,
 }: InqueritoFormProps) {
@@ -114,23 +118,6 @@ export function InqueritoForm({
   const selectedInspetorId = watch('inspetorId')
   const selectedCrimeId = watch('crimeId')
   const selectedEtiquetaIds = watch('etiquetaIds') ?? []
-
-  // Etiquetas no seletor: ativas + as já atribuídas (mesmo que inativas), tal
-  // como crimesForSelect, para não esconder uma etiqueta desativada após atribuição.
-  const etiquetasForSelect = useMemo(() => {
-    const ativas = etiquetas.filter((e) => e.ativo)
-    const assignedInactive = etiquetas.filter(
-      (e) => !e.ativo && (defaultValues?.etiquetaIds ?? []).includes(e.id),
-    )
-    return [...ativas, ...assignedInactive]
-  }, [etiquetas, defaultValues?.etiquetaIds])
-
-  function toggleEtiqueta(id: string) {
-    const next = selectedEtiquetaIds.includes(id)
-      ? selectedEtiquetaIds.filter((x) => x !== id)
-      : [...selectedEtiquetaIds, id]
-    setValue('etiquetaIds', next, { shouldDirty: true })
-  }
 
   const filteredInspetores = useMemo(
     () => inspetores.filter((i) => i.brigadaId === selectedBrigadaId),
@@ -219,6 +206,19 @@ export function InqueritoForm({
             {errors.crimeId && (
               <p className="text-xs text-red-600">{errors.crimeId.message}</p>
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Etiquetas</Label>
+            <EtiquetaInput
+              value={selectedEtiquetaIds}
+              onChange={(ids) => setValue('etiquetaIds', ids, { shouldDirty: true })}
+              ownTags={etiquetasDisponiveis}
+              initialTags={etiquetasAtribuidas}
+            />
+            <p className="text-xs text-muted-foreground">
+              Escreva e prima Enter para criar uma etiqueta. Nomes repetidos são unificados.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -331,38 +331,6 @@ export function InqueritoForm({
                 </p>
               )}
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Etiquetas</Label>
-            {etiquetasForSelect.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                Sem etiquetas configuradas — adicione em Configurações → Etiquetas.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {etiquetasForSelect.map((e) => {
-                  const active = selectedEtiquetaIds.includes(e.id)
-                  const corClass = e.cor ? ESTADO_COR_CLASSES[e.cor] ?? ESTADO_COR_DEFAULT : ESTADO_COR_DEFAULT
-                  return (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onClick={() => toggleEtiqueta(e.id)}
-                      aria-pressed={active}
-                      className={cn(
-                        'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                        active
-                          ? corClass
-                          : 'bg-transparent text-muted-foreground border-dashed opacity-70 hover:opacity-100',
-                      )}
-                    >
-                      {e.nome}{!e.ativo ? ' (inativa)' : ''}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

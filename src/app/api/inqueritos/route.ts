@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
           crime: { select: { id: true, nome: true } },
           brigada: { select: { id: true, nome: true } },
           inspetor: { select: { id: true, nome: true } },
-          etiquetas: { select: { id: true, nome: true, cor: true } },
+          etiquetas: { select: { id: true, nome: true } },
           _count: { select: { atividades: true } },
         },
       }),
@@ -154,16 +154,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Validate etiquetas (if any) exist and are active.
+    // Validate etiquetas (if any): must be the current user's own personal tags.
     const etiquetaIds = [...new Set(data.etiquetaIds ?? [])]
     let etiquetaNomes: string[] = []
     if (etiquetaIds.length > 0) {
       const found = await prisma.etiqueta.findMany({
-        where: { id: { in: etiquetaIds }, ativo: true },
+        where: { id: { in: etiquetaIds }, criadoPorId: session.user.id },
         select: { id: true, nome: true },
       })
       if (found.length !== etiquetaIds.length) {
-        return apiError('Uma ou mais etiquetas são inválidas ou inativas', 400)
+        return apiError('Uma ou mais etiquetas são inválidas', 400)
       }
       etiquetaNomes = found.map((e) => e.nome)
     }

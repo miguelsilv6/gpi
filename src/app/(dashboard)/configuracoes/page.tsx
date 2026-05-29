@@ -28,7 +28,6 @@ import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
-import { EtiquetasTab } from './etiquetas-tab'
 import { BackupsTab } from './backups-tab'
 import { NotificacoesTab } from './notificacoes-tab'
 import { AtualizacoesTab } from './atualizacoes-tab'
@@ -695,7 +694,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'etiquetas' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -800,7 +799,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'crimes', 'etiquetas', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -817,17 +816,15 @@ export default function ConfiguracoesPage() {
                 ? 'Estados'
                 : t === 'crimes'
                   ? 'Crimes'
-                  : t === 'etiquetas'
-                    ? 'Etiquetas'
-                    : t === 'atividades'
-                      ? 'Atividades'
-                      : t === 'notificacoes'
-                        ? 'Notificações'
-                        : t === 'backups'
-                          ? 'Backups'
-                          : t === 'atualizacoes'
-                            ? 'Atualizações'
-                            : 'Aparência'}
+                  : t === 'atividades'
+                    ? 'Atividades'
+                    : t === 'notificacoes'
+                      ? 'Notificações'
+                      : t === 'backups'
+                        ? 'Backups'
+                        : t === 'atualizacoes'
+                          ? 'Atualizações'
+                          : 'Aparência'}
           </button>
         ))}
       </div>
@@ -939,8 +936,6 @@ export default function ConfiguracoesPage() {
 
       {/* Crimes tab */}
       {tab === 'crimes' && <CrimesTab />}
-
-      {tab === 'etiquetas' && <EtiquetasTab />}
 
       {/* Atividades tab */}
       {tab === 'atividades' && <AtividadesTab estados={estados} />}

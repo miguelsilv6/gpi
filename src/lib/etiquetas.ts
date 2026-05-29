@@ -1,34 +1,37 @@
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 
 export interface EtiquetaOption {
   id: string
   nome: string
-  descricao: string | null
-  cor: string | null
-  ordem: number
-  ativo: boolean
 }
 
 const SELECT = {
   id: true,
   nome: true,
-  descricao: true,
-  cor: true,
-  ordem: true,
-  ativo: true,
 } as const
 
-export async function listEtiquetas(opts: { onlyActive?: boolean } = {}) {
+/** Etiquetas pessoais de um utilizador, por ordem alfabética. */
+export async function listEtiquetasByOwner(ownerId: string): Promise<EtiquetaOption[]> {
   return prisma.etiqueta.findMany({
-    where: opts.onlyActive ? { ativo: true } : undefined,
-    orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+    where: { criadoPorId: ownerId },
+    orderBy: { nome: 'asc' },
     select: SELECT,
   })
 }
 
-export async function findEtiquetaById(id: string) {
-  return prisma.etiqueta.findUnique({
-    where: { id },
+/**
+ * Etiquetas em uso em inquéritos dentro de um âmbito (scope) — usado para
+ * popular o filtro da listagem. Como as etiquetas "viajam" com o inquérito,
+ * mostramos todas as que aparecem em inquéritos visíveis ao utilizador,
+ * independentemente de quem as criou.
+ */
+export async function listEtiquetasEmUso(
+  scope: Prisma.InqueritoWhereInput,
+): Promise<EtiquetaOption[]> {
+  return prisma.etiqueta.findMany({
+    where: { inqueritos: { some: { deletedAt: null, ...scope } } },
+    orderBy: { nome: 'asc' },
     select: SELECT,
   })
 }

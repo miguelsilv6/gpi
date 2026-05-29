@@ -68,6 +68,7 @@ model Utilizador {
   sessoes              Sessao[]
   passwordResetTokens  PasswordResetToken[]
   atualizacoesIniciadas AtualizacaoSistema[]
+  etiquetas            Etiqueta[]
 
   @@index([brigadaId])
   @@index([role])
@@ -121,8 +122,8 @@ model Inquerito {
   crime    Crime?  @relation(fields: [crimeId], references: [id])
   crimeId  String?
 
-  // Etiquetas (tags) transversais, geríveis pelo ADMINISTRACAO. Relação m2m
-  // implícita — o join table `_EtiquetaToInquerito` é gerido pelo Prisma.
+  // Etiquetas (tags) pessoais aplicadas ao inquérito. Relação m2m implícita —
+  // o join table `_EtiquetaToInquerito` é gerido pelo Prisma.
   etiquetas Etiqueta[]
 
   atividades   Atividade[]
@@ -173,23 +174,24 @@ model Crime {
   @@index([ativo, ordem])
 }
 
-// Etiqueta (tag) personalizável, gerida pelo ADMINISTRACAO à semelhança do
-// catálogo de Crimes. Atribuível a vários inquéritos (m2m implícita) para
-// categorização transversal — ex.: "Prioritário", "Aguardando MP".
+// Etiqueta (tag) pessoal — cada utilizador cria as suas, únicas dentro do seu
+// perfil (@@unique [criadoPorId, nome]). Atribuível a vários inquéritos (m2m
+// implícita) para categorização livre — ex.: "Prioritário", "Aguardando MP".
+// Uma vez aplicada, a etiqueta "viaja" com o inquérito e fica visível a quem o
+// vê, independentemente de quem a criou.
 model Etiqueta {
-  id        String   @id @default(cuid())
-  nome      String   @unique
-  descricao String?
-  // Cor da paleta de ESTADO_COR_OPTIONS (src/lib/constants.ts). Null = default.
-  cor       String?
-  ordem     Int      @default(0)
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  nome        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  criadoPor   Utilizador @relation(fields: [criadoPorId], references: [id], onDelete: Cascade)
+  criadoPorId String
 
   inqueritos Inquerito[]
 
-  @@index([ativo, ordem])
+  @@unique([criadoPorId, nome])
+  @@index([criadoPorId])
 }
 
 model Atividade {
