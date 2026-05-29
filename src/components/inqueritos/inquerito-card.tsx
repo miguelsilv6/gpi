@@ -10,6 +10,7 @@ import {
 import Link from 'next/link'
 import { EstadoBadge } from './estado-badge'
 import { formatDate, isOverdue, nuipcToSlug } from '@/lib/utils'
+import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { AlertTriangle, Calendar, Check, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -20,11 +21,14 @@ interface EstadoLike {
   terminal: boolean
 }
 
+interface EtiquetaLike { id: string; nome: string; cor: string | null }
+
 interface InqueritoCardProps {
   nuipc: string
   nai?: string | null
   natureza: string
   estado: EstadoLike
+  etiquetas?: EtiquetaLike[]
   dataPrazo: Date | null
   inspetorNome?: string | null
   atividadesCount?: number
@@ -119,6 +123,7 @@ export function InqueritoCard({
   nai,
   natureza,
   estado,
+  etiquetas = [],
   dataPrazo,
   inspetorNome,
   atividadesCount = 0,
@@ -188,6 +193,21 @@ export function InqueritoCard({
               <p className="text-xs font-mono text-muted-foreground mt-0.5">NAI: {nai}</p>
             )}
             <p className="text-sm text-muted-foreground mt-0.5 truncate">{natureza}</p>
+            {etiquetas.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {etiquetas.map((e) => (
+                  <span
+                    key={e.id}
+                    className={cn(
+                      'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border',
+                      e.cor ? ESTADO_COR_CLASSES[e.cor] ?? ESTADO_COR_DEFAULT : ESTADO_COR_DEFAULT,
+                    )}
+                  >
+                    {e.nome}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-1 items-end shrink-0">

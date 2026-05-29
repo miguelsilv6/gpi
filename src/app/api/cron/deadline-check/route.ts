@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { timingSafeEqual, createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { createNotification, notifyAtividadePrazo } from '@/lib/notifications'
+import { createNotification, notifyAtividadePrazo, escalateOverdueToChefes } from '@/lib/notifications'
 import { childLogger } from '@/lib/logger'
 
 const log = childLogger({ subsystem: 'cron/deadline-check' })
@@ -84,6 +84,9 @@ export async function POST(req: NextRequest) {
         }),
       )
     }
+
+    // Escalar os vencidos ao Inspetor-Chefe da brigada (para além do inspetor).
+    jobs.push(escalateOverdueToChefes(overdue))
 
     // ── 2. Activity deadlines ──────────────────────────────────────────────────
     const today = new Date(now)

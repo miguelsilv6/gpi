@@ -11,6 +11,7 @@ import { ExportButton } from '@/components/inqueritos/export-button'
 import { Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { listEstados } from '@/lib/estados'
+import { listEtiquetas } from '@/lib/etiquetas'
 import type { Role } from '@/generated/prisma/enums'
 
 interface SearchParams {
@@ -20,6 +21,7 @@ interface SearchParams {
   crimeId?: string
   brigadaId?: string
   inspetorId?: string
+  etiquetaId?: string
   overdue?: string
   semInspetor?: string
   dataAberturaFrom?: string
@@ -85,6 +87,7 @@ export default async function InqueritosPage({
     ...(sp.crimeId && { crimeId: sp.crimeId }),
     ...(sp.brigadaId && { brigadaId: sp.brigadaId }),
     ...(sp.inspetorId && { inspetorId: sp.inspetorId }),
+    ...(sp.etiquetaId && { etiquetas: { some: { id: sp.etiquetaId } } }),
     ...(sp.semInspetor === '1' && { inspetorId: null }),
     ...(sp.overdue === '1' && {
       dataPrazo: { lt: new Date() },
@@ -108,7 +111,7 @@ export default async function InqueritosPage({
   const canImport = hasPermission(role, 'inquerito:bulk:all')
   const showBrigada = hasPermission(role, 'inquerito:read:all')
 
-  const [inqueritos, total, inspetores, brigadas, estados, crimes, inspetoresFilter] = await Promise.all([
+  const [inqueritos, total, inspetores, brigadas, estados, crimes, inspetoresFilter, etiquetasFilter] = await Promise.all([
     prisma.inquerito.findMany({
       where,
       skip: (page - 1) * limit,
@@ -119,6 +122,7 @@ export default async function InqueritosPage({
         crime: { select: { id: true, nome: true } },
         brigada: { select: { id: true, nome: true } },
         inspetor: { select: { id: true, nome: true } },
+        etiquetas: { select: { id: true, nome: true, cor: true } },
         _count: { select: { atividades: true } },
       },
     }),
@@ -150,6 +154,7 @@ export default async function InqueritosPage({
           select: { id: true, nome: true },
         })
       : Promise.resolve([]),
+    listEtiquetas({ onlyActive: true }),
   ])
 
   const totalPages = Math.ceil(total / limit)
@@ -199,6 +204,7 @@ export default async function InqueritosPage({
           estados={estados}
           estadosDefault={estadosDefault}
           crimes={crimes}
+          etiquetas={etiquetasFilter}
           inspetoresFilter={inspetoresFilter}
           currentUserId={session.user.id}
         />

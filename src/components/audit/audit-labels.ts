@@ -20,6 +20,9 @@ export const ACAO_LABELS: Record<string, string> = {
   EXPORT_INQUERITO_PRINT: 'Exportado em PDF / impressão',
   EXPORT_INQUERITOS: 'Exportação em massa de inquéritos',
   AUTO_TRANSITION_INQUERITO: 'Transição automática de estado',
+  CREATE_ETIQUETA: 'Etiqueta criada',
+  UPDATE_ETIQUETA: 'Etiqueta alterada',
+  DELETE_ETIQUETA: 'Etiqueta eliminada',
   BULK_ASSIGN: 'Atribuição em massa',
   BULK_CHANGESTATE: 'Alteração de estado em massa',
   BULK_TRANSFER: 'Transferência em massa',
@@ -118,6 +121,13 @@ export const FIELD_LABELS: Record<string, string> = {
   inAppEnabled: 'In-app',
   emailEnabled: 'Email',
   ccRoles: 'Roles CC',
+  // Etiquetas
+  cor: 'Cor',
+  ordem: 'Ordem',
+  ativo: 'Ativo',
+  etiquetas: 'Etiquetas',
+  etiquetasBefore: 'Etiquetas (antes)',
+  etiquetasAfter: 'Etiquetas (depois)',
   // Bulk markers
   __bulk__: '(lote)',
   __bulk_export__: '(exportação)',

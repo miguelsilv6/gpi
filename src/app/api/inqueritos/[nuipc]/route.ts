@@ -65,7 +65,7 @@ export async function PUT(
 
     const existing = await prisma.inquerito.findUnique({
       where: { nuipc },
-      include: { estado: ESTADO_INCLUDE },
+      include: { estado: ESTADO_INCLUDE, etiquetas: { select: { id: true, nome: true } } },
     })
     if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
 
@@ -144,6 +144,25 @@ export async function PUT(
       }
     }
 
+    // Etiquetas: validate they exist. Inactive ones are only allowed if they
+    // were already assigned (so editing other fields doesn't force removing them).
+    const etiquetaIds = [...new Set(data.etiquetaIds ?? [])]
+    const existingEtiquetaIds = new Set(existing.etiquetas.map((e) => e.id))
+    if (etiquetaIds.length > 0) {
+      const found = await prisma.etiqueta.findMany({
+        where: { id: { in: etiquetaIds } },
+        select: { id: true, nome: true, ativo: true },
+      })
+      if (found.length !== etiquetaIds.length) {
+        return apiError('Uma ou mais etiquetas não existem', 400)
+      }
+      for (const f of found) {
+        if (!f.ativo && !existingEtiquetaIds.has(f.id)) {
+          return apiError(`Etiqueta "${f.nome}" está inativa`, 400)
+        }
+      }
+    }
+
     // Auto-transition: inspector newly assigned on an ABERTO inquérito, and
     // the user hasn't explicitly chosen a different estado → set DISTRIBUIDO.
     let finalEstadoId = data.estadoId
@@ -189,8 +208,17 @@ export async function PUT(
         denuncianteEmail: data.denuncianteEmail?.trim() || null,
         denuncianteResponsavel: data.denuncianteResponsavel?.trim() || null,
         denuncianteNotas: data.denuncianteNotas?.trim() || null,
+        etiquetas: { set: etiquetaIds.map((id) => ({ id })) },
       },
+      include: { etiquetas: { select: { id: true, nome: true } } },
     })
+
+    // Etiqueta change detection (diff() only covers scalars). Compare by id set.
+    const etiquetasMudaram =
+      existingEtiquetaIds.size !== updated.etiquetas.length ||
+      updated.etiquetas.some((e) => !existingEtiquetaIds.has(e.id))
+    const etiquetasBefore = existing.etiquetas.map((e) => e.nome)
+    const etiquetasAfter = updated.etiquetas.map((e) => e.nome)
 
     // Audit diff. We log estado as the codigo (stable across renames).
     const before = {
@@ -269,14 +297,17 @@ export async function PUT(
       'denuncianteNotas',
     ])
 
-    if (changes) {
+    if (changes || etiquetasMudaram) {
       await writeAudit({
         req,
         acao: 'UPDATE_INQUERITO',
         entidade: 'Inquerito',
         entidadeId: updated.id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: {
+          ...(changes ?? {}),
+          ...(etiquetasMudaram && { etiquetasBefore, etiquetasAfter }),
+        } as never,
       })
     }
 

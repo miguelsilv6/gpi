@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/rbac'
 import { listEstados, findEstadoByCodigo } from '@/lib/estados'
+import { listEtiquetas } from '@/lib/etiquetas'
 import { InqueritoForm } from '@/components/inqueritos/inquerito-form'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -24,7 +25,7 @@ export default async function NovoInqueritoPage() {
     )
   }
 
-  const [brigadas, inspetores, estados, defaultEstado, crimes] = await Promise.all([
+  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetas] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -42,6 +43,7 @@ export default async function NovoInqueritoPage() {
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, ativo: true },
     }),
+    listEtiquetas({ onlyActive: true }),
   ])
 
   return (
@@ -67,6 +69,7 @@ export default async function NovoInqueritoPage() {
         inspetores={inspetores}
         estados={estados}
         crimes={crimes}
+        etiquetas={etiquetas}
         defaultValues={{
           ...(session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
           ...(defaultEstado ? { estadoId: defaultEstado.id } : {}),
