@@ -144,21 +144,25 @@ export async function PUT(
       }
     }
 
-    // Etiquetas: validate they exist. Inactive ones are only allowed if they
-    // were already assigned (so editing other fields doesn't force removing them).
+    // Etiquetas: como as tags são pessoais mas "viajam" com o inquérito, o
+    // utilizador pode manter as que já estavam aplicadas (mesmo de outros) e
+    // adicionar as suas próprias. Não pode aplicar tags de outro utilizador
+    // que ainda não estivessem no inquérito.
     const etiquetaIds = [...new Set(data.etiquetaIds ?? [])]
     const existingEtiquetaIds = new Set(existing.etiquetas.map((e) => e.id))
     if (etiquetaIds.length > 0) {
       const found = await prisma.etiqueta.findMany({
         where: { id: { in: etiquetaIds } },
-        select: { id: true, nome: true, ativo: true },
+        select: { id: true, nome: true, criadoPorId: true },
       })
       if (found.length !== etiquetaIds.length) {
         return apiError('Uma ou mais etiquetas não existem', 400)
       }
       for (const f of found) {
-        if (!f.ativo && !existingEtiquetaIds.has(f.id)) {
-          return apiError(`Etiqueta "${f.nome}" está inativa`, 400)
+        const isOwn = f.criadoPorId === session.user.id
+        const wasAttached = existingEtiquetaIds.has(f.id)
+        if (!isOwn && !wasAttached) {
+          return apiError(`Etiqueta "${f.nome}" pertence a outro utilizador`, 403)
         }
       }
     }

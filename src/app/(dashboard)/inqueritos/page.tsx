@@ -11,7 +11,7 @@ import { ExportButton } from '@/components/inqueritos/export-button'
 import { Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { listEstados } from '@/lib/estados'
-import { listEtiquetas } from '@/lib/etiquetas'
+import { listEtiquetasEmUso } from '@/lib/etiquetas'
 import type { Role } from '@/generated/prisma/enums'
 
 interface SearchParams {
@@ -122,7 +122,7 @@ export default async function InqueritosPage({
         crime: { select: { id: true, nome: true } },
         brigada: { select: { id: true, nome: true } },
         inspetor: { select: { id: true, nome: true } },
-        etiquetas: { select: { id: true, nome: true, cor: true } },
+        etiquetas: { select: { id: true, nome: true } },
         _count: { select: { atividades: true } },
       },
     }),
@@ -154,7 +154,7 @@ export default async function InqueritosPage({
           select: { id: true, nome: true },
         })
       : Promise.resolve([]),
-    listEtiquetas({ onlyActive: true }),
+    listEtiquetasEmUso(roleWhere),
   ])
 
   const totalPages = Math.ceil(total / limit)

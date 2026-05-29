@@ -13,8 +13,8 @@ import { AtividadesSection } from '@/components/inqueritos/atividades-section'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
@@ -45,7 +45,7 @@ export default async function InqueritoDetailPage({
       crime: { select: { id: true, nome: true } },
       brigada: { select: { id: true, nome: true } },
       inspetor: { select: { id: true, nome: true, email: true } },
-      etiquetas: { select: { id: true, nome: true, cor: true }, orderBy: { ordem: 'asc' } },
+      etiquetas: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
       _count: { select: { atividades: true } },
     },
   })
@@ -204,17 +204,7 @@ export default async function InqueritoDetailPage({
           </p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <EstadoBadge estado={inquerito.estado} />
-            {inquerito.etiquetas.map((e) => (
-              <span
-                key={e.id}
-                className={cn(
-                  'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border',
-                  e.cor ? ESTADO_COR_CLASSES[e.cor] ?? ESTADO_COR_DEFAULT : ESTADO_COR_DEFAULT,
-                )}
-              >
-                {e.nome}
-              </span>
-            ))}
+            <EtiquetaList etiquetas={inquerito.etiquetas} max={inquerito.etiquetas.length} />
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
