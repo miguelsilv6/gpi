@@ -6,6 +6,7 @@ import { BulkActionBar } from './bulk-action-bar'
 import { InqueritoCard } from './inquerito-card'
 import { Button } from '@/components/ui/button'
 import { formatDate, isOverdue, cn, nuipcToSlug } from '@/lib/utils'
+import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { AlertTriangle, CheckSquare, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -18,6 +19,8 @@ interface EstadoLike {
   ativo: boolean
 }
 
+interface EtiquetaLike { id: string; nome: string; cor: string | null }
+
 interface Inquerito {
   id: string
   nuipc: string
@@ -26,6 +29,7 @@ interface Inquerito {
   denuncianteNome: string | null
   crime: { id: string; nome: string } | null
   estado: EstadoLike
+  etiquetas?: EtiquetaLike[]
   dataPrazo: Date | null
   inspetor: { id: string; nome: string } | null
   brigada: { id: string; nome: string } | null
@@ -89,6 +93,21 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, showDenunciante, isSe
           <p className="text-xs text-muted-foreground font-mono mt-0.5">
             NAI: {inq.nai}
           </p>
+        )}
+        {inq.etiquetas && inq.etiquetas.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {inq.etiquetas.map((e) => (
+              <span
+                key={e.id}
+                className={cn(
+                  'inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border',
+                  e.cor ? ESTADO_COR_CLASSES[e.cor] ?? ESTADO_COR_DEFAULT : ESTADO_COR_DEFAULT,
+                )}
+              >
+                {e.nome}
+              </span>
+            ))}
+          </div>
         )}
       </td>
       <td className="px-4 py-3 max-w-[220px] truncate">
@@ -266,6 +285,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               nai={inq.nai}
               natureza={inq.crime?.nome ?? inq.natureza}
               estado={inq.estado}
+              etiquetas={inq.etiquetas}
               dataPrazo={inq.dataPrazo}
               inspetorNome={showDenunciante ? (inq.denuncianteNome ? `Denunciante: ${inq.denuncianteNome}` : null) : inq.inspetor?.nome}
               atividadesCount={inq._count.atividades}

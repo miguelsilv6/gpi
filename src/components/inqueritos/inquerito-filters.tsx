@@ -19,6 +19,11 @@ interface CrimeFilterOption {
   nome: string
 }
 
+interface EtiquetaFilterOption {
+  id: string
+  nome: string
+}
+
 interface InspetorFilterOption {
   id: string
   nome: string
@@ -36,6 +41,7 @@ export function InqueritoFilters({
   estados,
   estadosDefault = [],
   crimes,
+  etiquetas = [],
   inspetoresFilter = [],
   currentUserId,
 }: {
@@ -43,6 +49,7 @@ export function InqueritoFilters({
   /** System-wide default applied when the URL has no `estado` param. */
   estadosDefault?: string[]
   crimes: CrimeFilterOption[]
+  etiquetas?: EtiquetaFilterOption[]
   /** Filled only for INSPETOR_CHEFE — brigade members for the inspetor filter. */
   inspetoresFilter?: InspetorFilterOption[]
   currentUserId?: string
@@ -135,6 +142,28 @@ export function InqueritoFilters({
             ))}
           </SelectContent>
         </Select>
+
+        {etiquetas.length > 0 && (
+          <Select
+            value={searchParams.get('etiquetaId') || 'all'}
+            onValueChange={(v) => update({ etiquetaId: !v || v === 'all' ? null : v })}
+          >
+            <SelectTrigger className="w-full sm:w-52">
+              <SelectValue placeholder="Etiqueta">
+                {(v: string) => {
+                  if (!v || v === 'all') return 'Todas as etiquetas'
+                  return etiquetas.find((e) => e.id === v)?.nome ?? 'Etiqueta'
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as etiquetas</SelectItem>
+              {etiquetas.map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {inspetoresFilter.length > 0 && (
           <Select

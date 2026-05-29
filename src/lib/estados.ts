@@ -47,6 +47,10 @@ export async function getReopenEstado() {
   return findEstadoByCodigo(REOPEN_ESTADO_CODIGO)
 }
 
+export async function getDistribuidoEstado() {
+  return findEstadoByCodigo('DISTRIBUIDO')
+}
+
 export function makeEstadoMaps(estados: EstadoInqueritoOption[]) {
   const byId = new Map(estados.map((e) => [e.id, e]))
   const byCodigo = new Map(estados.map((e) => [e.codigo, e]))

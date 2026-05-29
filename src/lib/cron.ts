@@ -5,6 +5,7 @@ import {
   notifyBackupFailed,
   notifyUpdateFailed,
   notifyUpdateConcluida,
+  escalateOverdueToChefes,
 } from '@/lib/notifications'
 import { childLogger } from '@/lib/logger'
 import { spawn } from 'child_process'
@@ -401,6 +402,9 @@ async function runDeadlineCheck() {
       }),
     )
   }
+
+  // Escalar os vencidos ao Inspetor-Chefe da brigada (para além do inspetor).
+  jobs.push(escalateOverdueToChefes(overdue))
 
   await Promise.allSettled(jobs)
   log.info(

@@ -93,6 +93,7 @@ export async function GET(req: NextRequest) {
       total,
       vencidos,
       semInspetor,
+      distribuido,
       aguardaExames,
       enviados,
       arquivados,
@@ -134,6 +135,9 @@ export async function GET(req: NextRequest) {
       }),
       prisma.inquerito.count({
         where: { ...where, inspetorId: null, estado: { terminal: false } },
+      }),
+      prisma.inquerito.count({
+        where: { ...where, estado: { codigo: 'DISTRIBUIDO' } },
       }),
       // Aguarda Exames / Enviados — mesma semântica do Dashboard: inquéritos
       // ativos (não-terminal) que tenham pelo menos uma atividade da
@@ -275,6 +279,7 @@ export async function GET(req: NextRequest) {
       total,
       vencidos,
       semInspetor,
+      distribuido,
       aguardaExames,
       enviados,
       arquivados,

@@ -255,6 +255,53 @@ export async function notifyInqueritoAtribuido(opts: {
 }
 
 /**
+ * Escala prazos de inquérito ultrapassados para o Inspetor-Chefe da brigada
+ * respetiva — para além do aviso ao inspetor já feito pelo deadline-check.
+ * Reutiliza o tipo PRAZO_ULTRAPASSADO (a policy controla in-app/email).
+ *
+ * Resolve um chefe por brigada (uma query batch) e notifica-o por cada
+ * inquérito vencido cuja brigada lhe pertence — exceto quando o próprio chefe
+ * é o inspetor atribuído (já foi avisado no loop principal).
+ */
+export async function escalateOverdueToChefes(
+  overdue: { id: string; nuipc: string; brigadaId: string | null; inspetorId: string | null }[],
+): Promise<void> {
+  const brigadaIds = [...new Set(overdue.map((o) => o.brigadaId).filter((b): b is string => !!b))]
+  if (brigadaIds.length === 0) return
+
+  const chefes = await prisma.utilizador.findMany({
+    where: { role: 'INSPETOR_CHEFE', ativo: true, brigadaId: { in: brigadaIds } },
+    select: { id: true, brigadaId: true },
+  })
+  // Um chefe por brigada (o primeiro encontrado).
+  const chefeByBrigada = new Map<string, string>()
+  for (const c of chefes) {
+    if (c.brigadaId && !chefeByBrigada.has(c.brigadaId)) {
+      chefeByBrigada.set(c.brigadaId, c.id)
+    }
+  }
+  if (chefeByBrigada.size === 0) return
+
+  const jobs: Promise<unknown>[] = []
+  for (const inq of overdue) {
+    if (!inq.brigadaId) continue
+    const chefeId = chefeByBrigada.get(inq.brigadaId)
+    // Sem chefe na brigada, ou o chefe é o próprio inspetor (já avisado).
+    if (!chefeId || chefeId === inq.inspetorId) continue
+    jobs.push(
+      applyPolicy({
+        tipo: 'PRAZO_ULTRAPASSADO',
+        titulo: `Prazo ultrapassado na brigada — ${inq.nuipc}`,
+        mensagem: `O prazo do inquérito ${inq.nuipc} (sua brigada) foi ultrapassado.`,
+        inqueritoid: inq.id,
+        naturalUserId: chefeId,
+      }),
+    )
+  }
+  await Promise.all(jobs)
+}
+
+/**
  * Notifica falha de backup/restauro. Sem destinatário "natural" — depende
  * inteiramente dos `ccRoles` configurados (defaults a ['ADMINISTRACAO']
  * pelo seed). Se o admin remover ADMINISTRACAO da lista, ninguém recebe —

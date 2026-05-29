@@ -121,6 +121,10 @@ model Inquerito {
   crime    Crime?  @relation(fields: [crimeId], references: [id])
   crimeId  String?
 
+  // Etiquetas (tags) transversais, geríveis pelo ADMINISTRACAO. Relação m2m
+  // implícita — o join table `_EtiquetaToInquerito` é gerido pelo Prisma.
+  etiquetas Etiqueta[]
+
   atividades   Atividade[]
   notificacoes Notificacao[]
 
@@ -159,6 +163,25 @@ model Crime {
   id        String   @id @default(cuid())
   nome      String   @unique
   descricao String?
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inqueritos Inquerito[]
+
+  @@index([ativo, ordem])
+}
+
+// Etiqueta (tag) personalizável, gerida pelo ADMINISTRACAO à semelhança do
+// catálogo de Crimes. Atribuível a vários inquéritos (m2m implícita) para
+// categorização transversal — ex.: "Prioritário", "Aguardando MP".
+model Etiqueta {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  descricao String?
+  // Cor da paleta de ESTADO_COR_OPTIONS (src/lib/constants.ts). Null = default.
+  cor       String?
   ordem     Int      @default(0)
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())

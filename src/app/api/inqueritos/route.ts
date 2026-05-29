@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { checkPermission, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
-import { findEstadoById } from '@/lib/estados'
+import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import { isTerminal } from '@/lib/inquerito-state'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     const crimeId = searchParams.get('crimeId') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
     const inspetorId = searchParams.get('inspetorId') ?? ''
+    const etiquetaId = searchParams.get('etiquetaId') ?? ''
     const overdue = searchParams.get('overdue') === '1'
     const semInspetor = searchParams.get('semInspetor') === '1'
     const dataAberturaFrom = searchParams.get('dataAberturaFrom') ?? ''
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
       ...(crimeId && { crimeId }),
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
+      ...(etiquetaId && { etiquetas: { some: { id: etiquetaId } } }),
       ...(semInspetor && { inspetorId: null }),
       ...(overdue && {
         dataPrazo: { lt: new Date() },
@@ -91,6 +93,7 @@ export async function GET(req: NextRequest) {
           crime: { select: { id: true, nome: true } },
           brigada: { select: { id: true, nome: true } },
           inspetor: { select: { id: true, nome: true } },
+          etiquetas: { select: { id: true, nome: true, cor: true } },
           _count: { select: { atividades: true } },
         },
       }),
@@ -151,6 +154,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate etiquetas (if any) exist and are active.
+    const etiquetaIds = [...new Set(data.etiquetaIds ?? [])]
+    let etiquetaNomes: string[] = []
+    if (etiquetaIds.length > 0) {
+      const found = await prisma.etiqueta.findMany({
+        where: { id: { in: etiquetaIds }, ativo: true },
+        select: { id: true, nome: true },
+      })
+      if (found.length !== etiquetaIds.length) {
+        return apiError('Uma ou mais etiquetas são inválidas ou inativas', 400)
+      }
+      etiquetaNomes = found.map((e) => e.nome)
+    }
+
+    // Auto-transition: creating an inquérito already assigned to a brigada or
+    // inspector while in ABERTO → move directly to DISTRIBUIDO.
+    let finalEstadoId = data.estadoId
+    if ((inspetorId || data.brigadaId) && estado.codigo === 'ABERTO') {
+      const distribuido = await getDistribuidoEstado()
+      if (distribuido?.ativo) {
+        finalEstadoId = distribuido.id
+        // Reflect the effective estado in the local reference used below.
+        Object.assign(estado, distribuido)
+      }
+    }
+
     const inquerito = await prisma.inquerito.create({
       data: {
         nuipc: data.nuipc,
@@ -158,7 +187,7 @@ export async function POST(req: NextRequest) {
         // natureza is denormalized from crime.nome while the legacy column still exists
         natureza: crime.nome,
         crimeId: crime.id,
-        estadoId: data.estadoId,
+        estadoId: finalEstadoId,
         dataAbertura: new Date(data.dataAbertura),
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,
@@ -180,6 +209,9 @@ export async function POST(req: NextRequest) {
         denuncianteEmail: data.denuncianteEmail?.trim() || null,
         denuncianteResponsavel: data.denuncianteResponsavel?.trim() || null,
         denuncianteNotas: data.denuncianteNotas?.trim() || null,
+        ...(etiquetaIds.length > 0 && {
+          etiquetas: { connect: etiquetaIds.map((id) => ({ id })) },
+        }),
       },
     })
 
@@ -195,6 +227,7 @@ export async function POST(req: NextRequest) {
         estadoCodigo: estado.codigo,
         brigadaId: inquerito.brigadaId,
         inspetorId: inquerito.inspetorId ?? null,
+        ...(etiquetaNomes.length > 0 && { etiquetas: etiquetaNomes }),
       },
     })
 

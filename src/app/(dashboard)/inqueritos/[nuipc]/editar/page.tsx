@@ -5,6 +5,7 @@ import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { InqueritoForm } from '@/components/inqueritos/inquerito-form'
 import { listEstados } from '@/lib/estados'
+import { listEtiquetas } from '@/lib/etiquetas'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -27,6 +28,7 @@ export default async function EditarInqueritoPage({
 
   const inquerito = await prisma.inquerito.findFirst({
     where: { nuipc, ...roleWhere },
+    include: { etiquetas: { select: { id: true } } },
   })
 
   if (!inquerito) {
@@ -67,7 +69,7 @@ export default async function EditarInqueritoPage({
     )
   }
 
-  const [brigadas, inspetores, estados, crimes] = await Promise.all([
+  const [brigadas, inspetores, estados, crimes, etiquetas] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -83,6 +85,7 @@ export default async function EditarInqueritoPage({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, ativo: true },
     }),
+    listEtiquetas(),
   ])
 
   const formatForInput = (d: Date | null) =>
@@ -114,8 +117,10 @@ export default async function EditarInqueritoPage({
         inspetores={inspetores}
         estados={estados}
         crimes={crimes}
+        etiquetas={etiquetas}
         defaultValues={{
           nuipc: inquerito.nuipc,
+          etiquetaIds: inquerito.etiquetas.map((e) => e.id),
           nai: inquerito.nai ?? undefined,
           crimeId: inquerito.crimeId ?? '',
           estadoId: inquerito.estadoId,

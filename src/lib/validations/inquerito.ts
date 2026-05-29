@@ -24,6 +24,8 @@ export const inqueritoSchema = z
     notas: z.string().optional().nullable(),
     brigadaId: z.string().min(1, 'Brigada obrigatória'),
     inspetorId: z.string().optional().nullable(),
+    // Etiquetas (tags) atribuídas — array de ids do catálogo Etiqueta.
+    etiquetaIds: z.array(z.string()).optional(),
     // Tribunal / Ministério Público — all optional
     tribunal: z.string().max(200).optional().nullable(),
     procurador: z.string().max(200).optional().nullable(),

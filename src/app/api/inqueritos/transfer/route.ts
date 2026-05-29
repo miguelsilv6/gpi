@@ -5,6 +5,7 @@ import { checkPermission, handleApiError, apiError } from '@/lib/auth-helpers'
 import { getRequestInfo } from '@/lib/request-info'
 import { notifyInqueritoTransferido } from '@/lib/notifications'
 import { nuipcToSlug } from '@/lib/utils'
+import { getDistribuidoEstado } from '@/lib/estados'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -54,10 +55,18 @@ export async function POST(req: NextRequest) {
 
     const { ip, userAgent } = getRequestInfo(req)
 
+    // Auto-transition: transferring an ABERTO inquérito to a brigada → DISTRIBUIDO.
+    const distribuidoEstado =
+      inquerito.estado.codigo === 'ABERTO' ? await getDistribuidoEstado() : null
+
     const updated = await prisma.$transaction(async (tx) => {
       const u = await tx.inquerito.update({
         where: { nuipc },
-        data: { brigadaId, inspetorId: null },
+        data: {
+          brigadaId,
+          inspetorId: null,
+          ...(distribuidoEstado?.ativo ? { estadoId: distribuidoEstado.id } : {}),
+        },
       })
       await tx.auditLog.create({
         data: {
@@ -71,6 +80,7 @@ export async function POST(req: NextRequest) {
             from: { brigadaId: inquerito.brigadaId, nome: brigadaOrigem?.nome ?? null },
             to: { brigadaId, nome: brigadaDestino.nome },
             inspetorRemovido: inquerito.inspetorId,
+            ...(distribuidoEstado?.ativo ? { estadoNovo: distribuidoEstado.codigo } : {}),
           } as never,
         },
       })
