@@ -30,9 +30,15 @@ export async function GET(req: NextRequest) {
     const { dataInicio, dataFim } = parsed.data
     const inspetorId = session.user.id
 
-    const where = {
+    // Base scope sem filtro de data — usada pelos contadores "actuais"
+    // (Aguarda Exames / Enviados), que refletem o estado presente e não um
+    // período (alinhado com /api/estatisticas).
+    const scopeWhere = {
       deletedAt: null,
       inspetorId,
+    }
+    const where = {
+      ...scopeWhere,
       ...(dataInicio || dataFim
         ? {
             dataAbertura: {
@@ -80,7 +86,7 @@ export async function GET(req: NextRequest) {
         ? Promise.resolve(0)
         : prisma.inquerito.count({
             where: {
-              ...where,
+              ...scopeWhere,
               estado: { terminal: false },
               atividades: { some: { descricao: { in: nomesAguardaExames }, concluidaEm: null } },
             },
@@ -89,7 +95,7 @@ export async function GET(req: NextRequest) {
         ? Promise.resolve(0)
         : prisma.inquerito.count({
             where: {
-              ...where,
+              ...scopeWhere,
               estado: { terminal: false },
               atividades: { some: { descricao: { in: nomesEnviados }, concluidaEm: null } },
             },
