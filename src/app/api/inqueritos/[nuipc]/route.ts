@@ -171,20 +171,27 @@ export async function PUT(
       }
     }
 
-    // Crimes associados: deduplicate, exclude primary crime, validate existence.
+    const existingCrimeAssociadosIds = new Set(existing.crimesAssociados.map((c) => c.id))
+
+    // Crimes associados: deduplicate, exclude primary crime, validate existence and ativo.
     const crimeIdsAssociados = [
       ...new Set((data.crimeIdsAssociados ?? []).filter((id) => id !== targetCrime.id)),
     ]
     if (crimeIdsAssociados.length > 0) {
       const foundAssociados = await prisma.crime.findMany({
         where: { id: { in: crimeIdsAssociados } },
-        select: { id: true },
+        select: { id: true, ativo: true },
       })
       if (foundAssociados.length !== crimeIdsAssociados.length) {
         return apiError('Um ou mais crimes associados não existem', 400)
       }
+      const hasInactiveNew = foundAssociados.some(
+        (c) => !c.ativo && !existingCrimeAssociadosIds.has(c.id),
+      )
+      if (hasInactiveNew) {
+        return apiError('Não é possível associar novos crimes que estejam inativos', 400)
+      }
     }
-    const existingCrimeAssociadosIds = new Set(existing.crimesAssociados.map((c) => c.id))
     const crimesAssociadosMudaram =
       existingCrimeAssociadosIds.size !== crimeIdsAssociados.length ||
       crimeIdsAssociados.some((id) => !existingCrimeAssociadosIds.has(id))

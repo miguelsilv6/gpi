@@ -56,6 +56,9 @@ export function CrimeInput({ value, onChange, crimes, excludeId }: CrimeInputPro
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+    }
     if (e.key === 'Backspace' && !text && value.length > 0) {
       removeId(value[value.length - 1])
     }
@@ -91,7 +94,7 @@ export function CrimeInput({ value, onChange, crimes, excludeId }: CrimeInputPro
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
           onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 200)}
+          onBlur={() => setFocused(false)}
           placeholder="Pesquisar crime para associar…"
           aria-label="Adicionar crime associado"
         />
@@ -101,7 +104,10 @@ export function CrimeInput({ value, onChange, crimes, excludeId }: CrimeInputPro
               <button
                 key={c.id}
                 type="button"
-                onClick={() => addId(c.id)}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  addId(c.id)
+                }}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent"
               >
                 <Scale className="h-3.5 w-3.5 opacity-70" />
