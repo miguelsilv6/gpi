@@ -75,6 +75,11 @@ export function SidebarNav({ role, onNavigate }: SidebarNavProps) {
         <p className="text-[11px] text-muted-foreground leading-none">
           Versão <span className="font-mono">{APP_VERSION}</span>
         </p>
+        {brand.appAuthor && (
+          <p className="text-[11px] text-muted-foreground leading-none mt-1 truncate" title={brand.appAuthor}>
+            {brand.appAuthor}
+          </p>
+        )}
       </div>
     </div>
   )

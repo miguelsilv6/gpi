@@ -14,6 +14,7 @@ export const BRAND_DEFAULTS = {
   appDescription: 'Gestão de Processos de Investigação',
   manifestDescription: 'Plataforma de gestão de inquéritos criminais',
   pdfFooterText: 'GPI · Gestão de Processos de Investigação',
+  appAuthor: '' as string,
   logoLightFilename: null as string | null,
   logoDarkFilename: null as string | null,
   faviconFilename: null as string | null,
@@ -26,6 +27,7 @@ export type Brand = {
   appDescription: string
   manifestDescription: string
   pdfFooterText: string
+  appAuthor: string
   logoLightFilename: string | null
   logoDarkFilename: string | null
   faviconFilename: string | null
