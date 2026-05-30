@@ -80,8 +80,7 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground text-sm">
-          Bem-vindo, {session.user.nome} ·{' '}
-          <span className="font-medium">{ROLE_LABELS[role]}</span>
+          Bem-vindo <span className="font-medium">{ROLE_LABELS[role]}</span> {session.user.nome}
         </p>
       </div>
 
