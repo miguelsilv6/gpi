@@ -65,7 +65,11 @@ export async function PUT(
 
     const existing = await prisma.inquerito.findUnique({
       where: { nuipc },
-      include: { estado: ESTADO_INCLUDE, etiquetas: { select: { id: true, nome: true } } },
+      include: {
+        estado: ESTADO_INCLUDE,
+        etiquetas: { select: { id: true, nome: true } },
+        crimesAssociados: { select: { id: true, nome: true } },
+      },
     })
     if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
 
@@ -167,6 +171,31 @@ export async function PUT(
       }
     }
 
+    const existingCrimeAssociadosIds = new Set(existing.crimesAssociados.map((c) => c.id))
+
+    // Crimes associados: deduplicate, exclude primary crime, validate existence and ativo.
+    const crimeIdsAssociados = [
+      ...new Set((data.crimeIdsAssociados ?? []).filter((id) => id !== targetCrime.id)),
+    ]
+    if (crimeIdsAssociados.length > 0) {
+      const foundAssociados = await prisma.crime.findMany({
+        where: { id: { in: crimeIdsAssociados } },
+        select: { id: true, ativo: true },
+      })
+      if (foundAssociados.length !== crimeIdsAssociados.length) {
+        return apiError('Um ou mais crimes associados não existem', 400)
+      }
+      const hasInactiveNew = foundAssociados.some(
+        (c) => !c.ativo && !existingCrimeAssociadosIds.has(c.id),
+      )
+      if (hasInactiveNew) {
+        return apiError('Não é possível associar novos crimes que estejam inativos', 400)
+      }
+    }
+    const crimesAssociadosMudaram =
+      existingCrimeAssociadosIds.size !== crimeIdsAssociados.length ||
+      crimeIdsAssociados.some((id) => !existingCrimeAssociadosIds.has(id))
+
     // Auto-transition: inspector newly assigned on an ABERTO inquérito, and
     // the user hasn't explicitly chosen a different estado → set DISTRIBUIDO.
     let finalEstadoId = data.estadoId
@@ -213,8 +242,12 @@ export async function PUT(
         denuncianteResponsavel: data.denuncianteResponsavel?.trim() || null,
         denuncianteNotas: data.denuncianteNotas?.trim() || null,
         etiquetas: { set: etiquetaIds.map((id) => ({ id })) },
+        crimesAssociados: { set: crimeIdsAssociados.map((id) => ({ id })) },
       },
-      include: { etiquetas: { select: { id: true, nome: true } } },
+      include: {
+        etiquetas: { select: { id: true, nome: true } },
+        crimesAssociados: { select: { id: true, nome: true } },
+      },
     })
 
     // Etiqueta change detection (diff() only covers scalars). Compare by id set.
@@ -301,7 +334,10 @@ export async function PUT(
       'denuncianteNotas',
     ])
 
-    if (changes || etiquetasMudaram) {
+    const crimesAssociadosBefore = existing.crimesAssociados.map((c) => c.nome)
+    const crimesAssociadosAfter = updated.crimesAssociados.map((c) => c.nome)
+
+    if (changes || etiquetasMudaram || crimesAssociadosMudaram) {
       await writeAudit({
         req,
         acao: 'UPDATE_INQUERITO',
@@ -311,6 +347,7 @@ export async function PUT(
         detalhes: {
           ...(changes ?? {}),
           ...(etiquetasMudaram && { etiquetasBefore, etiquetasAfter }),
+          ...(crimesAssociadosMudaram && { crimesAssociadosBefore, crimesAssociadosAfter }),
         } as never,
       })
     }

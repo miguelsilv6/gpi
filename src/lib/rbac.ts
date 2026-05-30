@@ -35,6 +35,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
   INSPETOR: [
     'inquerito:read:own',
     'inquerito:edit:own',
+    'inquerito:export',
     'atividade:create:own',
     'prazo:read:own',
     'estatistica:own',

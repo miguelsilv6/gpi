@@ -18,6 +18,7 @@ import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils
 import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
+import { CopyNuipcButton } from '@/components/inqueritos/copy-nuipc-button'
 
 const ATIVIDADES_PAGE_SIZE = 50
 
@@ -46,6 +47,7 @@ export default async function InqueritoDetailPage({
       brigada: { select: { id: true, nome: true } },
       inspetor: { select: { id: true, nome: true, email: true } },
       etiquetas: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
+      crimesAssociados: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
       _count: { select: { atividades: true } },
     },
   })
@@ -145,6 +147,10 @@ export default async function InqueritoDetailPage({
       canEdit &&
       !terminal &&
       (role === 'INSPETOR' ? atv.realizadaPor.id === session.user.id : true)
+    // Inspectors can conclude (confirm devolução/exame) activities created by
+    // anyone — they don't need to be the creator to mark the outcome. Edit and
+    // delete remain restricted to the creator via canMutate.
+    const canConclude = canEdit && !terminal
     return {
       id: atv.id,
       descricao: atv.descricao,
@@ -157,6 +163,7 @@ export default async function InqueritoDetailPage({
       realizadaPor: atv.realizadaPor,
       conclusaoMode,
       canMutate,
+      canConclude,
       isOverdue: atv.dataPrazo ? isOverdue(atv.dataPrazo) && atv.concluidaEm == null : false,
     }
   })
@@ -186,7 +193,7 @@ export default async function InqueritoDetailPage({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold font-mono tracking-tight">{inquerito.nuipc}</h1>
+            <CopyNuipcButton nuipc={inquerito.nuipc} />
             {overdue && (
               <span className="flex items-center gap-1 text-red-600 text-sm font-medium">
                 <AlertTriangle className="h-4 w-4" />
@@ -202,6 +209,19 @@ export default async function InqueritoDetailPage({
           <p className="text-muted-foreground mt-1">
             {inquerito.crime?.nome ?? inquerito.natureza}
           </p>
+          {inquerito.crimesAssociados.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {inquerito.crimesAssociados.map((c) => (
+                <span
+                  key={c.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border"
+                  title="Crime associado"
+                >
+                  {c.nome}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <EstadoBadge estado={inquerito.estado} />
             <EtiquetaList etiquetas={inquerito.etiquetas} max={inquerito.etiquetas.length} />

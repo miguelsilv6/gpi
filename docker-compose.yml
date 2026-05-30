@@ -45,10 +45,40 @@ services:
       SMTP_FROM_NAME: 'GPI Sistema'
       SMTP_FROM_EMAIL: 'noreply@gpi.pt'
       CRON_SECRET: ${CRON_SECRET}
+      GITHUB_REPO: ${GITHUB_REPO:-miguelsilv6/gestao-projetos}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     ports:
       - '3000:3000'
     volumes:
       - ./backups:/app/backups
+      # Canal de controlo partilhado com o worker (e com o host daemon em prod).
+      # O API escreve update.request.json; o worker lê update.status.json.
+      - ./control:/app/control
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: gpi_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://gpi_user:${POSTGRES_PASSWORD:-gpi_password}@postgres:5432/gpi_db
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_SECURE: 'false'
+      SMTP_USER: ''
+      SMTP_PASS: ''
+      SMTP_FROM_NAME: 'GPI Sistema'
+      SMTP_FROM_EMAIL: 'noreply@gpi.pt'
+      CRON_SECRET: ${CRON_SECRET}
+      GITHUB_REPO: ${GITHUB_REPO:-miguelsilv6/gestao-projetos}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    volumes:
+      - ./backups:/app/backups
+      - ./control:/app/control
 
 volumes:
   postgres_data:

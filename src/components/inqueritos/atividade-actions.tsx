@@ -29,6 +29,10 @@ interface Props {
   concluidaEm: string | null
   /** Which kind of conclude control to render (or hide). */
   conclusaoMode: ConclusaoMode
+  /** Whether to show the edit and delete buttons. */
+  canEdit?: boolean
+  /** Whether to show the conclude button (may differ from canEdit for inspectors). */
+  canConclude?: boolean
 }
 
 const TEXT_LABELS: Record<Exclude<ConclusaoMode, null | 'prazo'>, string> = {
@@ -42,6 +46,8 @@ export function AtividadeActions({
   inqueritoSlug,
   concluidaEm,
   conclusaoMode,
+  canEdit = true,
+  canConclude = true,
 }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -98,7 +104,7 @@ export function AtividadeActions({
   // - 'prazo' + not concluida → icon-only Check button
   // - 'devolucao'|'exame' + not concluida → text button
   let concluirControl: React.ReactNode = null
-  if (conclusaoMode !== null) {
+  if (canConclude && conclusaoMode !== null) {
     if (isConcluida) {
       concluirControl = (
         <button
@@ -145,23 +151,27 @@ export function AtividadeActions({
     <>
       <div className="flex items-center gap-1 shrink-0">
         {concluirControl}
-        <Link
-          href={`/inqueritos/${inqueritoSlug}/atividade/${atividadeId}/editar`}
-          className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
-          title="Editar atividade"
-          aria-label="Editar atividade"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Link>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
-          title="Eliminar atividade"
-          aria-label="Eliminar atividade"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        {canEdit && (
+          <>
+            <Link
+              href={`/inqueritos/${inqueritoSlug}/atividade/${atividadeId}/editar`}
+              className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+              title="Editar atividade"
+              aria-label="Editar atividade"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
+              title="Eliminar atividade"
+              aria-label="Eliminar atividade"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
       </div>
       <ConfirmDeleteDialog
         open={open}

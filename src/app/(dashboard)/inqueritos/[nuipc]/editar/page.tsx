@@ -28,7 +28,10 @@ export default async function EditarInqueritoPage({
 
   const inquerito = await prisma.inquerito.findFirst({
     where: { nuipc, ...roleWhere },
-    include: { etiquetas: { select: { id: true, nome: true } } },
+    include: {
+      etiquetas: { select: { id: true, nome: true } },
+      crimesAssociados: { select: { id: true, nome: true, ativo: true } },
+    },
   })
 
   if (!inquerito) {
@@ -119,9 +122,11 @@ export default async function EditarInqueritoPage({
         crimes={crimes}
         etiquetasDisponiveis={etiquetasDisponiveis}
         etiquetasAtribuidas={inquerito.etiquetas}
+        crimesAssociadosIniciais={inquerito.crimesAssociados}
         defaultValues={{
           nuipc: inquerito.nuipc,
           etiquetaIds: inquerito.etiquetas.map((e) => e.id),
+          crimeIdsAssociados: inquerito.crimesAssociados.map((c) => c.id),
           nai: inquerito.nai ?? undefined,
           crimeId: inquerito.crimeId ?? '',
           estadoId: inquerito.estadoId,

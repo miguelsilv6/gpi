@@ -58,7 +58,9 @@ export async function GET(req: NextRequest) {
         ],
       }),
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
-      ...(crimeId && { crimeId }),
+      ...(crimeId && {
+        AND: [{ OR: [{ crimeId }, { crimesAssociados: { some: { id: crimeId } } }] }],
+      }),
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
       ...(etiquetaId && { etiquetas: { some: { id: etiquetaId } } }),
@@ -91,6 +93,7 @@ export async function GET(req: NextRequest) {
         nuipc: true,
         natureza: true,
         crime: { select: { nome: true } },
+        crimesAssociados: { select: { nome: true }, orderBy: { nome: 'asc' } },
         estado: { select: { codigo: true, nome: true } },
         dataAbertura: true,
         dataPrazo: true,
@@ -115,7 +118,8 @@ export async function GET(req: NextRequest) {
 
     const headers = [
       'NUIPC',
-      'Crime',
+      'Crime Principal',
+      'Crimes Associados',
       'Estado',
       'Data Abertura',
       'Prazo',
@@ -126,6 +130,7 @@ export async function GET(req: NextRequest) {
     const rows = inqueritos.map((i) => [
       i.nuipc,
       i.crime?.nome ?? i.natureza,
+      i.crimesAssociados.map((c) => c.nome).join('; '),
       i.estado.nome,
       i.dataAbertura ? new Date(i.dataAbertura).toLocaleDateString('pt-PT') : '',
       i.dataPrazo ? new Date(i.dataPrazo).toLocaleDateString('pt-PT') : '',

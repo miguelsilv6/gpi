@@ -21,6 +21,9 @@ export interface AtividadeItem {
   realizadaPor: { id: string; nome: string }
   conclusaoMode: ConclusaoMode
   canMutate: boolean
+  /** Can mark the activity as concluded (devolução/exame/prazo). Wider than
+   *  canMutate — inspectors can conclude activities they didn't create. */
+  canConclude: boolean
   isOverdue: boolean
 }
 
@@ -98,7 +101,9 @@ export function AtividadesSection({
               {atividades.map((atv, idx) => {
                 const concluida = atv.concluidaEm != null
                 const atvOverdue = atv.isOverdue
-                const showActions = editMode && atv.canMutate
+                const showEditDelete = editMode && atv.canMutate
+                const showConclude = editMode && atv.canConclude
+                const showActions = showEditDelete || showConclude
 
                 return (
                   <div key={atv.id}>
@@ -124,6 +129,8 @@ export function AtividadesSection({
                                 inqueritoSlug={inqSlug}
                                 concluidaEm={atv.concluidaEm}
                                 conclusaoMode={atv.conclusaoMode}
+                                canEdit={showEditDelete}
+                                canConclude={showConclude}
                               />
                             </div>
                           )}

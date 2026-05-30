@@ -47,7 +47,9 @@ export async function GET(req: NextRequest) {
         ],
       }),
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
-      ...(crimeId && { crimeId }),
+      ...(crimeId && {
+        AND: [{ OR: [{ crimeId }, { crimesAssociados: { some: { id: crimeId } } }] }],
+      }),
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
       ...(etiquetaId && { etiquetas: { some: { id: etiquetaId } } }),
@@ -91,6 +93,7 @@ export async function GET(req: NextRequest) {
         include: {
           estado: { select: { id: true, codigo: true, nome: true, cor: true, terminal: true } },
           crime: { select: { id: true, nome: true } },
+          crimesAssociados: { select: { id: true, nome: true } },
           brigada: { select: { id: true, nome: true } },
           inspetor: { select: { id: true, nome: true } },
           etiquetas: { select: { id: true, nome: true } },
@@ -154,6 +157,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate crimes associados (if any): must exist and be active.
+    // Deduplicate and exclude the primary crime to avoid redundancy.
+    const crimeIdsAssociados = [...new Set((data.crimeIdsAssociados ?? []).filter((id) => id !== crime.id))]
+    if (crimeIdsAssociados.length > 0) {
+      const foundAssociados = await prisma.crime.findMany({
+        where: { id: { in: crimeIdsAssociados }, ativo: true },
+        select: { id: true },
+      })
+      if (foundAssociados.length !== crimeIdsAssociados.length) {
+        return apiError('Um ou mais crimes associados são inválidos ou inativos', 400)
+      }
+    }
+
     // Validate etiquetas (if any): must be the current user's own personal tags.
     const etiquetaIds = [...new Set(data.etiquetaIds ?? [])]
     let etiquetaNomes: string[] = []
@@ -212,6 +228,9 @@ export async function POST(req: NextRequest) {
         ...(etiquetaIds.length > 0 && {
           etiquetas: { connect: etiquetaIds.map((id) => ({ id })) },
         }),
+        ...(crimeIdsAssociados.length > 0 && {
+          crimesAssociados: { connect: crimeIdsAssociados.map((id) => ({ id })) },
+        }),
       },
     })
 
@@ -228,6 +247,7 @@ export async function POST(req: NextRequest) {
         brigadaId: inquerito.brigadaId,
         inspetorId: inquerito.inspetorId ?? null,
         ...(etiquetaNomes.length > 0 && { etiquetas: etiquetaNomes }),
+        ...(crimeIdsAssociados.length > 0 && { crimesAssociados: crimeIdsAssociados }),
       },
     })
 

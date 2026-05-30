@@ -94,11 +94,8 @@ describe('hasPermission', () => {
   })
 
   describe('permissions de exportação', () => {
-    test('INSPETOR não exporta', () => {
-      expect(hasPermission('INSPETOR', 'inquerito:export')).toBe(false)
-    })
-
-    test('INSPETOR_CHEFE em diante exporta', () => {
+    test('todos os roles exportam (INSPETOR incluído, scoped aos seus próprios inquéritos)', () => {
+      expect(hasPermission('INSPETOR', 'inquerito:export')).toBe(true)
       expect(hasPermission('INSPETOR_CHEFE', 'inquerito:export')).toBe(true)
       expect(hasPermission('COORDENADOR', 'inquerito:export')).toBe(true)
       expect(hasPermission('ESTATISTICA', 'inquerito:export')).toBe(true)

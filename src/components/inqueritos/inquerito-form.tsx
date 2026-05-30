@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { inqueritoSchema, type InqueritoFormData } from '@/lib/validations/inquerito'
 import { nuipcToSlug } from '@/lib/utils'
 import { EtiquetaInput } from './etiqueta-input'
+import { CrimeInput } from './crime-input'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { Loader2 } from 'lucide-react'
 
@@ -33,6 +34,8 @@ interface InqueritoFormProps {
   etiquetasDisponiveis: Etiqueta[]
   /** Etiquetas já aplicadas ao inquérito (modo edição), para render inicial. */
   etiquetasAtribuidas?: Etiqueta[]
+  /** Crimes já associados ao inquérito (modo edição) — inclui inativos. */
+  crimesAssociadosIniciais?: Crime[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
 }
@@ -45,6 +48,7 @@ export function InqueritoForm({
   crimes,
   etiquetasDisponiveis,
   etiquetasAtribuidas = [],
+  crimesAssociadosIniciais = [],
   nuipcOriginal,
   mode,
 }: InqueritoFormProps) {
@@ -118,6 +122,17 @@ export function InqueritoForm({
   const selectedInspetorId = watch('inspetorId')
   const selectedCrimeId = watch('crimeId')
   const selectedEtiquetaIds = watch('etiquetaIds') ?? []
+  const selectedCrimeIdsAssociados = watch('crimeIdsAssociados') ?? []
+
+  // Merge edit-mode initially-assigned associated crimes (may include deactivated)
+  // with the active catalog so the CrimeInput can resolve names and deactivated labels.
+  const crimesForAssociados = useMemo(() => {
+    const known = new Map(crimes.map((c) => [c.id, c]))
+    for (const c of crimesAssociadosIniciais) {
+      if (!known.has(c.id)) known.set(c.id, c)
+    }
+    return Array.from(known.values())
+  }, [crimes, crimesAssociadosIniciais])
 
   const filteredInspetores = useMemo(
     () => inspetores.filter((i) => i.brigadaId === selectedBrigadaId),
@@ -206,6 +221,19 @@ export function InqueritoForm({
             {errors.crimeId && (
               <p className="text-xs text-red-600">{errors.crimeId.message}</p>
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Crimes associados</Label>
+            <CrimeInput
+              value={selectedCrimeIdsAssociados}
+              onChange={(ids) => setValue('crimeIdsAssociados', ids, { shouldDirty: true })}
+              crimes={crimesForAssociados}
+              excludeId={selectedCrimeId}
+            />
+            <p className="text-xs text-muted-foreground">
+              Outros crimes presentes no mesmo inquérito. O crime principal é o único contabilizado nas estatísticas.
+            </p>
           </div>
 
           <div className="space-y-1.5">

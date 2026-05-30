@@ -1,19 +1,23 @@
 name: Release
 
-# Publica automaticamente uma GitHub Release quando a versão em
-# package.json muda em main. A funcionalidade de auto-update da app
-# (verificação a /releases/latest a cada 30 min) passa a detetar a nova
-# versão nas instâncias deployed.
+# Cria uma GitHub Release quando alguém faz bump MANUAL da versão em
+# package.json num PR e o merge para main acontece.
 #
-# Fluxo de release: bump do campo "version" em package.json dentro de um
-# PR → merge para main → este workflow cria a tag vX.Y.Z + GitHub Release
-# com notas auto-geradas. Se a versão não mudou (tag já existe), não faz
-# nada. Por isso nem todos os merges geram release — só os que sobem a
-# versão (release discipline intencional).
+# NOTA: o fluxo automático (merge normal sem bump manual) é tratado por
+# auto-version.yml, que faz o bump e cria a release no mesmo job.
+# Este workflow NÃO é acionado pelo commit de bump do auto-version.yml
+# porque esse commit usa GITHUB_TOKEN (o GitHub não dispara workflows
+# a partir de pushes com GITHUB_TOKEN para evitar loops).
+#
+# Se a versão não mudou (tag já existe), não faz nada — idempotente.
 
 on:
   push:
     branches: [main]
+
+# Ignora commits do auto-bump para evitar duplicados (o auto-version.yml
+# já criou a release no mesmo job que fez o bump).
+
 
 permissions:
   contents: write
@@ -22,6 +26,10 @@ jobs:
   release:
     name: Tag + GitHub Release on version bump
     runs-on: ubuntu-latest
+    # O auto-version.yml já cria a release para os seus próprios bumps.
+    # Esta guard é defensiva — o push de chore(version): usa GITHUB_TOKEN e
+    # não dispara este workflow de qualquer forma.
+    if: "!startsWith(github.event.head_commit.message, 'chore(version):')"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

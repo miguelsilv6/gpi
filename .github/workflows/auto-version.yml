@@ -1,9 +1,14 @@
 name: Auto-bump patch version on merge
 
 # Incrementa automaticamente a versão patch em package.json e
-# package-lock.json sempre que um PR é merged para main.
-# O commit de bump aciona o release.yml existente, que cria a GitHub
-# Release correspondente.
+# package-lock.json sempre que um PR é merged para main, e cria a
+# GitHub Release correspondente no mesmo job.
+#
+# IMPORTANTE: o push de bump usa GITHUB_TOKEN, o que significa que o
+# GitHub NÃO dispara outros workflows a partir desse push (medida de
+# segurança do GitHub Actions para evitar loops). Por isso a release
+# tem de ser criada aqui — o release.yml NÃO será acionado pelo commit
+# deste workflow.
 #
 # Loop prevention: o job é ignorado se o commit que disparou o push já
 # for o próprio bump (mensagem começa com "chore(version):").
@@ -17,7 +22,7 @@ permissions:
 
 jobs:
   bump:
-    name: Bump patch version
+    name: Bump patch version + create release
     runs-on: ubuntu-latest
     if: "!startsWith(github.event.head_commit.message, 'chore(version):')"
 
@@ -27,6 +32,7 @@ jobs:
           # Token com permissão de escrita para poder fazer push de volta
           # para main sem acionar um loop de workflows.
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Configure git identity
         run: |
@@ -55,3 +61,11 @@ jobs:
           git add package.json package-lock.json
           git commit -m "chore(version): ${{ steps.bump.outputs.version }}"
           git push
+
+      - name: Criar GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.bump.outputs.version }}" \
+            --title "v${{ steps.bump.outputs.version }}" \
+            --generate-notes
