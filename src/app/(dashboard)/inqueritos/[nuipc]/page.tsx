@@ -47,6 +47,7 @@ export default async function InqueritoDetailPage({
       brigada: { select: { id: true, nome: true } },
       inspetor: { select: { id: true, nome: true, email: true } },
       etiquetas: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
+      crimesAssociados: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
       _count: { select: { atividades: true } },
     },
   })
@@ -208,6 +209,19 @@ export default async function InqueritoDetailPage({
           <p className="text-muted-foreground mt-1">
             {inquerito.crime?.nome ?? inquerito.natureza}
           </p>
+          {inquerito.crimesAssociados.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {inquerito.crimesAssociados.map((c) => (
+                <span
+                  key={c.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border"
+                  title="Crime associado"
+                >
+                  {c.nome}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <EstadoBadge estado={inquerito.estado} />
             <EtiquetaList etiquetas={inquerito.etiquetas} max={inquerito.etiquetas.length} />

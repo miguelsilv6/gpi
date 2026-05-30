@@ -119,8 +119,12 @@ model Inquerito {
   inspetor   Utilizador? @relation("InspetorAtribuido", fields: [inspetorId], references: [id])
   inspetorId String?
 
-  crime    Crime?  @relation(fields: [crimeId], references: [id])
+  crime    Crime?  @relation("CrimePrincipal", fields: [crimeId], references: [id])
   crimeId  String?
+  // Crimes adicionais (m2m implícita). Não contam para estatísticas —
+  // só o crime principal (crimeId) entra nos agrupamentos por crime,
+  // garantindo que um inquérito nunca é contado mais de uma vez.
+  crimesAssociados Crime[] @relation("CrimesAssociados")
 
   // Etiquetas (tags) pessoais aplicadas ao inquérito. Relação m2m implícita —
   // o join table `_EtiquetaToInquerito` é gerido pelo Prisma.
@@ -169,7 +173,8 @@ model Crime {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  inqueritos Inquerito[]
+  inqueritos          Inquerito[] @relation("CrimePrincipal")
+  inqueritoAssociados Inquerito[] @relation("CrimesAssociados")
 
   @@index([ativo, ordem])
 }

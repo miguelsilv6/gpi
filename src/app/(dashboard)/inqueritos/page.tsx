@@ -84,7 +84,9 @@ export default async function InqueritosPage({
     ...(estadoCodigos.length > 0 && {
       estado: { codigo: { in: estadoCodigos } },
     }),
-    ...(sp.crimeId && { crimeId: sp.crimeId }),
+    ...(sp.crimeId && {
+      AND: [{ OR: [{ crimeId: sp.crimeId }, { crimesAssociados: { some: { id: sp.crimeId } } }] }],
+    }),
     ...(sp.brigadaId && { brigadaId: sp.brigadaId }),
     ...(sp.inspetorId && { inspetorId: sp.inspetorId }),
     ...(sp.etiquetaId && { etiquetas: { some: { id: sp.etiquetaId } } }),

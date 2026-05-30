@@ -26,6 +26,9 @@ export const inqueritoSchema = z
     inspetorId: z.string().optional().nullable(),
     // Etiquetas (tags) atribuídas — array de ids do catálogo Etiqueta.
     etiquetaIds: z.array(z.string()).optional(),
+    // Crimes adicionais associados — array de ids do catálogo Crime.
+    // Não devem incluir o crimeId principal; o servidor filtra duplicados.
+    crimeIdsAssociados: z.array(z.string()).optional(),
     // Tribunal / Ministério Público — all optional
     tribunal: z.string().max(200).optional().nullable(),
     procurador: z.string().max(200).optional().nullable(),

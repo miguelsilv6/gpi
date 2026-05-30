@@ -39,7 +39,9 @@ export const queryInqueritos: RelatorioHandler = async (filters, session) => {
     ...(dataAberturaRange && { dataAbertura: dataAberturaRange }),
     ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
     ...(brigadaId && { brigadaId }),
-    ...(crimeId && { crimeId }),
+    ...(crimeId && {
+      AND: [{ OR: [{ crimeId }, { crimesAssociados: { some: { id: crimeId } } }] }],
+    }),
     ...(inspetorId && { inspetorId }),
     // roleWhere LAST: garante que INSPETOR_CHEFE/INSPETOR não escapam ao
     // scope da brigada/utilizador via injecção de ?brigadaId/?inspetorId
@@ -64,6 +66,7 @@ export const queryInqueritos: RelatorioHandler = async (filters, session) => {
       nai: true,
       natureza: true,
       crime: { select: { nome: true } },
+      crimesAssociados: { select: { nome: true }, orderBy: { nome: 'asc' } },
       estado: { select: { codigo: true, nome: true } },
       brigada: { select: { nome: true } },
       inspetor: { select: { nome: true } },
@@ -90,6 +93,7 @@ export const queryInqueritos: RelatorioHandler = async (filters, session) => {
     nuipc: i.nuipc,
     nai: i.nai ?? '',
     crime: i.crime?.nome ?? i.natureza ?? '',
+    crimesAssociados: i.crimesAssociados.map((c) => c.nome).join('; '),
     estado: i.estado.nome,
     brigada: i.brigada?.nome ?? '',
     inspetor: i.inspetor?.nome ?? '— Sem inspetor —',
@@ -112,9 +116,10 @@ export const queryInqueritos: RelatorioHandler = async (filters, session) => {
     },
     columns: [
       { key: 'nuipc', label: 'NUIPC', flex: 1.1 },
-      { key: 'nai', label: 'NAI', flex: 0.8 },
-      { key: 'crime', label: 'Crime', flex: 1.8 },
-      { key: 'estado', label: 'Estado', flex: 1.0 },
+      { key: 'nai', label: 'NAI', flex: 0.7 },
+      { key: 'crime', label: 'Crime Principal', flex: 1.4 },
+      { key: 'crimesAssociados', label: 'Crimes Associados', flex: 1.2 },
+      { key: 'estado', label: 'Estado', flex: 0.9 },
       { key: 'brigada', label: 'Brigada', flex: 1.1 },
       { key: 'inspetor', label: 'Inspetor', flex: 1.1 },
       { key: 'dataAbertura', label: 'Data Abertura', flex: 0.85 },
