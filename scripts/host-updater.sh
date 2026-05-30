@@ -215,10 +215,17 @@ log "checkout OK: $TO_SHA"
 
 # ── MIGRATING ──────────────────────────────────────────────────────────────
 # Corre `prisma migrate deploy` num container efémero da imagem nova.
-# Build-arg para que o GIT_SHA fique consistente no run efémero.
+# --entrypoint "sh" sobrepõe o docker-entrypoint.sh (que terminaria em
+# `exec node server.js`, bloqueando para sempre este script). Só queremos
+# correr as migrações e sair.
+# --build reconstrói a imagem a partir do código novo (já em $TO_TAG)
+# para que os novos ficheiros de migração em prisma/migrations/ estejam
+# presentes dentro do container.
 write_status "MIGRATING" "" "$TO_SHA"
 if ! $DC -f "$COMPOSE_FILE" run --rm \
-      --build app sh -c "npx prisma migrate deploy" 2>&1 \
+      --build \
+      --entrypoint "sh" \
+      app -c "npx prisma migrate deploy" 2>&1 \
       | tee -a "$LOG_FILE"; then
   do_rollback "prisma migrate deploy falhou"
   exit 0
