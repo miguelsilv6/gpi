@@ -26,6 +26,7 @@ const updateSchema = z.object({
   appDescription: z.string().min(1).max(120).nullable().optional(),
   manifestDescription: z.string().min(1).max(200).nullable().optional(),
   pdfFooterText: z.string().min(1).max(120).nullable().optional(),
+  appAuthor: z.string().max(120).nullable().optional(),
 })
 
 const TEXT_FIELDS = [
@@ -34,6 +35,7 @@ const TEXT_FIELDS = [
   'appDescription',
   'manifestDescription',
   'pdfFooterText',
+  'appAuthor',
 ] as const
 
 /**

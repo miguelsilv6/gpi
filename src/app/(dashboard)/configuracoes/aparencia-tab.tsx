@@ -19,6 +19,7 @@ interface TextForm {
   appDescription: string
   manifestDescription: string
   pdfFooterText: string
+  appAuthor: string
 }
 
 function brandAssetUrl(filename: string | null, brandUpdatedAt: string | Date | null): string | null {
@@ -55,6 +56,7 @@ export function AparenciaTab() {
         appDescription: b.appDescription,
         manifestDescription: b.manifestDescription,
         pdfFooterText: b.pdfFooterText,
+        appAuthor: b.appAuthor,
       })
     } catch {
       toast.error('Erro ao carregar personalização')
@@ -275,6 +277,17 @@ export function AparenciaTab() {
             placeholder={BRAND_DEFAULTS.pdfFooterText}
             maxLength={120}
             hint="Texto que aparece no rodapé dos relatórios PDF gerados."
+          />
+          <TextField
+            label="Autor / Entidade"
+            id="appAuthor"
+            value={form.appAuthor}
+            onChange={(v) => setForm({ ...form, appAuthor: v })}
+            onReset={() => setForm({ ...form, appAuthor: BRAND_DEFAULTS.appAuthor })}
+            isDefault={form.appAuthor === BRAND_DEFAULTS.appAuthor}
+            placeholder="ex: Polícia Judiciária — Unidade Nacional de Combate ao Tráfico"
+            maxLength={120}
+            hint="Aparece na sidebar junto à versão. Deixar em branco para não mostrar."
           />
 
           <Button onClick={handleSaveText} disabled={saving}>

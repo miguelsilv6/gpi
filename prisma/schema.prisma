@@ -305,6 +305,7 @@ model ConfiguracaoSistema {
   appDescription                  String?
   manifestDescription             String?
   pdfFooterText                   String?
+  appAuthor                       String?
   logoLightFilename               String?
   logoDarkFilename                String?
   faviconFilename                 String?
