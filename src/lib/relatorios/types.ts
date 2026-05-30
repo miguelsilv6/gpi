@@ -22,6 +22,9 @@ export interface RelatorioColumn {
   label: string
   /** Alinhamento para o PDF e a pré-visualização. Default: 'left'. */
   align?: 'left' | 'right'
+  /** Peso proporcional para a largura da coluna no PDF. Default: 1.
+   *  Colunas numéricas usam tipicamente 0.6–0.8; colunas de texto longo 1.5–2. */
+  flex?: number
 }
 
 export interface RelatorioSummaryItem {

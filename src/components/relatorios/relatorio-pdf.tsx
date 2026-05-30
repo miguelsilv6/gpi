@@ -137,8 +137,8 @@ export function RelatorioPDF({
   brand: RelatorioPDFBrand
 }) {
   const filtros = Object.entries(data.filtros).filter(([, v]) => v)
-  const numCols = data.columns.length
-  const colWidth = `${100 / numCols}%`
+  const totalFlex = data.columns.reduce((s, c) => s + (c.flex ?? 1), 0)
+  const colWidth = (c: { flex?: number }) => `${((c.flex ?? 1) / totalFlex) * 100}%`
 
   return (
     <Document
@@ -191,7 +191,7 @@ export function RelatorioPDF({
                   key={c.key}
                   style={[
                     styles.tableHeaderCell,
-                    { width: colWidth },
+                    { width: colWidth(c) },
                     c.align === 'right' ? styles.tableCellRight : {},
                   ]}
                 >
@@ -218,7 +218,7 @@ export function RelatorioPDF({
                         key={c.key}
                         style={[
                           styles.tableCell,
-                          { width: colWidth },
+                          { width: colWidth(c) },
                           c.align === 'right' ? styles.tableCellRight : {},
                         ]}
                       >

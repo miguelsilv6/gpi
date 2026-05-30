@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
+import { UTF8_BOM } from '@/lib/relatorios/formatters'
 import type { Role } from '@/generated/prisma/enums'
 
 const EXPORT_LIMIT = 5000
@@ -10,7 +11,7 @@ const EXPORT_LIMIT = 5000
 function escapeCSV(value: unknown): string {
   if (value === null || value === undefined) return ''
   const str = String(value)
-  if (str.includes('"') || str.includes(',') || str.includes('\n')) {
+  if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`
   }
   return str
@@ -28,13 +29,39 @@ export async function GET(req: NextRequest) {
     const estadoCodigo = searchParams.get('estado') ?? ''
     const crimeId = searchParams.get('crimeId') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
+    const inspetorId = searchParams.get('inspetorId') ?? ''
+    const etiquetaId = searchParams.get('etiquetaId') ?? ''
+    const overdue = searchParams.get('overdue') === '1'
+    const semInspetor = searchParams.get('semInspetor') === '1'
+    const search = searchParams.get('search') ?? ''
+    const dataAberturaFrom = searchParams.get('dataAberturaFrom') ?? ''
+    const dataAberturaTo = searchParams.get('dataAberturaTo') ?? ''
 
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+
+    const isValidDate = (s: string) => s && !Number.isNaN(new Date(s).getTime())
+
     const where = {
       deletedAt: null,
+      ...(search && {
+        OR: [
+          { nuipc: { contains: search, mode: 'insensitive' as const } },
+          { nai: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }),
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
       ...(crimeId && { crimeId }),
       ...(brigadaId && { brigadaId }),
+      ...(inspetorId && { inspetorId }),
+      ...(etiquetaId && { etiquetas: { some: { id: etiquetaId } } }),
+      ...(semInspetor && { inspetorId: null }),
+      ...(overdue && { dataPrazo: { lt: new Date() }, estado: { terminal: false } }),
+      ...((dataAberturaFrom || dataAberturaTo) && {
+        dataAbertura: {
+          ...(isValidDate(dataAberturaFrom) && { gte: new Date(dataAberturaFrom) }),
+          ...(isValidDate(dataAberturaTo) && { lte: new Date(dataAberturaTo) }),
+        },
+      }),
       // roleWhere LAST: garante que INSPETOR_CHEFE/INSPETOR não escapam ao
       // scope via injecção de ?brigadaId/?inspetorId na URL.
       ...roleWhere,
@@ -73,7 +100,7 @@ export async function GET(req: NextRequest) {
       entidadeId: '__bulk_export__',
       utilizadorId: session.user.id,
       detalhes: {
-        filtros: { estadoCodigo, crimeId, brigadaId },
+        filtros: { estadoCodigo, crimeId, brigadaId, inspetorId, etiquetaId, overdue, semInspetor, search, dataAberturaFrom, dataAberturaTo },
         quantidade: inqueritos.length,
       },
     })
@@ -99,7 +126,7 @@ export async function GET(req: NextRequest) {
       i.inspetor?.nome ?? '',
     ])
 
-    const csv = [headers, ...rows].map((row) => row.map(escapeCSV).join(',')).join('\n')
+    const csv = UTF8_BOM + [headers, ...rows].map((row) => row.map(escapeCSV).join(',')).join('\n')
 
     return new Response(csv, {
       headers: {
@@ -111,3 +138,4 @@ export async function GET(req: NextRequest) {
     return handleApiError(error)
   }
 }
+
