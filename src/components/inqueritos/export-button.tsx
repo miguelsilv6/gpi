@@ -27,7 +27,7 @@ export function ExportButton() {
       if (v) params.set(key, v)
     }
     const url = `/api/inqueritos/export${params.size > 0 ? `?${params.toString()}` : ''}`
-    window.open(url, '_blank')
+    window.location.href = url
   }
 
   return (

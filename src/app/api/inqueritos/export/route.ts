@@ -39,7 +39,15 @@ export async function GET(req: NextRequest) {
 
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
 
-    const isValidDate = (s: string) => s && !Number.isNaN(new Date(s).getTime())
+    const isValidDate = (s: string) => !!s && !Number.isNaN(new Date(s).getTime())
+    // Datas ISO YYYY-MM-DD são interpretadas como T00:00:00Z; o limite superior
+    // deve cobrir o dia inteiro para não excluir inquéritos criados nesse dia.
+    const endOfDay = (s: string) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T23:59:59.999Z')
+      const d = new Date(s)
+      d.setHours(23, 59, 59, 999)
+      return d
+    }
 
     const where = {
       deletedAt: null,
@@ -59,7 +67,7 @@ export async function GET(req: NextRequest) {
       ...((dataAberturaFrom || dataAberturaTo) && {
         dataAbertura: {
           ...(isValidDate(dataAberturaFrom) && { gte: new Date(dataAberturaFrom) }),
-          ...(isValidDate(dataAberturaTo) && { lte: new Date(dataAberturaTo) }),
+          ...(isValidDate(dataAberturaTo) && { lte: endOfDay(dataAberturaTo) }),
         },
       }),
       // roleWhere LAST: garante que INSPETOR_CHEFE/INSPETOR não escapam ao

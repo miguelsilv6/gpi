@@ -137,7 +137,7 @@ export function RelatorioPDF({
   brand: RelatorioPDFBrand
 }) {
   const filtros = Object.entries(data.filtros).filter(([, v]) => v)
-  const totalFlex = data.columns.reduce((s, c) => s + (c.flex ?? 1), 0)
+  const totalFlex = data.columns.reduce((s, c) => s + (c.flex ?? 1), 0) || 1
   const colWidth = (c: { flex?: number }) => `${((c.flex ?? 1) / totalFlex) * 100}%`
 
   return (
