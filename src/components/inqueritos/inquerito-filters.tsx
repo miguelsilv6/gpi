@@ -31,8 +31,8 @@ interface InspetorFilterOption {
 
 const SORT_OPTIONS: Record<string, string> = {
   'updatedAt:desc': 'Última alteração',
-  'dataAbertura:desc': 'Mais recentes',
-  'dataAbertura:asc': 'Mais antigos',
+  'dataAbertura:desc': 'Data de abertura (decrescente)',
+  'dataAbertura:asc': 'Data de abertura (crescente)',
   'dataPrazo:asc': 'Prazo (asc)',
   'nuipc:asc': 'NUIPC (A→Z)',
 }
@@ -44,6 +44,7 @@ export function InqueritoFilters({
   etiquetas = [],
   inspetoresFilter = [],
   currentUserId,
+  showSemInspetor = true,
 }: {
   estados: EstadoFilterOption[]
   /** System-wide default applied when the URL has no `estado` param. */
@@ -53,6 +54,9 @@ export function InqueritoFilters({
   /** Filled only for INSPETOR_CHEFE — brigade members for the inspetor filter. */
   inspetoresFilter?: InspetorFilterOption[]
   currentUserId?: string
+  /** O INSPETOR só vê os próprios inquéritos (sempre atribuídos a si), pelo que
+   *  este filtro não faz sentido para esse perfil. */
+  showSemInspetor?: boolean
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -242,15 +246,17 @@ export function InqueritoFilters({
             Apenas vencidos
           </label>
 
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={semInspetor}
-              onChange={(e) => update({ semInspetor: e.target.checked ? '1' : null })}
-              className="h-4 w-4 rounded border"
-            />
-            Sem inspetor atribuído
-          </label>
+          {showSemInspetor && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={semInspetor}
+                onChange={(e) => update({ semInspetor: e.target.checked ? '1' : null })}
+                className="h-4 w-4 rounded border"
+              />
+              Sem inspetor atribuído
+            </label>
+          )}
 
           <div className="flex flex-col gap-1 min-w-[160px]">
             <label className="text-xs text-muted-foreground">Abertura desde</label>

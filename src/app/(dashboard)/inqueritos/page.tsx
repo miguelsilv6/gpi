@@ -209,6 +209,7 @@ export default async function InqueritosPage({
           etiquetas={etiquetasFilter}
           inspetoresFilter={inspetoresFilter}
           currentUserId={session.user.id}
+          showSemInspetor={role !== 'INSPETOR'}
         />
       </Suspense>
 
