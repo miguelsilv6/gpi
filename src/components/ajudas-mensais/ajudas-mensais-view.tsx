@@ -306,14 +306,13 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
 
 function getDayType(datetimeLocalStr: string): 'feriado' | 'fds' | 'semana' | null {
   if (!datetimeLocalStr) return null
-  const parts = datetimeLocalStr.slice(0, 10).split('-').map(Number)
+  const dateStr = datetimeLocalStr.slice(0, 10)
+  const parts = dateStr.split('-').map(Number)
   if (parts.length !== 3 || parts.some(isNaN)) return null
   const [year, month, day] = parts as [number, number, number]
   const d = new Date(Date.UTC(year, month - 1, day))
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const dateKey = `${year}-${pad(month)}-${pad(day)}`
   const holidays = getPortugueseHolidays(year)
-  if (holidays.has(dateKey)) return 'feriado'
+  if (holidays.has(dateStr)) return 'feriado'
   const dow = d.getUTCDay()
   if (dow === 0 || dow === 6) return 'fds'
   return 'semana'
@@ -801,9 +800,7 @@ export function AjudasMensaisView({
     const [year, month, day] = parts as [number, number, number]
     const d = new Date(Date.UTC(year, month - 1, day))
     const holidays = getPortugueseHolidays(year)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const dateKey = `${year}-${pad(month)}-${pad(day)}`
-    const isFds = d.getUTCDay() === 0 || d.getUTCDay() === 6 || holidays.has(dateKey)
+    const isFds = d.getUTCDay() === 0 || d.getUTCDay() === 6 || holidays.has(dateStr)
     if (tipo === 'PIQUETE') {
       const val = isFds ? totaisData.taxaPiqueteFds : totaisData.taxaPiqueteSemana
       return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`

@@ -236,8 +236,8 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   // Gather all years from the data to compute holidays
   const years = new Set<number>()
   for (const l of linhas) {
-    years.add(new Date(l.dataInicio).getUTCFullYear())
-    years.add(new Date(l.dataFim).getUTCFullYear())
+    years.add(l.dataInicio.getUTCFullYear())
+    years.add(l.dataFim.getUTCFullYear())
   }
   // Build a combined holiday set
   const allHolidays = new Set<string>()
