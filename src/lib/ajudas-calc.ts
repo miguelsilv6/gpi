@@ -172,29 +172,30 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
   if (start >= end) return result
 
   const pad = (n: number) => String(n).padStart(2, '0')
+  // All timestamps are stored as "wall clock UTC" — always use UTC accessors.
   const fmtDate = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
 
   let current = new Date(start)
 
   while (current < end) {
-    const h = current.getHours()
-    const curMins = h * 60 + current.getMinutes()
+    const h = current.getUTCHours()
+    const curMins = h * 60 + current.getUTCMinutes()
 
     // Find the next natural boundary: hour boundary, 09:00, or 17:30 on this day
     const nextHour = new Date(current)
-    nextHour.setHours(h + 1, 0, 0, 0)
+    nextHour.setUTCHours(h + 1, 0, 0, 0)
 
     const boundaries: Date[] = [nextHour]
 
     // Add 09:00 as a boundary if it falls within this hour slot
     const today0900 = new Date(current)
-    today0900.setHours(9, 0, 0, 0)
+    today0900.setUTCHours(9, 0, 0, 0)
     if (today0900 > current && today0900 < nextHour) boundaries.push(today0900)
 
     // Add 17:30 as a boundary if it falls within this hour slot
     const today1730 = new Date(current)
-    today1730.setHours(17, 30, 0, 0)
+    today1730.setUTCHours(17, 30, 0, 0)
     if (today1730 > current && today1730 < nextHour) boundaries.push(today1730)
 
     // Earliest boundary (capped at end)
@@ -203,7 +204,7 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
 
     const durationHours = (segmentEnd.getTime() - current.getTime()) / 3_600_000
 
-    const dayOfWeek = current.getDay()
+    const dayOfWeek = current.getUTCDay()
     const dateStr = fmtDate(current)
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 || holidays.has(dateStr)
     const isNight = h < 8  // 00:00–07:59
@@ -235,8 +236,8 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   // Gather all years from the data to compute holidays
   const years = new Set<number>()
   for (const l of linhas) {
-    years.add(new Date(l.dataInicio).getFullYear())
-    years.add(new Date(l.dataFim).getFullYear())
+    years.add(new Date(l.dataInicio).getUTCFullYear())
+    years.add(new Date(l.dataFim).getUTCFullYear())
   }
   // Build a combined holiday set
   const allHolidays = new Set<string>()
@@ -266,10 +267,10 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
 
   const pad = (n: number) => String(n).padStart(2, '0')
   const fmtDate = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
 
   function isFdsDay(d: Date): boolean {
-    const dow = d.getDay()
+    const dow = d.getUTCDay()
     return dow === 0 || dow === 6 || allHolidays.has(fmtDate(d))
   }
 

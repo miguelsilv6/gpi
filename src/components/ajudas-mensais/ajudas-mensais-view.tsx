@@ -122,7 +122,7 @@ function fmtEur(n: number) {
 function formatDT(dt: string) {
   const d = new Date(dt)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
 function calcDuration(inicio: string, fim: string): string {
@@ -135,10 +135,10 @@ function calcDuration(inicio: string, fim: string): string {
 }
 
 function toDatetimeLocal(dt: string): string {
-  // Convert ISO string to datetime-local input format
+  // Timestamps are stored as wall-clock UTC — read back with UTC accessors.
   const d = new Date(dt)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
 const EMPTY_FORM: LinhaFormData = {
@@ -304,6 +304,21 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
 
 // ─── Linha Form ───────────────────────────────────────────────────────────────
 
+function getDayType(datetimeLocalStr: string): 'feriado' | 'fds' | 'semana' | null {
+  if (!datetimeLocalStr) return null
+  const parts = datetimeLocalStr.slice(0, 10).split('-').map(Number)
+  if (parts.length !== 3 || parts.some(isNaN)) return null
+  const [year, month, day] = parts as [number, number, number]
+  const d = new Date(Date.UTC(year, month - 1, day))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dateKey = `${year}-${pad(month)}-${pad(day)}`
+  const holidays = getPortugueseHolidays(year)
+  if (holidays.has(dateKey)) return 'feriado'
+  const dow = d.getUTCDay()
+  if (dow === 0 || dow === 6) return 'fds'
+  return 'semana'
+}
+
 interface LinhaFormProps {
   form: LinhaFormData
   onChange: (f: LinhaFormData) => void
@@ -351,6 +366,20 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
             onChange={(e) => set('dataInicio', e.target.value)}
             required
           />
+          {form.dataInicio && (() => {
+            const type = getDayType(form.dataInicio)
+            if (!type) return null
+            const cfg = {
+              feriado: { label: 'Feriado', cls: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800' },
+              fds: { label: 'Fim-de-Semana', cls: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800' },
+              semana: { label: 'Dia de Semana', cls: 'text-muted-foreground bg-muted/40 border-border' },
+            }[type]
+            return (
+              <span className={`text-xs px-2 py-0.5 rounded border inline-block ${cfg.cls}`}>
+                {cfg.label}
+              </span>
+            )
+          })()}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="dataFim">Data e Hora Fim *</Label>
@@ -662,8 +691,8 @@ export function AjudasMensaisView({
           return
         }
         const [year, month, day] = parts as [number, number, number]
-        const inicio = new Date(year, month - 1, day, 0, 0, 0, 0)
-        const fim = new Date(year, month - 1, day, 23, 59, 0, 0)
+        const inicio = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+        const fim = new Date(Date.UTC(year, month - 1, day, 23, 59, 0, 0))
         res = await fetch('/api/ajudas/linhas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -681,8 +710,9 @@ export function AjudasMensaisView({
           toast.error('Datas de início e fim são obrigatórias')
           return
         }
-        const dInicio = new Date(form.dataInicio)
-        const dFim = new Date(form.dataFim)
+        // Treat datetime-local values as wall-clock UTC (append Z to avoid local timezone shift).
+        const dInicio = new Date(form.dataInicio.slice(0, 16) + ':00.000Z')
+        const dFim = new Date(form.dataFim.slice(0, 16) + ':00.000Z')
         if (isNaN(dInicio.getTime()) || isNaN(dFim.getTime())) {
           toast.error('Data inválida — verifique os campos de data/hora')
           return
@@ -769,11 +799,11 @@ export function AjudasMensaisView({
     const parts = dateStr.split('-').map(Number)
     if (parts.length !== 3 || parts.some(isNaN)) return '—'
     const [year, month, day] = parts as [number, number, number]
-    const d = new Date(year, month - 1, day)
+    const d = new Date(Date.UTC(year, month - 1, day))
     const holidays = getPortugueseHolidays(year)
     const pad = (n: number) => String(n).padStart(2, '0')
     const dateKey = `${year}-${pad(month)}-${pad(day)}`
-    const isFds = d.getDay() === 0 || d.getDay() === 6 || holidays.has(dateKey)
+    const isFds = d.getUTCDay() === 0 || d.getUTCDay() === 6 || holidays.has(dateKey)
     if (tipo === 'PIQUETE') {
       const val = isFds ? totaisData.taxaPiqueteFds : totaisData.taxaPiqueteSemana
       return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
