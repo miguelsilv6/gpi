@@ -8,7 +8,11 @@ import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
 const createSchema = z.object({
-  nome: z.string().min(1).max(120),
+  nome: z.string().min(1).max(200),
+  comarcaId: z.string().optional().nullable(),
+  morada: z.string().max(500).optional().nullable(),
+  telefone: z.string().max(50).optional().nullable(),
+  email: z.string().email('Email inválido').max(200).optional().nullable().or(z.literal('')),
   descricao: z.string().max(500).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).default(0),
   ativo: z.boolean().default(true),
@@ -18,7 +22,8 @@ export async function GET() {
   try {
     await getSession()
     const tribunais = await prisma.tribunal.findMany({
-      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      orderBy: [{ comarca: { nome: 'asc' } }, { nome: 'asc' }],
+      include: { comarca: { select: { id: true, nome: true } } },
     })
     return Response.json(tribunais)
   } catch (error) {
@@ -46,13 +51,23 @@ export async function POST(req: NextRequest) {
     })
     if (existing) return apiError('Já existe um tribunal com este nome', 409)
 
+    if (data.comarcaId) {
+      const comarca = await prisma.comarca.findUnique({ where: { id: data.comarcaId } })
+      if (!comarca) return apiError('Comarca não encontrada', 400)
+    }
+
     const created = await prisma.tribunal.create({
       data: {
         nome,
+        comarcaId: data.comarcaId || null,
+        morada: data.morada?.trim() || null,
+        telefone: data.telefone?.trim() || null,
+        email: data.email?.trim() || null,
         descricao: data.descricao?.trim() || null,
         ordem: data.ordem,
         ativo: data.ativo,
       },
+      include: { comarca: { select: { id: true, nome: true } } },
     })
 
     await writeAudit({

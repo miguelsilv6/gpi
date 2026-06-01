@@ -1,12 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -14,382 +20,398 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Search, MapPin, Phone, Mail } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
+
+interface Comarca {
+  id: string
+  nome: string
+  ativo: boolean
+}
 
 interface Tribunal {
   id: string
   nome: string
+  comarcaId: string | null
+  comarca: { id: string; nome: string } | null
+  morada: string | null
+  telefone: string | null
+  email: string | null
   descricao: string | null
   ordem: number
   ativo: boolean
 }
 
-const EMPTY_NEW = {
+const COMARCA_NONE = '__none__'
+const EMPTY_FORM = {
   nome: '',
+  comarcaId: '',
+  morada: '',
+  telefone: '',
+  email: '',
   descricao: '',
   ordem: 0,
   ativo: true,
 }
 
+type FormState = typeof EMPTY_FORM
+
 export function TribunaisTab() {
   const [tribunais, setTribunais] = useState<Tribunal[]>([])
+  const [comarcas, setComarcas] = useState<Comarca[]>([])
   const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
-  const [neu, setNeu] = useState(EMPTY_NEW)
+  const [search, setSearch] = useState('')
+  const [filterComarcaId, setFilterComarcaId] = useState<string>('')
+
+  // Dialog state (shared for create + edit)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
+  const [editTarget, setEditTarget] = useState<Tribunal | null>(null)
+  const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [edit, setEdit] = useState({ nome: '', descricao: '', ordem: 0 })
+
   const [deleteCandidate, setDeleteCandidate] = useState<Tribunal | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   async function load() {
     setLoading(true)
-    const res = await fetch('/api/tribunais')
-    if (res.ok) setTribunais(await res.json())
+    const [tRes, cRes] = await Promise.all([
+      fetch('/api/tribunais'),
+      fetch('/api/comarcas'),
+    ])
+    if (tRes.ok) setTribunais(await tRes.json())
+    if (cRes.ok) setComarcas(await cRes.json())
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
 
-  async function handleAdd() {
-    if (!neu.nome.trim()) {
-      toast.error('Nome é obrigatório')
-      return
-    }
+  function openCreate() {
+    setForm(EMPTY_FORM)
+    setDialogMode('create')
+    setEditTarget(null)
+    setDialogOpen(true)
+  }
+
+  function openEdit(t: Tribunal) {
+    setForm({
+      nome: t.nome,
+      comarcaId: t.comarcaId ?? '',
+      morada: t.morada ?? '',
+      telefone: t.telefone ?? '',
+      email: t.email ?? '',
+      descricao: t.descricao ?? '',
+      ordem: t.ordem,
+      ativo: t.ativo,
+    })
+    setDialogMode('edit')
+    setEditTarget(t)
+    setDialogOpen(true)
+  }
+
+  async function handleSave() {
+    if (!form.nome.trim()) { toast.error('Nome é obrigatório'); return }
     setSaving(true)
-    const res = await fetch('/api/tribunais', {
-      method: 'POST',
+    const body = {
+      nome: form.nome.trim(),
+      comarcaId: form.comarcaId || null,
+      morada: form.morada.trim() || null,
+      telefone: form.telefone.trim() || null,
+      email: form.email.trim() || null,
+      descricao: form.descricao.trim() || null,
+      ordem: form.ordem,
+      ativo: form.ativo,
+    }
+    const url = dialogMode === 'edit' && editTarget ? `/api/tribunais/${editTarget.id}` : '/api/tribunais'
+    const method = dialogMode === 'edit' ? 'PUT' : 'POST'
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nome: neu.nome.trim(),
-        descricao: neu.descricao.trim() || null,
-        ordem: neu.ordem,
-        ativo: neu.ativo,
-      }),
+      body: JSON.stringify(body),
     })
     setSaving(false)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao criar tribunal')
-      return
+    if (!res.ok) { const e = await res.json(); toast.error(e.error ?? 'Erro ao guardar'); return }
+    const saved: Tribunal = await res.json()
+    if (dialogMode === 'edit') {
+      setTribunais((prev) => prev.map((x) => x.id === saved.id ? saved : x))
+      toast.success('Tribunal atualizado')
+    } else {
+      setTribunais((prev) => [...prev, saved])
+      toast.success('Tribunal criado')
     }
-    toast.success('Tribunal criado')
-    setNeu(EMPTY_NEW)
-    setAdding(false)
-    load()
+    setDialogOpen(false)
   }
 
-  async function handleToggleAtivo(c: Tribunal) {
-    const res = await fetch(`/api/tribunais/${c.id}`, {
+  async function handleToggleAtivo(t: Tribunal) {
+    const res = await fetch(`/api/tribunais/${t.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ativo: !c.ativo }),
+      body: JSON.stringify({ ativo: !t.ativo }),
     })
     if (res.ok) {
-      setTribunais((prev) => prev.map((x) => (x.id === c.id ? { ...x, ativo: !x.ativo } : x)))
-    } else {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao alterar')
+      const updated = await res.json()
+      setTribunais((prev) => prev.map((x) => x.id === t.id ? updated : x))
     }
   }
 
-  function startEdit(c: Tribunal) {
-    setEditId(c.id)
-    setEdit({ nome: c.nome, descricao: c.descricao ?? '', ordem: c.ordem })
-  }
-
-  async function handleEditSave(id: string) {
-    if (!edit.nome.trim()) {
-      toast.error('Nome é obrigatório')
-      return
-    }
-    const res = await fetch(`/api/tribunais/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nome: edit.nome.trim(),
-        descricao: edit.descricao.trim() || null,
-        ordem: edit.ordem,
-      }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao guardar')
-      return
-    }
-    const updated = await res.json()
-    setTribunais((prev) => prev.map((x) => (x.id === id ? updated : x)))
-    setEditId(null)
-    toast.success('Guardado')
-  }
-
-  async function handleDeactivate() {
-    if (!deleteCandidate) return
-    setDeleting(true)
-    const res = await fetch(`/api/tribunais/${deleteCandidate.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ativo: false }),
-    })
-    setDeleting(false)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao desativar')
-      return
-    }
-    setTribunais((prev) =>
-      prev.map((x) => (x.id === deleteCandidate.id ? { ...x, ativo: false } : x)),
-    )
-    toast.success('Tribunal desativado')
-    setDeleteCandidate(null)
-  }
-
-  async function handleHardDelete() {
+  async function handleDelete() {
     if (!deleteCandidate) return
     setDeleting(true)
     const res = await fetch(`/api/tribunais/${deleteCandidate.id}`, { method: 'DELETE' })
     setDeleting(false)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao eliminar')
-      return
-    }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.error ?? 'Erro ao eliminar'); return }
     setTribunais((prev) => prev.filter((x) => x.id !== deleteCandidate.id))
-    toast.success('Tribunal eliminado')
     setDeleteCandidate(null)
+    toast.success('Tribunal eliminado')
   }
 
-  if (loading) {
-    return <div className="text-sm text-muted-foreground py-4">A carregar...</div>
-  }
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase()
+    return tribunais.filter((t) => {
+      if (filterComarcaId && t.comarcaId !== filterComarcaId) return false
+      if (!q) return true
+      return (
+        t.nome.toLowerCase().includes(q) ||
+        (t.comarca?.nome ?? '').toLowerCase().includes(q) ||
+        (t.morada ?? '').toLowerCase().includes(q)
+      )
+    })
+  }, [tribunais, search, filterComarcaId])
+
+  const comarcasAtivas = comarcas.filter((c) => c.ativo)
+
+  if (loading) return <div className="text-sm text-muted-foreground py-4">A carregar...</div>
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-muted-foreground">
-          Catálogo de tribunais e ministérios públicos. Apenas tribunais ativos aparecem na seleção de inquéritos.
+          {tribunais.length} tribunal(ais) registados em {comarcas.length} comarca(s).
         </p>
-        {!adding && (
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Novo tribunal
-          </Button>
-        )}
+        <Button size="sm" onClick={openCreate}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          Novo tribunal
+        </Button>
       </div>
 
-      {adding && (
-        <Card className="border-dashed">
-          <CardContent className="pt-4 space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="newNome">Nome *</Label>
-              <Input
-                id="newNome"
-                autoFocus
-                placeholder="Ex: DCIAP"
-                value={neu.nome}
-                onChange={(e) => setNeu({ ...neu, nome: e.target.value })}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="newDescricao">Descrição</Label>
-              <Textarea
-                id="newDescricao"
-                placeholder="Descrição opcional"
-                rows={2}
-                value={neu.descricao}
-                onChange={(e) => setNeu({ ...neu, descricao: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5 max-w-[160px]">
-              <Label htmlFor="newOrdem">Ordem</Label>
-              <Input
-                id="newOrdem"
-                type="number"
-                min={0}
-                value={neu.ordem}
-                onChange={(e) => setNeu({ ...neu, ordem: parseInt(e.target.value || '0', 10) })}
-              />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <Button size="sm" onClick={handleAdd} disabled={saving || !neu.nome.trim()}>
-                {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                Adicionar
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setAdding(false)
-                  setNeu(EMPTY_NEW)
-                }}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Filters */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Pesquisar tribunal ou morada..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9"
+          />
+        </div>
+        <Select value={filterComarcaId || COMARCA_NONE} onValueChange={(v) => setFilterComarcaId(!v || v === COMARCA_NONE ? '' : v)}>
+          <SelectTrigger className="h-9 w-[220px]">
+            <SelectValue>
+              {(v: string) => !v || v === COMARCA_NONE
+                ? 'Todas as comarcas'
+                : comarcas.find((c) => c.id === v)?.nome ?? 'Comarca'}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={COMARCA_NONE}>Todas as comarcas</SelectItem>
+            {comarcasAtivas.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {tribunais.length === 0 && !adding ? (
+      {/* List */}
+      {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">
-          Nenhum tribunal configurado. Adicione um para começar.
+          {tribunais.length === 0 ? 'Nenhum tribunal registado.' : 'Nenhum resultado para os filtros aplicados.'}
         </p>
       ) : (
-        <div className="rounded-xl border overflow-hidden bg-card">
-          {tribunais.map((c, i) => (
-            <div
-              key={c.id}
-              className={cn(
-                'flex items-start gap-3 px-4 py-3 transition-colors',
-                i > 0 && 'border-t',
-                !c.ativo && 'opacity-50',
-              )}
-            >
-              {editId === c.id ? (
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Input
-                      autoFocus
-                      className="h-8 text-sm flex-1 min-w-[180px]"
-                      value={edit.nome}
-                      onChange={(e) => setEdit({ ...edit, nome: e.target.value })}
-                      onKeyDown={(e) => e.key === 'Enter' && handleEditSave(c.id)}
-                    />
-                    <Input
-                      className="h-8 text-sm w-[90px]"
-                      type="number"
-                      min={0}
-                      value={edit.ordem}
-                      onChange={(e) =>
-                        setEdit({ ...edit, ordem: parseInt(e.target.value || '0', 10) })
-                      }
-                      title="Ordem"
-                    />
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleEditSave(c.id)}
-                        className={cn(iconButtonClasses, 'text-green-600')}
-                        aria-label="Guardar"
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setEditId(null)}
-                        className={cn(iconButtonClasses, 'text-muted-foreground')}
-                        aria-label="Cancelar edição"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <Textarea
-                    className="text-sm"
-                    placeholder="Descrição"
-                    rows={2}
-                    value={edit.descricao}
-                    onChange={(e) => setEdit({ ...edit, descricao: e.target.value })}
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{c.nome}</p>
-                    {c.descricao && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{c.descricao}</p>
+        <div className="rounded-xl border overflow-hidden bg-card divide-y">
+          {filtered.map((t) => (
+            <div key={t.id} className={cn('px-4 py-3 transition-colors', !t.ativo && 'opacity-50')}>
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-snug">{t.nome}</p>
+                  {t.comarca && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{t.comarca.nome}</p>
+                  )}
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                    {t.morada && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {t.morada}
+                      </span>
+                    )}
+                    {t.telefone && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        {t.telefone}
+                      </span>
+                    )}
+                    {t.email && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        {t.email}
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 flex-wrap">
-                    <button
-                      onClick={() => handleToggleAtivo(c)}
-                      className={cn(
-                        'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
-                        c.ativo
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                          : 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      {c.ativo ? 'Ativo' : 'Inativo'}
-                    </button>
-                    <button
-                      onClick={() => startEdit(c)}
-                      className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
-                      aria-label={`Editar ${c.nome}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteCandidate(c)}
-                      title="Apagar ou desativar"
-                      aria-label={`Apagar ${c.nome}`}
-                      className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </>
-              )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                  <button
+                    onClick={() => handleToggleAtivo(t)}
+                    className={cn(
+                      'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
+                      t.ativo
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {t.ativo ? 'Ativo' : 'Inativo'}
+                  </button>
+                  <button onClick={() => openEdit(t)} className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')} aria-label={`Editar ${t.nome}`}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => setDeleteCandidate(t)} className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')} aria-label={`Eliminar ${t.nome}`}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      <Dialog
-        open={!!deleteCandidate}
-        onOpenChange={(open) => !open && setDeleteCandidate(null)}
-      >
-        <DialogContent className="max-w-md">
+      {/* Create/Edit dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => !open && setDialogOpen(false)}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Apagar tribunal</DialogTitle>
+            <DialogTitle>{dialogMode === 'create' ? 'Novo tribunal' : 'Editar tribunal'}</DialogTitle>
           </DialogHeader>
-          {deleteCandidate && (
-            <div className="space-y-3 text-sm">
-              <p>
-                «<strong>{deleteCandidate.nome}</strong>»
-              </p>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 space-y-2">
-                <p className="font-medium text-amber-900 dark:text-amber-200">
-                  Desativar (recomendado)
-                </p>
-                <p className="text-xs text-amber-900/80 dark:text-amber-200/80">
-                  O tribunal deixa de aparecer na criação de novos inquéritos, mas os inquéritos
-                  existentes mantêm a referência intacta.
-                </p>
-                <Button
-                  size="sm"
-                  onClick={handleDeactivate}
-                  disabled={deleting || !deleteCandidate.ativo}
-                  className="w-full"
-                >
-                  {deleting && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                  {deleteCandidate.ativo ? 'Desativar' : 'Já está desativado'}
-                </Button>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="tNome">Nome *</Label>
+              <Input
+                id="tNome"
+                autoFocus={dialogMode === 'create'}
+                placeholder="Ex: Tribunal Judicial da Comarca de Lisboa"
+                value={form.nome}
+                onChange={(e) => setForm((p) => ({ ...p, nome: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tComarca">Comarca</Label>
+              <Select
+                value={form.comarcaId || COMARCA_NONE}
+                onValueChange={(v) => setForm((p) => ({ ...p, comarcaId: !v || v === COMARCA_NONE ? '' : v }))}
+              >
+                <SelectTrigger id="tComarca">
+                  <SelectValue>
+                    {(v: string) => !v || v === COMARCA_NONE
+                      ? 'Sem comarca'
+                      : comarcas.find((c) => c.id === v)?.nome ?? 'Comarca'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={COMARCA_NONE}>Sem comarca</SelectItem>
+                  {comarcasAtivas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tMorada">Morada</Label>
+              <Textarea
+                id="tMorada"
+                placeholder="Ex: Rua Marquês de Fronteira, 1269-050 Lisboa"
+                rows={2}
+                value={form.morada}
+                onChange={(e) => setForm((p) => ({ ...p, morada: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="tTelefone">Telefone</Label>
+                <Input
+                  id="tTelefone"
+                  placeholder="Ex: 213 222 050"
+                  value={form.telefone}
+                  onChange={(e) => setForm((p) => ({ ...p, telefone: e.target.value }))}
+                />
               </div>
-              <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 p-3 space-y-2">
-                <p className="font-medium text-red-900 dark:text-red-200">
-                  Eliminar permanentemente
-                </p>
-                <p className="text-xs text-red-900/80 dark:text-red-200/80">
-                  Tribunal em uso... não é possível eliminar se já existirem inquéritos
-                  associados — nesse caso desative em vez de eliminar.
-                </p>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={handleHardDelete}
-                  disabled={deleting}
-                  className="w-full"
-                >
-                  {deleting && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                  Eliminar
-                </Button>
+              <div className="space-y-1.5">
+                <Label htmlFor="tEmail">Email</Label>
+                <Input
+                  id="tEmail"
+                  type="email"
+                  placeholder="Ex: tj.lisboa@tribunais.pt"
+                  value={form.email}
+                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                />
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tDescricao">Notas</Label>
+              <Textarea
+                id="tDescricao"
+                placeholder="Notas adicionais (opcional)"
+                rows={2}
+                value={form.descricao}
+                onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-24 space-y-1.5">
+                <Label htmlFor="tOrdem">Ordem</Label>
+                <Input
+                  id="tOrdem"
+                  type="number"
+                  min={0}
+                  value={form.ordem}
+                  onChange={(e) => setForm((p) => ({ ...p, ordem: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none mt-5">
+                <input
+                  type="checkbox"
+                  checked={form.ativo}
+                  onChange={(e) => setForm((p) => ({ ...p, ativo: e.target.checked }))}
+                  className="h-4 w-4 rounded border"
+                />
+                Ativo
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={saving || !form.nome.trim()}>
+              {saving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {dialogMode === 'create' ? 'Criar' : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={!!deleteCandidate} onOpenChange={(open) => !open && setDeleteCandidate(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Eliminar tribunal</DialogTitle>
+          </DialogHeader>
+          {deleteCandidate && (
+            <p className="text-sm">
+              Eliminar <strong>«{deleteCandidate.nome}»</strong>? Esta operação não é possível se o
+              tribunal estiver associado a inquéritos — desative-o em vez disso.
+            </p>
           )}
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setDeleteCandidate(null)}>
-              Cancelar
+            <Button variant="ghost" size="sm" onClick={() => setDeleteCandidate(null)}>Cancelar</Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+              {deleting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Eliminar
             </Button>
           </DialogFooter>
         </DialogContent>

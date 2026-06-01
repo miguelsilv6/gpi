@@ -18,6 +18,7 @@ export type Permission =
   | 'inquerito:audit:read'
   | 'inquerito:estados:manage'
   | 'crime:manage'
+  | 'comarca:manage'
   | 'tribunal:manage'
   | 'seccao:manage'
   | 'local-tratamento:manage'
@@ -111,6 +112,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:audit:read',
     'inquerito:estados:manage',
     'crime:manage',
+    'comarca:manage',
     'tribunal:manage',
     'seccao:manage',
     'local-tratamento:manage',

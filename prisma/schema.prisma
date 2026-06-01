@@ -188,9 +188,25 @@ model Crime {
   @@index([ativo, ordem])
 }
 
+model Comarca {
+  id        String     @id @default(cuid())
+  nome      String     @unique
+  ordem     Int        @default(0)
+  ativo     Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  tribunais Tribunal[]
+  @@index([ativo, ordem])
+}
+
 model Tribunal {
   id        String   @id @default(cuid())
   nome      String   @unique
+  comarcaId String?
+  comarca   Comarca? @relation(fields: [comarcaId], references: [id], onDelete: SetNull)
+  morada    String?
+  telefone  String?
+  email     String?
   descricao String?
   ordem     Int      @default(0)
   ativo     Boolean  @default(true)
@@ -198,6 +214,7 @@ model Tribunal {
   updatedAt DateTime @updatedAt
   inqueritos Inquerito[]
   @@index([ativo, ordem])
+  @@index([comarcaId])
 }
 
 model Seccao {
