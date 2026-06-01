@@ -297,10 +297,12 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
       cur.setUTCHours(0, 0, 0, 0)
       const last = new Date(fim)
       last.setUTCHours(0, 0, 0, 0)
-      while (cur.getTime() <= last.getTime()) {
+      let daysCount = 0
+      while (cur.getTime() <= last.getTime() && daysCount < 90) {
         if (isFdsDay(cur)) prevencaoFds += 1
         else prevencaoSemana += 1
         cur.setUTCDate(cur.getUTCDate() + 1)
+        daysCount++
       }
     }
 

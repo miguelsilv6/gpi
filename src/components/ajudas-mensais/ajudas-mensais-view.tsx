@@ -441,7 +441,7 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
         </div>
         <Select
           value={form.viaturaId || 'none'}
-          onValueChange={(v) => set('viaturaId', v === 'none' ? '' : v)}
+          onValueChange={(v) => set('viaturaId', v == null || v === 'none' ? '' : v)}
         >
           <SelectTrigger id="viaturaId">
             <span className="truncate text-sm">
@@ -774,6 +774,8 @@ export function AjudasMensaisView({
         const dInicio = new Date(Date.UTC(yi, mi - 1, di, 0, 0, 0, 0))
         const dFim = new Date(Date.UTC(yf, mf - 1, df, 23, 59, 0, 0))
         if (dFim < dInicio) { toast.error('A data de fim deve ser igual ou posterior à data de início'); return }
+        const diffDays = Math.ceil((dFim.getTime() - dInicio.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffDays > 31) { toast.error('O intervalo de prevenção não pode ser superior a 31 dias'); return }
         res = await fetch('/api/ajudas/linhas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -899,8 +901,8 @@ export function AjudasMensaisView({
     if (last < cur) return null
     const pad = (n: number) => String(n).padStart(2, '0')
     const holidaysCache = new Map<number, Set<string>>()
-    let semana = 0, fds = 0
-    while (cur.getTime() <= last.getTime()) {
+    let semana = 0, fds = 0, daysCount = 0
+    while (cur.getTime() <= last.getTime() && daysCount < 90) {
       const y = cur.getUTCFullYear()
       if (!holidaysCache.has(y)) holidaysCache.set(y, getPortugueseHolidays(y))
       const hols = holidaysCache.get(y)!
@@ -909,6 +911,7 @@ export function AjudasMensaisView({
       if (dow === 0 || dow === 6 || hols.has(dateKey)) fds += 1
       else semana += 1
       cur.setUTCDate(cur.getUTCDate() + 1)
+      daysCount++
     }
     const valor = semana * totaisData.taxaPrevencaoSemana + fds * totaisData.taxaPrevencaoFds
     return { semana, fds, total: semana + fds, valor }
