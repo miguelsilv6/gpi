@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -33,10 +33,12 @@ import {
   Bell,
 } from 'lucide-react'
 import type { AjudasTotais, ConfigData } from '@/lib/ajudas-calc'
-import { getPortugueseHolidays } from '@/lib/ajudas-calc'
+import { getPortugueseHolidays, splitHours } from '@/lib/ajudas-calc'
 import type { Role } from '@/generated/prisma/enums'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ViaturaItem { id: string; nome: string; matricula: string | null }
 
 interface AjudasLinha {
   id: string
@@ -53,7 +55,8 @@ interface AjudasLinha {
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
-  viatura: 'PROPRIA' | 'BRIGADA' | null
+  viaturaId: string | null
+  viatura: ViaturaItem | null
   km: number
   observacoes: string | null
 }
@@ -85,7 +88,7 @@ interface LinhaFormData {
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
-  viatura: 'PROPRIA' | 'BRIGADA' | ''
+  viaturaId: string
   km: number
   observacoes: string
 }
@@ -150,7 +153,7 @@ const EMPTY_FORM: LinhaFormData = {
   senhaAlmoco: 0,
   senhaJantar: 0,
   senhaCeia: 0,
-  viatura: '',
+  viaturaId: '',
   km: 0,
   observacoes: '',
 }
@@ -305,9 +308,10 @@ interface LinhaFormProps {
   form: LinhaFormData
   onChange: (f: LinhaFormData) => void
   distanciaMin: number
+  viaturas: ViaturaItem[]
 }
 
-function LinhaForm({ form, onChange, distanciaMin }: LinhaFormProps) {
+function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
   const ajudasDisabled = form.km < distanciaMin
 
   function set<K extends keyof LinhaFormData>(key: K, value: LinhaFormData[K]) {
@@ -378,20 +382,28 @@ function LinhaForm({ form, onChange, distanciaMin }: LinhaFormProps) {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="viatura">Viatura</Label>
+          <Label htmlFor="viaturaId">Viatura</Label>
           <Select
-            value={form.viatura || 'none'}
-            onValueChange={(v) => set('viatura', v === 'none' ? '' : v as LinhaFormData['viatura'])}
+            value={form.viaturaId || 'none'}
+            onValueChange={(v) => set('viaturaId', v === 'none' || v === null ? '' : v)}
           >
-            <SelectTrigger id="viatura">
-              <SelectValue />
+            <SelectTrigger id="viaturaId">
+              <SelectValue placeholder="Nenhuma" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Nenhuma</SelectItem>
-              <SelectItem value="PROPRIA">Viatura Própria</SelectItem>
-              <SelectItem value="BRIGADA">Viatura da Brigada</SelectItem>
+              {viaturas.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.nome}{v.matricula ? ` (${v.matricula})` : ''}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          {viaturas.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              <a href="/perfil" className="underline">Configure as suas viaturas no Perfil</a>
+            </p>
+          )}
         </div>
       </div>
 
@@ -404,9 +416,9 @@ function LinhaForm({ form, onChange, distanciaMin }: LinhaFormProps) {
           value={form.km}
           onChange={(e) => set('km', parseInt(e.target.value, 10) || 0)}
         />
-        {form.viatura === 'PROPRIA' && form.km === 0 && (
+        {form.viaturaId && form.km === 0 && (
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            KMs são obrigatórios para viatura própria.
+            Recomendado indicar KMs quando é utilizada uma viatura.
           </p>
         )}
       </div>
@@ -530,6 +542,14 @@ export function AjudasMensaisView({
   const viewingUserId = initialViewingUserId ?? userId
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viaturas, setViaturas] = useState<ViaturaItem[]>([])
+
+  useEffect(() => {
+    fetch('/api/viaturas')
+      .then((r) => r.json())
+      .then(setViaturas)
+      .catch(() => {})
+  }, [])
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -617,7 +637,7 @@ export function AjudasMensaisView({
       senhaAlmoco: linha.senhaAlmoco,
       senhaJantar: linha.senhaJantar,
       senhaCeia: linha.senhaCeia,
-      viatura: linha.viatura ?? '',
+      viaturaId: linha.viaturaId ?? '',
       km: linha.km,
       observacoes: linha.observacoes ?? '',
     })
@@ -684,7 +704,7 @@ export function AjudasMensaisView({
           senhaAlmoco: form.senhaAlmoco,
           senhaJantar: form.senhaJantar,
           senhaCeia: form.senhaCeia,
-          viatura: form.viatura || null,
+          viaturaId: form.viaturaId || null,
           km: form.km,
           observacoes: form.observacoes || null,
         }
@@ -761,6 +781,24 @@ export function AjudasMensaisView({
       const val = isFds ? totaisData.taxaPrevencaoFds : totaisData.taxaPrevencaoSemana
       return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
     }
+  }
+
+  const holidaySet = useMemo(() => {
+    const s = new Set<string>()
+    for (const y of [ano - 1, ano, ano + 1]) {
+      for (const h of getPortugueseHolidays(y)) s.add(h)
+    }
+    return s
+  }, [ano])
+
+  function calcPaidHours(inicio: string, fim: string): string {
+    const { semanaDia, semanaNoite, fdsDia, fdsNoite } = splitHours(new Date(inicio), new Date(fim), holidaySet)
+    const total = semanaDia + semanaNoite + fdsDia + fdsNoite
+    if (total <= 0) return '—'
+    const h = Math.floor(total)
+    const m = Math.round((total - h) * 60)
+    if (m === 0) return `${h}h`
+    return `${h}h${String(m).padStart(2, '0')}m`
   }
 
   const distanciaMin = data?.config.distanciaMinKmAjudas ?? 35
@@ -859,7 +897,9 @@ export function AjudasMensaisView({
                           <td className="py-2 px-2 whitespace-nowrap">{formatDT(l.dataInicio)}</td>
                           <td className="py-2 px-2 whitespace-nowrap">{formatDT(l.dataFim)}</td>
                           <td className="py-2 px-2 whitespace-nowrap">
-                            {l.prevencaoOnly ? <span className="text-muted-foreground text-xs italic">só prevenção</span> : calcDuration(l.dataInicio, l.dataFim)}
+                            {l.prevencaoOnly
+                              ? <span className="text-muted-foreground text-xs italic">só prevenção</span>
+                              : calcPaidHours(l.dataInicio, l.dataFim)}
                           </td>
                           <td className="py-2 px-2">
                             {l.prevencao === 'NENHUMA'
@@ -870,7 +910,7 @@ export function AjudasMensaisView({
                           </td>
                           <td className="py-2 px-2">
                             {l.viatura
-                              ? `${l.viatura === 'PROPRIA' ? 'Própria' : 'Brigada'} / ${l.km}km`
+                              ? `${l.viatura.nome}${l.viatura.matricula ? ` (${l.viatura.matricula})` : ''} / ${l.km}km`
                               : l.km > 0
                                 ? `${l.km}km`
                                 : '—'}
@@ -1004,6 +1044,7 @@ export function AjudasMensaisView({
               form={form}
               onChange={setForm}
               distanciaMin={distanciaMin}
+              viaturas={viaturas}
             />
           )}
 

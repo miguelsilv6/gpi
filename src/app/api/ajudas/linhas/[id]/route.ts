@@ -20,7 +20,7 @@ const updateSchema = z.object({
   senhaAlmoco: z.number().int().min(0).optional(),
   senhaJantar: z.number().int().min(0).optional(),
   senhaCeia: z.number().int().min(0).optional(),
-  viatura: z.enum(['PROPRIA', 'BRIGADA']).optional().nullable(),
+  viaturaId: z.string().optional().nullable(),
   km: z.number().int().min(0).optional(),
   observacoes: z.string().max(500).optional().nullable(),
 })
@@ -97,7 +97,7 @@ export async function PUT(
       prisma.ajudasRegisto.findUnique({
         where: { id: updated.registoId },
         include: {
-          linhas: { orderBy: { dataInicio: 'asc' } },
+          linhas: { orderBy: { dataInicio: 'asc' }, include: { viatura: { select: { id: true, nome: true, matricula: true } } } },
           utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
         },
       }),
@@ -149,7 +149,7 @@ export async function DELETE(
       prisma.ajudasRegisto.findUnique({
         where: { id: registoId },
         include: {
-          linhas: { orderBy: { dataInicio: 'asc' } },
+          linhas: { orderBy: { dataInicio: 'asc' }, include: { viatura: { select: { id: true, nome: true, matricula: true } } } },
           utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
         },
       }),

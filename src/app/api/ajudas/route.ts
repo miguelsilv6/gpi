@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
       include: {
         linhas: {
           orderBy: { dataInicio: 'asc' },
+          include: { viatura: { select: { id: true, nome: true, matricula: true } } },
         },
       },
     })

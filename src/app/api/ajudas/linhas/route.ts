@@ -21,7 +21,7 @@ const linhaSchema = z.object({
   senhaAlmoco: z.number().int().min(0).default(0),
   senhaJantar: z.number().int().min(0).default(0),
   senhaCeia: z.number().int().min(0).default(0),
-  viatura: z.enum(['PROPRIA', 'BRIGADA']).optional().nullable(),
+  viaturaId: z.string().optional().nullable(),
   km: z.number().int().min(0).default(0),
   observacoes: z.string().max(500).optional().nullable(),
 })
@@ -86,7 +86,10 @@ export async function POST(req: NextRequest) {
       prisma.ajudasRegisto.findUnique({
         where: { id: registoId },
         include: {
-          linhas: { orderBy: { dataInicio: 'asc' } },
+          linhas: {
+            orderBy: { dataInicio: 'asc' },
+            include: { viatura: { select: { id: true, nome: true, matricula: true } } },
+          },
           utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
         },
       }),
