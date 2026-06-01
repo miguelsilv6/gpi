@@ -116,16 +116,27 @@ export function enforceRateLimit(config: RateLimitConfig): Response | null {
 }
 
 /**
- * Extrai um identificador estável do cliente para usar como prefixo da
- * chave de rate-limit. Combina IP (primeiro do x-forwarded-for) com
- * user-agent truncado para resistir a um IP partilhado por proxies.
+ * Extrai um identificador de IP do cliente para usar como prefixo da
+ * chave de rate-limit.
  *
- * NUNCA confiar só no header — em produção pôr trás de proxy reverso
- * que normaliza x-forwarded-for.
+ * Definir TRUST_PROXY=1 **apenas** quando a aplicação corre atrás de um
+ * proxy reverso (nginx, Caddy) configurado para remover ou sobrescrever o
+ * header X-Forwarded-For antes de encaminhar o pedido. Nesse caso o
+ * primeiro valor do header é o IP real do cliente.
+ *
+ * Sem TRUST_PROXY o header é controlado pelo atacante; preferimos
+ * X-Real-IP (não enviado pelos browsers por omissão) e só usamos XFF
+ * como último recurso. Em qualquer caso, o lockout por conta em
+ * authorize() é a defesa primária contra força bruta.
  */
 export function clientFingerprint(req: Request): string {
-  const headers = req.headers
-  const xff = headers.get('x-forwarded-for')
-  const ip = xff ? xff.split(',')[0]!.trim() : (headers.get('x-real-ip') ?? 'unknown')
-  return ip
+  if (process.env.TRUST_PROXY === '1') {
+    const xff = req.headers.get('x-forwarded-for')
+    if (xff) return xff.split(',')[0]!.trim()
+  }
+  return (
+    req.headers.get('x-real-ip') ??
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    'unknown'
+  )
 }
