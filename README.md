@@ -28,12 +28,9 @@ O script:
 5. Faz `docker compose -f docker-compose.prod.yml up -d --build`
 6. Espera pela aplicação ficar saudável e abre o browser
 
-No fim, login default:
-```
-admin@gpi.pt / Admin123!
-```
+No fim, abre o browser na aplicação. Inicia sessão com o email `admin@gpi.pt` e a password definida no seed.
 
-**Muda a password depois do primeiro login** em Perfil.
+**Muda a password imediatamente após o primeiro login** em Perfil → Alterar password.
 
 ### Instalação manual (alternativa)
 
@@ -104,17 +101,12 @@ Stack completa em [package.json](package.json).
 
 ---
 
-## Credenciais default (após seed)
+## Contas criadas pelo seed
 
-| Email | Role | Password |
-|---|---|---|
-| `admin@gpi.pt` | ADMINISTRACAO (chefe supremo) | `Admin123!` |
-| `coordenador@gpi.pt` | COORDENADOR | `Admin123!` |
-| `chefe@gpi.pt` | INSPETOR_CHEFE | `Admin123!` |
-| `inspetor@gpi.pt` | INSPETOR | `Admin123!` |
-| `estatistica@gpi.pt` | ESTATISTICA | `Admin123!` |
+O script `prisma/seed.ts` cria contas de demonstração para cada perfil de acesso:
+`admin@gpi.pt`, `coordenador@gpi.pt`, `chefe@gpi.pt`, `inspetor@gpi.pt`, `estatistica@gpi.pt`.
 
-> **Importante**: muda estas passwords antes de pôr em produção. A password do `admin@gpi.pt` é particularmente sensível — é a única conta protegida contra desactivação acidental.
+> **Importante**: altera as passwords de todas estas contas antes de colocar em produção. A conta `admin@gpi.pt` é particularmente sensível — é a única protegida contra desactivação acidental.
 
 ---
 
