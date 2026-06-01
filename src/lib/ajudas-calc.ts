@@ -90,6 +90,7 @@ export interface LinhaWithData {
   dataInicio: Date
   dataFim: Date
   prevencao: AjudasPrevencao
+  prevencaoOnly: boolean
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
   ajudaCustoAlojamento: number
@@ -152,10 +153,18 @@ export function getPortugueseHolidays(year: number): Set<string> {
   return holidays
 }
 
+// Regular working hours on weekdays: 09:00–17:30 (in minutes from midnight)
+const WORK_START_MINS = 9 * 60        //  540 min
+const WORK_END_MINS   = 17 * 60 + 30  // 1050 min
+
 /**
  * Splits hours between start and end into 4 buckets (weekday/weekend × day/night).
  * Hour slots: 00-07 = night (0h-7h59), 08-23 = day (8h00-23h59).
  * Weekend = Saturday (6), Sunday (0), or holiday.
+ *
+ * Weekday hours inside the regular working window (09:00–17:30) are excluded
+ * from overtime — they are normal paid working time and do not count towards
+ * extra pay. Weekend/holiday hours are never excluded.
  */
 export function splitHours(start: Date, end: Date, holidays: Set<string>): HoursSplit {
   const result: HoursSplit = { semanaDia: 0, semanaNoite: 0, fdsDia: 0, fdsNoite: 0 }
@@ -169,27 +178,47 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
   let current = new Date(start)
 
   while (current < end) {
-    // Advance to the next whole-hour boundary (or end, whichever comes first)
-    const nextHour = new Date(current)
-    nextHour.setHours(current.getHours() + 1, 0, 0, 0)
-    const segmentEnd = nextHour < end ? nextHour : end
+    const h = current.getHours()
+    const curMins = h * 60 + current.getMinutes()
 
-    // Exact fractional hours for this slot (handles partial first/last hour)
+    // Find the next natural boundary: hour boundary, 09:00, or 17:30 on this day
+    const nextHour = new Date(current)
+    nextHour.setHours(h + 1, 0, 0, 0)
+
+    const boundaries: Date[] = [nextHour]
+
+    // Add 09:00 as a boundary if it falls within this hour slot
+    const today0900 = new Date(current)
+    today0900.setHours(9, 0, 0, 0)
+    if (today0900 > current && today0900 < nextHour) boundaries.push(today0900)
+
+    // Add 17:30 as a boundary if it falls within this hour slot
+    const today1730 = new Date(current)
+    today1730.setHours(17, 30, 0, 0)
+    if (today1730 > current && today1730 < nextHour) boundaries.push(today1730)
+
+    // Earliest boundary (capped at end)
+    boundaries.sort((a, b) => a.getTime() - b.getTime())
+    const segmentEnd = boundaries[0]! < end ? boundaries[0]! : end
+
     const durationHours = (segmentEnd.getTime() - current.getTime()) / 3_600_000
 
     const dayOfWeek = current.getDay()
-    const hour = current.getHours()
     const dateStr = fmtDate(current)
-
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 || holidays.has(dateStr)
-    const isNight = hour >= 0 && hour < 8
+    const isNight = h < 8  // 00:00–07:59
 
-    if (isWeekend) {
-      if (isNight) result.fdsNoite += durationHours
-      else result.fdsDia += durationHours
-    } else {
-      if (isNight) result.semanaNoite += durationHours
-      else result.semanaDia += durationHours
+    // Skip regular working hours on weekdays (not applicable on weekends/holidays)
+    const isWorkingTime = !isWeekend && curMins >= WORK_START_MINS && curMins < WORK_END_MINS
+
+    if (!isWorkingTime) {
+      if (isWeekend) {
+        if (isNight) result.fdsNoite += durationHours
+        else result.fdsDia += durationHours
+      } else {
+        if (isNight) result.semanaNoite += durationHours
+        else result.semanaDia += durationHours
+      }
     }
 
     current = segmentEnd
@@ -198,10 +227,18 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
   return result
 }
 
+export interface UserOverrides {
+  vencimentoBase?: number
+  taxaIRS?: number
+}
+
 /**
  * Calculates all totals for a month's ajudas record.
+ * Per-user overrides take precedence over the global config values.
  */
-export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData): AjudasTotais {
+export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, overrides?: UserOverrides): AjudasTotais {
+  const vencimentoBase = overrides?.vencimentoBase ?? config.vencimentoBase
+  const taxaIRS = overrides?.taxaIRS ?? config.taxaIRS
   // Gather all years from the data to compute holidays
   const years = new Set<number>()
   for (const l of linhas) {
@@ -247,12 +284,14 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData): A
     const inicio = new Date(linha.dataInicio)
     const fim = new Date(linha.dataFim)
 
-    // Split overtime hours
-    const split = splitHours(inicio, fim, allHolidays)
-    semanaDia += split.semanaDia
-    semanaNoite += split.semanaNoite
-    fdsDia += split.fdsDia
-    fdsNoite += split.fdsNoite
+    // prevencaoOnly entries record only the prevencao fee — skip hour calculation
+    if (!linha.prevencaoOnly) {
+      const split = splitHours(inicio, fim, allHolidays)
+      semanaDia += split.semanaDia
+      semanaNoite += split.semanaNoite
+      fdsDia += split.fdsDia
+      fdsNoite += split.fdsNoite
+    }
 
     // Prevenção / Piquete — count one entry per line, classify by dataInicio day
     if (linha.prevencao === 'PIQUETE') {
@@ -278,18 +317,18 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData): A
 
   // --- Rates calculation ---
   // Overtime rates derived from piquete percentages
-  const taxaSemanaDia = (config.vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
   const taxaSemanaNoite = taxaSemanaDia * 2
-  const taxaFdsDia = (config.vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
   const taxaFdsNoite = taxaFdsDia * 2
 
   // Piquete rates: full monthly allowance per piquete entry
-  const taxaPiqueteSemana = config.vencimentoBase * config.percentPiqueteSemana
-  const taxaPiqueteFds = config.vencimentoBase * config.percentPiqueteFds
+  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
+  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
 
   // Prevenção passiva rates
-  const taxaPrevencaoSemana = config.vencimentoBase * config.percentPrevencaoPassiva / 3
-  const taxaPrevencaoFds = config.vencimentoBase * config.percentPrevencaoPassiva / 3 * 1.265
+  const taxaPrevencaoSemana = vencimentoBase * config.percentPrevencaoPassiva / 3
+  const taxaPrevencaoFds = vencimentoBase * config.percentPrevencaoPassiva / 3 * 1.265
 
   // Ajudas de custo rates
   const taxaAjudaAlmoco = config.ajudaCustoMaxDiario * 0.25 - 6
@@ -323,14 +362,14 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData): A
 
   // --- Final calculations ---
   const baseImponivel = totalHorasExtra + totalPiquete + totalPrevencao
-  const irs = baseImponivel * config.taxaIRS
+  const irs = baseImponivel * taxaIRS
   const ss = baseImponivel * config.taxaSS
   const totalBruto = baseImponivel + totalAjudasCusto + totalSenhas
   const liquido = totalBruto - irs - ss
 
   // Limits
-  const limiteBase = config.vencimentoBase
-  const limiteMensal = config.vencimentoBase / 3
+  const limiteBase = vencimentoBase
+  const limiteMensal = vencimentoBase / 3
   const totalContaLimite = baseImponivel
   const emFalta = Math.max(0, limiteMensal - totalContaLimite)
   const percentCompleto = limiteMensal > 0

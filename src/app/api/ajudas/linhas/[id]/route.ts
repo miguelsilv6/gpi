@@ -13,6 +13,7 @@ const updateSchema = z.object({
   dataInicio: z.string().datetime().optional(),
   dataFim: z.string().datetime().optional(),
   prevencao: z.enum(['NENHUMA', 'PIQUETE', 'PREVENCAO_PASSIVA']).optional(),
+  prevencaoOnly: z.boolean().optional(),
   ajudaCustoAlmoco: z.number().int().min(0).optional(),
   ajudaCustoJantar: z.number().int().min(0).optional(),
   ajudaCustoAlojamento: z.number().int().min(0).optional(),
@@ -92,18 +93,24 @@ export async function PUT(
     })
 
     // Return updated registo with totals
-    const registo = await prisma.ajudasRegisto.findUnique({
-      where: { id: updated.registoId },
-      include: { linhas: { orderBy: { dataInicio: 'asc' } } },
-    })
+    const [registo, config, registoOwner] = await Promise.all([
+      prisma.ajudasRegisto.findUnique({
+        where: { id: updated.registoId },
+        include: { linhas: { orderBy: { dataInicio: 'asc' } } },
+      }),
+      prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
+      prisma.ajudasRegisto.findUnique({
+        where: { id: updated.registoId },
+        select: { utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } } },
+      }),
+    ])
 
-    const config = await prisma.ajudasConfig.upsert({
-      where: { id: 'default' },
-      create: { id: 'default' },
-      update: {},
-    })
+    const overrides = {
+      vencimentoBase: registoOwner?.utilizador?.ajudasVencimentoBase ?? undefined,
+      taxaIRS: registoOwner?.utilizador?.ajudasTaxaIRS ?? undefined,
+    }
 
-    const totais = calcAjudasTotais(registo!.linhas, config)
+    const totais = calcAjudasTotais(registo!.linhas, config, overrides)
 
     return Response.json({ registo, config, totais })
   } catch (error) {
@@ -138,18 +145,24 @@ export async function DELETE(
     })
 
     // Return updated registo with totals
-    const registo = await prisma.ajudasRegisto.findUnique({
-      where: { id: registoId },
-      include: { linhas: { orderBy: { dataInicio: 'asc' } } },
-    })
+    const [registo, config, registoOwner] = await Promise.all([
+      prisma.ajudasRegisto.findUnique({
+        where: { id: registoId },
+        include: { linhas: { orderBy: { dataInicio: 'asc' } } },
+      }),
+      prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
+      prisma.ajudasRegisto.findUnique({
+        where: { id: registoId },
+        select: { utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } } },
+      }),
+    ])
 
-    const config = await prisma.ajudasConfig.upsert({
-      where: { id: 'default' },
-      create: { id: 'default' },
-      update: {},
-    })
+    const overrides = {
+      vencimentoBase: registoOwner?.utilizador?.ajudasVencimentoBase ?? undefined,
+      taxaIRS: registoOwner?.utilizador?.ajudasTaxaIRS ?? undefined,
+    }
 
-    const totais = calcAjudasTotais(registo!.linhas, config)
+    const totais = calcAjudasTotais(registo!.linhas, config, overrides)
 
     return Response.json({ registo, config, totais })
   } catch (error) {

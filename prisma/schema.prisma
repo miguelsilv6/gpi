@@ -70,6 +70,10 @@ model Utilizador {
   atualizacoesIniciadas AtualizacaoSistema[]
   etiquetas            Etiqueta[]
   ajudasRegistos       AjudasRegisto[]
+  // Per-user overrides for Ajudas Mensais calculations.
+  // When set, these take precedence over the global AjudasConfig values.
+  ajudasVencimentoBase Float?
+  ajudasTaxaIRS        Float?
 
   @@index([brigadaId])
   @@index([role])
@@ -492,6 +496,9 @@ model AjudasLinha {
   dataInicio           DateTime
   dataFim              DateTime
   prevencao            AjudasPrevencao @default(NENHUMA)
+  // When true, this entry records only a prevencao/piquete fee (no overtime hours).
+  // splitHours is skipped; only the prevencao period is counted.
+  prevencaoOnly        Boolean         @default(false)
   ajudaCustoAlmoco     Int             @default(0)
   ajudaCustoJantar     Int             @default(0)
   ajudaCustoAlojamento Int             @default(0)

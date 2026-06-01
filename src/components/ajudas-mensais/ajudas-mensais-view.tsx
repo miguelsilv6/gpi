@@ -30,8 +30,10 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Bell,
 } from 'lucide-react'
 import type { AjudasTotais, ConfigData } from '@/lib/ajudas-calc'
+import { getPortugueseHolidays } from '@/lib/ajudas-calc'
 import type { Role } from '@/generated/prisma/enums'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -44,6 +46,7 @@ interface AjudasLinha {
   dataInicio: string
   dataFim: string
   prevencao: 'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA'
+  prevencaoOnly: boolean
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
   ajudaCustoAlojamento: number
@@ -533,6 +536,12 @@ export function AjudasMensaisView({
   const [form, setForm] = useState<LinhaFormData>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
 
+  // Piquete dialog
+  const [piqueteDialogOpen, setPiqueteDialogOpen] = useState(false)
+  const [piqueteDate, setPiqueteDate] = useState('')
+  const [piqueteTipo, setPiqueteTipo] = useState<'PIQUETE' | 'PREVENCAO_PASSIVA'>('PIQUETE')
+  const [savingPiquete, setSavingPiquete] = useState(false)
+
   // Delete confirmation
   const [deleteCandidate, setDeleteCandidate] = useState<AjudasLinha | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -704,6 +713,70 @@ export function AjudasMensaisView({
     }
   }
 
+  function calcPiquetePreview(dateStr: string, tipo: 'PIQUETE' | 'PREVENCAO_PASSIVA', config: ConfigData): string {
+    if (!dateStr || !config) return '—'
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return '—'
+    const holidays = getPortugueseHolidays(d.getFullYear())
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const dow = d.getDay()
+    const isFds = dow === 0 || dow === 6 || holidays.has(dateKey)
+    if (tipo === 'PIQUETE') {
+      const val = config.vencimentoBase * (isFds ? config.percentPiqueteFds : config.percentPiqueteSemana)
+      return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
+    } else {
+      const base = config.vencimentoBase * config.percentPrevencaoPassiva / 3
+      const val = isFds ? base * 1.265 : base
+      return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
+    }
+  }
+
+  async function handlePiqueteSave() {
+    if (!data || !piqueteDate) {
+      toast.error('Selecione um dia')
+      return
+    }
+    const d = new Date(piqueteDate)
+    if (isNaN(d.getTime())) {
+      toast.error('Data inválida')
+      return
+    }
+    // Use full day: 00:00 to 23:59 (prevencaoOnly=true so hours are irrelevant for calc)
+    const inicio = new Date(d)
+    inicio.setHours(0, 0, 0, 0)
+    const fim = new Date(d)
+    fim.setHours(23, 59, 0, 0)
+
+    setSavingPiquete(true)
+    try {
+      const res = await fetch('/api/ajudas/linhas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          registoId: data.registo.id,
+          dataInicio: inicio.toISOString(),
+          dataFim: fim.toISOString(),
+          prevencao: piqueteTipo,
+          prevencaoOnly: true,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      const updated = await res.json()
+      setData(updated)
+      setPiqueteDialogOpen(false)
+      toast.success('Piquete adicionado')
+    } catch {
+      toast.error('Erro ao guardar')
+    } finally {
+      setSavingPiquete(false)
+    }
+  }
+
   const distanciaMin = data?.config.distanciaMinKmAjudas ?? 35
   const linhas = data?.registo.linhas ?? []
   const totais = data?.totais
@@ -753,10 +826,16 @@ export function AjudasMensaisView({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Entradas do Mês</CardTitle>
-              <Button size="sm" onClick={openAddDialog}>
-                <Plus className="h-4 w-4 mr-1.5" />
-                Nova entrada
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => { setPiqueteDate(''); setPiqueteTipo('PIQUETE'); setPiqueteDialogOpen(true) }}>
+                  <Bell className="h-4 w-4 mr-1.5" />
+                  Piquete
+                </Button>
+                <Button size="sm" onClick={openAddDialog}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Nova entrada
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {linhas.length === 0 ? (
@@ -791,7 +870,9 @@ export function AjudasMensaisView({
                           <td className="py-2 px-2">{l.local || '—'}</td>
                           <td className="py-2 px-2 whitespace-nowrap">{formatDT(l.dataInicio)}</td>
                           <td className="py-2 px-2 whitespace-nowrap">{formatDT(l.dataFim)}</td>
-                          <td className="py-2 px-2 whitespace-nowrap">{calcDuration(l.dataInicio, l.dataFim)}</td>
+                          <td className="py-2 px-2 whitespace-nowrap">
+                            {l.prevencaoOnly ? <span className="text-muted-foreground text-xs italic">só prevenção</span> : calcDuration(l.dataInicio, l.dataFim)}
+                          </td>
                           <td className="py-2 px-2">
                             {l.prevencao === 'NENHUMA'
                               ? '—'
@@ -875,6 +956,58 @@ export function AjudasMensaisView({
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingLinha ? 'Guardar alterações' : 'Adicionar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Piquete / Prevenção dialog */}
+      <Dialog open={piqueteDialogOpen} onOpenChange={(open) => !savingPiquete && setPiqueteDialogOpen(open)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Piquete / Prevenção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="piqueteDate">Dia *</Label>
+              <Input
+                id="piqueteDate"
+                type="date"
+                value={piqueteDate}
+                onChange={(e) => setPiqueteDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="piqueteTipo">Tipo</Label>
+              <Select
+                value={piqueteTipo}
+                onValueChange={(v) => setPiqueteTipo(v as 'PIQUETE' | 'PREVENCAO_PASSIVA')}
+              >
+                <SelectTrigger id="piqueteTipo">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PIQUETE">Piquete</SelectItem>
+                  <SelectItem value="PREVENCAO_PASSIVA">Prevenção Passiva</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {piqueteDate && data?.config && (
+              <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                <span className="text-muted-foreground">Valor calculado: </span>
+                <span className="font-semibold">
+                  {calcPiquetePreview(piqueteDate, piqueteTipo, data.config)}
+                </span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPiqueteDialogOpen(false)} disabled={savingPiquete}>
+              Cancelar
+            </Button>
+            <Button onClick={handlePiqueteSave} disabled={savingPiquete || !piqueteDate}>
+              {savingPiquete && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Adicionar
             </Button>
           </DialogFooter>
         </DialogContent>
