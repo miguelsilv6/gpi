@@ -69,6 +69,7 @@ model Utilizador {
   passwordResetTokens  PasswordResetToken[]
   atualizacoesIniciadas AtualizacaoSistema[]
   etiquetas            Etiqueta[]
+  ajudasRegistos       AjudasRegisto[]
 
   @@index([brigadaId])
   @@index([role])
@@ -435,6 +436,75 @@ model AtividadePadrao {
 
   @@index([transicaoEstadoId])
   @@index([categoriaDashboard])
+}
+
+enum AjudasPrevencao {
+  NENHUMA
+  PIQUETE
+  PREVENCAO_PASSIVA
+}
+
+enum AjudasViatura {
+  PROPRIA
+  BRIGADA
+}
+
+// Singleton config for Ajudas Mensais - managed by ADMINISTRACAO
+model AjudasConfig {
+  id                      String   @id @default("default")
+  vencimentoBase          Float    @default(1974.41)
+  vencimentoDN            Float    @default(7143.207)
+  percentPiqueteSemana    Float    @default(0.083)
+  percentPiqueteFds       Float    @default(0.105)
+  percentPrevencaoPassiva Float    @default(0.4)
+  ajudaCustoMaxDiario     Float    @default(62.75)
+  senhaAlmoco             Float    @default(9.60)
+  senhaJantar             Float    @default(8.23)
+  senhaCeia               Float    @default(4.24)
+  taxaIRS                 Float    @default(0.1116)
+  taxaSS                  Float    @default(0.11)
+  distanciaMinKmAjudas    Int      @default(35)
+  updatedAt               DateTime @updatedAt
+}
+
+// Monthly record per inspector (auto-created on first access)
+model AjudasRegisto {
+  id           String        @id @default(cuid())
+  utilizadorId String
+  utilizador   Utilizador    @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+  ano          Int
+  mes          Int           // 1-12
+  linhas       AjudasLinha[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([utilizadorId, ano, mes])
+  @@index([utilizadorId])
+}
+
+// Individual callout/activity entry
+model AjudasLinha {
+  id                   String          @id @default(cuid())
+  registoId            String
+  registo              AjudasRegisto   @relation(fields: [registoId], references: [id], onDelete: Cascade)
+  nuipc                String?
+  local                String?
+  dataInicio           DateTime
+  dataFim              DateTime
+  prevencao            AjudasPrevencao @default(NENHUMA)
+  ajudaCustoAlmoco     Int             @default(0)
+  ajudaCustoJantar     Int             @default(0)
+  ajudaCustoAlojamento Int             @default(0)
+  senhaAlmoco          Int             @default(0)
+  senhaJantar          Int             @default(0)
+  senhaCeia            Int             @default(0)
+  viatura              AjudasViatura?
+  km                   Int             @default(0)
+  observacoes          String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([registoId])
 }
 
 model Sessao {
