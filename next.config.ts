@@ -56,7 +56,10 @@ const SECURITY_HEADERS = [
 ]
 
 const API_CACHE_HEADERS = [
-  { key: 'Cache-Control', value: 'no-store' },
+  { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
+  // Pragma + Expires: defence-in-depth for HTTP/1.0 proxies and misconfigured caches.
+  { key: 'Pragma', value: 'no-cache' },
+  { key: 'Expires', value: '0' },
 ]
 
 const nextConfig: NextConfig = {
