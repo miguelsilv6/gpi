@@ -459,7 +459,7 @@ model Viatura {
   utilizadorId String
   utilizador   Utilizador    @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
   nome         String
-  matricula    String?
+  matricula    String?       @unique
   ativo        Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
