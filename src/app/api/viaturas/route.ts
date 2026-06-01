@@ -6,9 +6,11 @@ import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
+const MATRICULA_REGEX = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i
+
 const createSchema = z.object({
   nome: z.string().min(1).max(100),
-  matricula: z.string().max(20).optional().nullable(),
+  matricula: z.string().regex(MATRICULA_REGEX, 'Matrícula inválida — use o formato XX-XX-XX').optional().nullable(),
 })
 
 export async function GET() {
@@ -38,11 +40,17 @@ export async function POST(req: NextRequest) {
     const parsed = createSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0]?.message ?? 'Dados inválidos', 400)
 
+    // Enforce uniqueness of non-null matricula
+    if (parsed.data.matricula) {
+      const existing = await prisma.viatura.findUnique({ where: { matricula: parsed.data.matricula } })
+      if (existing) return apiError('Já existe uma viatura com esta matrícula', 409)
+    }
+
     const viatura = await prisma.viatura.create({
       data: {
         utilizadorId: session.user.id,
         nome: parsed.data.nome,
-        matricula: parsed.data.matricula ?? null,
+        matricula: parsed.data.matricula ? parsed.data.matricula.toUpperCase() : null,
       },
       select: { id: true, nome: true, matricula: true },
     })

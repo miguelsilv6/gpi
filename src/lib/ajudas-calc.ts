@@ -292,8 +292,16 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
       if (isFdsDay(inicio)) piqueteFds += 1
       else piqueteSemana += 1
     } else if (linha.prevencao === 'PREVENCAO_PASSIVA') {
-      if (isFdsDay(inicio)) prevencaoFds += 1
-      else prevencaoSemana += 1
+      // Count each calendar day in the prevention range (start date inclusive, end date inclusive)
+      const cur = new Date(inicio)
+      cur.setUTCHours(0, 0, 0, 0)
+      const last = new Date(fim)
+      last.setUTCHours(0, 0, 0, 0)
+      while (cur.getTime() <= last.getTime()) {
+        if (isFdsDay(cur)) prevencaoFds += 1
+        else prevencaoSemana += 1
+        cur.setUTCDate(cur.getUTCDate() + 1)
+      }
     }
 
     // Ajudas de custo: only applicable when km >= distanciaMinKmAjudas
