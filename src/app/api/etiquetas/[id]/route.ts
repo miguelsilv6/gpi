@@ -2,8 +2,10 @@ import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
+import { hasPermission } from '@/lib/rbac'
 import { writeAudit, diff } from '@/lib/audit'
 import { z } from 'zod'
+import type { Role } from '@/generated/prisma/enums'
 
 const updateSchema = z.object({
   nome: z.string().min(1).max(120),
@@ -76,10 +78,13 @@ export async function DELETE(
     const session = await getSession()
     const { id } = await params
 
+    const role = session.user.role as Role
     const existing = await prisma.etiqueta.findUnique({ where: { id } })
     if (!existing) return apiError('Etiqueta não encontrada', 404)
-    if (existing.criadoPorId !== session.user.id) {
-      return apiError('Só o autor pode eliminar a etiqueta', 403)
+    const isOwner = existing.criadoPorId === session.user.id
+    const isAdmin = hasPermission(role, 'etiqueta:manage')
+    if (!isOwner && !isAdmin) {
+      return apiError('Sem permissão para eliminar esta etiqueta', 403)
     }
 
     const inUse = await prisma.inquerito.count({ where: { etiquetas: { some: { id } } } })

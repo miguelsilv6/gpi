@@ -36,6 +36,7 @@ import { BackupsTab } from './backups-tab'
 import { NotificacoesTab } from './notificacoes-tab'
 import { AtualizacoesTab } from './atualizacoes-tab'
 import { AparenciaTab } from './aparencia-tab'
+import { EtiquetasTab } from './etiquetas-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -698,7 +699,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'comarcas' | 'tribunais' | 'seccoes' | 'locais-tratamento' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'locais-tratamento' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -803,7 +804,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'crimes', 'comarcas', 'tribunais', 'seccoes', 'locais-tratamento', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'locais-tratamento', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -820,6 +821,8 @@ export default function ConfiguracoesPage() {
                 ? 'Estados'
                 : t === 'crimes'
                   ? 'Crimes'
+                  : t === 'etiquetas'
+                    ? 'Etiquetas'
                   : t === 'comarcas'
                     ? 'Comarcas'
                     : t === 'tribunais'
@@ -948,6 +951,9 @@ export default function ConfiguracoesPage() {
 
       {/* Crimes tab */}
       {tab === 'crimes' && <CrimesTab />}
+
+      {/* Etiquetas tab */}
+      {tab === 'etiquetas' && <EtiquetasTab />}
 
       {/* Comarcas tab */}
       {tab === 'comarcas' && <ComarcasTab />}
