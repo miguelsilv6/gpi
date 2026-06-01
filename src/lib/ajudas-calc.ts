@@ -62,6 +62,7 @@ export interface AjudasTotais {
   // Deductions
   baseImponivel: number
   taxaIRS: number
+  taxaSS: number
   irs: number
   ss: number
   // Final
@@ -451,6 +452,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     totalSenhas: 0,
     baseImponivel,
     taxaIRS,
+    taxaSS: config.taxaSS,
     irs,
     ss,
     totalBruto,

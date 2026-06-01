@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import type { AjudasTotais, ConfigData } from '@/lib/ajudas-calc'
 import { getPortugueseHolidays, splitHours } from '@/lib/ajudas-calc'
+import { MATRICULA_REGEX } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -257,7 +258,7 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
               <span>-{fmtEur(totais.irs)}</span>
             </div>
             <div className="flex justify-between text-red-600 dark:text-red-400">
-              <span>Seg. Social ({(totais.ss > 0 && totais.baseImponivel > 0 ? totais.ss / totais.baseImponivel * 100 : 11).toFixed(0)}%)</span>
+              <span>Seg. Social ({(totais.taxaSS * 100).toFixed(0)}%)</span>
               <span>-{fmtEur(totais.ss)}</span>
             </div>
             <div className="flex justify-between font-bold text-base border-t pt-1 mt-1">
@@ -344,11 +345,9 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
   const [addViaturaError, setAddViaturaError] = useState('')
   const [addViaturaLoading, setAddViaturaLoading] = useState(false)
 
-  const MATRICULA_RE = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i
-
   async function handleAddViatura() {
     if (!addViaturaForm.nome.trim()) { setAddViaturaError('Nome obrigatório'); return }
-    if (addViaturaForm.matricula && !MATRICULA_RE.test(addViaturaForm.matricula)) {
+    if (addViaturaForm.matricula && !MATRICULA_REGEX.test(addViaturaForm.matricula)) {
       setAddViaturaError('Formato inválido — use XX-XX-XX (ex: AB-12-CD)')
       return
     }
@@ -604,6 +603,7 @@ export function AjudasMensaisView({
 
   const [ano, setAno] = useState(initialAno)
   const [mes, setMes] = useState(initialMes)
+  const fetchSeqRef = useRef(0)
   // When a chefe/coordenador views another user's record, this holds that user's ID
   const viewingUserId = initialViewingUserId ?? userId
   const [data, setData] = useState<ApiResponse | null>(null)
@@ -633,21 +633,24 @@ export function AjudasMensaisView({
   const [deleting, setDeleting] = useState(false)
 
   const fetchData = useCallback(async (a: number, m: number) => {
+    const seq = ++fetchSeqRef.current
     setLoading(true)
     try {
       const uidParam = viewingUserId !== userId ? `&utilizadorId=${viewingUserId}` : ''
       const res = await fetch(`/api/ajudas?ano=${a}&mes=${m}${uidParam}`)
+      if (fetchSeqRef.current !== seq) return
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         toast.error(err.error ?? 'Erro ao carregar dados')
         return
       }
       const d = await res.json()
+      if (fetchSeqRef.current !== seq) return
       setData(d)
     } catch {
-      toast.error('Erro ao carregar dados')
+      if (fetchSeqRef.current === seq) toast.error('Erro ao carregar dados')
     } finally {
-      setLoading(false)
+      if (fetchSeqRef.current === seq) setLoading(false)
     }
   }, [])
 
@@ -1021,7 +1024,7 @@ export function AjudasMensaisView({
                             {[
                               l.ajudaCustoAlmoco > 0 && `Al:${l.ajudaCustoAlmoco}`,
                               l.ajudaCustoJantar > 0 && `Jt:${l.ajudaCustoJantar}`,
-                              l.ajudaCustoAlojamento > 0 && `Al:${l.ajudaCustoAlojamento}`,
+                              l.ajudaCustoAlojamento > 0 && `Aloj:${l.ajudaCustoAlojamento}`,
                             ].filter(Boolean).join(' ') || '—'}
                           </td>
                           <td className="py-2 px-2 max-w-[150px] truncate" title={l.observacoes ?? undefined}>

@@ -256,7 +256,7 @@ export function AjudasConfigTab() {
                   onChange={(e) => setNum('percentPrevencaoPassiva', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
-                  {fmtEur(config.vencimentoBase * config.percentPrevencaoPassiva / 3)}/período
+                  {fmtEur(config.vencimentoBase * config.percentPrevencaoPassiva / 3)}/dia
                 </span>
               </div>
             </div>

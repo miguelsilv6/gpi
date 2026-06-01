@@ -45,6 +45,10 @@ export async function POST(req: NextRequest) {
     if (fim <= inicio) {
       return apiError('A data de fim deve ser posterior à data de início', 400)
     }
+    const durationDays = (fim.getTime() - inicio.getTime()) / 86_400_000
+    if (durationDays > 31) {
+      return apiError('O intervalo máximo para horas extra é de 31 dias', 400)
+    }
 
     // Verify the registo belongs to the caller or caller has elevated permissions
     const registo = await prisma.ajudasRegisto.findUnique({

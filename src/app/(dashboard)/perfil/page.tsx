@@ -197,6 +197,7 @@ export default function PerfilPage() {
     }
     const updated = await res.json()
     setUser((prev) => prev ? { ...prev, ...updated } : prev)
+    profileForm.reset({ nome: updated.nome, email: updated.email })
     toast.success('Perfil actualizado')
   }
 
