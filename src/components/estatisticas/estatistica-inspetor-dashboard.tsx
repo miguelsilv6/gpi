@@ -17,7 +17,7 @@ import {
   NaturezaBarChart,
   AnoBarChart,
 } from './charts'
-import { FileText, MonitorCog, Send, Archive, X } from 'lucide-react'
+import { FileText, MonitorCog, Send, Archive, CheckCircle2, X } from 'lucide-react'
 
 interface Stats {
   total: number
@@ -25,6 +25,7 @@ interface Stats {
   aguardaExames: number
   enviados: number
   arquivados: number
+  concluidos: number
   porEstado: { estadoId: string; codigo: string; nome: string; cor: string | null; count: number }[]
   porNatureza: { natureza: string; count: number }[]
   porAno: { ano: string; count: number }[]
@@ -190,7 +191,7 @@ export function EstatisticaInspetorDashboard() {
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -198,6 +199,15 @@ export function EstatisticaInspetorDashboard() {
                   <span className="text-sm text-muted-foreground">Total</span>
                 </div>
                 <p className="text-3xl font-bold mt-1">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-muted-foreground">Concluídos</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-green-700">{stats.concluidos}</p>
               </CardContent>
             </Card>
             <Card>

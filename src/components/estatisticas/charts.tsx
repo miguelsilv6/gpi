@@ -46,10 +46,17 @@ export function AnoBarChart({ data }: { data: PorAno[] }) {
 
 export function EstadoBarChart({ data }: { data: PorEstado[] }) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 60 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="nome" tick={{ fontSize: 12 }} />
+        <XAxis
+          dataKey="nome"
+          tick={{ fontSize: 11 }}
+          interval={0}
+          angle={-35}
+          textAnchor="end"
+          height={70}
+        />
         <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
         <Tooltip />
         <Bar dataKey="count" name="Inquéritos" radius={[4, 4, 0, 0]}>
