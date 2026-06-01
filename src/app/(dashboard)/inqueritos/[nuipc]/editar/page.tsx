@@ -31,6 +31,9 @@ export default async function EditarInqueritoPage({
     include: {
       etiquetas: { select: { id: true, nome: true } },
       crimesAssociados: { select: { id: true, nome: true, ativo: true } },
+      tribunal: { select: { id: true, nome: true, ativo: true } },
+      seccao: { select: { id: true, nome: true, ativo: true } },
+      localTratamento: { select: { id: true, nome: true, ativo: true } },
     },
   })
 
@@ -72,7 +75,7 @@ export default async function EditarInqueritoPage({
     )
   }
 
-  const [brigadas, inspetores, estados, crimes, etiquetasDisponiveis] = await Promise.all([
+  const [brigadas, inspetores, estados, crimes, etiquetasDisponiveis, tribunais, seccoes, locaisTratamento] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -89,6 +92,18 @@ export default async function EditarInqueritoPage({
       select: { id: true, nome: true, ativo: true },
     }),
     listEtiquetasByOwner(session.user.id),
+    prisma.tribunal.findMany({
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
+    prisma.seccao.findMany({
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
+    prisma.localTratamento.findMany({
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
   ])
 
   const formatForInput = (d: Date | null) =>
@@ -123,6 +138,9 @@ export default async function EditarInqueritoPage({
         etiquetasDisponiveis={etiquetasDisponiveis}
         etiquetasAtribuidas={inquerito.etiquetas}
         crimesAssociadosIniciais={inquerito.crimesAssociados}
+        tribunais={tribunais}
+        seccoes={seccoes}
+        locaisTratamento={locaisTratamento}
         defaultValues={{
           nuipc: inquerito.nuipc,
           etiquetaIds: inquerito.etiquetas.map((e) => e.id),
@@ -136,7 +154,9 @@ export default async function EditarInqueritoPage({
           notas: inquerito.notas ?? undefined,
           brigadaId: inquerito.brigadaId ?? undefined,
           inspetorId: inquerito.inspetorId ?? undefined,
-          tribunal: inquerito.tribunal ?? undefined,
+          tribunalId: inquerito.tribunalId ?? undefined,
+          seccaoId: inquerito.seccaoId ?? undefined,
+          localTratamentoId: inquerito.localTratamentoId ?? undefined,
           procurador: inquerito.procurador ?? undefined,
           oficialJustica: inquerito.oficialJustica ?? undefined,
           voip: inquerito.voip ?? undefined,

@@ -25,7 +25,7 @@ export default async function NovoInqueritoPage() {
     )
   }
 
-  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis] = await Promise.all([
+  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, tribunais, seccoes, locaisTratamento] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -44,6 +44,21 @@ export default async function NovoInqueritoPage() {
       select: { id: true, nome: true, ativo: true },
     }),
     listEtiquetasByOwner(session.user.id),
+    prisma.tribunal.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
+    prisma.seccao.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
+    prisma.localTratamento.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true, ativo: true },
+    }),
   ])
 
   return (
@@ -70,6 +85,9 @@ export default async function NovoInqueritoPage() {
         estados={estados}
         crimes={crimes}
         etiquetasDisponiveis={etiquetasDisponiveis}
+        tribunais={tribunais}
+        seccoes={seccoes}
+        locaisTratamento={locaisTratamento}
         defaultValues={{
           ...(session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
           ...(defaultEstado ? { estadoId: defaultEstado.id } : {}),

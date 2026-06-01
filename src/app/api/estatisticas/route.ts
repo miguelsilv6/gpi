@@ -98,6 +98,8 @@ export async function GET(req: NextRequest) {
       enviados,
       arquivados,
       anoRaw,
+      porTribunalRaw,
+      porLocalTratamentoRaw,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
       prisma.inquerito.groupBy({
@@ -177,6 +179,8 @@ export async function GET(req: NextRequest) {
         where,
         select: { dataAbertura: true, nuipc: true },
       }),
+      prisma.inquerito.groupBy({ by: ['tribunalId'], where, _count: true, orderBy: { _count: { tribunalId: 'desc' } }, take: 15 }),
+      prisma.inquerito.groupBy({ by: ['localTratamentoId'], where, _count: true, orderBy: { _count: { localTratamentoId: 'desc' } }, take: 15 }),
     ])
 
     // Atividade breakdown for the selected inspetor (only when filtered).
@@ -255,7 +259,13 @@ export async function GET(req: NextRequest) {
     const inspetorIds = porInspetorRaw
       .map((r) => r.inspetorId)
       .filter((id): id is string => id !== null)
-    const [brigadas, estados, inspetores] = await Promise.all([
+    const tribunalIds = porTribunalRaw
+      .map((r) => r.tribunalId)
+      .filter((id): id is string => id !== null)
+    const localTratamentoIds = porLocalTratamentoRaw
+      .map((r) => r.localTratamentoId)
+      .filter((id): id is string => id !== null)
+    const [brigadas, estados, inspetores, tribunaisNomes, locaisNomes] = await Promise.all([
       prisma.brigada.findMany({
         where: { id: { in: porBrigada.map((b) => b.brigadaId).filter((id): id is string => id !== null) } },
         select: { id: true, nome: true },
@@ -270,10 +280,24 @@ export async function GET(req: NextRequest) {
             select: { id: true, nome: true },
           })
         : Promise.resolve([]),
+      tribunalIds.length
+        ? prisma.tribunal.findMany({
+            where: { id: { in: tribunalIds } },
+            select: { id: true, nome: true },
+          })
+        : Promise.resolve([]),
+      localTratamentoIds.length
+        ? prisma.localTratamento.findMany({
+            where: { id: { in: localTratamentoIds } },
+            select: { id: true, nome: true },
+          })
+        : Promise.resolve([]),
     ])
     const brigadaNomes = Object.fromEntries(brigadas.map((b) => [b.id, b.nome]))
     const estadoById = new Map(estados.map((e) => [e.id, e]))
     const inspetorNomes = Object.fromEntries(inspetores.map((u) => [u.id, u.nome]))
+    const tribunalNomesMap = Object.fromEntries(tribunaisNomes.map((t) => [t.id, t.nome]))
+    const localNomesMap = Object.fromEntries(locaisNomes.map((l) => [l.id, l.nome]))
 
     return Response.json({
       total,
@@ -307,6 +331,20 @@ export async function GET(req: NextRequest) {
           count: r._count,
         })),
       porNatureza: porNatureza.map((r) => ({ natureza: r.natureza, count: r._count })),
+      porTribunal: porTribunalRaw
+        .filter((r) => r.tribunalId !== null)
+        .map((r) => ({
+          tribunalId: r.tribunalId!,
+          nome: tribunalNomesMap[r.tribunalId!] ?? '—',
+          count: r._count,
+        })),
+      porLocalTratamento: porLocalTratamentoRaw
+        .filter((r) => r.localTratamentoId !== null)
+        .map((r) => ({
+          localTratamentoId: r.localTratamentoId!,
+          nome: localNomesMap[r.localTratamentoId!] ?? '—',
+          count: r._count,
+        })),
       atividadesInspetor,
       atividadesInspetorTotal,
     })

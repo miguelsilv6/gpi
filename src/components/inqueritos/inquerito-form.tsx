@@ -23,6 +23,11 @@ interface Inspetor { id: string; nome: string; brigadaId: string | null }
 interface Estado { id: string; codigo: string; nome: string; terminal: boolean; ativo: boolean }
 interface Crime { id: string; nome: string; ativo: boolean }
 interface Etiqueta { id: string; nome: string }
+interface TribunalOption { id: string; nome: string; ativo: boolean }
+interface SeccaoOption { id: string; nome: string; ativo: boolean }
+interface LocalTratamentoOption { id: string; nome: string; ativo: boolean }
+
+const NONE_VALUE = '__none__'
 
 interface InqueritoFormProps {
   defaultValues?: Partial<InqueritoFormData>
@@ -36,6 +41,9 @@ interface InqueritoFormProps {
   etiquetasAtribuidas?: Etiqueta[]
   /** Crimes já associados ao inquérito (modo edição) — inclui inativos. */
   crimesAssociadosIniciais?: Crime[]
+  tribunais: TribunalOption[]
+  seccoes: SeccaoOption[]
+  locaisTratamento: LocalTratamentoOption[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
 }
@@ -49,6 +57,9 @@ export function InqueritoForm({
   etiquetasDisponiveis,
   etiquetasAtribuidas = [],
   crimesAssociadosIniciais = [],
+  tribunais,
+  seccoes,
+  locaisTratamento,
   nuipcOriginal,
   mode,
 }: InqueritoFormProps) {
@@ -98,6 +109,9 @@ export function InqueritoForm({
     const payload = {
       ...data,
       inspetorId: data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null,
+      tribunalId: data.tribunalId === NONE_VALUE ? null : (data.tribunalId || null),
+      seccaoId: data.seccaoId === NONE_VALUE ? null : (data.seccaoId || null),
+      localTratamentoId: data.localTratamentoId === NONE_VALUE ? null : (data.localTratamentoId || null),
     }
 
     const res = await fetch(url, {
@@ -123,6 +137,37 @@ export function InqueritoForm({
   const selectedCrimeId = watch('crimeId')
   const selectedEtiquetaIds = watch('etiquetaIds') ?? []
   const selectedCrimeIdsAssociados = watch('crimeIdsAssociados') ?? []
+  const selectedTribunalId = watch('tribunalId')
+  const selectedSeccaoId = watch('seccaoId')
+  const selectedLocalTratamentoId = watch('localTratamentoId')
+
+  // Tribunais available: active + currently assigned if inactive
+  const tribunaisForSelect = useMemo(() => {
+    const ativos = tribunais.filter((t) => t.ativo)
+    const current = defaultValues?.tribunalId
+      ? tribunais.find((t) => t.id === defaultValues.tribunalId)
+      : null
+    if (current && !current.ativo) return [current, ...ativos]
+    return ativos
+  }, [tribunais, defaultValues?.tribunalId])
+
+  const seccoesForSelect = useMemo(() => {
+    const ativas = seccoes.filter((s) => s.ativo)
+    const current = defaultValues?.seccaoId
+      ? seccoes.find((s) => s.id === defaultValues.seccaoId)
+      : null
+    if (current && !current.ativo) return [current, ...ativas]
+    return ativas
+  }, [seccoes, defaultValues?.seccaoId])
+
+  const locaisForSelect = useMemo(() => {
+    const ativos = locaisTratamento.filter((l) => l.ativo)
+    const current = defaultValues?.localTratamentoId
+      ? locaisTratamento.find((l) => l.id === defaultValues.localTratamentoId)
+      : null
+    if (current && !current.ativo) return [current, ...ativos]
+    return ativos
+  }, [locaisTratamento, defaultValues?.localTratamentoId])
 
   // Merge edit-mode initially-assigned associated crimes (may include deactivated)
   // with the active catalog so the CrimeInput can resolve names and deactivated labels.
@@ -370,15 +415,79 @@ export function InqueritoForm({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="tribunal">Tribunal / M.P.</Label>
-              <Input
-                id="tribunal"
-                placeholder="Tribunal onde corre a investigação"
-                {...register('tribunal')}
-              />
-              {errors.tribunal && (
-                <p className="text-xs text-red-600">{errors.tribunal.message}</p>
-              )}
+              <Label>Tribunal / M.P.</Label>
+              <Select
+                value={selectedTribunalId || NONE_VALUE}
+                onValueChange={(v) => setValue('tribunalId', v === NONE_VALUE ? null : v, { shouldDirty: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar tribunal">
+                    {(v: string) =>
+                      !v || v === NONE_VALUE
+                        ? 'Nenhum'
+                        : tribunaisForSelect.find((t) => t.id === v)?.nome ?? 'Selecionar tribunal'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>Nenhum</SelectItem>
+                  {tribunaisForSelect.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nome}{!t.ativo ? ' (inativo)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Secção</Label>
+              <Select
+                value={selectedSeccaoId || NONE_VALUE}
+                onValueChange={(v) => setValue('seccaoId', v === NONE_VALUE ? null : v, { shouldDirty: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar secção">
+                    {(v: string) =>
+                      !v || v === NONE_VALUE
+                        ? 'Nenhuma'
+                        : seccoesForSelect.find((s) => s.id === v)?.nome ?? 'Selecionar secção'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>Nenhuma</SelectItem>
+                  {seccoesForSelect.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nome}{!s.ativo ? ' (inativa)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Local de Tratamento</Label>
+              <Select
+                value={selectedLocalTratamentoId || NONE_VALUE}
+                onValueChange={(v) => setValue('localTratamentoId', v === NONE_VALUE ? null : v, { shouldDirty: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar local">
+                    {(v: string) =>
+                      !v || v === NONE_VALUE
+                        ? 'Nenhum'
+                        : locaisForSelect.find((l) => l.id === v)?.nome ?? 'Selecionar local'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>Nenhum</SelectItem>
+                  {locaisForSelect.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.nome}{!l.ativo ? ' (inativo)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="procurador">Procurador/a</Label>

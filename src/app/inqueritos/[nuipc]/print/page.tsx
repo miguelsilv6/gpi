@@ -46,6 +46,9 @@ export default async function InqueritoPrintPage({
       crime: { select: { nome: true } },
       brigada: { select: { nome: true } },
       inspetor: { select: { nome: true, email: true } },
+      tribunal: { select: { nome: true } },
+      seccao: { select: { nome: true } },
+      localTratamento: { select: { nome: true } },
       atividades: {
         // Ordenado pela data de inserção (createdAt) para coincidir com o que
         // é mostrado e com a página de detalhe do inquérito.
@@ -257,6 +260,8 @@ export default async function InqueritoPrintPage({
         )}
 
         {(inquerito.tribunal ||
+          inquerito.seccao ||
+          inquerito.localTratamento ||
           inquerito.procurador ||
           inquerito.oficialJustica ||
           inquerito.voip ||
@@ -264,7 +269,9 @@ export default async function InqueritoPrintPage({
           <>
             <h2>Tribunal / M.P.</h2>
             <dl className="meta-grid">
-              {inquerito.tribunal && (<><dt>Tribunal / M.P.</dt><dd>{inquerito.tribunal}</dd></>)}
+              {inquerito.tribunal && (<><dt>Tribunal / M.P.</dt><dd>{inquerito.tribunal.nome}</dd></>)}
+              {inquerito.seccao && (<><dt>Secção</dt><dd>{inquerito.seccao.nome}</dd></>)}
+              {inquerito.localTratamento && (<><dt>Local de Tratamento</dt><dd>{inquerito.localTratamento.nome}</dd></>)}
               {inquerito.procurador && (<><dt>Procurador/a</dt><dd>{inquerito.procurador}</dd></>)}
               {inquerito.oficialJustica && (<><dt>Oficial de Justiça</dt><dd>{inquerito.oficialJustica}</dd></>)}
               {inquerito.voip && (<><dt>VoIP / Contacto</dt><dd>{inquerito.voip}</dd></>)}
