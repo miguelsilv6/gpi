@@ -93,14 +93,15 @@ export async function POST(req: NextRequest) {
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const overrides = {
-      vencimentoBase: updatedRegisto?.utilizador?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: updatedRegisto?.utilizador?.ajudasTaxaIRS ?? undefined,
-    }
+    const vencimentoBase = updatedRegisto?.utilizador?.ajudasVencimentoBase
+    const taxaIRS = updatedRegisto?.utilizador?.ajudasTaxaIRS
+    const userConfigured = vencimentoBase != null && taxaIRS != null
 
-    const totais = calcAjudasTotais(updatedRegisto!.linhas, config, overrides)
+    const totais = userConfigured
+      ? calcAjudasTotais(updatedRegisto!.linhas, config, vencimentoBase!, taxaIRS!)
+      : null
 
-    return Response.json({ registo: updatedRegisto, config, totais }, { status: 201 })
+    return Response.json({ registo: updatedRegisto, config, totais, userConfigured }, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }

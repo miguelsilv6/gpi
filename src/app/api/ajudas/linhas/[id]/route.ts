@@ -104,14 +104,15 @@ export async function PUT(
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const overrides = {
-      vencimentoBase: registo?.utilizador?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: registo?.utilizador?.ajudasTaxaIRS ?? undefined,
-    }
+    const vbPut = registo?.utilizador?.ajudasVencimentoBase
+    const irsPut = registo?.utilizador?.ajudasTaxaIRS
+    const putConfigured = vbPut != null && irsPut != null
 
-    const totais = calcAjudasTotais(registo!.linhas, config, overrides)
+    const totais = putConfigured
+      ? calcAjudasTotais(registo!.linhas, config, vbPut!, irsPut!)
+      : null
 
-    return Response.json({ registo, config, totais })
+    return Response.json({ registo, config, totais, userConfigured: putConfigured })
   } catch (error) {
     return handleApiError(error)
   }
@@ -155,14 +156,15 @@ export async function DELETE(
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const overrides = {
-      vencimentoBase: registo?.utilizador?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: registo?.utilizador?.ajudasTaxaIRS ?? undefined,
-    }
+    const vbDel = registo?.utilizador?.ajudasVencimentoBase
+    const irsDel = registo?.utilizador?.ajudasTaxaIRS
+    const delConfigured = vbDel != null && irsDel != null
 
-    const totais = calcAjudasTotais(registo!.linhas, config, overrides)
+    const totais = delConfigured
+      ? calcAjudasTotais(registo!.linhas, config, vbDel!, irsDel!)
+      : null
 
-    return Response.json({ registo, config, totais })
+    return Response.json({ registo, config, totais, userConfigured: delConfigured })
   } catch (error) {
     return handleApiError(error)
   }
