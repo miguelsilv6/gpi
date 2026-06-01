@@ -18,6 +18,12 @@ export type Permission =
   | 'inquerito:audit:read'
   | 'inquerito:estados:manage'
   | 'crime:manage'
+  | 'etiqueta:manage'
+  | 'ajudas:own'
+  | 'ajudas:read:brigade'
+  | 'ajudas:read:all'
+  | 'ajudas:config'
+  | 'comarca:manage'
   | 'tribunal:manage'
   | 'seccao:manage'
   | 'local-tratamento:manage'
@@ -42,6 +48,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'atividade:create:own',
     'prazo:read:own',
     'estatistica:own',
+    'ajudas:own',
   ],
   INSPETOR_CHEFE: [
     'inquerito:read:own',
@@ -60,6 +67,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'estatistica:read',
     'brigada:read',
     'relatorio:read',
+    'ajudas:own',
+    'ajudas:read:brigade',
   ],
   COORDENADOR: [
     'inquerito:read:own',
@@ -85,6 +94,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'brigada:read',
     'brigada:manage',
     'relatorio:read',
+    'ajudas:own',
+    'ajudas:read:all',
   ],
   ESTATISTICA: [
     'inquerito:read:all',
@@ -111,6 +122,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:audit:read',
     'inquerito:estados:manage',
     'crime:manage',
+    'etiqueta:manage',
+    'comarca:manage',
     'tribunal:manage',
     'seccao:manage',
     'local-tratamento:manage',
@@ -125,6 +138,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'utilizador:manage',
     'sistema:config',
     'relatorio:read',
+    'ajudas:own',
+    'ajudas:read:brigade',
+    'ajudas:read:all',
+    'ajudas:config',
   ],
 }
 

@@ -9,11 +9,6 @@ import type { Role } from '@/generated/prisma/enums'
 
 const updateSchema = z.object({
   nome: z.string().min(1).max(200).optional(),
-  comarcaId: z.string().optional().nullable(),
-  morada: z.string().max(500).optional().nullable(),
-  telefone: z.string().max(50).optional().nullable(),
-  email: z.string().email('Email inválido').max(200).optional().nullable().or(z.literal('')),
-  descricao: z.string().max(500).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).optional(),
   ativo: z.boolean().optional(),
 })
@@ -25,13 +20,13 @@ export async function PUT(
   try {
     const session = await getSession()
     const role = session.user.role as Role
-    if (!hasPermission(role, 'tribunal:manage')) {
-      return apiError('Sem permissão para gerir tribunais', 403)
+    if (!hasPermission(role, 'comarca:manage')) {
+      return apiError('Sem permissão para gerir comarcas', 403)
     }
 
     const { id } = await params
-    const existing = await prisma.tribunal.findUnique({ where: { id } })
-    if (!existing) return apiError('Tribunal não encontrado', 404)
+    const existing = await prisma.comarca.findUnique({ where: { id } })
+    if (!existing) return apiError('Comarca não encontrada', 404)
 
     const body = await req.json()
     const parsed = updateSchema.safeParse(body)
@@ -41,40 +36,30 @@ export async function PUT(
 
     if (data.nome !== undefined) {
       const nome = data.nome.trim()
-      const collision = await prisma.tribunal.findFirst({
+      const collision = await prisma.comarca.findFirst({
         where: { nome: { equals: nome, mode: 'insensitive' }, NOT: { id } },
         select: { id: true },
       })
-      if (collision) return apiError('Já existe outro tribunal com este nome', 409)
+      if (collision) return apiError('Já existe outra comarca com este nome', 409)
       data.nome = nome
     }
 
-    if (data.comarcaId) {
-      const comarca = await prisma.comarca.findUnique({ where: { id: data.comarcaId } })
-      if (!comarca) return apiError('Comarca não encontrada', 400)
-    }
-
-    const updated = await prisma.tribunal.update({
+    const updated = await prisma.comarca.update({
       where: { id },
       data: {
         ...(data.nome !== undefined && { nome: data.nome }),
-        ...('comarcaId' in data && { comarcaId: data.comarcaId || null }),
-        ...('morada' in data && { morada: data.morada?.trim() || null }),
-        ...('telefone' in data && { telefone: data.telefone?.trim() || null }),
-        ...('email' in data && { email: data.email?.trim() || null }),
-        ...(data.descricao !== undefined && { descricao: data.descricao?.trim() || null }),
         ...(data.ordem !== undefined && { ordem: data.ordem }),
         ...(data.ativo !== undefined && { ativo: data.ativo }),
       },
-      include: { comarca: { select: { id: true, nome: true } } },
+      include: { _count: { select: { tribunais: true } } },
     })
 
-    const changes = diff(existing, updated, ['nome', 'comarcaId', 'morada', 'telefone', 'email', 'descricao', 'ordem', 'ativo'])
+    const changes = diff(existing, updated, ['nome', 'ordem', 'ativo'])
     if (changes) {
       await writeAudit({
         req,
-        acao: 'UPDATE_TRIBUNAL',
-        entidade: 'Tribunal',
+        acao: 'UPDATE_COMARCA',
+        entidade: 'Comarca',
         entidadeId: updated.id,
         utilizadorId: session.user.id,
         detalhes: changes as never,
@@ -97,28 +82,28 @@ export async function DELETE(
   try {
     const session = await getSession()
     const role = session.user.role as Role
-    if (!hasPermission(role, 'tribunal:manage')) {
-      return apiError('Sem permissão para gerir tribunais', 403)
+    if (!hasPermission(role, 'comarca:manage')) {
+      return apiError('Sem permissão para gerir comarcas', 403)
     }
 
     const { id } = await params
-    const existing = await prisma.tribunal.findUnique({ where: { id } })
-    if (!existing) return apiError('Tribunal não encontrado', 404)
+    const existing = await prisma.comarca.findUnique({ where: { id } })
+    if (!existing) return apiError('Comarca não encontrada', 404)
 
-    const inUse = await prisma.inquerito.count({ where: { tribunalId: id } })
+    const inUse = await prisma.tribunal.count({ where: { comarcaId: id } })
     if (inUse > 0) {
       return apiError(
-        `Tribunal em uso em ${inUse} inquérito(s). Desative em vez de eliminar.`,
+        `Comarca em uso em ${inUse} tribunal(ais). Mova os tribunais ou desative a comarca.`,
         409,
       )
     }
 
-    await prisma.tribunal.delete({ where: { id } })
+    await prisma.comarca.delete({ where: { id } })
 
     await writeAudit({
       req,
-      acao: 'DELETE_TRIBUNAL',
-      entidade: 'Tribunal',
+      acao: 'DELETE_COMARCA',
+      entidade: 'Comarca',
       entidadeId: id,
       utilizadorId: session.user.id,
       detalhes: { nome: existing.nome },

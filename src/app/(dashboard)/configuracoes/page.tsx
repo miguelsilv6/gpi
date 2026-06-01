@@ -28,6 +28,7 @@ import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
+import { ComarcasTab } from './comarcas-tab'
 import { TribunaisTab } from './tribunais-tab'
 import { SeccoesTab } from './seccoes-tab'
 import { LocaisTratamentoTab } from './locais-tratamento-tab'
@@ -35,6 +36,8 @@ import { BackupsTab } from './backups-tab'
 import { NotificacoesTab } from './notificacoes-tab'
 import { AtualizacoesTab } from './atualizacoes-tab'
 import { AparenciaTab } from './aparencia-tab'
+import { EtiquetasTab } from './etiquetas-tab'
+import { AjudasConfigTab } from './ajudas-config-tab'
 
 // ─── System config ────────────────────────────────────────────────────────────
 
@@ -697,7 +700,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'tribunais' | 'seccoes' | 'locais-tratamento' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'locais-tratamento' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -802,7 +805,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'crimes', 'tribunais', 'seccoes', 'locais-tratamento', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'locais-tratamento', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -819,8 +822,12 @@ export default function ConfiguracoesPage() {
                 ? 'Estados'
                 : t === 'crimes'
                   ? 'Crimes'
-                  : t === 'tribunais'
-                    ? 'Tribunais'
+                  : t === 'etiquetas'
+                    ? 'Etiquetas'
+                  : t === 'comarcas'
+                    ? 'Comarcas'
+                    : t === 'tribunais'
+                      ? 'Tribunais'
                     : t === 'seccoes'
                       ? 'Secções'
                       : t === 'locais-tratamento'
@@ -833,7 +840,9 @@ export default function ConfiguracoesPage() {
                               ? 'Backups'
                               : t === 'atualizacoes'
                                 ? 'Atualizações'
-                                : 'Aparência'}
+                                : t === 'aparencia'
+                                  ? 'Aparência'
+                                  : 'Ajudas'}
           </button>
         ))}
       </div>
@@ -946,6 +955,12 @@ export default function ConfiguracoesPage() {
       {/* Crimes tab */}
       {tab === 'crimes' && <CrimesTab />}
 
+      {/* Etiquetas tab */}
+      {tab === 'etiquetas' && <EtiquetasTab />}
+
+      {/* Comarcas tab */}
+      {tab === 'comarcas' && <ComarcasTab />}
+
       {/* Tribunais tab */}
       {tab === 'tribunais' && <TribunaisTab />}
 
@@ -969,6 +984,9 @@ export default function ConfiguracoesPage() {
 
       {/* Aparência tab */}
       {tab === 'aparencia' && <AparenciaTab />}
+
+      {/* Ajudas config tab */}
+      {tab === 'ajudas-config' && <AjudasConfigTab />}
     </div>
   )
 }
