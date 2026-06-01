@@ -14,6 +14,7 @@ const linhaSchema = z.object({
   dataInicio: z.string().datetime(),
   dataFim: z.string().datetime(),
   prevencao: z.enum(['NENHUMA', 'PIQUETE', 'PREVENCAO_PASSIVA']).default('NENHUMA'),
+  prevencaoOnly: z.boolean().default(false),
   ajudaCustoAlmoco: z.number().int().min(0).default(0),
   ajudaCustoJantar: z.number().int().min(0).default(0),
   ajudaCustoAlojamento: z.number().int().min(0).default(0),
@@ -80,19 +81,24 @@ export async function POST(req: NextRequest) {
       detalhes: { registoId } as never,
     })
 
-    // Return updated registo with totals
-    const updatedRegisto = await prisma.ajudasRegisto.findUnique({
-      where: { id: registoId },
-      include: { linhas: { orderBy: { dataInicio: 'asc' } } },
-    })
+    // Return updated registo with totals (single query with include)
+    const [updatedRegisto, config] = await Promise.all([
+      prisma.ajudasRegisto.findUnique({
+        where: { id: registoId },
+        include: {
+          linhas: { orderBy: { dataInicio: 'asc' } },
+          utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
+        },
+      }),
+      prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
+    ])
 
-    const config = await prisma.ajudasConfig.upsert({
-      where: { id: 'default' },
-      create: { id: 'default' },
-      update: {},
-    })
+    const overrides = {
+      vencimentoBase: updatedRegisto?.utilizador?.ajudasVencimentoBase ?? undefined,
+      taxaIRS: updatedRegisto?.utilizador?.ajudasTaxaIRS ?? undefined,
+    }
 
-    const totais = calcAjudasTotais(updatedRegisto!.linhas, config)
+    const totais = calcAjudasTotais(updatedRegisto!.linhas, config, overrides)
 
     return Response.json({ registo: updatedRegisto, config, totais }, { status: 201 })
   } catch (error) {

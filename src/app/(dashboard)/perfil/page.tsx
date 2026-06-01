@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, User, Shield, Building2, KeyRound } from 'lucide-react'
+import { Loader2, User, Shield, Building2, KeyRound, Calculator } from 'lucide-react'
 import { ROLE_LABELS } from '@/lib/rbac'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -38,11 +38,16 @@ interface UserProfile {
   email: string
   role: Role
   brigada: { id: string; nome: string } | null
+  ajudasVencimentoBase: number | null
+  ajudasTaxaIRS: number | null
 }
 
 export default function PerfilPage() {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [ajudasVencimento, setAjudasVencimento] = useState<string>('')
+  const [ajudasIRS, setAjudasIRS] = useState<string>('')
+  const [savingAjudas, setSavingAjudas] = useState(false)
 
   const profileForm = useForm<ProfileData>({ resolver: zodResolver(profileSchema) })
   const passwordForm = useForm<PasswordData>({ resolver: zodResolver(passwordSchema) })
@@ -58,6 +63,8 @@ export default function PerfilPage() {
       .then((data) => {
         setUser(data)
         profileForm.reset({ nome: data.nome, email: data.email })
+        setAjudasVencimento(data.ajudasVencimentoBase != null ? String(data.ajudasVencimentoBase) : '')
+        setAjudasIRS(data.ajudasTaxaIRS != null ? String(data.ajudasTaxaIRS) : '')
         setLoading(false)
       })
       .catch(() => {
@@ -95,6 +102,40 @@ export default function PerfilPage() {
     }
     toast.success('Password alterada com sucesso')
     passwordForm.reset()
+  }
+
+  async function onAjudasSave() {
+    setSavingAjudas(true)
+    try {
+      const payload: Record<string, number | null> = {
+        ajudasVencimentoBase: ajudasVencimento !== '' ? parseFloat(ajudasVencimento) : null,
+        ajudasTaxaIRS: ajudasIRS !== '' ? parseFloat(ajudasIRS) : null,
+      }
+      if (
+        (payload.ajudasVencimentoBase !== null && isNaN(payload.ajudasVencimentoBase as number)) ||
+        (payload.ajudasTaxaIRS !== null && isNaN(payload.ajudasTaxaIRS as number))
+      ) {
+        toast.error('Valores inválidos')
+        return
+      }
+      const res = await fetch('/api/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      const updated = await res.json()
+      setUser((prev) => prev ? { ...prev, ...updated } : prev)
+      toast.success('Configuração de ajudas guardada')
+    } catch {
+      toast.error('Erro ao guardar')
+    } finally {
+      setSavingAjudas(false)
+    }
   }
 
   if (loading) return <div className="text-muted-foreground text-sm">A carregar...</div>
@@ -160,6 +201,50 @@ export default function PerfilPage() {
               Guardar
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Ajudas Mensais settings */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+            <Calculator className="h-4 w-4" />
+            Ajudas Mensais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Deixe em branco para usar os valores globais das configurações. Quando definidos, estes valores sobrepõem-se aos globais no cálculo das ajudas.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="ajudasVencimento">Vencimento Base (€)</Label>
+            <Input
+              id="ajudasVencimento"
+              type="number"
+              step="0.01"
+              min={0}
+              placeholder="Valor global das configurações"
+              value={ajudasVencimento}
+              onChange={(e) => setAjudasVencimento(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ajudasIRS">Taxa de Retenção de IRS (ex: 0.1116)</Label>
+            <Input
+              id="ajudasIRS"
+              type="number"
+              step="0.0001"
+              min={0}
+              max={1}
+              placeholder="Taxa global das configurações"
+              value={ajudasIRS}
+              onChange={(e) => setAjudasIRS(e.target.value)}
+            />
+          </div>
+          <Button size="sm" onClick={onAjudasSave} disabled={savingAjudas}>
+            {savingAjudas && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Guardar
+          </Button>
         </CardContent>
       </Card>
 

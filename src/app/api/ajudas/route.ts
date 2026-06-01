@@ -71,15 +71,22 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Get config
-    const config = await prisma.ajudasConfig.upsert({
-      where: { id: 'default' },
-      create: { id: 'default' },
-      update: {},
-    })
+    // Get config and user overrides in parallel
+    const [config, targetUserData] = await Promise.all([
+      prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
+      prisma.utilizador.findUnique({
+        where: { id: targetUserId },
+        select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true },
+      }),
+    ])
+
+    const overrides = {
+      vencimentoBase: targetUserData?.ajudasVencimentoBase ?? undefined,
+      taxaIRS: targetUserData?.ajudasTaxaIRS ?? undefined,
+    }
 
     // Calculate totals
-    const totais = calcAjudasTotais(registo.linhas, config)
+    const totais = calcAjudasTotais(registo.linhas, config, overrides)
 
     return Response.json({ registo, config, totais })
   } catch (error) {

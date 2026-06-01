@@ -8,6 +8,8 @@ import { hash, compare } from 'bcryptjs'
 const updateSchema = z.object({
   nome: z.string().min(1, 'Nome obrigatório').max(100).optional(),
   email: z.string().email('Email inválido').optional(),
+  ajudasVencimentoBase: z.number().positive().nullable().optional(),
+  ajudasTaxaIRS: z.number().min(0).max(1).nullable().optional(),
 })
 
 const passwordSchema = z.object({
@@ -28,6 +30,8 @@ export async function GET() {
         ativo: true,
         brigada: { select: { id: true, nome: true } },
         lastLoginAt: true,
+        ajudasVencimentoBase: true,
+        ajudasTaxaIRS: true,
       },
     })
     if (!user) return apiError('Utilizador não encontrado', 404)
@@ -46,7 +50,7 @@ export async function PUT(req: NextRequest) {
 
     const existing = await prisma.utilizador.findUnique({
       where: { id: session.user.id },
-      select: { nome: true, email: true },
+      select: { nome: true, email: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true },
     })
     if (!existing) return apiError('Utilizador não encontrado', 404)
 
@@ -65,11 +69,13 @@ export async function PUT(req: NextRequest) {
       data: {
         ...(parsed.data.nome !== undefined && { nome: parsed.data.nome }),
         ...(normalizedEmail !== undefined && { email: normalizedEmail }),
+        ...('ajudasVencimentoBase' in parsed.data && { ajudasVencimentoBase: parsed.data.ajudasVencimentoBase }),
+        ...('ajudasTaxaIRS' in parsed.data && { ajudasTaxaIRS: parsed.data.ajudasTaxaIRS }),
       },
-      select: { id: true, nome: true, email: true, role: true },
+      select: { id: true, nome: true, email: true, role: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true },
     })
 
-    const changes = diff(existing, updated, ['nome', 'email'])
+    const changes = diff(existing, updated, ['nome', 'email', 'ajudasVencimentoBase', 'ajudasTaxaIRS'])
     if (changes) {
       await writeAudit({
         req,
