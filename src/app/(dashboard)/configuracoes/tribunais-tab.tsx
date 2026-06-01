@@ -178,7 +178,12 @@ export function TribunaisTab() {
     })
   }, [tribunais, search, filterComarcaId])
 
-  const comarcasAtivas = comarcas.filter((c) => c.ativo)
+  // Include inactive comarca if currently assigned to the tribunal being edited,
+  // so it stays visible in the dropdown instead of showing an empty/broken state.
+  const comarcasAtivas = useMemo(
+    () => comarcas.filter((c) => c.ativo || c.id === form.comarcaId),
+    [comarcas, form.comarcaId],
+  )
 
   if (loading) return <div className="text-sm text-muted-foreground py-4">A carregar...</div>
 

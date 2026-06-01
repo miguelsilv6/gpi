@@ -27,18 +27,19 @@ const updateSchema = z.object({
 async function checkLinhaAccess(
   linhaId: string,
   session: { user: { id: string; role: string } },
-): Promise<{ linha: { id: string; registoId: string; registo: { utilizadorId: string } } } | Response> {
+): Promise<{ linha: { id: string; registoId: string; dataInicio: Date; dataFim: Date; registo: { utilizadorId: string } } } | Response> {
   const linha = await prisma.ajudasLinha.findUnique({
     where: { id: linhaId },
-    include: { registo: { select: { utilizadorId: true } } },
+    select: { id: true, registoId: true, dataInicio: true, dataFim: true, registo: { select: { utilizadorId: true } } },
   })
   if (!linha) return apiError('Linha não encontrada', 404)
 
   const role = session.user.role as Role
   if (linha.registo.utilizadorId !== session.user.id) {
-    const canAll = hasPermission(role, 'ajudas:read:all')
-    const canBrigade = hasPermission(role, 'ajudas:read:brigade')
-    if (!canAll && !canBrigade) {
+    // Write access requires admin (ajudas:config). Read-only roles
+    // (ajudas:read:brigade, ajudas:read:all) must NOT be able to mutate
+    // records they do not own — that would be a privilege escalation.
+    if (!hasPermission(role, 'ajudas:config')) {
       return apiError('Sem permissão para modificar esta linha', 403)
     }
   }
@@ -65,15 +66,16 @@ export async function PUT(
 
     const { dataInicio, dataFim, ...rest } = parsed.data
 
-    // Validate dates if both provided
     const updateData: Record<string, unknown> = { ...rest }
     if (dataInicio) updateData.dataInicio = new Date(dataInicio)
     if (dataFim) updateData.dataFim = new Date(dataFim)
 
-    if (updateData.dataInicio && updateData.dataFim) {
-      if ((updateData.dataFim as Date) <= (updateData.dataInicio as Date)) {
-        return apiError('A data de fim deve ser posterior à data de início', 400)
-      }
+    // Validate order using the merged effective values (new or existing)
+    const { linha } = access as { linha: { id: string; registoId: string; dataInicio: Date; dataFim: Date; registo: { utilizadorId: string } } }
+    const effectiveInicio = (updateData.dataInicio as Date | undefined) ?? linha.dataInicio
+    const effectiveFim = (updateData.dataFim as Date | undefined) ?? linha.dataFim
+    if (effectiveFim <= effectiveInicio) {
+      return apiError('A data de fim deve ser posterior à data de início', 400)
     }
 
     const updated = await prisma.ajudasLinha.update({
@@ -122,7 +124,7 @@ export async function DELETE(
     const access = await checkLinhaAccess(id, session)
     if (access instanceof Response) return access
 
-    const { linha } = access as { linha: { id: string; registoId: string; registo: { utilizadorId: string } } }
+    const { linha } = access as { linha: { id: string; registoId: string; dataInicio: Date; dataFim: Date; registo: { utilizadorId: string } } }
     const registoId = linha.registoId
 
     await prisma.ajudasLinha.delete({ where: { id } })

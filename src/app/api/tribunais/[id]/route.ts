@@ -58,7 +58,7 @@ export async function PUT(
       where: { id },
       data: {
         ...(data.nome !== undefined && { nome: data.nome }),
-        ...('comarcaId' in data && { comarcaId: data.comarcaId ?? null }),
+        ...('comarcaId' in data && { comarcaId: data.comarcaId || null }),
         ...('morada' in data && { morada: data.morada?.trim() || null }),
         ...('telefone' in data && { telefone: data.telefone?.trim() || null }),
         ...('email' in data && { email: data.email?.trim() || null }),

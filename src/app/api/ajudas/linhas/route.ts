@@ -54,9 +54,9 @@ export async function POST(req: NextRequest) {
     if (!registo) return apiError('Registo não encontrado', 404)
 
     if (registo.utilizadorId !== session.user.id) {
-      const canAll = hasPermission(role, 'ajudas:read:all')
-      const canBrigade = hasPermission(role, 'ajudas:read:brigade')
-      if (!canAll && !canBrigade) {
+      // Write access requires admin. Read-only scopes (brigade/all) must not
+      // allow creating lines in other users' registos.
+      if (!hasPermission(role, 'ajudas:config')) {
         return apiError('Sem permissão para modificar este registo', 403)
       }
     }

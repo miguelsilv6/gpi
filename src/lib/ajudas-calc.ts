@@ -166,17 +166,18 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
   const fmtDate = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
-  // Iterate hour by hour
-  const current = new Date(start)
-  // Truncate to the start of the current hour
-  current.setMinutes(0, 0, 0)
-
-  // If start was not on an hour boundary, we handle the first partial hour below
-  // by starting from the start's hour
-  current.setHours(start.getHours())
+  let current = new Date(start)
 
   while (current < end) {
-    const dayOfWeek = current.getDay() // 0=Sun, 6=Sat
+    // Advance to the next whole-hour boundary (or end, whichever comes first)
+    const nextHour = new Date(current)
+    nextHour.setHours(current.getHours() + 1, 0, 0, 0)
+    const segmentEnd = nextHour < end ? nextHour : end
+
+    // Exact fractional hours for this slot (handles partial first/last hour)
+    const durationHours = (segmentEnd.getTime() - current.getTime()) / 3_600_000
+
+    const dayOfWeek = current.getDay()
     const hour = current.getHours()
     const dateStr = fmtDate(current)
 
@@ -184,14 +185,14 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
     const isNight = hour >= 0 && hour < 8
 
     if (isWeekend) {
-      if (isNight) result.fdsNoite += 1
-      else result.fdsDia += 1
+      if (isNight) result.fdsNoite += durationHours
+      else result.fdsDia += durationHours
     } else {
-      if (isNight) result.semanaNoite += 1
-      else result.semanaDia += 1
+      if (isNight) result.semanaNoite += durationHours
+      else result.semanaDia += durationHours
     }
 
-    current.setHours(current.getHours() + 1)
+    current = segmentEnd
   }
 
   return result

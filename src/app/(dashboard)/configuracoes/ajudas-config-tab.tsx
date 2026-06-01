@@ -120,6 +120,7 @@ export function AjudasConfigTab() {
   }
 
   function setNum(key: keyof AjudasConfig, raw: string, isInt = false) {
+    if (raw === '') { set(key, 0 as never); return }
     const v = isInt ? parseInt(raw, 10) : parseFloat(raw)
     if (!isNaN(v)) set(key, v as never)
   }

@@ -26,8 +26,10 @@ export default async function AjudasMensaisPage({
 
   const params = await searchParams
   const now = new Date()
-  const ano = params.ano ? parseInt(params.ano, 10) : now.getFullYear()
-  const mes = params.mes ? parseInt(params.mes, 10) : now.getMonth() + 1
+  const parsedAno = parseInt(params.ano ?? '', 10)
+  const parsedMes = parseInt(params.mes ?? '', 10)
+  const ano = isNaN(parsedAno) ? now.getFullYear() : parsedAno
+  const mes = isNaN(parsedMes) || parsedMes < 1 || parsedMes > 12 ? now.getMonth() + 1 : parsedMes
 
   const canViewAll = hasPermission(role, 'ajudas:read:all')
   const canViewBrigade = hasPermission(role, 'ajudas:read:brigade')
@@ -38,6 +40,7 @@ export default async function AjudasMensaisPage({
       initialAno={ano}
       initialMes={mes}
       userId={session.user.id}
+      initialViewingUserId={params.utilizadorId ?? null}
       userRole={role}
       canViewAll={canViewAll}
       canViewBrigade={canViewBrigade}

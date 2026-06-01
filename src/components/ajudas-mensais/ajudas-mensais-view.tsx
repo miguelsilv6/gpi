@@ -90,6 +90,7 @@ interface Props {
   initialAno: number
   initialMes: number
   userId: string
+  initialViewingUserId: string | null
   userRole: Role
   canViewAll: boolean
   canViewBrigade: boolean
@@ -510,6 +511,7 @@ export function AjudasMensaisView({
   initialAno,
   initialMes,
   userId,
+  initialViewingUserId,
   userRole: _userRole,
   canViewAll: _canViewAll,
   canViewBrigade: _canViewBrigade,
@@ -520,6 +522,8 @@ export function AjudasMensaisView({
 
   const [ano, setAno] = useState(initialAno)
   const [mes, setMes] = useState(initialMes)
+  // When a chefe/coordenador views another user's record, this holds that user's ID
+  const viewingUserId = initialViewingUserId ?? userId
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -536,7 +540,8 @@ export function AjudasMensaisView({
   const fetchData = useCallback(async (a: number, m: number) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/ajudas?ano=${a}&mes=${m}`)
+      const uidParam = viewingUserId !== userId ? `&utilizadorId=${viewingUserId}` : ''
+      const res = await fetch(`/api/ajudas?ano=${a}&mes=${m}${uidParam}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         toast.error(err.error ?? 'Erro ao carregar dados')
@@ -614,14 +619,24 @@ export function AjudasMensaisView({
       toast.error('Datas de início e fim são obrigatórias')
       return
     }
+    const dInicio = new Date(form.dataInicio)
+    const dFim = new Date(form.dataFim)
+    if (isNaN(dInicio.getTime()) || isNaN(dFim.getTime())) {
+      toast.error('Data inválida — verifique os campos de data/hora')
+      return
+    }
+    if (dFim <= dInicio) {
+      toast.error('A data de fim deve ser posterior à data de início')
+      return
+    }
 
     setSaving(true)
     try {
       const payload = {
         nuipc: form.nuipc || null,
         local: form.local || null,
-        dataInicio: new Date(form.dataInicio).toISOString(),
-        dataFim: new Date(form.dataFim).toISOString(),
+        dataInicio: dInicio.toISOString(),
+        dataFim: dFim.toISOString(),
         prevencao: form.prevencao,
         ajudaCustoAlmoco: form.ajudaCustoAlmoco,
         ajudaCustoJantar: form.ajudaCustoJantar,
