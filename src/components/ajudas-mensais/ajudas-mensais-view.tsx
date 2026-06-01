@@ -26,11 +26,13 @@ import { cn, iconButtonClasses } from '@/lib/utils'
 import {
   ChevronLeft,
   ChevronRight,
+  Clock,
   Loader2,
   Pencil,
   Plus,
   Trash2,
   Bell,
+  X,
 } from 'lucide-react'
 import type { AjudasTotais, ConfigData } from '@/lib/ajudas-calc'
 import { getPortugueseHolidays, splitHours } from '@/lib/ajudas-calc'
@@ -81,7 +83,6 @@ interface LinhaFormData {
   local: string
   dataInicio: string
   dataFim: string
-  prevencao: 'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA'
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
   ajudaCustoAlojamento: number
@@ -146,7 +147,6 @@ const EMPTY_FORM: LinhaFormData = {
   local: '',
   dataInicio: '',
   dataFim: '',
-  prevencao: 'NENHUMA',
   ajudaCustoAlmoco: 0,
   ajudaCustoJantar: 0,
   ajudaCustoAlojamento: 0,
@@ -309,13 +309,45 @@ interface LinhaFormProps {
   onChange: (f: LinhaFormData) => void
   distanciaMin: number
   viaturas: ViaturaItem[]
+  onViaturaAdded: (v: ViaturaItem) => void
 }
 
-function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
+function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: LinhaFormProps) {
   const ajudasDisabled = form.km < distanciaMin
+  const [showAddViatura, setShowAddViatura] = useState(false)
+  const [addNome, setAddNome] = useState('')
+  const [addMatricula, setAddMatricula] = useState('')
+  const [addSaving, setAddSaving] = useState(false)
 
   function set<K extends keyof LinhaFormData>(key: K, value: LinhaFormData[K]) {
     onChange({ ...form, [key]: value })
+  }
+
+  async function handleAddViatura() {
+    if (!addNome.trim()) return
+    setAddSaving(true)
+    try {
+      const res = await fetch('/api/viaturas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: addNome.trim(), matricula: addMatricula.trim() || null }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao adicionar viatura')
+        return
+      }
+      const viatura: ViaturaItem = await res.json()
+      onViaturaAdded(viatura)
+      onChange({ ...form, viaturaId: viatura.id })
+      setShowAddViatura(false)
+      setAddNome('')
+      setAddMatricula('')
+    } catch {
+      toast.error('Erro ao adicionar viatura')
+    } finally {
+      setAddSaving(false)
+    }
   }
 
   return (
@@ -358,57 +390,105 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
             id="dataFim"
             type="datetime-local"
             value={form.dataFim}
-            onChange={(e) => set('dataFim', e.target.value)}
+            onChange={(e) => {
+              set('dataFim', e.target.value)
+            }}
             required
           />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="prevencao">Tipo de Prevenção</Label>
-          <Select
-            value={form.prevencao}
-            onValueChange={(v) => set('prevencao', v as LinhaFormData['prevencao'])}
-          >
-            <SelectTrigger id="prevencao">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="NENHUMA">Nenhuma</SelectItem>
-              <SelectItem value="PIQUETE">Piquete</SelectItem>
-              <SelectItem value="PREVENCAO_PASSIVA">Prevenção Passiva</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="viaturaId">Viatura</Label>
-          <Select
-            value={form.viaturaId || 'none'}
-            onValueChange={(v) => set('viaturaId', v === 'none' || v === null ? '' : v)}
-          >
-            <SelectTrigger id="viaturaId">
-              <SelectValue placeholder="Nenhuma" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhuma</SelectItem>
-              {viaturas.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.nome}{v.matricula ? ` (${v.matricula})` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {viaturas.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              <a href="/perfil" className="underline">Configure as suas viaturas no Perfil</a>
+          {form.dataFim && form.dataInicio && form.dataFim <= form.dataInicio && (
+            <p className="text-xs text-red-600 dark:text-red-400">
+              O fim deve ser posterior ao início.
             </p>
           )}
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="km">KMs</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="viaturaId">Viatura</Label>
+          {!showAddViatura && (
+            <button
+              type="button"
+              onClick={() => setShowAddViatura(true)}
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              <Plus className="h-3 w-3" />
+              Nova viatura
+            </button>
+          )}
+        </div>
+        <Select
+          value={form.viaturaId || 'none'}
+          onValueChange={(v) => set('viaturaId', v === 'none' || v === null ? '' : v)}
+        >
+          <SelectTrigger id="viaturaId">
+            <SelectValue>
+              {(v: string | null) => {
+                if (!v || v === 'none') return <span className="text-muted-foreground">Nenhuma</span>
+                const found = viaturas.find(x => x.id === v)
+                return found
+                  ? `${found.nome}${found.matricula ? ` (${found.matricula})` : ''}`
+                  : <span className="text-muted-foreground">Nenhuma</span>
+              }}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhuma</SelectItem>
+            {viaturas.map((v) => (
+              <SelectItem key={v.id} value={v.id}>
+                {v.nome}{v.matricula ? ` (${v.matricula})` : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {showAddViatura && (
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium">Nova viatura</p>
+              <button
+                type="button"
+                onClick={() => { setShowAddViatura(false); setAddNome(''); setAddMatricula('') }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Nome *</Label>
+                <Input
+                  value={addNome}
+                  onChange={(e) => setAddNome(e.target.value)}
+                  placeholder="Ex: Viatura Brigada"
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Matrícula (XX-XX-XX)</Label>
+                <Input
+                  value={addMatricula}
+                  onChange={(e) => setAddMatricula(e.target.value.toUpperCase())}
+                  placeholder="AA-00-BB"
+                  className="h-7 text-xs"
+                />
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="h-7 text-xs w-full"
+              onClick={handleAddViatura}
+              disabled={addSaving || !addNome.trim()}
+            >
+              {addSaving && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+              Guardar
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="km">Distância (km)</Label>
         <Input
           id="km"
           type="number"
@@ -418,7 +498,7 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
         />
         {form.viaturaId && form.km === 0 && (
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            Recomendado indicar KMs quando é utilizada uma viatura.
+            Recomendado indicar a distância quando é utilizada uma viatura.
           </p>
         )}
       </div>
@@ -554,10 +634,15 @@ export function AjudasMensaisView({
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingLinha, setEditingLinha] = useState<AjudasLinha | null>(null)
-  const [entryType, setEntryType] = useState<'horas-extra' | 'piquete'>('horas-extra')
+  const [entryType, setEntryType] = useState<'horas-extra' | 'piquete' | 'prevencao'>('horas-extra')
   const [form, setForm] = useState<LinhaFormData>(EMPTY_FORM)
   const [piqueteDate, setPiqueteDate] = useState('')
-  const [piqueteTipo, setPiqueteTipo] = useState<'PIQUETE' | 'PREVENCAO_PASSIVA'>('PIQUETE')
+  const [piqueteTipo, setPiqueteTipo] = useState<'PIQUETE'>('PIQUETE')
+  const [prevencaoInicio, setPrevencaoInicio] = useState('')
+  const [prevencaoFim, setPrevencaoFim] = useState('')
+  const [prevencaoNuipc, setPrevencaoNuipc] = useState('')
+  const [prevencaoLocal, setPrevencaoLocal] = useState('')
+  const [prevencaoObs, setPrevencaoObs] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Delete confirmation
@@ -613,34 +698,62 @@ export function AjudasMensaisView({
     }
   }
 
-  function openAddDialog() {
-    setEditingLinha(null)
-    setEntryType('horas-extra')
+  function resetDialogState() {
     setForm(EMPTY_FORM)
     setPiqueteDate('')
     setPiqueteTipo('PIQUETE')
+    setPrevencaoInicio('')
+    setPrevencaoFim('')
+    setPrevencaoNuipc('')
+    setPrevencaoLocal('')
+    setPrevencaoObs('')
+  }
+
+  function openAddDialog() {
+    setEditingLinha(null)
+    setEntryType('horas-extra')
+    resetDialogState()
     setDialogOpen(true)
   }
 
   function openEditDialog(linha: AjudasLinha) {
     setEditingLinha(linha)
-    setEntryType('horas-extra')
-    setForm({
-      nuipc: linha.nuipc ?? '',
-      local: linha.local ?? '',
-      dataInicio: toDatetimeLocal(linha.dataInicio),
-      dataFim: toDatetimeLocal(linha.dataFim),
-      prevencao: linha.prevencao,
-      ajudaCustoAlmoco: linha.ajudaCustoAlmoco,
-      ajudaCustoJantar: linha.ajudaCustoJantar,
-      ajudaCustoAlojamento: linha.ajudaCustoAlojamento,
-      senhaAlmoco: linha.senhaAlmoco,
-      senhaJantar: linha.senhaJantar,
-      senhaCeia: linha.senhaCeia,
-      viaturaId: linha.viaturaId ?? '',
-      km: linha.km,
-      observacoes: linha.observacoes ?? '',
-    })
+    resetDialogState()
+
+    if (linha.prevencaoOnly) {
+      if (linha.prevencao === 'PIQUETE') {
+        setEntryType('piquete')
+        const d = new Date(linha.dataInicio)
+        const pad = (n: number) => String(n).padStart(2, '0')
+        setPiqueteDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+        setPiqueteTipo('PIQUETE')
+      } else {
+        setEntryType('prevencao')
+        setPrevencaoInicio(toDatetimeLocal(linha.dataInicio))
+        setPrevencaoFim(toDatetimeLocal(linha.dataFim))
+        setPrevencaoNuipc(linha.nuipc ?? '')
+        setPrevencaoLocal(linha.local ?? '')
+        setPrevencaoObs(linha.observacoes ?? '')
+      }
+    } else {
+      setEntryType('horas-extra')
+      setForm({
+        nuipc: linha.nuipc ?? '',
+        local: linha.local ?? '',
+        dataInicio: toDatetimeLocal(linha.dataInicio),
+        dataFim: toDatetimeLocal(linha.dataFim),
+        ajudaCustoAlmoco: linha.ajudaCustoAlmoco,
+        ajudaCustoJantar: linha.ajudaCustoJantar,
+        ajudaCustoAlojamento: linha.ajudaCustoAlojamento,
+        senhaAlmoco: linha.senhaAlmoco,
+        senhaJantar: linha.senhaJantar,
+        senhaCeia: linha.senhaCeia,
+        viaturaId: linha.viaturaId ?? '',
+        km: linha.km,
+        observacoes: linha.observacoes ?? '',
+      })
+    }
+
     setDialogOpen(true)
   }
 
@@ -650,75 +763,69 @@ export function AjudasMensaisView({
     try {
       let res: Response
 
-      if (entryType === 'piquete' && !editingLinha) {
-        // Piquete / Prevenção only entry
-        if (!piqueteDate) {
-          toast.error('Selecione um dia')
-          return
-        }
+      if (entryType === 'piquete') {
+        if (!piqueteDate) { toast.error('Selecione um dia'); return }
         const parts = piqueteDate.split('-').map(Number)
-        if (parts.length !== 3 || parts.some(isNaN)) {
-          toast.error('Data inválida')
-          return
-        }
+        if (parts.length !== 3 || parts.some(isNaN)) { toast.error('Data inválida'); return }
         const [year, month, day] = parts as [number, number, number]
         const inicio = new Date(year, month - 1, day, 0, 0, 0, 0)
         const fim = new Date(year, month - 1, day, 23, 59, 0, 0)
-        res = await fetch('/api/ajudas/linhas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            registoId: data.registo.id,
-            dataInicio: inicio.toISOString(),
-            dataFim: fim.toISOString(),
-            prevencao: piqueteTipo,
-            prevencaoOnly: true,
-          }),
-        })
-      } else {
-        // Standard horas extra entry
-        if (!form.dataInicio || !form.dataFim) {
-          toast.error('Datas de início e fim são obrigatórias')
-          return
-        }
-        const dInicio = new Date(form.dataInicio)
-        const dFim = new Date(form.dataFim)
-        if (isNaN(dInicio.getTime()) || isNaN(dFim.getTime())) {
-          toast.error('Data inválida — verifique os campos de data/hora')
-          return
-        }
-        if (dFim <= dInicio) {
-          toast.error('A data de fim deve ser posterior à data de início')
-          return
-        }
-
-        const payload = {
-          nuipc: form.nuipc || null,
-          local: form.local || null,
-          dataInicio: dInicio.toISOString(),
-          dataFim: dFim.toISOString(),
-          prevencao: form.prevencao,
-          ajudaCustoAlmoco: form.ajudaCustoAlmoco,
-          ajudaCustoJantar: form.ajudaCustoJantar,
-          ajudaCustoAlojamento: form.ajudaCustoAlojamento,
-          senhaAlmoco: form.senhaAlmoco,
-          senhaJantar: form.senhaJantar,
-          senhaCeia: form.senhaCeia,
-          viaturaId: form.viaturaId || null,
-          km: form.km,
-          observacoes: form.observacoes || null,
-        }
-
+        const payload = { dataInicio: inicio.toISOString(), dataFim: fim.toISOString(), prevencao: 'PIQUETE', prevencaoOnly: true }
         if (editingLinha) {
           res = await fetch(`/api/ajudas/linhas/${editingLinha.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
           })
         } else {
           res = await fetch('/api/ajudas/linhas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ registoId: data.registo.id, ...payload }),
+          })
+        }
+      } else if (entryType === 'prevencao') {
+        if (!prevencaoInicio || !prevencaoFim) { toast.error('Datas de início e fim são obrigatórias'); return }
+        const dI = new Date(prevencaoInicio)
+        const dF = new Date(prevencaoFim)
+        if (isNaN(dI.getTime()) || isNaN(dF.getTime())) { toast.error('Data inválida'); return }
+        if (dF <= dI) { toast.error('A data de fim deve ser posterior à data de início'); return }
+        const payload = {
+          dataInicio: dI.toISOString(), dataFim: dF.toISOString(),
+          prevencao: 'PREVENCAO_PASSIVA', prevencaoOnly: true,
+          nuipc: prevencaoNuipc || null, local: prevencaoLocal || null, observacoes: prevencaoObs || null,
+        }
+        if (editingLinha) {
+          res = await fetch(`/api/ajudas/linhas/${editingLinha.id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+          })
+        } else {
+          res = await fetch('/api/ajudas/linhas', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ registoId: data.registo.id, ...payload }),
+          })
+        }
+      } else {
+        // Horas extra
+        if (!form.dataInicio || !form.dataFim) { toast.error('Datas de início e fim são obrigatórias'); return }
+        const dInicio = new Date(form.dataInicio)
+        const dFim = new Date(form.dataFim)
+        if (isNaN(dInicio.getTime()) || isNaN(dFim.getTime())) { toast.error('Data inválida'); return }
+        if (dFim <= dInicio) { toast.error('A data de fim deve ser posterior à data de início'); return }
+        const payload = {
+          nuipc: form.nuipc || null, local: form.local || null,
+          dataInicio: dInicio.toISOString(), dataFim: dFim.toISOString(),
+          prevencao: 'NENHUMA',
+          ajudaCustoAlmoco: form.ajudaCustoAlmoco, ajudaCustoJantar: form.ajudaCustoJantar,
+          ajudaCustoAlojamento: form.ajudaCustoAlojamento,
+          senhaAlmoco: form.senhaAlmoco, senhaJantar: form.senhaJantar, senhaCeia: form.senhaCeia,
+          viaturaId: form.viaturaId || null, km: form.km,
+          observacoes: form.observacoes || null,
+        }
+        if (editingLinha) {
+          res = await fetch(`/api/ajudas/linhas/${editingLinha.id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+          })
+        } else {
+          res = await fetch('/api/ajudas/linhas', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ registoId: data.registo.id, ...payload }),
           })
         }
@@ -762,6 +869,18 @@ export function AjudasMensaisView({
     } finally {
       setDeleting(false)
     }
+  }
+
+  function calcPrevencaoPreview(inicioStr: string, totaisData: AjudasTotais): string {
+    if (!inicioStr) return '—'
+    const d = new Date(inicioStr)
+    if (isNaN(d.getTime())) return '—'
+    const holidays = getPortugueseHolidays(d.getFullYear())
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const isFds = d.getDay() === 0 || d.getDay() === 6 || holidays.has(dateKey)
+    const val = isFds ? totaisData.taxaPrevencaoFds : totaisData.taxaPrevencaoSemana
+    return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
   }
 
   function calcPiquetePreview(dateStr: string, tipo: 'PIQUETE' | 'PREVENCAO_PASSIVA', totaisData: AjudasTotais): string {
@@ -976,35 +1095,31 @@ export function AjudasMensaisView({
           {/* Entry type toggle — only for new entries */}
           {!editingLinha && (
             <div className="flex rounded-lg border overflow-hidden text-sm">
-              <button
-                type="button"
-                className={cn(
-                  'flex-1 px-4 py-2 font-medium transition-colors',
-                  entryType === 'horas-extra'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted',
-                )}
-                onClick={() => setEntryType('horas-extra')}
-              >
-                Horas Extra
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  'flex-1 px-4 py-2 font-medium transition-colors',
-                  entryType === 'piquete'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted',
-                )}
-                onClick={() => setEntryType('piquete')}
-              >
-                <Bell className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
-                Piquete / Prevenção
-              </button>
+              {(
+                [
+                  { key: 'horas-extra', label: 'Horas Extra', icon: null },
+                  { key: 'piquete', label: 'Piquete', icon: <Bell className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> },
+                  { key: 'prevencao', label: 'Prevenção', icon: <Clock className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> },
+                ] as const
+              ).map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={cn(
+                    'flex-1 px-3 py-2 font-medium transition-colors',
+                    entryType === key
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted',
+                  )}
+                  onClick={() => setEntryType(key)}
+                >
+                  {icon}{label}
+                </button>
+              ))}
             </div>
           )}
 
-          {entryType === 'piquete' && !editingLinha ? (
+          {entryType === 'piquete' ? (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="piqueteDate">Dia *</Label>
@@ -1015,27 +1130,58 @@ export function AjudasMensaisView({
                   onChange={(e) => setPiqueteDate(e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="piqueteTipo">Tipo</Label>
-                <Select
-                  value={piqueteTipo}
-                  onValueChange={(v) => setPiqueteTipo(v as 'PIQUETE' | 'PREVENCAO_PASSIVA')}
-                >
-                  <SelectTrigger id="piqueteTipo">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PIQUETE">Piquete</SelectItem>
-                    <SelectItem value="PREVENCAO_PASSIVA">Prevenção Passiva</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               {piqueteDate && data?.totais && (
                 <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
                   <span className="text-muted-foreground">Valor calculado: </span>
                   <span className="font-semibold">
-                    {calcPiquetePreview(piqueteDate, piqueteTipo, data.totais)}
+                    {calcPiquetePreview(piqueteDate, 'PIQUETE', data.totais)}
                   </span>
+                </div>
+              )}
+            </div>
+          ) : entryType === 'prevencao' ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="prevInicio">Data e Hora Início *</Label>
+                  <Input
+                    id="prevInicio"
+                    type="datetime-local"
+                    value={prevencaoInicio}
+                    onChange={(e) => setPrevencaoInicio(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="prevFim">Data e Hora Fim *</Label>
+                  <Input
+                    id="prevFim"
+                    type="datetime-local"
+                    value={prevencaoFim}
+                    onChange={(e) => setPrevencaoFim(e.target.value)}
+                  />
+                  {prevencaoFim && prevencaoInicio && prevencaoFim <= prevencaoInicio && (
+                    <p className="text-xs text-red-600 dark:text-red-400">O fim deve ser posterior ao início.</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="prevNuipc">NUIPC</Label>
+                  <Input id="prevNuipc" value={prevencaoNuipc} onChange={(e) => setPrevencaoNuipc(e.target.value)} placeholder="Ex: 123/25.1TDLSB" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="prevLocal">Local</Label>
+                  <Input id="prevLocal" value={prevencaoLocal} onChange={(e) => setPrevencaoLocal(e.target.value)} placeholder="Local" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prevObs">Observações</Label>
+                <Textarea id="prevObs" value={prevencaoObs} onChange={(e) => setPrevencaoObs(e.target.value)} rows={2} />
+              </div>
+              {prevencaoInicio && data?.totais && (
+                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                  <span className="text-muted-foreground">Valor calculado: </span>
+                  <span className="font-semibold">{calcPrevencaoPreview(prevencaoInicio, data.totais)}</span>
                 </div>
               )}
             </div>
@@ -1044,6 +1190,7 @@ export function AjudasMensaisView({
               form={form}
               onChange={setForm}
               distanciaMin={distanciaMin}
+              onViaturaAdded={(v) => setViaturas((prev) => [...prev, v])}
               viaturas={
                 editingLinha?.viatura && !viaturas.some((v) => v.id === editingLinha.viaturaId)
                   ? [...viaturas, editingLinha.viatura]
@@ -1058,7 +1205,11 @@ export function AjudasMensaisView({
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || (entryType === 'piquete' && !editingLinha && !piqueteDate)}
+              disabled={
+                saving ||
+                (entryType === 'piquete' && !piqueteDate) ||
+                (entryType === 'prevencao' && (!prevencaoInicio || !prevencaoFim))
+              }
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingLinha ? 'Guardar alterações' : 'Adicionar'}
