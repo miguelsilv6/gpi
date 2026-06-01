@@ -650,6 +650,7 @@ export function AjudasMensaisView({
   const [piqueteDate, setPiqueteDate] = useState('')
   const [prevencaoInicio, setPrevencaoInicio] = useState('')
   const [prevencaoFim, setPrevencaoFim] = useState('')
+  const [editingLinhaPrevencao, setEditingLinhaPrevencao] = useState<'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA'>('NENHUMA')
   const [saving, setSaving] = useState(false)
 
   // Delete confirmation
@@ -718,6 +719,7 @@ export function AjudasMensaisView({
   function openEditDialog(linha: AjudasLinha) {
     setEditingLinha(linha)
     setEntryType('horas-extra')
+    setEditingLinhaPrevencao(linha.prevencao)
     setForm({
       nuipc: linha.nuipc ?? '',
       local: linha.local ?? '',
@@ -770,7 +772,7 @@ export function AjudasMensaisView({
         const [yi, mi, di] = pi as [number, number, number]
         const [yf, mf, df] = pf as [number, number, number]
         const dInicio = new Date(Date.UTC(yi, mi - 1, di, 0, 0, 0, 0))
-        const dFim = new Date(Date.UTC(yf, mf - 1, df, 0, 0, 0, 0))
+        const dFim = new Date(Date.UTC(yf, mf - 1, df, 23, 59, 0, 0))
         if (dFim < dInicio) { toast.error('A data de fim deve ser igual ou posterior à data de início'); return }
         res = await fetch('/api/ajudas/linhas', {
           method: 'POST',
@@ -806,7 +808,7 @@ export function AjudasMensaisView({
           local: form.local || null,
           dataInicio: dInicio.toISOString(),
           dataFim: dFim.toISOString(),
-          prevencao: 'NENHUMA' as const,
+          prevencao: (editingLinha ? editingLinhaPrevencao : 'NENHUMA') as 'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA',
           ajudaCustoAlmoco: form.ajudaCustoAlmoco,
           ajudaCustoJantar: form.ajudaCustoJantar,
           ajudaCustoAlojamento: form.ajudaCustoAlojamento,
@@ -896,11 +898,13 @@ export function AjudasMensaisView({
     const last = new Date(Date.UTC(yf, mf - 1, df))
     if (last < cur) return null
     const pad = (n: number) => String(n).padStart(2, '0')
+    const holidaysCache = new Map<number, Set<string>>()
     let semana = 0, fds = 0
     while (cur.getTime() <= last.getTime()) {
       const y = cur.getUTCFullYear()
+      if (!holidaysCache.has(y)) holidaysCache.set(y, getPortugueseHolidays(y))
+      const hols = holidaysCache.get(y)!
       const dateKey = `${y}-${pad(cur.getUTCMonth() + 1)}-${pad(cur.getUTCDate())}`
-      const hols = getPortugueseHolidays(y)
       const dow = cur.getUTCDay()
       if (dow === 0 || dow === 6 || hols.has(dateKey)) fds += 1
       else semana += 1

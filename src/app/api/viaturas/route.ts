@@ -40,9 +40,11 @@ export async function POST(req: NextRequest) {
     const parsed = createSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0]?.message ?? 'Dados inválidos', 400)
 
-    // Enforce uniqueness of non-null matricula
-    if (parsed.data.matricula) {
-      const existing = await prisma.viatura.findUnique({ where: { matricula: parsed.data.matricula } })
+    const matriculaUpper = parsed.data.matricula ? parsed.data.matricula.toUpperCase() : null
+
+    // Enforce uniqueness of non-null matricula (compare normalized value)
+    if (matriculaUpper) {
+      const existing = await prisma.viatura.findUnique({ where: { matricula: matriculaUpper } })
       if (existing) return apiError('Já existe uma viatura com esta matrícula', 409)
     }
 
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
       data: {
         utilizadorId: session.user.id,
         nome: parsed.data.nome,
-        matricula: parsed.data.matricula ? parsed.data.matricula.toUpperCase() : null,
+        matricula: matriculaUpper,
       },
       select: { id: true, nome: true, matricula: true },
     })
