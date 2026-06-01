@@ -81,22 +81,21 @@ export async function POST(req: NextRequest) {
       detalhes: { registoId } as never,
     })
 
-    // Return updated registo with totals
-    const [updatedRegisto, config, targetUser] = await Promise.all([
+    // Return updated registo with totals (single query with include)
+    const [updatedRegisto, config] = await Promise.all([
       prisma.ajudasRegisto.findUnique({
         where: { id: registoId },
-        include: { linhas: { orderBy: { dataInicio: 'asc' } } },
+        include: {
+          linhas: { orderBy: { dataInicio: 'asc' } },
+          utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
+        },
       }),
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
-      prisma.utilizador.findUnique({
-        where: { id: registo.utilizadorId },
-        select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true },
-      }),
     ])
 
     const overrides = {
-      vencimentoBase: targetUser?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: targetUser?.ajudasTaxaIRS ?? undefined,
+      vencimentoBase: updatedRegisto?.utilizador?.ajudasVencimentoBase ?? undefined,
+      taxaIRS: updatedRegisto?.utilizador?.ajudasTaxaIRS ?? undefined,
     }
 
     const totais = calcAjudasTotais(updatedRegisto!.linhas, config, overrides)

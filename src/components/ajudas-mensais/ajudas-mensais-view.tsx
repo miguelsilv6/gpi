@@ -713,21 +713,24 @@ export function AjudasMensaisView({
     }
   }
 
-  function calcPiquetePreview(dateStr: string, tipo: 'PIQUETE' | 'PREVENCAO_PASSIVA', config: ConfigData): string {
-    if (!dateStr || !config) return '—'
-    const d = new Date(dateStr)
-    if (isNaN(d.getTime())) return '—'
-    const holidays = getPortugueseHolidays(d.getFullYear())
+  function calcPiquetePreview(dateStr: string, tipo: 'PIQUETE' | 'PREVENCAO_PASSIVA', totaisData: AjudasTotais, config: ConfigData): string {
+    if (!dateStr) return '—'
+    const parts = dateStr.split('-').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return '—'
+    const [year, month, day] = parts as [number, number, number]
+    // Construct in local time to avoid UTC-offset day shift
+    const d = new Date(year, month - 1, day)
+    const holidays = getPortugueseHolidays(year)
     const pad = (n: number) => String(n).padStart(2, '0')
-    const dateKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const dateKey = `${year}-${pad(month)}-${pad(day)}`
     const dow = d.getDay()
     const isFds = dow === 0 || dow === 6 || holidays.has(dateKey)
+    // Use the effective rates from totais (which already include per-user overrides)
     if (tipo === 'PIQUETE') {
-      const val = config.vencimentoBase * (isFds ? config.percentPiqueteFds : config.percentPiqueteSemana)
+      const val = isFds ? totaisData.taxaPiqueteFds : totaisData.taxaPiqueteSemana
       return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
     } else {
-      const base = config.vencimentoBase * config.percentPrevencaoPassiva / 3
-      const val = isFds ? base * 1.265 : base
+      const val = isFds ? totaisData.taxaPrevencaoFds : totaisData.taxaPrevencaoSemana
       return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
     }
   }
@@ -737,16 +740,15 @@ export function AjudasMensaisView({
       toast.error('Selecione um dia')
       return
     }
-    const d = new Date(piqueteDate)
-    if (isNaN(d.getTime())) {
+    const parts = piqueteDate.split('-').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) {
       toast.error('Data inválida')
       return
     }
-    // Use full day: 00:00 to 23:59 (prevencaoOnly=true so hours are irrelevant for calc)
-    const inicio = new Date(d)
-    inicio.setHours(0, 0, 0, 0)
-    const fim = new Date(d)
-    fim.setHours(23, 59, 0, 0)
+    const [year, month, day] = parts as [number, number, number]
+    // Construct in local time so the ISO string reflects the correct calendar day
+    const inicio = new Date(year, month - 1, day, 0, 0, 0, 0)
+    const fim = new Date(year, month - 1, day, 23, 59, 0, 0)
 
     setSavingPiquete(true)
     try {
@@ -992,11 +994,11 @@ export function AjudasMensaisView({
                 </SelectContent>
               </Select>
             </div>
-            {piqueteDate && data?.config && (
+            {piqueteDate && data?.config && data?.totais && (
               <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
                 <span className="text-muted-foreground">Valor calculado: </span>
                 <span className="font-semibold">
-                  {calcPiquetePreview(piqueteDate, piqueteTipo, data.config)}
+                  {calcPiquetePreview(piqueteDate, piqueteTipo, data.totais, data.config)}
                 </span>
               </div>
             )}

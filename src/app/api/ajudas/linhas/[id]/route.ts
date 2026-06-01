@@ -92,22 +92,21 @@ export async function PUT(
       utilizadorId: session.user.id,
     })
 
-    // Return updated registo with totals
-    const [registo, config, registoOwner] = await Promise.all([
+    // Return updated registo with totals (single query with include)
+    const [registo, config] = await Promise.all([
       prisma.ajudasRegisto.findUnique({
         where: { id: updated.registoId },
-        include: { linhas: { orderBy: { dataInicio: 'asc' } } },
+        include: {
+          linhas: { orderBy: { dataInicio: 'asc' } },
+          utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
+        },
       }),
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
-      prisma.ajudasRegisto.findUnique({
-        where: { id: updated.registoId },
-        select: { utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } } },
-      }),
     ])
 
     const overrides = {
-      vencimentoBase: registoOwner?.utilizador?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: registoOwner?.utilizador?.ajudasTaxaIRS ?? undefined,
+      vencimentoBase: registo?.utilizador?.ajudasVencimentoBase ?? undefined,
+      taxaIRS: registo?.utilizador?.ajudasTaxaIRS ?? undefined,
     }
 
     const totais = calcAjudasTotais(registo!.linhas, config, overrides)
@@ -144,22 +143,21 @@ export async function DELETE(
       utilizadorId: session.user.id,
     })
 
-    // Return updated registo with totals
-    const [registo, config, registoOwner] = await Promise.all([
+    // Return updated registo with totals (single query with include)
+    const [registo, config] = await Promise.all([
       prisma.ajudasRegisto.findUnique({
         where: { id: registoId },
-        include: { linhas: { orderBy: { dataInicio: 'asc' } } },
+        include: {
+          linhas: { orderBy: { dataInicio: 'asc' } },
+          utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
+        },
       }),
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
-      prisma.ajudasRegisto.findUnique({
-        where: { id: registoId },
-        select: { utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } } },
-      }),
     ])
 
     const overrides = {
-      vencimentoBase: registoOwner?.utilizador?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: registoOwner?.utilizador?.ajudasTaxaIRS ?? undefined,
+      vencimentoBase: registo?.utilizador?.ajudasVencimentoBase ?? undefined,
+      taxaIRS: registo?.utilizador?.ajudasTaxaIRS ?? undefined,
     }
 
     const totais = calcAjudasTotais(registo!.linhas, config, overrides)
