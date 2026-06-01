@@ -87,8 +87,7 @@ model Inquerito {
   dataPrazo      DateTime?
   dataConclusao  DateTime?
   notas          String?
-  // Tribunal / Ministério Público — all optional, free-text.
-  tribunal       String?
+  // Tribunal / Ministério Público — all optional.
   procurador     String?
   oficialJustica String?
   voip           String?
@@ -126,6 +125,13 @@ model Inquerito {
   // garantindo que um inquérito nunca é contado mais de uma vez.
   crimesAssociados Crime[] @relation("CrimesAssociados")
 
+  tribunal   Tribunal? @relation(fields: [tribunalId], references: [id])
+  tribunalId String?
+  seccao     Seccao? @relation(fields: [seccaoId], references: [id])
+  seccaoId   String?
+  localTratamento   LocalTratamento? @relation(fields: [localTratamentoId], references: [id])
+  localTratamentoId String?
+
   // Etiquetas (tags) pessoais aplicadas ao inquérito. Relação m2m implícita —
   // o join table `_EtiquetaToInquerito` é gerido pelo Prisma.
   etiquetas Etiqueta[]
@@ -144,6 +150,9 @@ model Inquerito {
   @@index([brigadaId, updatedAt(sort: Desc)])
   @@index([inspetorId, updatedAt(sort: Desc)])
   @@index([deletedAt])
+  @@index([tribunalId])
+  @@index([seccaoId])
+  @@index([localTratamentoId])
 }
 
 model EstadoInquerito {
@@ -176,6 +185,42 @@ model Crime {
   inqueritos          Inquerito[] @relation("CrimePrincipal")
   inqueritoAssociados Inquerito[] @relation("CrimesAssociados")
 
+  @@index([ativo, ordem])
+}
+
+model Tribunal {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  descricao String?
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  inqueritos Inquerito[]
+  @@index([ativo, ordem])
+}
+
+model Seccao {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  descricao String?
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  inqueritos Inquerito[]
+  @@index([ativo, ordem])
+}
+
+model LocalTratamento {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  descricao String?
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  inqueritos Inquerito[]
   @@index([ativo, ordem])
 }
 

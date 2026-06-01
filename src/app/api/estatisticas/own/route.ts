@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
       aguardaExames,
       enviados,
       arquivados,
+      concluidos,
       anoRaw,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
@@ -101,6 +102,7 @@ export async function GET(req: NextRequest) {
             },
           }),
       prisma.inquerito.count({ where: { ...where, estado: { codigo: 'ARQUIVADO' } } }),
+      prisma.inquerito.count({ where: { ...where, estado: { codigo: 'CONCLUIDO' } } }),
       prisma.inquerito.findMany({ where, select: { dataAbertura: true, nuipc: true } }),
     ])
 
@@ -176,6 +178,7 @@ export async function GET(req: NextRequest) {
       aguardaExames,
       enviados,
       arquivados,
+      concluidos,
       porAno,
       porEstado: porEstadoRaw.map((r) => {
         const e = estadoById.get(r.estadoId)

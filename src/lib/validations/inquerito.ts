@@ -30,7 +30,9 @@ export const inqueritoSchema = z
     // Não devem incluir o crimeId principal; o servidor filtra duplicados.
     crimeIdsAssociados: z.array(z.string()).optional(),
     // Tribunal / Ministério Público — all optional
-    tribunal: z.string().max(200).optional().nullable(),
+    tribunalId: z.string().optional().nullable(),
+    seccaoId: z.string().optional().nullable(),
+    localTratamentoId: z.string().optional().nullable(),
     procurador: z.string().max(200).optional().nullable(),
     oficialJustica: z.string().max(200).optional().nullable(),
     voip: z.string().max(100).optional().nullable(),
