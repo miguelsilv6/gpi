@@ -138,6 +138,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'utilizador:manage',
     'sistema:config',
     'relatorio:read',
+    'ajudas:own',
+    'ajudas:read:brigade',
+    'ajudas:read:all',
+    'ajudas:config',
   ],
 }
 

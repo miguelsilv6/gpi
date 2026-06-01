@@ -12,6 +12,7 @@ import {
   CalendarClock,
   FileBarChart,
   BarChart2,
+  Banknote,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -70,6 +71,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/relatorios',
     icon: FileBarChart,
     roles: ['INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Ajudas Mensais',
+    href: '/ajudas-mensais',
+    icon: Banknote,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
     label: 'Notificações',
