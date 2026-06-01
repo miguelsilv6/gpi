@@ -79,6 +79,18 @@ export async function PUT(
       return apiError('A data de fim deve ser posterior à data de início', 400)
     }
 
+    // Validate viaturaId ownership: viatura must belong to the registo owner
+    const newViaturaId = updateData.viaturaId as string | null | undefined
+    if (newViaturaId) {
+      const viatura = await prisma.viatura.findUnique({
+        where: { id: newViaturaId },
+        select: { utilizadorId: true },
+      })
+      if (!viatura || viatura.utilizadorId !== linha.registo.utilizadorId) {
+        return apiError('Viatura inválida', 400)
+      }
+    }
+
     const updated = await prisma.ajudasLinha.update({
       where: { id },
       data: updateData,
@@ -104,12 +116,14 @@ export async function PUT(
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const vbPut = registo?.utilizador?.ajudasVencimentoBase
-    const irsPut = registo?.utilizador?.ajudasTaxaIRS
+    if (!registo) return apiError('Registo não encontrado', 404)
+
+    const vbPut = registo.utilizador?.ajudasVencimentoBase
+    const irsPut = registo.utilizador?.ajudasTaxaIRS
     const putConfigured = vbPut != null && irsPut != null
 
     const totais = putConfigured
-      ? calcAjudasTotais(registo!.linhas, config, vbPut!, irsPut!)
+      ? calcAjudasTotais(registo.linhas, config, vbPut, irsPut)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: putConfigured })
@@ -156,12 +170,14 @@ export async function DELETE(
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const vbDel = registo?.utilizador?.ajudasVencimentoBase
-    const irsDel = registo?.utilizador?.ajudasTaxaIRS
+    if (!registo) return apiError('Registo não encontrado', 404)
+
+    const vbDel = registo.utilizador?.ajudasVencimentoBase
+    const irsDel = registo.utilizador?.ajudasTaxaIRS
     const delConfigured = vbDel != null && irsDel != null
 
     const totais = delConfigured
-      ? calcAjudasTotais(registo!.linhas, config, vbDel!, irsDel!)
+      ? calcAjudasTotais(registo.linhas, config, vbDel, irsDel)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: delConfigured })

@@ -1044,7 +1044,11 @@ export function AjudasMensaisView({
               form={form}
               onChange={setForm}
               distanciaMin={distanciaMin}
-              viaturas={viaturas}
+              viaturas={
+                editingLinha?.viatura && !viaturas.some((v) => v.id === editingLinha.viaturaId)
+                  ? [...viaturas, editingLinha.viatura]
+                  : viaturas
+              }
             />
           )}
 

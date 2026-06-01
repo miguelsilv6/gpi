@@ -62,6 +62,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate viaturaId ownership: viatura must belong to the registo owner
+    if (rest.viaturaId) {
+      const viatura = await prisma.viatura.findUnique({
+        where: { id: rest.viaturaId },
+        select: { utilizadorId: true },
+      })
+      if (!viatura || viatura.utilizadorId !== registo.utilizadorId) {
+        return apiError('Viatura inválida', 400)
+      }
+    }
+
     // Create the line
     const linha = await prisma.ajudasLinha.create({
       data: {
@@ -96,12 +107,14 @@ export async function POST(req: NextRequest) {
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const vencimentoBase = updatedRegisto?.utilizador?.ajudasVencimentoBase
-    const taxaIRS = updatedRegisto?.utilizador?.ajudasTaxaIRS
+    if (!updatedRegisto) return apiError('Registo não encontrado', 404)
+
+    const vencimentoBase = updatedRegisto.utilizador?.ajudasVencimentoBase
+    const taxaIRS = updatedRegisto.utilizador?.ajudasTaxaIRS
     const userConfigured = vencimentoBase != null && taxaIRS != null
 
     const totais = userConfigured
-      ? calcAjudasTotais(updatedRegisto!.linhas, config, vencimentoBase!, taxaIRS!)
+      ? calcAjudasTotais(updatedRegisto.linhas, config, vencimentoBase, taxaIRS)
       : null
 
     return Response.json({ registo: updatedRegisto, config, totais, userConfigured }, { status: 201 })

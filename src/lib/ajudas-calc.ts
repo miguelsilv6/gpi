@@ -157,6 +157,43 @@ export function getPortugueseHolidays(year: number): Set<string> {
 const WORK_START_MINS = 9 * 60        //  540 min
 const WORK_END_MINS   = 17 * 60 + 30  // 1050 min
 
+// All time operations use Europe/Lisbon to ensure correct DST handling regardless
+// of the server's process timezone (UTC on most cloud platforms).
+const LISBON_TZ = 'Europe/Lisbon'
+
+function lisbonComponents(d: Date): {
+  year: number; month: number; day: number
+  hour: number; minute: number
+  dayOfWeek: number; dateStr: string
+} {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: LISBON_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(d)
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10)
+  const year = get('year')
+  const month = get('month')
+  const day = get('day')
+  const hour = get('hour')
+  const minute = get('minute')
+  const pad2 = (n: number) => String(n).padStart(2, '0')
+  const dateStr = `${year}-${pad2(month)}-${pad2(day)}`
+  // Derive day-of-week from the Lisbon calendar date using midday UTC (safe across all TZ)
+  const dayOfWeek = new Date(Date.UTC(year, month - 1, day, 12)).getUTCDay()
+  return { year, month, day, hour, minute, dayOfWeek, dateStr }
+}
+
+/** Converts a Lisbon wall-clock date/time to the corresponding UTC Date. */
+function lisbonWallToUTC(year: number, month: number, day: number, hour: number, minute: number): Date {
+  // Approximate in UTC, then correct for the timezone offset at that instant
+  const approx = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0))
+  const comp = lisbonComponents(approx)
+  const diffMin = (comp.hour - hour) * 60 + (comp.minute - minute)
+  return new Date(approx.getTime() - diffMin * 60_000)
+}
+
 /**
  * Splits hours between start and end into 4 buckets (weekday/weekend × day/night).
  * Hour slots: 00-07 = night (0h-7h59), 08-23 = day (8h00-23h59).
@@ -165,48 +202,38 @@ const WORK_END_MINS   = 17 * 60 + 30  // 1050 min
  * Weekday hours inside the regular working window (09:00–17:30) are excluded
  * from overtime — they are normal paid working time and do not count towards
  * extra pay. Weekend/holiday hours are never excluded.
+ *
+ * All boundary and classification logic uses Europe/Lisbon time.
  */
 export function splitHours(start: Date, end: Date, holidays: Set<string>): HoursSplit {
   const result: HoursSplit = { semanaDia: 0, semanaNoite: 0, fdsDia: 0, fdsNoite: 0 }
 
   if (start >= end) return result
 
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const fmtDate = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-
-  let current = new Date(start)
+  let current = new Date(start.getTime())
 
   while (current < end) {
-    const h = current.getHours()
-    const curMins = h * 60 + current.getMinutes()
+    const { year, month, day, hour, minute, dayOfWeek, dateStr } = lisbonComponents(current)
+    const curMins = hour * 60 + minute
 
-    // Find the next natural boundary: hour boundary, 09:00, or 17:30 on this day
-    const nextHour = new Date(current)
-    nextHour.setHours(h + 1, 0, 0, 0)
+    // Next hour boundary in Lisbon time, expressed as UTC
+    const nextHour = lisbonWallToUTC(year, month, day, hour + 1, 0)
 
     const boundaries: Date[] = [nextHour]
 
-    // Add 09:00 as a boundary if it falls within this hour slot
-    const today0900 = new Date(current)
-    today0900.setHours(9, 0, 0, 0)
+    const today0900 = lisbonWallToUTC(year, month, day, 9, 0)
     if (today0900 > current && today0900 < nextHour) boundaries.push(today0900)
 
-    // Add 17:30 as a boundary if it falls within this hour slot
-    const today1730 = new Date(current)
-    today1730.setHours(17, 30, 0, 0)
+    const today1730 = lisbonWallToUTC(year, month, day, 17, 30)
     if (today1730 > current && today1730 < nextHour) boundaries.push(today1730)
 
-    // Earliest boundary (capped at end)
     boundaries.sort((a, b) => a.getTime() - b.getTime())
     const segmentEnd = boundaries[0]! < end ? boundaries[0]! : end
 
     const durationHours = (segmentEnd.getTime() - current.getTime()) / 3_600_000
 
-    const dayOfWeek = current.getDay()
-    const dateStr = fmtDate(current)
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 || holidays.has(dateStr)
-    const isNight = h < 8  // 00:00–07:59
+    const isNight = hour < 8
 
     // Skip regular working hours on weekdays (not applicable on weekends/holidays)
     const isWorkingTime = !isWeekend && curMins >= WORK_START_MINS && curMins < WORK_END_MINS
@@ -264,13 +291,11 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   let senhaJantar = 0
   let senhaCeia = 0
 
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const fmtDate = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const fmtDate = (d: Date) => lisbonComponents(d).dateStr
 
   function isFdsDay(d: Date): boolean {
-    const dow = d.getDay()
-    return dow === 0 || dow === 6 || allHolidays.has(fmtDate(d))
+    const { dayOfWeek, dateStr } = lisbonComponents(d)
+    return dayOfWeek === 0 || dayOfWeek === 6 || allHolidays.has(dateStr)
   }
 
   for (const linha of linhas) {
