@@ -227,18 +227,11 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
   return result
 }
 
-export interface UserOverrides {
-  vencimentoBase?: number
-  taxaIRS?: number
-}
-
 /**
  * Calculates all totals for a month's ajudas record.
- * Per-user overrides take precedence over the global config values.
+ * vencimentoBase and taxaIRS must be the user's personal configured values.
  */
-export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, overrides?: UserOverrides): AjudasTotais {
-  const vencimentoBase = overrides?.vencimentoBase ?? config.vencimentoBase
-  const taxaIRS = overrides?.taxaIRS ?? config.taxaIRS
+export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, vencimentoBase: number, taxaIRS: number): AjudasTotais {
   // Gather all years from the data to compute holidays
   const years = new Set<number>()
   for (const l of linhas) {

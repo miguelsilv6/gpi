@@ -21,7 +21,7 @@ const linhaSchema = z.object({
   senhaAlmoco: z.number().int().min(0).default(0),
   senhaJantar: z.number().int().min(0).default(0),
   senhaCeia: z.number().int().min(0).default(0),
-  viatura: z.enum(['PROPRIA', 'BRIGADA']).optional().nullable(),
+  viaturaId: z.string().optional().nullable(),
   km: z.number().int().min(0).default(0),
   observacoes: z.string().max(500).optional().nullable(),
 })
@@ -86,21 +86,25 @@ export async function POST(req: NextRequest) {
       prisma.ajudasRegisto.findUnique({
         where: { id: registoId },
         include: {
-          linhas: { orderBy: { dataInicio: 'asc' } },
+          linhas: {
+            orderBy: { dataInicio: 'asc' },
+            include: { viatura: { select: { id: true, nome: true, matricula: true } } },
+          },
           utilizador: { select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true } },
         },
       }),
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const overrides = {
-      vencimentoBase: updatedRegisto?.utilizador?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: updatedRegisto?.utilizador?.ajudasTaxaIRS ?? undefined,
-    }
+    const vencimentoBase = updatedRegisto?.utilizador?.ajudasVencimentoBase
+    const taxaIRS = updatedRegisto?.utilizador?.ajudasTaxaIRS
+    const userConfigured = vencimentoBase != null && taxaIRS != null
 
-    const totais = calcAjudasTotais(updatedRegisto!.linhas, config, overrides)
+    const totais = userConfigured
+      ? calcAjudasTotais(updatedRegisto!.linhas, config, vencimentoBase!, taxaIRS!)
+      : null
 
-    return Response.json({ registo: updatedRegisto, config, totais }, { status: 201 })
+    return Response.json({ registo: updatedRegisto, config, totais, userConfigured }, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }

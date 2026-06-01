@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
       include: {
         linhas: {
           orderBy: { dataInicio: 'asc' },
+          include: { viatura: { select: { id: true, nome: true, matricula: true } } },
         },
       },
     })
@@ -80,15 +81,15 @@ export async function GET(req: NextRequest) {
       }),
     ])
 
-    const overrides = {
-      vencimentoBase: targetUserData?.ajudasVencimentoBase ?? undefined,
-      taxaIRS: targetUserData?.ajudasTaxaIRS ?? undefined,
-    }
+    const vencimentoBase = targetUserData?.ajudasVencimentoBase
+    const taxaIRS = targetUserData?.ajudasTaxaIRS
+    const userConfigured = vencimentoBase != null && taxaIRS != null
 
-    // Calculate totals
-    const totais = calcAjudasTotais(registo.linhas, config, overrides)
+    const totais = userConfigured
+      ? calcAjudasTotais(registo.linhas, config, vencimentoBase!, taxaIRS!)
+      : null
 
-    return Response.json({ registo, config, totais })
+    return Response.json({ registo, config, totais, userConfigured })
   } catch (error) {
     return handleApiError(error)
   }

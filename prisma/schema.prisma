@@ -74,6 +74,7 @@ model Utilizador {
   // When set, these take precedence over the global AjudasConfig values.
   ajudasVencimentoBase Float?
   ajudasTaxaIRS        Float?
+  viaturas             Viatura[]
 
   @@index([brigadaId])
   @@index([role])
@@ -453,6 +454,20 @@ enum AjudasViatura {
   BRIGADA
 }
 
+model Viatura {
+  id           String        @id @default(cuid())
+  utilizadorId String
+  utilizador   Utilizador    @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+  nome         String
+  matricula    String?
+  ativo        Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  linhas       AjudasLinha[]
+
+  @@index([utilizadorId])
+}
+
 // Singleton config for Ajudas Mensais - managed by ADMINISTRACAO
 model AjudasConfig {
   id                      String   @id @default("default")
@@ -505,13 +520,15 @@ model AjudasLinha {
   senhaAlmoco          Int             @default(0)
   senhaJantar          Int             @default(0)
   senhaCeia            Int             @default(0)
-  viatura              AjudasViatura?
+  viaturaId            String?
+  viatura              Viatura?        @relation(fields: [viaturaId], references: [id], onDelete: SetNull)
   km                   Int             @default(0)
   observacoes          String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
   @@index([registoId])
+  @@index([viaturaId])
 }
 
 model Sessao {

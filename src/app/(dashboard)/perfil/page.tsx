@@ -11,9 +11,119 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, User, Shield, Building2, KeyRound, Calculator } from 'lucide-react'
+import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ROLE_LABELS } from '@/lib/rbac'
 import type { Role } from '@/generated/prisma/enums'
+
+// ─── Viaturas sub-component ───────────────────────────────────────────────────
+
+interface ViaturaItem { id: string; nome: string; matricula: string | null }
+
+function ViaturasList() {
+  const [viaturas, setViaturas] = useState<ViaturaItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [nome, setNome] = useState('')
+  const [matricula, setMatricula] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [adding, setAdding] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/viaturas')
+      .then((r) => r.json())
+      .then((d) => { setViaturas(d); setLoading(false) })
+      .catch(() => { toast.error('Erro ao carregar viaturas'); setLoading(false) })
+  }, [])
+
+  function startAdd() { setEditingId(null); setNome(''); setMatricula(''); setAdding(true) }
+  function startEdit(v: ViaturaItem) { setEditingId(v.id); setNome(v.nome); setMatricula(v.matricula ?? ''); setAdding(false) }
+  function cancelEdit() { setEditingId(null); setAdding(false) }
+
+  async function handleSave() {
+    if (!nome.trim()) { toast.error('Nome obrigatório'); return }
+    setSaving(true)
+    try {
+      const body = { nome: nome.trim(), matricula: matricula.trim() || null }
+      let res: Response
+      if (editingId) {
+        res = await fetch(`/api/viaturas/${editingId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      } else {
+        res = await fetch('/api/viaturas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      }
+      if (!res.ok) { const e = await res.json(); toast.error(e.error ?? 'Erro ao guardar'); return }
+      const saved: ViaturaItem = await res.json()
+      setViaturas((prev) => editingId ? prev.map((v) => v.id === editingId ? saved : v) : [...prev, saved])
+      cancelEdit()
+      toast.success(editingId ? 'Viatura atualizada' : 'Viatura adicionada')
+    } catch { toast.error('Erro ao guardar') } finally { setSaving(false) }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Eliminar esta viatura?')) return
+    try {
+      const res = await fetch(`/api/viaturas/${id}`, { method: 'DELETE' })
+      if (!res.ok) { const e = await res.json(); toast.error(e.error ?? 'Erro ao eliminar'); return }
+      setViaturas((prev) => prev.filter((v) => v.id !== id))
+      toast.success('Viatura eliminada')
+    } catch { toast.error('Erro ao eliminar') }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+          <Car className="h-4 w-4" />
+          As minhas Viaturas
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          <p className="text-xs text-muted-foreground">A carregar...</p>
+        ) : (
+          <>
+            {viaturas.length === 0 && !adding && (
+              <p className="text-xs text-muted-foreground">Nenhuma viatura. Adicione para usar nas ajudas mensais.</p>
+            )}
+            <div className="space-y-1.5">
+              {viaturas.map((v) => (
+                <div key={v.id} className="text-sm">
+                  {editingId === v.id ? (
+                    <div className="flex gap-2 items-start">
+                      <Input className="h-7 text-xs" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome *" />
+                      <Input className="h-7 text-xs w-32" value={matricula} onChange={(e) => setMatricula(e.target.value)} placeholder="Matrícula" />
+                      <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={saving}>Guardar</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelEdit}>Cancelar</Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between py-1 border-b last:border-0">
+                      <span>{v.nome}{v.matricula && <span className="ml-2 text-muted-foreground text-xs">{v.matricula}</span>}</span>
+                      <div className="flex gap-1">
+                        <button onClick={() => startEdit(v)} className="p-1 hover:text-foreground text-muted-foreground"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => handleDelete(v.id)} className="p-1 hover:text-red-600 text-muted-foreground"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {adding ? (
+              <div className="flex gap-2 items-start pt-1">
+                <Input className="h-7 text-xs" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome *" autoFocus />
+                <Input className="h-7 text-xs w-32" value={matricula} onChange={(e) => setMatricula(e.target.value)} placeholder="Matrícula" />
+                <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={saving}>Guardar</Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelEdit}>Cancelar</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={startAdd}>
+                <Plus className="h-3.5 w-3.5 mr-1" />Adicionar viatura
+              </Button>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
 
 const profileSchema = z.object({
   nome: z.string().min(1, 'Nome obrigatório'),
@@ -247,6 +357,9 @@ export default function PerfilPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Viaturas */}
+      <ViaturasList />
 
       {/* Password change */}
       <Card>
