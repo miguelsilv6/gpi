@@ -6,9 +6,11 @@ import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
+const MATRICULA_REGEX = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i
+
 const updateSchema = z.object({
   nome: z.string().min(1).max(100).optional(),
-  matricula: z.string().max(20).optional().nullable(),
+  matricula: z.string().regex(MATRICULA_REGEX, 'Matrícula inválida — use o formato XX-XX-XX').optional().nullable(),
   ativo: z.boolean().optional(),
 })
 
@@ -31,9 +33,20 @@ export async function PUT(
     const parsed = updateSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0]?.message ?? 'Dados inválidos', 400)
 
+    const matriculaUpper = typeof parsed.data.matricula === 'string'
+      ? parsed.data.matricula.toUpperCase()
+      : parsed.data.matricula
+
+    if (matriculaUpper) {
+      const conflict = await prisma.viatura.findFirst({
+        where: { matricula: matriculaUpper, id: { not: id } },
+      })
+      if (conflict) return apiError('Já existe uma viatura com esta matrícula', 409)
+    }
+
     const updated = await prisma.viatura.update({
       where: { id },
-      data: parsed.data,
+      data: { ...parsed.data, matricula: matriculaUpper },
       select: { id: true, nome: true, matricula: true, ativo: true },
     })
 

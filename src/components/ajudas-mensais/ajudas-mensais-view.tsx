@@ -81,7 +81,6 @@ interface LinhaFormData {
   local: string
   dataInicio: string
   dataFim: string
-  prevencao: 'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA'
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
   ajudaCustoAlojamento: number
@@ -146,7 +145,6 @@ const EMPTY_FORM: LinhaFormData = {
   local: '',
   dataInicio: '',
   dataFim: '',
-  prevencao: 'NENHUMA',
   ajudaCustoAlmoco: 0,
   ajudaCustoJantar: 0,
   ajudaCustoAlojamento: 0,
@@ -323,14 +321,51 @@ interface LinhaFormProps {
   onChange: (f: LinhaFormData) => void
   distanciaMin: number
   viaturas: ViaturaItem[]
+  onViaturaAdded: (v: ViaturaItem) => void
 }
 
-function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
+function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: LinhaFormProps) {
   const ajudasDisabled = form.km < distanciaMin
+
+  const [addViaturaOpen, setAddViaturaOpen] = useState(false)
+  const [addViaturaForm, setAddViaturaForm] = useState({ nome: '', matricula: '' })
+  const [addViaturaError, setAddViaturaError] = useState('')
+  const [addViaturaLoading, setAddViaturaLoading] = useState(false)
+
+  const MATRICULA_RE = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i
+
+  async function handleAddViatura() {
+    if (!addViaturaForm.nome.trim()) { setAddViaturaError('Nome obrigatório'); return }
+    if (addViaturaForm.matricula && !MATRICULA_RE.test(addViaturaForm.matricula)) {
+      setAddViaturaError('Formato inválido — use XX-XX-XX (ex: AB-12-CD)')
+      return
+    }
+    setAddViaturaLoading(true)
+    setAddViaturaError('')
+    try {
+      const res = await fetch('/api/viaturas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: addViaturaForm.nome.trim(), matricula: addViaturaForm.matricula.toUpperCase() || null }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setAddViaturaError(json.error ?? 'Erro ao criar viatura'); return }
+      onViaturaAdded(json)
+      onChange({ ...form, viaturaId: json.id })
+      setAddViaturaOpen(false)
+      setAddViaturaForm({ nome: '', matricula: '' })
+    } catch {
+      setAddViaturaError('Erro ao criar viatura')
+    } finally {
+      setAddViaturaLoading(false)
+    }
+  }
 
   function set<K extends keyof LinhaFormData>(key: K, value: LinhaFormData[K]) {
     onChange({ ...form, [key]: value })
   }
+
+  const selectedViatura = viaturas.find(v => v.id === form.viaturaId)
 
   return (
     <div className="space-y-4">
@@ -392,51 +427,79 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="prevencao">Tipo de Prevenção</Label>
-          <Select
-            value={form.prevencao}
-            onValueChange={(v) => set('prevencao', v as LinhaFormData['prevencao'])}
-          >
-            <SelectTrigger id="prevencao">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="NENHUMA">Nenhuma</SelectItem>
-              <SelectItem value="PIQUETE">Piquete</SelectItem>
-              <SelectItem value="PREVENCAO_PASSIVA">Prevenção Passiva</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
           <Label htmlFor="viaturaId">Viatura</Label>
-          <Select
-            value={form.viaturaId || 'none'}
-            onValueChange={(v) => set('viaturaId', v === 'none' || v === null ? '' : v)}
+          <button
+            type="button"
+            onClick={() => { setAddViaturaOpen(true); setAddViaturaError(''); setAddViaturaForm({ nome: '', matricula: '' }) }}
+            className="text-xs text-primary hover:underline flex items-center gap-1"
           >
-            <SelectTrigger id="viaturaId">
-              <SelectValue placeholder="Nenhuma" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhuma</SelectItem>
-              {viaturas.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.nome}{v.matricula ? ` (${v.matricula})` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {viaturas.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              <a href="/perfil" className="underline">Configure as suas viaturas no Perfil</a>
-            </p>
-          )}
+            <Plus className="h-3 w-3" />
+            Adicionar viatura
+          </button>
         </div>
+        <Select
+          value={form.viaturaId || 'none'}
+          onValueChange={(v) => set('viaturaId', v == null || v === 'none' ? '' : v)}
+        >
+          <SelectTrigger id="viaturaId">
+            <span className="truncate text-sm">
+              {selectedViatura
+                ? `${selectedViatura.nome}${selectedViatura.matricula ? ` (${selectedViatura.matricula})` : ''}`
+                : <span className="text-muted-foreground">Nenhuma</span>}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhuma</SelectItem>
+            {viaturas.map((v) => (
+              <SelectItem key={v.id} value={v.id}>
+                {v.nome}{v.matricula ? ` (${v.matricula})` : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Add viatura mini-dialog */}
+      <Dialog open={addViaturaOpen} onOpenChange={(o) => !addViaturaLoading && setAddViaturaOpen(o)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Adicionar Viatura</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="av-nome">Nome</Label>
+              <Input
+                id="av-nome"
+                value={addViaturaForm.nome}
+                onChange={(e) => setAddViaturaForm(f => ({ ...f, nome: e.target.value }))}
+                placeholder="Ex: Carro de serviço"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="av-matricula">Matrícula</Label>
+              <Input
+                id="av-matricula"
+                value={addViaturaForm.matricula}
+                onChange={(e) => setAddViaturaForm(f => ({ ...f, matricula: e.target.value.toUpperCase() }))}
+                placeholder="XX-XX-XX"
+                maxLength={8}
+              />
+              <p className="text-xs text-muted-foreground">Formato: XX-XX-XX (ex: AB-12-CD)</p>
+            </div>
+            {addViaturaError && <p className="text-xs text-red-600 dark:text-red-400">{addViaturaError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddViaturaOpen(false)} disabled={addViaturaLoading}>Cancelar</Button>
+            <Button onClick={handleAddViatura} disabled={addViaturaLoading}>
+              {addViaturaLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="space-y-1.5">
-        <Label htmlFor="km">KMs</Label>
+        <Label htmlFor="km">Distância (km)</Label>
         <Input
           id="km"
           type="number"
@@ -446,7 +509,7 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas }: LinhaFormProps) {
         />
         {form.viaturaId && form.km === 0 && (
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            Recomendado indicar KMs quando é utilizada uma viatura.
+            Recomendado indicar a distância quando é utilizada uma viatura.
           </p>
         )}
       </div>
@@ -582,10 +645,12 @@ export function AjudasMensaisView({
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingLinha, setEditingLinha] = useState<AjudasLinha | null>(null)
-  const [entryType, setEntryType] = useState<'horas-extra' | 'piquete'>('horas-extra')
+  const [entryType, setEntryType] = useState<'horas-extra' | 'piquete' | 'prevencao'>('horas-extra')
   const [form, setForm] = useState<LinhaFormData>(EMPTY_FORM)
   const [piqueteDate, setPiqueteDate] = useState('')
-  const [piqueteTipo, setPiqueteTipo] = useState<'PIQUETE' | 'PREVENCAO_PASSIVA'>('PIQUETE')
+  const [prevencaoInicio, setPrevencaoInicio] = useState('')
+  const [prevencaoFim, setPrevencaoFim] = useState('')
+  const [editingLinhaPrevencao, setEditingLinhaPrevencao] = useState<'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA'>('NENHUMA')
   const [saving, setSaving] = useState(false)
 
   // Delete confirmation
@@ -646,19 +711,20 @@ export function AjudasMensaisView({
     setEntryType('horas-extra')
     setForm(EMPTY_FORM)
     setPiqueteDate('')
-    setPiqueteTipo('PIQUETE')
+    setPrevencaoInicio('')
+    setPrevencaoFim('')
     setDialogOpen(true)
   }
 
   function openEditDialog(linha: AjudasLinha) {
     setEditingLinha(linha)
     setEntryType('horas-extra')
+    setEditingLinhaPrevencao(linha.prevencao)
     setForm({
       nuipc: linha.nuipc ?? '',
       local: linha.local ?? '',
       dataInicio: toDatetimeLocal(linha.dataInicio),
       dataFim: toDatetimeLocal(linha.dataFim),
-      prevencao: linha.prevencao,
       ajudaCustoAlmoco: linha.ajudaCustoAlmoco,
       ajudaCustoJantar: linha.ajudaCustoJantar,
       ajudaCustoAlojamento: linha.ajudaCustoAlojamento,
@@ -679,16 +745,10 @@ export function AjudasMensaisView({
       let res: Response
 
       if (entryType === 'piquete' && !editingLinha) {
-        // Piquete / Prevenção only entry
-        if (!piqueteDate) {
-          toast.error('Selecione um dia')
-          return
-        }
+        // Piquete — single day
+        if (!piqueteDate) { toast.error('Selecione um dia'); return }
         const parts = piqueteDate.split('-').map(Number)
-        if (parts.length !== 3 || parts.some(isNaN)) {
-          toast.error('Data inválida')
-          return
-        }
+        if (parts.length !== 3 || parts.some(isNaN)) { toast.error('Data inválida'); return }
         const [year, month, day] = parts as [number, number, number]
         const inicio = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
         const fim = new Date(Date.UTC(year, month - 1, day, 23, 59, 0, 0))
@@ -699,7 +759,31 @@ export function AjudasMensaisView({
             registoId: data.registo.id,
             dataInicio: inicio.toISOString(),
             dataFim: fim.toISOString(),
-            prevencao: piqueteTipo,
+            prevencao: 'PIQUETE',
+            prevencaoOnly: true,
+          }),
+        })
+      } else if (entryType === 'prevencao' && !editingLinha) {
+        // Prevenção Passiva — date range
+        if (!prevencaoInicio || !prevencaoFim) { toast.error('Selecione as datas de início e fim'); return }
+        const pi = prevencaoInicio.split('-').map(Number)
+        const pf = prevencaoFim.split('-').map(Number)
+        if (pi.length !== 3 || pi.some(isNaN) || pf.length !== 3 || pf.some(isNaN)) { toast.error('Datas inválidas'); return }
+        const [yi, mi, di] = pi as [number, number, number]
+        const [yf, mf, df] = pf as [number, number, number]
+        const dInicio = new Date(Date.UTC(yi, mi - 1, di, 0, 0, 0, 0))
+        const dFim = new Date(Date.UTC(yf, mf - 1, df, 23, 59, 0, 0))
+        if (dFim < dInicio) { toast.error('A data de fim deve ser igual ou posterior à data de início'); return }
+        const diffDays = Math.ceil((dFim.getTime() - dInicio.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffDays > 31) { toast.error('O intervalo de prevenção não pode ser superior a 31 dias'); return }
+        res = await fetch('/api/ajudas/linhas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            registoId: data.registo.id,
+            dataInicio: dInicio.toISOString(),
+            dataFim: dFim.toISOString(),
+            prevencao: 'PREVENCAO_PASSIVA',
             prevencaoOnly: true,
           }),
         })
@@ -726,7 +810,7 @@ export function AjudasMensaisView({
           local: form.local || null,
           dataInicio: dInicio.toISOString(),
           dataFim: dFim.toISOString(),
-          prevencao: form.prevencao,
+          prevencao: (editingLinha ? editingLinhaPrevencao : 'NENHUMA') as 'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA',
           ajudaCustoAlmoco: form.ajudaCustoAlmoco,
           ajudaCustoJantar: form.ajudaCustoJantar,
           ajudaCustoAlojamento: form.ajudaCustoAlojamento,
@@ -793,7 +877,7 @@ export function AjudasMensaisView({
     }
   }
 
-  function calcPiquetePreview(dateStr: string, tipo: 'PIQUETE' | 'PREVENCAO_PASSIVA', totaisData: AjudasTotais): string {
+  function calcPiquetePreview(dateStr: string, totaisData: AjudasTotais): string {
     if (!dateStr) return '—'
     const parts = dateStr.split('-').map(Number)
     if (parts.length !== 3 || parts.some(isNaN)) return '—'
@@ -801,13 +885,36 @@ export function AjudasMensaisView({
     const d = new Date(Date.UTC(year, month - 1, day))
     const holidays = getPortugueseHolidays(year)
     const isFds = d.getUTCDay() === 0 || d.getUTCDay() === 6 || holidays.has(dateStr)
-    if (tipo === 'PIQUETE') {
-      const val = isFds ? totaisData.taxaPiqueteFds : totaisData.taxaPiqueteSemana
-      return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
-    } else {
-      const val = isFds ? totaisData.taxaPrevencaoFds : totaisData.taxaPrevencaoSemana
-      return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
+    const val = isFds ? totaisData.taxaPiqueteFds : totaisData.taxaPiqueteSemana
+    return `€${val.toFixed(2)} (${isFds ? 'FdS/Feriado' : 'Semana'})`
+  }
+
+  function calcPrevencaoPreview(inicioStr: string, fimStr: string, totaisData: AjudasTotais): { semana: number; fds: number; total: number; valor: number } | null {
+    if (!inicioStr || !fimStr) return null
+    const pi = inicioStr.split('-').map(Number)
+    const pf = fimStr.split('-').map(Number)
+    if (pi.length !== 3 || pi.some(isNaN) || pf.length !== 3 || pf.some(isNaN)) return null
+    const [yi, mi, di] = pi as [number, number, number]
+    const [yf, mf, df] = pf as [number, number, number]
+    const cur = new Date(Date.UTC(yi, mi - 1, di))
+    const last = new Date(Date.UTC(yf, mf - 1, df))
+    if (last < cur) return null
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const holidaysCache = new Map<number, Set<string>>()
+    let semana = 0, fds = 0, daysCount = 0
+    while (cur.getTime() <= last.getTime() && daysCount < 90) {
+      const y = cur.getUTCFullYear()
+      if (!holidaysCache.has(y)) holidaysCache.set(y, getPortugueseHolidays(y))
+      const hols = holidaysCache.get(y)!
+      const dateKey = `${y}-${pad(cur.getUTCMonth() + 1)}-${pad(cur.getUTCDate())}`
+      const dow = cur.getUTCDay()
+      if (dow === 0 || dow === 6 || hols.has(dateKey)) fds += 1
+      else semana += 1
+      cur.setUTCDate(cur.getUTCDate() + 1)
+      daysCount++
     }
+    const valor = semana * totaisData.taxaPrevencaoSemana + fds * totaisData.taxaPrevencaoFds
+    return { semana, fds, total: semana + fds, valor }
   }
 
   const holidaySet = useMemo(() => {
@@ -961,13 +1068,15 @@ export function AjudasMensaisView({
                           </td>
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => openEditDialog(l)}
-                                className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
-                                aria-label="Editar linha"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
+                              {!l.prevencaoOnly && (
+                                <button
+                                  onClick={() => openEditDialog(l)}
+                                  className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+                                  aria-label="Editar linha"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => setDeleteCandidate(l)}
                                 className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
@@ -1003,31 +1112,24 @@ export function AjudasMensaisView({
           {/* Entry type toggle — only for new entries */}
           {!editingLinha && (
             <div className="flex rounded-lg border overflow-hidden text-sm">
-              <button
-                type="button"
-                className={cn(
-                  'flex-1 px-4 py-2 font-medium transition-colors',
-                  entryType === 'horas-extra'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted',
-                )}
-                onClick={() => setEntryType('horas-extra')}
-              >
-                Horas Extra
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  'flex-1 px-4 py-2 font-medium transition-colors',
-                  entryType === 'piquete'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted',
-                )}
-                onClick={() => setEntryType('piquete')}
-              >
-                <Bell className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
-                Piquete / Prevenção
-              </button>
+              {(['horas-extra', 'piquete', 'prevencao'] as const).map((t) => {
+                const labels = { 'horas-extra': 'Horas Extra', piquete: 'Piquete', prevencao: 'Prevenção' }
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    className={cn(
+                      'flex-1 px-3 py-2 font-medium transition-colors',
+                      entryType === t
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted',
+                    )}
+                    onClick={() => setEntryType(t)}
+                  >
+                    {labels[t]}
+                  </button>
+                )
+              })}
             </div>
           )}
 
@@ -1041,30 +1143,70 @@ export function AjudasMensaisView({
                   value={piqueteDate}
                   onChange={(e) => setPiqueteDate(e.target.value)}
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="piqueteTipo">Tipo</Label>
-                <Select
-                  value={piqueteTipo}
-                  onValueChange={(v) => setPiqueteTipo(v as 'PIQUETE' | 'PREVENCAO_PASSIVA')}
-                >
-                  <SelectTrigger id="piqueteTipo">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PIQUETE">Piquete</SelectItem>
-                    <SelectItem value="PREVENCAO_PASSIVA">Prevenção Passiva</SelectItem>
-                  </SelectContent>
-                </Select>
+                {piqueteDate && (() => {
+                  const type = getDayType(piqueteDate + 'T00:00')
+                  if (!type) return null
+                  const cfg = {
+                    feriado: { label: 'Feriado', cls: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800' },
+                    fds: { label: 'Fim-de-Semana', cls: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800' },
+                    semana: { label: 'Dia de Semana', cls: 'text-muted-foreground bg-muted/40 border-border' },
+                  }[type]
+                  return <span className={`text-xs px-2 py-0.5 rounded border inline-block ${cfg.cls}`}>{cfg.label}</span>
+                })()}
               </div>
               {piqueteDate && data?.totais && (
                 <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
                   <span className="text-muted-foreground">Valor calculado: </span>
-                  <span className="font-semibold">
-                    {calcPiquetePreview(piqueteDate, piqueteTipo, data.totais)}
-                  </span>
+                  <span className="font-semibold">{calcPiquetePreview(piqueteDate, data.totais)}</span>
                 </div>
               )}
+            </div>
+          ) : entryType === 'prevencao' && !editingLinha ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="prevInicio">Data de Início *</Label>
+                  <Input
+                    id="prevInicio"
+                    type="date"
+                    value={prevencaoInicio}
+                    onChange={(e) => setPrevencaoInicio(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="prevFim">Data de Fim *</Label>
+                  <Input
+                    id="prevFim"
+                    type="date"
+                    value={prevencaoFim}
+                    onChange={(e) => setPrevencaoFim(e.target.value)}
+                  />
+                </div>
+              </div>
+              {prevencaoInicio && prevencaoFim && data?.totais && (() => {
+                const prev = calcPrevencaoPreview(prevencaoInicio, prevencaoFim, data.totais)
+                if (!prev) return null
+                return (
+                  <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total de dias</span>
+                      <span className="font-medium">{prev.total}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Dias de semana × €{data.totais.taxaPrevencaoSemana.toFixed(2)}</span>
+                      <span>{prev.semana}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>FdS/Feriados × €{data.totais.taxaPrevencaoFds.toFixed(2)}</span>
+                      <span>{prev.fds}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1">
+                      <span>Valor estimado</span>
+                      <span>€{prev.valor.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           ) : (
             <LinhaForm
@@ -1072,6 +1214,7 @@ export function AjudasMensaisView({
               onChange={setForm}
               distanciaMin={distanciaMin}
               viaturas={viaturas}
+              onViaturaAdded={(v) => setViaturas(prev => [...prev, v])}
             />
           )}
 
@@ -1081,7 +1224,11 @@ export function AjudasMensaisView({
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || (entryType === 'piquete' && !editingLinha && !piqueteDate)}
+              disabled={
+                saving ||
+                (entryType === 'piquete' && !editingLinha && !piqueteDate) ||
+                (entryType === 'prevencao' && !editingLinha && (!prevencaoInicio || !prevencaoFim))
+              }
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingLinha ? 'Guardar alterações' : 'Adicionar'}
