@@ -13,12 +13,17 @@ import { useBrand, useBrandAssetUrl } from '@/components/brand-provider'
 
 interface SidebarNavProps {
   role: Role
+  moduloAjudasAtivo?: boolean
   onNavigate?: () => void
 }
 
-export function SidebarNav({ role, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ role, moduloAjudasAtivo = true, onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(role))
+  const items = NAV_ITEMS.filter((item) => {
+    if (!item.roles.includes(role)) return false
+    if (item.href === '/ajudas-mensais' && !moduloAjudasAtivo && role !== 'ADMINISTRACAO') return false
+    return true
+  })
   const brand = useBrand()
   const lightLogo = useBrandAssetUrl('light')
   const darkLogo = useBrandAssetUrl('dark')

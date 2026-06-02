@@ -361,6 +361,9 @@ model ConfiguracaoSistema {
   // Activado/desactivado pelo endpoint de restauro e disponível como toggle
   // manual em /configurações para janelas de manutenção planeadas.
   maintenanceMode                 Boolean  @default(false)
+  // When false, the Ajudas Mensais module is hidden and all its API routes
+  // return 503. Only ADMINISTRACAO can toggle this in Configurações → Sistema.
+  moduloAjudasAtivo               Boolean  @default(true)
   prazoAlertaDias                 Int      @default(7)
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")

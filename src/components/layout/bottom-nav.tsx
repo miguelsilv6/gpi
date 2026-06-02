@@ -8,11 +8,16 @@ import type { Role } from '@/generated/prisma/enums'
 
 interface BottomNavProps {
   role: Role
+  moduloAjudasAtivo?: boolean
 }
 
-export function BottomNav({ role }: BottomNavProps) {
+export function BottomNav({ role, moduloAjudasAtivo = true }: BottomNavProps) {
   const pathname = usePathname()
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(role)).slice(0, 5)
+  const items = NAV_ITEMS.filter((item) => {
+    if (!item.roles.includes(role)) return false
+    if (item.href === '/ajudas-mensais' && !moduloAjudasAtivo && role !== 'ADMINISTRACAO') return false
+    return true
+  }).slice(0, 5)
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 md:hidden">

@@ -4,6 +4,7 @@ import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { calcAjudasTotais } from '@/lib/ajudas-calc'
 import { loadCrossMonthLinhas } from '@/lib/ajudas-cross-month'
+import { isModuloAjudasAtivo } from '@/lib/ajudas-module'
 import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
@@ -29,6 +30,8 @@ const linhaSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (!await isModuloAjudasAtivo()) return apiError('Módulo Ajudas Mensais está desativado', 503)
+
     const session = await getSession()
     const role = session.user.role as Role
 
