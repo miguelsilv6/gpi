@@ -277,8 +277,16 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   const taxaAjudaJantar = config.senhaJantar
   const taxaAjudaCeia = config.senhaCeia
 
-  // Per-day overtime accumulator (key = 'YYYY-MM-DD')
-  const dayOvertimeMap = new Map<string, HoursSplit>()
+  // Per-entry display totals (uncapped) and capped financial totals.
+  // The daily cap is applied independently per entry per day: an entry
+  // spanning multiple days gets one cap per day, and two separate entries
+  // on the same calendar day each receive their own cap.
+  let semanaDia = 0
+  let semanaNoite = 0
+  let fdsDia = 0
+  let fdsNoite = 0
+  let totalHorasExtraSemana = 0
+  let totalHorasExtraFds = 0
 
   let piqueteSemana = 0
   let piqueteFds = 0
@@ -294,7 +302,8 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     const fim = new Date(linha.dataFim)
 
     if (!linha.prevencaoOnly) {
-      // Group by calendar day to enable per-day piquete cap
+      // Accumulate hours for this entry, grouped by calendar day
+      const dayMap = new Map<string, HoursSplit>()
       const iterDay = new Date(inicio)
       iterDay.setUTCHours(0, 0, 0, 0)
 
@@ -310,19 +319,33 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
           if (iterDay.getUTCFullYear() === ano && iterDay.getUTCMonth() + 1 === mes) {
             const dateKey = fmtDate(iterDay)
             const split = splitHours(segStart, segEnd, allHolidays)
-            const existing = dayOvertimeMap.get(dateKey)
+            const existing = dayMap.get(dateKey)
             if (existing) {
               existing.semanaDia += split.semanaDia
               existing.semanaNoite += split.semanaNoite
               existing.fdsDia += split.fdsDia
               existing.fdsNoite += split.fdsNoite
             } else {
-              dayOvertimeMap.set(dateKey, { ...split })
+              dayMap.set(dateKey, { ...split })
             }
           }
         }
 
         iterDay.setUTCDate(iterDay.getUTCDate() + 1)
+      }
+
+      // Apply the per-day cap within this entry and add to running totals
+      for (const [, split] of dayMap) {
+        semanaDia += split.semanaDia
+        semanaNoite += split.semanaNoite
+        fdsDia += split.fdsDia
+        fdsNoite += split.fdsNoite
+
+        const rawSemana = split.semanaDia * taxaSemanaDia + split.semanaNoite * taxaSemanaNoite
+        const rawFds = split.fdsDia * taxaFdsDia + split.fdsNoite * taxaFdsNoite
+
+        if (rawSemana > 0) totalHorasExtraSemana += Math.min(rawSemana, taxaPiqueteSemana)
+        if (rawFds > 0) totalHorasExtraFds += Math.min(rawFds, taxaPiqueteFds)
       }
     }
 
@@ -361,28 +384,6 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
       ajudaCustoJantar += linha.ajudaCustoJantar
       ajudaCustoCeia += linha.ajudaCustoCeia
     }
-  }
-
-  // Apply per-day piquete cap to overtime values
-  let semanaDia = 0
-  let semanaNoite = 0
-  let fdsDia = 0
-  let fdsNoite = 0
-  let totalHorasExtraSemana = 0
-  let totalHorasExtraFds = 0
-
-  for (const [, split] of dayOvertimeMap) {
-    semanaDia += split.semanaDia
-    semanaNoite += split.semanaNoite
-    fdsDia += split.fdsDia
-    fdsNoite += split.fdsNoite
-
-    const rawSemana = split.semanaDia * taxaSemanaDia + split.semanaNoite * taxaSemanaNoite
-    const rawFds = split.fdsDia * taxaFdsDia + split.fdsNoite * taxaFdsNoite
-
-    // Cap daily overtime value at the piquete rate for that day type
-    if (rawSemana > 0) totalHorasExtraSemana += Math.min(rawSemana, taxaPiqueteSemana)
-    if (rawFds > 0) totalHorasExtraFds += Math.min(rawFds, taxaPiqueteFds)
   }
 
   // --- Subtotals ---

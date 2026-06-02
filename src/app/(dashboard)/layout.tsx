@@ -17,37 +17,38 @@ export default async function DashboardLayout({
 
   const role = session.user.role as Role
 
+  const sysConfig = await prisma.configuracaoSistema.findUnique({
+    where: { id: 'singleton' },
+    select: { maintenanceMode: true, moduloAjudasAtivo: true },
+  })
+
   // Maintenance mode gate — só ADMINISTRACAO passa enquanto o sistema está em
   // manutenção (e.g. durante um restauro). Outros utilizadores vêem uma
   // página neutra e voltam quando o admin desligar.
-  if (role !== 'ADMINISTRACAO') {
-    const config = await prisma.configuracaoSistema.findUnique({
-      where: { id: 'singleton' },
-      select: { maintenanceMode: true },
-    })
-    if (config?.maintenanceMode) {
-      return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-muted/30">
-          <div className="max-w-md text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 text-amber-700">
-              <Wrench className="h-8 w-8" />
-            </div>
-            <h1 className="text-2xl font-bold">Sistema em manutenção</h1>
-            <p className="text-muted-foreground text-sm">
-              O sistema está temporariamente indisponível para operações de manutenção.
-              Tente novamente daqui a alguns minutos.
-            </p>
+  if (role !== 'ADMINISTRACAO' && sysConfig?.maintenanceMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-muted/30">
+        <div className="max-w-md text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 text-amber-700">
+            <Wrench className="h-8 w-8" />
           </div>
+          <h1 className="text-2xl font-bold">Sistema em manutenção</h1>
+          <p className="text-muted-foreground text-sm">
+            O sistema está temporariamente indisponível para operações de manutenção.
+            Tente novamente daqui a alguns minutos.
+          </p>
         </div>
-      )
-    }
+      </div>
+    )
   }
+
+  const moduloAjudasAtivo = sysConfig?.moduloAjudasAtivo ?? true
 
   return (
     <div className="flex h-screen bg-muted/30">
       {/* Sidebar — desktop only */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-background shrink-0">
-        <SidebarNav role={role} />
+        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} />
       </aside>
 
       {/* Main content */}
@@ -58,6 +59,7 @@ export default async function DashboardLayout({
             email: session.user.email!,
             role,
           }}
+          moduloAjudasAtivo={moduloAjudasAtivo}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
@@ -66,7 +68,7 @@ export default async function DashboardLayout({
       </div>
 
       {/* Bottom nav — mobile only */}
-      <BottomNav role={role} />
+      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} />
     </div>
   )
 }

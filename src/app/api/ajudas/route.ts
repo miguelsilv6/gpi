@@ -4,12 +4,15 @@ import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { calcAjudasTotais } from '@/lib/ajudas-calc'
 import { loadCrossMonthLinhas } from '@/lib/ajudas-cross-month'
+import { isModuloAjudasAtivo } from '@/lib/ajudas-module'
 import type { Role } from '@/generated/prisma/enums'
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
+
+    if (!await isModuloAjudasAtivo() && role !== 'ADMINISTRACAO') return apiError('Módulo Ajudas Mensais está desativado', 503)
 
     if (!hasPermission(role, 'ajudas:own')) return apiError('Sem permissão', 403)
 
