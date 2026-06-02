@@ -109,7 +109,7 @@ export async function PUT(
     const putConfigured = vbPut != null && irsPut != null
 
     const totais = putConfigured
-      ? calcAjudasTotais(registo!.linhas, config, vbPut!, irsPut!)
+      ? calcAjudasTotais(registo!.linhas, config, vbPut!, irsPut!, registo!.ano, registo!.mes)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: putConfigured })
@@ -161,7 +161,7 @@ export async function DELETE(
     const delConfigured = vbDel != null && irsDel != null
 
     const totais = delConfigured
-      ? calcAjudasTotais(registo!.linhas, config, vbDel!, irsDel!)
+      ? calcAjudasTotais(registo!.linhas, config, vbDel!, irsDel!, registo!.ano, registo!.mes)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: delConfigured })

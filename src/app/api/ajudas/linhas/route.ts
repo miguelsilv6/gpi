@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     const userConfigured = vencimentoBase != null && taxaIRS != null
 
     const totais = userConfigured
-      ? calcAjudasTotais(updatedRegisto!.linhas, config, vencimentoBase!, taxaIRS!)
+      ? calcAjudasTotais(updatedRegisto!.linhas, config, vencimentoBase!, taxaIRS!, updatedRegisto!.ano, updatedRegisto!.mes)
       : null
 
     return Response.json({ registo: updatedRegisto, config, totais, userConfigured }, { status: 201 })

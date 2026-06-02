@@ -236,8 +236,10 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
 /**
  * Calculates all totals for a month's ajudas record.
  * vencimentoBase and taxaIRS must be the user's personal configured values.
+ * ano and mes define the target month — entries and prevention days outside
+ * this month are excluded so cross-month entries are attributed correctly.
  */
-export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, vencimentoBase: number, taxaIRS: number): AjudasTotais {
+export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, vencimentoBase: number, taxaIRS: number, ano: number, mes: number): AjudasTotais {
   // Gather all years from the data to compute holidays
   const years = new Set<number>()
   for (const l of linhas) {
@@ -324,8 +326,11 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
 
     // Prevenção / Piquete
     if (linha.prevencao === 'PIQUETE') {
-      if (isFdsDay(inicio)) piqueteFds += 1
-      else piqueteSemana += 1
+      // Piquete is a single-day event — attribute to the day's month
+      if (inicio.getUTCFullYear() === ano && inicio.getUTCMonth() + 1 === mes) {
+        if (isFdsDay(inicio)) piqueteFds += 1
+        else piqueteSemana += 1
+      }
     } else if (linha.prevencao === 'PREVENCAO_PASSIVA') {
       const cur = new Date(inicio)
       cur.setUTCHours(0, 0, 0, 0)
@@ -333,15 +338,23 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
       last.setUTCHours(0, 0, 0, 0)
       let daysCount = 0
       while (cur.getTime() <= last.getTime() && daysCount < 90) {
-        if (isFdsDay(cur)) prevencaoFds += 1
-        else prevencaoSemana += 1
+        // Only count days that fall in the target month
+        if (cur.getUTCFullYear() === ano && cur.getUTCMonth() + 1 === mes) {
+          if (isFdsDay(cur)) prevencaoFds += 1
+          else prevencaoSemana += 1
+        }
         cur.setUTCDate(cur.getUTCDate() + 1)
         daysCount++
       }
     }
 
     // Ajudas de custo: only applicable when km >= distanciaMinKmAjudas
-    if (linha.km >= config.distanciaMinKmAjudas) {
+    // and dataInicio falls in the target month
+    if (
+      linha.km >= config.distanciaMinKmAjudas &&
+      linha.dataInicio.getUTCFullYear() === ano &&
+      linha.dataInicio.getUTCMonth() + 1 === mes
+    ) {
       ajudaCustoAlmoco += linha.ajudaCustoAlmoco
       ajudaCustoJantar += linha.ajudaCustoJantar
       ajudaCustoAlojamento += linha.ajudaCustoAlojamento
