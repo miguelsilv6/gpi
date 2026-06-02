@@ -25,7 +25,7 @@ export default async function NovoInqueritoPage() {
     )
   }
 
-  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, tribunais, seccoes, locaisTratamento] = await Promise.all([
+  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes, locaisTratamento] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -44,10 +44,15 @@ export default async function NovoInqueritoPage() {
       select: { id: true, nome: true, ativo: true },
     }),
     listEtiquetasByOwner(session.user.id),
+    prisma.comarca.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      select: { id: true, nome: true },
+    }),
     prisma.tribunal.findMany({
       where: { ativo: true },
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true, comarcaId: true, morada: true },
+      select: { id: true, nome: true, ativo: true, comarcaId: true, morada: true, telefone: true, email: true },
     }),
     prisma.seccao.findMany({
       where: { ativo: true },
@@ -85,6 +90,7 @@ export default async function NovoInqueritoPage() {
         estados={estados}
         crimes={crimes}
         etiquetasDisponiveis={etiquetasDisponiveis}
+        comarcas={comarcas}
         tribunais={tribunais}
         seccoes={seccoes}
         locaisTratamento={locaisTratamento}

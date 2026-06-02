@@ -18,16 +18,18 @@ import {
   InspetorBarChart,
   NaturezaBarChart,
   AnoBarChart,
+  ComarcaBarChart,
   TribunalBarChart,
   LocalTratamentoBarChart,
 } from './charts'
-import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2 } from 'lucide-react'
+import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
 
 interface Stats {
   total: number
+  ativos: number
   vencidos: number
   semInspetor: number
   distribuido: number
@@ -39,6 +41,7 @@ interface Stats {
   porInspetor: { inspetorId: string; nome: string; count: number }[]
   porNatureza: { natureza: string; count: number }[]
   porAno: { ano: string; count: number }[]
+  porComarca: { comarcaId: string; nome: string; count: number }[]
   porTribunal: { tribunalId: string; nome: string; count: number }[]
   porLocalTratamento: { localTratamentoId: string; nome: string; count: number }[]
   atividadesInspetor: {
@@ -101,6 +104,35 @@ function fmt(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+function StatsTable({ data, total }: { data: { nome: string; count: number }[]; total: number }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b text-muted-foreground text-xs">
+            <th className="text-left py-1.5 pr-3 font-medium w-6">#</th>
+            <th className="text-left py-1.5 pr-3 font-medium">Nome</th>
+            <th className="text-right py-1.5 pr-3 font-medium">Inquéritos</th>
+            <th className="text-right py-1.5 font-medium">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((r, i) => (
+            <tr key={r.nome} className="border-b last:border-0">
+              <td className="py-1.5 pr-3 text-muted-foreground text-xs">{i + 1}</td>
+              <td className="py-1.5 pr-3 truncate max-w-[200px]">{r.nome}</td>
+              <td className="py-1.5 pr-3 text-right tabular-nums font-medium">{r.count}</td>
+              <td className="py-1.5 text-right tabular-nums text-muted-foreground text-xs">
+                {total > 0 ? ((r.count / total) * 100).toFixed(1) + '%' : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 export function EstatisticasDashboard({
@@ -297,7 +329,7 @@ export function EstatisticasDashboard({
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -305,6 +337,15 @@ export function EstatisticasDashboard({
                   <span className="text-sm text-muted-foreground">Total</span>
                 </div>
                 <p className="text-3xl font-bold mt-1">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-muted-foreground">Ativos</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-green-700 dark:text-green-400">{stats.ativos}</p>
               </CardContent>
             </Card>
             <Card>
@@ -468,30 +509,46 @@ export function EstatisticasDashboard({
             )}
           </div>
 
-          {/* Charts row 3 — tribunal and local tratamento */}
-          {(stats.porTribunal.length > 0 || stats.porLocalTratamento.length > 0) && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {stats.porTribunal.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Por Tribunal</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TribunalBarChart data={stats.porTribunal} />
-                  </CardContent>
-                </Card>
-              )}
-              {stats.porLocalTratamento.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Por Local de Tratamento</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <LocalTratamentoBarChart data={stats.porLocalTratamento} />
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+          {/* Comarca — full-width chart + table */}
+          {stats.porComarca.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Por Comarca</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <ComarcaBarChart data={stats.porComarca} />
+                  <StatsTable data={stats.porComarca} total={stats.total} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tribunal — full-width chart + table */}
+          {stats.porTribunal.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Por Tribunal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <TribunalBarChart data={stats.porTribunal.slice(0, 15)} />
+                  <StatsTable data={stats.porTribunal} total={stats.total} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Local tratamento */}
+          {stats.porLocalTratamento.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Por Local de Tratamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LocalTratamentoBarChart data={stats.porLocalTratamento} />
+              </CardContent>
+            </Card>
           )}
         </>
       ) : (

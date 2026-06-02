@@ -17,14 +17,15 @@ import { nuipcToSlug } from '@/lib/utils'
 import { EtiquetaInput } from './etiqueta-input'
 import { CrimeInput } from './crime-input'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, MapPin, Phone, Mail, Plus } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
 interface Estado { id: string; codigo: string; nome: string; terminal: boolean; ativo: boolean }
 interface Crime { id: string; nome: string; ativo: boolean }
 interface Etiqueta { id: string; nome: string }
-interface TribunalOption { id: string; nome: string; ativo: boolean; comarcaId: string | null; morada: string | null }
+interface ComarcaOption { id: string; nome: string }
+interface TribunalOption { id: string; nome: string; ativo: boolean; comarcaId: string | null; morada: string | null; telefone: string | null; email: string | null }
 interface SeccaoOption { id: string; nome: string; ativo: boolean; comarcaId: string | null }
 interface LocalTratamentoOption { id: string; nome: string; ativo: boolean }
 
@@ -42,6 +43,7 @@ interface InqueritoFormProps {
   etiquetasAtribuidas?: Etiqueta[]
   /** Crimes já associados ao inquérito (modo edição) — inclui inativos. */
   crimesAssociadosIniciais?: Crime[]
+  comarcas: ComarcaOption[]
   tribunais: TribunalOption[]
   seccoes: SeccaoOption[]
   locaisTratamento: LocalTratamentoOption[]
@@ -62,6 +64,7 @@ export function InqueritoForm({
   etiquetasDisponiveis,
   etiquetasAtribuidas = [],
   crimesAssociadosIniciais = [],
+  comarcas: comarcasProp,
   tribunais: tribunaisProp,
   seccoes: seccoesProp,
   locaisTratamento,
@@ -85,7 +88,16 @@ export function InqueritoForm({
   const [addTribunalMorada, setAddTribunalMorada] = useState('')
   const [addTribunalComarcaId, setAddTribunalComarcaId] = useState<string | null>(null)
   const [addTribunalSaving, setAddTribunalSaving] = useState(false)
-  const [comarcas, setComarcas] = useState<{ id: string; nome: string }[]>([])
+  const [comarcas] = useState<ComarcaOption[]>(comarcasProp)
+
+  // Comarca selector: primary driver for tribunal + section filtering.
+  // Initialised from the default tribunal's comarca (edit mode) or null.
+  const [selectedComarcaId, setSelectedComarcaId] = useState<string | null>(() => {
+    if (defaultValues?.tribunalId) {
+      return tribunaisProp.find((t) => t.id === defaultValues.tribunalId)?.comarcaId ?? null
+    }
+    return null
+  })
 
   const defaultEstadoId =
     defaultValues?.estadoId ??
@@ -163,23 +175,22 @@ export function InqueritoForm({
   const selectedSeccaoId = watch('seccaoId')
   const selectedLocalTratamentoId = watch('localTratamentoId')
 
-  // Tribunais available: active + currently assigned if inactive
+  // Tribunais filtered by the selected comarca (null = tribunals with no comarca).
   const tribunaisForSelect = useMemo(() => {
-    const ativos = tribunais.filter((t) => t.ativo)
+    const forComarca = tribunais.filter((t) => t.comarcaId === selectedComarcaId)
+    const ativos = forComarca.filter((t) => t.ativo)
     const current = defaultValues?.tribunalId
       ? tribunais.find((t) => t.id === defaultValues.tribunalId)
       : null
-    if (current && !current.ativo) return [current, ...ativos]
+    if (current && !current.ativo && current.comarcaId === selectedComarcaId) return [current, ...ativos]
     return ativos
-  }, [tribunais, defaultValues?.tribunalId])
+  }, [tribunais, selectedComarcaId, defaultValues?.tribunalId])
 
-  // Derive comarca and morada from the selected tribunal.
+  // Morada is derived from the selected tribunal (display-only).
   const selectedTribunalData = useMemo(() => {
     if (!selectedTribunalId || selectedTribunalId === NONE_VALUE) return null
     return tribunais.find((t) => t.id === selectedTribunalId) ?? null
   }, [tribunais, selectedTribunalId])
-
-  const selectedComarcaId = selectedTribunalData?.comarcaId ?? null
 
   const seccoesForSelect = useMemo(() => {
     // Show sections for the current comarca + global sections (comarcaId === null).
@@ -230,31 +241,29 @@ export function InqueritoForm({
     }
   }, [selectedBrigadaId, selectedInspetorId, filteredInspetores, setValue])
 
-  // When tribunal changes, clear seccaoId if the current secção doesn't belong to the comarca.
+  // When comarca changes, clear the tribunal if it no longer belongs to the selected comarca.
+  useEffect(() => {
+    if (!selectedTribunalId || selectedTribunalId === NONE_VALUE) return
+    const tribunal = tribunais.find((t) => t.id === selectedTribunalId)
+    if (!tribunal) return
+    if (tribunal.comarcaId !== selectedComarcaId) {
+      setValue('tribunalId', null, { shouldDirty: true })
+    }
+  }, [selectedComarcaId, selectedTribunalId, tribunais, setValue])
+
+  // When comarca changes, clear the secção if it no longer belongs to the selected comarca.
   useEffect(() => {
     if (!selectedSeccaoId) return
     const currentSeccao = seccoes.find((s) => s.id === selectedSeccaoId)
     if (!currentSeccao) return
-    // Clear if the secção is comarca-specific and doesn't match the current comarca.
     if (currentSeccao.comarcaId !== null && currentSeccao.comarcaId !== selectedComarcaId) {
       setValue('seccaoId', null, { shouldDirty: true })
     }
   }, [selectedComarcaId, selectedSeccaoId, seccoes, setValue])
 
-  async function openAddTribunalDialog() {
+  function openAddTribunalDialog() {
+    setAddTribunalComarcaId(selectedComarcaId)
     setAddTribunalOpen(true)
-    if (comarcas.length === 0) {
-      try {
-        const res = await fetch('/api/comarcas')
-        if (res.ok) {
-          setComarcas(await res.json())
-        } else {
-          toast.error('Erro ao carregar comarcas')
-        }
-      } catch {
-        toast.error('Erro ao carregar comarcas')
-      }
-    }
   }
 
   async function handleAddTribunal() {
@@ -277,7 +286,8 @@ export function InqueritoForm({
       return
     }
     const created = await res.json()
-    setTribunais((prev) => [...prev, { id: created.id, nome: created.nome, ativo: true, comarcaId: created.comarcaId, morada: created.morada }])
+    setTribunais((prev) => [...prev, { id: created.id, nome: created.nome, ativo: true, comarcaId: created.comarcaId, morada: created.morada, telefone: created.telefone ?? null, email: created.email ?? null }])
+    setSelectedComarcaId(created.comarcaId)
     setValue('tribunalId', created.id, { shouldDirty: true })
     // Clear secção since different tribunal may imply different comarca
     setValue('seccaoId', null, { shouldDirty: true })
@@ -533,6 +543,29 @@ export function InqueritoForm({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
+              <Label>Comarca</Label>
+              <Select
+                value={selectedComarcaId ?? NONE_VALUE}
+                onValueChange={(v) => setSelectedComarcaId(v === NONE_VALUE ? null : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar comarca">
+                    {(v: string) =>
+                      !v || v === NONE_VALUE
+                        ? 'Nenhuma'
+                        : comarcas.find((c) => c.id === v)?.nome ?? 'Selecionar comarca'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>Nenhuma</SelectItem>
+                  {comarcas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Tribunal / M.P.</Label>
                 {canCreateTribunal && (
@@ -568,11 +601,29 @@ export function InqueritoForm({
                   ))}
                 </SelectContent>
               </Select>
-              {selectedTribunalData?.morada && (
-                <p className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
-                  <span className="shrink-0">📍</span>
-                  <span>{selectedTribunalData.morada}</span>
-                </p>
+              {selectedTribunalData && (selectedTribunalData.morada || selectedTribunalData.telefone || selectedTribunalData.email) && (
+                <div className="mt-2 rounded-md border bg-muted/40 px-3 py-2.5 space-y-1.5 text-xs">
+                  {selectedTribunalData.morada && (
+                    <div className="flex items-start gap-2 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>{selectedTribunalData.morada}</span>
+                    </div>
+                  )}
+                  {selectedTribunalData.telefone && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      <span>{selectedTribunalData.telefone}</span>
+                    </div>
+                  )}
+                  {selectedTribunalData.email && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5 shrink-0" />
+                      <a href={`mailto:${selectedTribunalData.email}`} className="hover:text-foreground hover:underline transition-colors">
+                        {selectedTribunalData.email}
+                      </a>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <div className="space-y-1.5">
@@ -901,11 +952,11 @@ export function InqueritoForm({
           <div className="space-y-3 py-1">
             {selectedComarcaId ? (
               <p className="text-xs text-muted-foreground">
-                Será associada à comarca do tribunal selecionado.
+                Será associada à comarca selecionada: <strong>{comarcas.find((c) => c.id === selectedComarcaId)?.nome}</strong>.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Nenhum tribunal selecionado — a secção ficará sem associação a comarca.
+                Nenhuma comarca selecionada — a secção ficará sem associação a comarca.
               </p>
             )}
             <div className="space-y-1.5">
