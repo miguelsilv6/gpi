@@ -14,7 +14,7 @@ interface AjudasConfig {
   percentPiqueteSemana: number
   percentPiqueteFds: number
   percentPrevencaoPassiva: number
-  ajudaCustoMaxDiario: number
+  senhaAlojamento: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -27,86 +27,117 @@ function fmtEur(n: number) {
   return `€${n.toFixed(4)}`
 }
 
+function pct(n: number) {
+  return `${(n * 100).toFixed(1)}%`
+}
+
 function DerivedRates({ config }: { config: AjudasConfig }) {
-  const taxaSemanaDia = (config.vencimentoBase * config.percentPiqueteSemana) / 12
-  const taxaSemanaNoite = taxaSemanaDia * 2
-  const taxaFdsDia = (config.vencimentoBase * config.percentPiqueteFds) / 12
-  const taxaFdsNoite = taxaFdsDia * 2
+  const taxaSemanaDia    = (config.vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaNoite  = taxaSemanaDia * 2
+  const taxaFdsDia       = (config.vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsNoite     = taxaFdsDia * 2
   const taxaPiqueteSemana = config.vencimentoBase * config.percentPiqueteSemana
-  const taxaPiqueteFds = config.vencimentoBase * config.percentPiqueteFds
-  const taxaPrevencaoSemana = config.vencimentoBase * config.percentPrevencaoPassiva / 3
-  const taxaPrevencaoFds = taxaPrevencaoSemana * 1.265
+  const taxaPiqueteFds    = config.vencimentoBase * config.percentPiqueteFds
+  // Prevenção passiva = percentPrevencaoPassiva (padrão 40%) do piquete do mesmo tipo de dia
+  const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
+  const taxaPrevencaoFds    = taxaPiqueteFds    * config.percentPrevencaoPassiva
+
+  const Row = ({ label, value, formula }: { label: string; value: string; formula: string }) => (
+    <div className="flex items-center justify-between py-1 border-b gap-2">
+      <div className="flex flex-col min-w-0">
+        <span className="text-muted-foreground text-sm">{label}</span>
+        <span className="text-xs text-muted-foreground/60 font-mono">{formula}</span>
+      </div>
+      <span className="font-medium text-sm whitespace-nowrap">{value}</span>
+    </div>
+  )
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Taxas Calculadas (leitura)</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Horas Extra</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Semana 08-24h</span>
-              <span className="font-medium">{fmtEur(taxaSemanaDia)}/h</span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Semana 00-08h</span>
-              <span className="font-medium">{fmtEur(taxaSemanaNoite)}/h</span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">FdS/Feriado 08-24h</span>
-              <span className="font-medium">{fmtEur(taxaFdsDia)}/h</span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">FdS/Feriado 00-08h</span>
-              <span className="font-medium">{fmtEur(taxaFdsNoite)}/h</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+            <Row
+              label="Semana 08-24h"
+              value={`${fmtEur(taxaSemanaDia)}/h`}
+              formula={`venc × piq% ÷ 12 = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteSemana)} ÷ 12`}
+            />
+            <Row
+              label="Semana 00-08h"
+              value={`${fmtEur(taxaSemanaNoite)}/h`}
+              formula={`semana-dia × 2 = ${fmtEur(taxaSemanaDia)} × 2`}
+            />
+            <Row
+              label="FdS/Feriado 08-24h"
+              value={`${fmtEur(taxaFdsDia)}/h`}
+              formula={`venc × piq_fds% ÷ 12 = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteFds)} ÷ 12`}
+            />
+            <Row
+              label="FdS/Feriado 00-08h"
+              value={`${fmtEur(taxaFdsNoite)}/h`}
+              formula={`fds-dia × 2 = ${fmtEur(taxaFdsDia)} × 2`}
+            />
           </div>
         </div>
+
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Piquete</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Piquete Semana</span>
-              <span className="font-medium">{fmtEur(taxaPiqueteSemana)}/período</span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Piquete FdS/Feriado</span>
-              <span className="font-medium">{fmtEur(taxaPiqueteFds)}/período</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+            <Row
+              label="Piquete Semana"
+              value={`${fmtEur(taxaPiqueteSemana)}/período`}
+              formula={`venc × piq% = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteSemana)}`}
+            />
+            <Row
+              label="Piquete FdS/Feriado"
+              value={`${fmtEur(taxaPiqueteFds)}/período`}
+              formula={`venc × piq_fds% = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteFds)}`}
+            />
           </div>
         </div>
+
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Prevenção Passiva</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Dia de Semana</span>
-              <span className="font-medium">{fmtEur(taxaPrevencaoSemana)}/dia</span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">FdS/Feriado</span>
-              <span className="font-medium">{fmtEur(taxaPrevencaoFds)}/dia</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+            <Row
+              label="Dia de Semana"
+              value={`${fmtEur(taxaPrevencaoSemana)}/dia`}
+              formula={`piquete semana × ${pct(config.percentPrevencaoPassiva)} = ${fmtEur(taxaPiqueteSemana)} × ${pct(config.percentPrevencaoPassiva)}`}
+            />
+            <Row
+              label="FdS/Feriado"
+              value={`${fmtEur(taxaPrevencaoFds)}/dia`}
+              formula={`piquete FdS × ${pct(config.percentPrevencaoPassiva)} = ${fmtEur(taxaPiqueteFds)} × ${pct(config.percentPrevencaoPassiva)}`}
+            />
           </div>
         </div>
+
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Ajudas de Custo</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Almoço</span>
-              <span className="font-medium">{fmtEur(config.senhaAlmoco)}/refeição</span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Jantar</span>
-              <span className="font-medium">{fmtEur(config.senhaJantar)}/refeição</span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span className="text-muted-foreground">Alojamento</span>
-              <span className="font-medium">{fmtEur(config.ajudaCustoMaxDiario * 0.5)}/noite</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+            <Row
+              label="Almoço"
+              value={`${fmtEur(config.senhaAlmoco)}/refeição`}
+              formula="valor direto configurado"
+            />
+            <Row
+              label="Jantar"
+              value={`${fmtEur(config.senhaJantar)}/refeição`}
+              formula="valor direto configurado"
+            />
+            <Row
+              label="Alojamento"
+              value={`${fmtEur(config.senhaAlojamento)}/noite`}
+              formula="valor direto configurado"
+            />
           </div>
         </div>
+
       </CardContent>
     </Card>
   )
@@ -174,6 +205,7 @@ export function AjudasConfigTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
         {/* Vencimentos */}
         <Card>
           <CardHeader>
@@ -244,19 +276,19 @@ export function AjudasConfigTab() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="percentPrevencaoPassiva">Prevenção Passiva</Label>
+              <Label htmlFor="percentPrevencaoPassiva">Prevenção Passiva (% do piquete)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="percentPrevencaoPassiva"
                   type="number"
-                  step="0.001"
+                  step="0.01"
                   min={0}
                   max={1}
                   value={config.percentPrevencaoPassiva}
                   onChange={(e) => setNum('percentPrevencaoPassiva', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
-                  {fmtEur(config.vencimentoBase * config.percentPrevencaoPassiva / 3)}/dia
+                  {(config.percentPrevencaoPassiva * 100).toFixed(0)}% do piquete
                 </span>
               </div>
             </div>
@@ -297,25 +329,61 @@ export function AjudasConfigTab() {
           </CardContent>
         </Card>
 
-        {/* Ajudas de Custo */}
+        {/* Valores das Refeições e Alojamento */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Valores das Refeições</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="senhaAlmoco">Almoço (€)</Label>
+              <Input
+                id="senhaAlmoco"
+                type="number"
+                step="0.01"
+                value={config.senhaAlmoco}
+                onChange={(e) => setNum('senhaAlmoco', e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="senhaJantar">Jantar (€)</Label>
+              <Input
+                id="senhaJantar"
+                type="number"
+                step="0.01"
+                value={config.senhaJantar}
+                onChange={(e) => setNum('senhaJantar', e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="senhaCeia">Ceia (€)</Label>
+              <Input
+                id="senhaCeia"
+                type="number"
+                step="0.01"
+                value={config.senhaCeia}
+                onChange={(e) => setNum('senhaCeia', e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="senhaAlojamento">Alojamento (€/noite)</Label>
+              <Input
+                id="senhaAlojamento"
+                type="number"
+                step="0.01"
+                value={config.senhaAlojamento}
+                onChange={(e) => setNum('senhaAlojamento', e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ajudas de Custo — condições de aplicação */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Ajudas de Custo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="ajudaCustoMaxDiario">Máximo Diário (€)</Label>
-              <Input
-                id="ajudaCustoMaxDiario"
-                type="number"
-                step="0.01"
-                value={config.ajudaCustoMaxDiario}
-                onChange={(e) => setNum('ajudaCustoMaxDiario', e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Base para o cálculo do alojamento (50% deste valor). As refeições usam os valores configurados em "Senhas".
-              </p>
-            </div>
             <div className="space-y-1.5">
               <Label htmlFor="distanciaMinKmAjudas">Distância Mínima (km)</Label>
               <Input
@@ -333,44 +401,6 @@ export function AjudasConfigTab() {
           </CardContent>
         </Card>
 
-        {/* Senhas — used as the per-meal/stay rates for ajudas de custo */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Valores das Refeições</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="senhaAlmoco">Senha Almoço (€)</Label>
-              <Input
-                id="senhaAlmoco"
-                type="number"
-                step="0.01"
-                value={config.senhaAlmoco}
-                onChange={(e) => setNum('senhaAlmoco', e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="senhaJantar">Senha Jantar (€)</Label>
-              <Input
-                id="senhaJantar"
-                type="number"
-                step="0.01"
-                value={config.senhaJantar}
-                onChange={(e) => setNum('senhaJantar', e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="senhaCeia">Senha Ceia (€)</Label>
-              <Input
-                id="senhaCeia"
-                type="number"
-                step="0.01"
-                value={config.senhaCeia}
-                onChange={(e) => setNum('senhaCeia', e.target.value)}
-              />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Derived rates display */}

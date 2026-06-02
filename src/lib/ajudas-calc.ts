@@ -82,7 +82,7 @@ export interface ConfigData {
   percentPiqueteSemana: number
   percentPiqueteFds: number
   percentPrevencaoPassiva: number
-  ajudaCustoMaxDiario: number
+  senhaAlojamento: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -268,12 +268,13 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   const taxaFdsNoite = taxaFdsDia * 2
   const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
   const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
-  const taxaPrevencaoSemana = vencimentoBase * config.percentPrevencaoPassiva / 3
-  const taxaPrevencaoFds = vencimentoBase * config.percentPrevencaoPassiva / 3 * 1.265
+  // Prevenção passiva = percentPrevencaoPassiva (default 40%) do piquete do mesmo tipo de dia
+  const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
+  const taxaPrevencaoFds = taxaPiqueteFds * config.percentPrevencaoPassiva
   // Ajudas de custo rates use the configured senha values directly
   const taxaAjudaAlmoco = config.senhaAlmoco
   const taxaAjudaJantar = config.senhaJantar
-  const taxaAjudaAlojamento = config.ajudaCustoMaxDiario * 0.5
+  const taxaAjudaAlojamento = config.senhaAlojamento
 
   // Per-day overtime accumulator (key = 'YYYY-MM-DD')
   const dayOvertimeMap = new Map<string, HoursSplit>()
