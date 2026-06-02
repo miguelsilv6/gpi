@@ -18,6 +18,7 @@ import {
   InspetorBarChart,
   NaturezaBarChart,
   AnoBarChart,
+  ComarcaBarChart,
   TribunalBarChart,
   LocalTratamentoBarChart,
 } from './charts'
@@ -40,6 +41,7 @@ interface Stats {
   porInspetor: { inspetorId: string; nome: string; count: number }[]
   porNatureza: { natureza: string; count: number }[]
   porAno: { ano: string; count: number }[]
+  porComarca: { comarcaId: string; nome: string; count: number }[]
   porTribunal: { tribunalId: string; nome: string; count: number }[]
   porLocalTratamento: { localTratamentoId: string; nome: string; count: number }[]
   atividadesInspetor: {
@@ -102,6 +104,35 @@ function fmt(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+function StatsTable({ data, total }: { data: { nome: string; count: number }[]; total: number }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b text-muted-foreground text-xs">
+            <th className="text-left py-1.5 pr-3 font-medium w-6">#</th>
+            <th className="text-left py-1.5 pr-3 font-medium">Nome</th>
+            <th className="text-right py-1.5 pr-3 font-medium">Inquéritos</th>
+            <th className="text-right py-1.5 font-medium">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((r, i) => (
+            <tr key={r.nome} className="border-b last:border-0">
+              <td className="py-1.5 pr-3 text-muted-foreground text-xs">{i + 1}</td>
+              <td className="py-1.5 pr-3 truncate max-w-[200px]">{r.nome}</td>
+              <td className="py-1.5 pr-3 text-right tabular-nums font-medium">{r.count}</td>
+              <td className="py-1.5 text-right tabular-nums text-muted-foreground text-xs">
+                {total > 0 ? ((r.count / total) * 100).toFixed(1) + '%' : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 export function EstatisticasDashboard({
@@ -478,30 +509,46 @@ export function EstatisticasDashboard({
             )}
           </div>
 
-          {/* Charts row 3 — tribunal and local tratamento */}
-          {(stats.porTribunal.length > 0 || stats.porLocalTratamento.length > 0) && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {stats.porTribunal.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Por Tribunal</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TribunalBarChart data={stats.porTribunal} />
-                  </CardContent>
-                </Card>
-              )}
-              {stats.porLocalTratamento.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Por Local de Tratamento</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <LocalTratamentoBarChart data={stats.porLocalTratamento} />
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+          {/* Comarca — full-width chart + table */}
+          {stats.porComarca.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Por Comarca</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <ComarcaBarChart data={stats.porComarca} />
+                  <StatsTable data={stats.porComarca} total={stats.total} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tribunal — full-width chart + table */}
+          {stats.porTribunal.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Por Tribunal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <TribunalBarChart data={stats.porTribunal} />
+                  <StatsTable data={stats.porTribunal} total={stats.total} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Local tratamento */}
+          {stats.porLocalTratamento.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Por Local de Tratamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LocalTratamentoBarChart data={stats.porLocalTratamento} />
+              </CardContent>
+            </Card>
           )}
         </>
       ) : (

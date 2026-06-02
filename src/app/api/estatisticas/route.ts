@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
         where,
         select: { dataAbertura: true, nuipc: true },
       }),
-      prisma.inquerito.groupBy({ by: ['tribunalId'], where, _count: true, orderBy: { _count: { tribunalId: 'desc' } }, take: 15 }),
+      prisma.inquerito.groupBy({ by: ['tribunalId'], where, _count: true, orderBy: { _count: { tribunalId: 'desc' } } }),
       prisma.inquerito.groupBy({ by: ['localTratamentoId'], where, _count: true, orderBy: { _count: { localTratamentoId: 'desc' } }, take: 15 }),
     ])
 
@@ -285,7 +285,7 @@ export async function GET(req: NextRequest) {
       tribunalIds.length
         ? prisma.tribunal.findMany({
             where: { id: { in: tribunalIds } },
-            select: { id: true, nome: true },
+            select: { id: true, nome: true, comarcaId: true },
           })
         : Promise.resolve([]),
       localTratamentoIds.length
@@ -300,6 +300,31 @@ export async function GET(req: NextRequest) {
     const inspetorNomes = Object.fromEntries(inspetores.map((u) => [u.id, u.nome]))
     const tribunalNomesMap = Object.fromEntries(tribunaisNomes.map((t) => [t.id, t.nome]))
     const localNomesMap = Object.fromEntries(locaisNomes.map((l) => [l.id, l.nome]))
+
+    // Aggregate tribunal counts by comarca in JS (Inquerito has no direct comarcaId).
+    const tribunalComarcaMap = new Map(tribunaisNomes.map((t) => [t.id, t.comarcaId ?? null]))
+    const comarcaCountMap = new Map<string, number>()
+    for (const r of porTribunalRaw) {
+      if (!r.tribunalId) continue
+      const comarcaId = tribunalComarcaMap.get(r.tribunalId)
+      if (!comarcaId) continue
+      comarcaCountMap.set(comarcaId, (comarcaCountMap.get(comarcaId) ?? 0) + r._count)
+    }
+    const comarcaIdsNeeded = Array.from(comarcaCountMap.keys())
+    const comarcasList = comarcaIdsNeeded.length
+      ? await prisma.comarca.findMany({
+          where: { id: { in: comarcaIdsNeeded } },
+          select: { id: true, nome: true },
+        })
+      : []
+    const comarcaNomesMap = new Map(comarcasList.map((c) => [c.id, c.nome]))
+    const porComarca = Array.from(comarcaCountMap.entries())
+      .map(([comarcaId, count]) => ({
+        comarcaId,
+        nome: comarcaNomesMap.get(comarcaId) ?? '—',
+        count,
+      }))
+      .sort((a, b) => b.count - a.count)
 
     return Response.json({
       total,
@@ -334,6 +359,7 @@ export async function GET(req: NextRequest) {
           count: r._count,
         })),
       porNatureza: porNatureza.map((r) => ({ natureza: r.natureza, count: r._count })),
+      porComarca,
       porTribunal: porTribunalRaw
         .filter((r) => r.tribunalId !== null)
         .map((r) => ({

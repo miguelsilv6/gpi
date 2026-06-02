@@ -29,6 +29,7 @@ interface PorEstado {
 interface PorBrigada { brigadaId: string; nome: string; count: number }
 interface PorInspetor { inspetorId: string; nome: string; count: number }
 interface PorNatureza { natureza: string; count: number }
+interface PorComarca { comarcaId: string; nome: string; count: number }
 interface PorTribunal { tribunalId: string; nome: string; count: number }
 interface PorLocalTratamento { localTratamentoId: string; nome: string; count: number }
 
@@ -113,6 +114,27 @@ export function NaturezaBarChart({ data }: { data: PorNatureza[] }) {
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="natureza"
+          tick={{ fontSize: 11 }}
+          interval={0}
+          angle={-35}
+          textAnchor="end"
+          height={70}
+        />
+        <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+        <Tooltip />
+        <Bar dataKey="count" name="Inquéritos" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+export function ComarcaBarChart({ data }: { data: PorComarca[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 60 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis
+          dataKey="nome"
           tick={{ fontSize: 11 }}
           interval={0}
           angle={-35}
