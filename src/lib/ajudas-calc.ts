@@ -233,6 +233,109 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
 }
 
 /**
+ * Calculates the gross value (before IRS/SS deductions) for a single entry,
+ * attributing only days/hours that fall within the target month.
+ */
+export function calcLinhaValor(
+  linha: LinhaWithData,
+  config: ConfigData,
+  vencimentoBase: number,
+  ano: number,
+  mes: number,
+): number {
+  const years = new Set([linha.dataInicio.getUTCFullYear(), linha.dataFim.getUTCFullYear()])
+  const holidays = new Set<string>()
+  for (const y of years) for (const h of getPortugueseHolidays(y)) holidays.add(h)
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const fmtDate = (d: Date) =>
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+
+  function isFdsDay(d: Date): boolean {
+    const dow = d.getUTCDay()
+    return dow === 0 || dow === 6 || holidays.has(fmtDate(d))
+  }
+
+  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaNoite = taxaSemanaDia * 2
+  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsNoite = taxaFdsDia * 2
+  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
+  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
+  const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
+  const taxaPrevencaoFds = taxaPiqueteFds * config.percentPrevencaoPassiva
+
+  const inicio = linha.dataInicio
+  const fim = linha.dataFim
+  let valor = 0
+
+  if (!linha.prevencaoOnly) {
+    const dayMap = new Map<string, HoursSplit>()
+    const iterDay = new Date(inicio)
+    iterDay.setUTCHours(0, 0, 0, 0)
+    while (iterDay.getTime() < fim.getTime()) {
+      const nextDay = new Date(iterDay)
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+      const segStart = inicio.getTime() > iterDay.getTime() ? inicio : iterDay
+      const segEnd = fim.getTime() < nextDay.getTime() ? fim : nextDay
+      if (
+        segStart.getTime() < segEnd.getTime() &&
+        iterDay.getUTCFullYear() === ano &&
+        iterDay.getUTCMonth() + 1 === mes
+      ) {
+        const dateKey = fmtDate(iterDay)
+        const split = splitHours(segStart, segEnd, holidays)
+        const existing = dayMap.get(dateKey)
+        if (existing) {
+          existing.semanaDia += split.semanaDia
+          existing.semanaNoite += split.semanaNoite
+          existing.fdsDia += split.fdsDia
+          existing.fdsNoite += split.fdsNoite
+        } else {
+          dayMap.set(dateKey, { ...split })
+        }
+      }
+      iterDay.setUTCDate(iterDay.getUTCDate() + 1)
+    }
+    for (const [, split] of dayMap) {
+      const rawSemana = split.semanaDia * taxaSemanaDia + split.semanaNoite * taxaSemanaNoite
+      const rawFds = split.fdsDia * taxaFdsDia + split.fdsNoite * taxaFdsNoite
+      if (rawSemana > 0) valor += Math.min(rawSemana, taxaPiqueteSemana)
+      if (rawFds > 0) valor += Math.min(rawFds, taxaPiqueteFds)
+    }
+  }
+
+  if (linha.prevencao === 'PIQUETE') {
+    if (inicio.getUTCFullYear() === ano && inicio.getUTCMonth() + 1 === mes)
+      valor += isFdsDay(inicio) ? taxaPiqueteFds : taxaPiqueteSemana
+  } else if (linha.prevencao === 'PREVENCAO_PASSIVA') {
+    const cur = new Date(inicio)
+    cur.setUTCHours(0, 0, 0, 0)
+    const last = new Date(fim)
+    last.setUTCHours(0, 0, 0, 0)
+    let daysCount = 0
+    while (cur.getTime() <= last.getTime() && daysCount < 90) {
+      if (cur.getUTCFullYear() === ano && cur.getUTCMonth() + 1 === mes)
+        valor += isFdsDay(cur) ? taxaPrevencaoFds : taxaPrevencaoSemana
+      cur.setUTCDate(cur.getUTCDate() + 1)
+      daysCount++
+    }
+  }
+
+  if (
+    linha.km >= config.distanciaMinKmAjudas &&
+    inicio.getUTCFullYear() === ano &&
+    inicio.getUTCMonth() + 1 === mes
+  ) {
+    valor += linha.ajudaCustoAlmoco * config.senhaAlmoco
+    valor += linha.ajudaCustoJantar * config.senhaJantar
+    valor += linha.ajudaCustoCeia * config.senhaCeia
+  }
+
+  return valor
+}
+
+/**
  * Calculates all totals for a month's ajudas record.
  * vencimentoBase and taxaIRS must be the user's personal configured values.
  * ano and mes define the target month — entries and prevention days outside

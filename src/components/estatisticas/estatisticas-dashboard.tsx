@@ -21,13 +21,14 @@ import {
   TribunalBarChart,
   LocalTratamentoBarChart,
 } from './charts'
-import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2 } from 'lucide-react'
+import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
 
 interface Stats {
   total: number
+  ativos: number
   vencidos: number
   semInspetor: number
   distribuido: number
@@ -297,7 +298,7 @@ export function EstatisticasDashboard({
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -305,6 +306,15 @@ export function EstatisticasDashboard({
                   <span className="text-sm text-muted-foreground">Total</span>
                 </div>
                 <p className="text-3xl font-bold mt-1">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-muted-foreground">Ativos</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-green-700 dark:text-green-400">{stats.ativos}</p>
               </CardContent>
             </Card>
             <Card>

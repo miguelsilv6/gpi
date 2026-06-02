@@ -91,6 +91,7 @@ export async function GET(req: NextRequest) {
       porInspetorRaw,
       porNatureza,
       total,
+      ativos,
       vencidos,
       semInspetor,
       distribuido,
@@ -128,6 +129,7 @@ export async function GET(req: NextRequest) {
         take: 10,
       }),
       prisma.inquerito.count({ where }),
+      prisma.inquerito.count({ where: { ...where, estado: { terminal: false } } }),
       prisma.inquerito.count({
         where: {
           ...where,
@@ -301,6 +303,7 @@ export async function GET(req: NextRequest) {
 
     return Response.json({
       total,
+      ativos,
       vencidos,
       semInspetor,
       distribuido,

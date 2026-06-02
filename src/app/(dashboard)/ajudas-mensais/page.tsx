@@ -62,6 +62,7 @@ export default async function AjudasMensaisPage({
       canViewAll={canViewAll}
       canViewBrigade={canViewBrigade}
       canManageConfig={canManageConfig}
+      userName={session.user.nome}
     />
   )
 }

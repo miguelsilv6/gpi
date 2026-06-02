@@ -26,6 +26,7 @@ import { cn, iconButtonClasses } from '@/lib/utils'
 import {
   ChevronLeft,
   ChevronRight,
+  FileDown,
   Loader2,
   Pencil,
   Plus,
@@ -33,7 +34,7 @@ import {
   Bell,
 } from 'lucide-react'
 import type { AjudasTotais, ConfigData } from '@/lib/ajudas-calc'
-import { getPortugueseHolidays, splitHours } from '@/lib/ajudas-calc'
+import { getPortugueseHolidays, splitHours, calcLinhaValor } from '@/lib/ajudas-calc'
 import { MATRICULA_REGEX } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -99,6 +100,7 @@ interface Props {
   canViewAll: boolean
   canViewBrigade: boolean
   canManageConfig: boolean
+  userName?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -588,6 +590,15 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+function escHtml(s: string | null | undefined): string {
+  if (!s) return ''
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 export function AjudasMensaisView({
   initialAno,
   initialMes,
@@ -597,6 +608,7 @@ export function AjudasMensaisView({
   canViewAll: _canViewAll,
   canViewBrigade: _canViewBrigade,
   canManageConfig: _canManageConfig,
+  userName,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -907,6 +919,137 @@ export function AjudasMensaisView({
     return `${h}h${String(m).padStart(2, '0')}m`
   }
 
+  function handleExportPDF() {
+    if (!data?.totais) return
+    const { registo, config, totais } = data
+    const vencimentoBase = totais.limiteBase
+
+    const win = window.open('', '_blank', 'width=900,height=900')
+    if (!win) return
+
+    const monthName = MONTH_NAMES[mes - 1]
+    const title = `Ajudas Mensais — ${monthName} ${ano}`
+    const today = new Date()
+    const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`
+
+    const tableRows = registo.linhas.map((l) => {
+      const valor = calcLinhaValor(
+        {
+          dataInicio: new Date(l.dataInicio),
+          dataFim: new Date(l.dataFim),
+          prevencao: l.prevencao,
+          prevencaoOnly: l.prevencaoOnly,
+          ajudaCustoAlmoco: l.ajudaCustoAlmoco,
+          ajudaCustoJantar: l.ajudaCustoJantar,
+          ajudaCustoCeia: l.ajudaCustoCeia,
+          senhaAlmoco: l.senhaAlmoco,
+          senhaJantar: l.senhaJantar,
+          senhaCeia: l.senhaCeia,
+          km: l.km,
+        },
+        config,
+        vencimentoBase,
+        ano,
+        mes,
+      )
+      const prevLabel = l.prevencao === 'PIQUETE' ? 'Piquete' : l.prevencao === 'PREVENCAO_PASSIVA' ? 'Prev. Passiva' : '—'
+      const viaturaStr = l.viatura
+        ? `${escHtml(l.viatura.nome)}${l.viatura.matricula ? ` (${escHtml(l.viatura.matricula)})` : ''} / ${l.km}km`
+        : l.km > 0 ? `${l.km}km` : '—'
+      const ajudasStr = [
+        l.ajudaCustoAlmoco > 0 && `Al:${l.ajudaCustoAlmoco}`,
+        l.ajudaCustoJantar > 0 && `Jt:${l.ajudaCustoJantar}`,
+        l.ajudaCustoCeia > 0 && `Ceia:${l.ajudaCustoCeia}`,
+      ].filter(Boolean).join(' ') || '—'
+      return `<tr>
+        <td>${escHtml(l.nuipc) || '—'}</td>
+        <td>${escHtml(l.local) || '—'}</td>
+        <td class="nw">${escHtml(formatDT(l.dataInicio))}</td>
+        <td class="nw">${escHtml(formatDT(l.dataFim))}</td>
+        <td>${prevLabel}</td>
+        <td>${viaturaStr}</td>
+        <td>${ajudasStr}</td>
+        <td class="r b">${fmtEur(valor)}</td>
+      </tr>`
+    }).join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<title>${escHtml(title)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:10pt;color:#111;padding:16mm}
+h1{font-size:14pt;margin-bottom:3px}
+.sub{font-size:9pt;color:#666;margin-bottom:12px}
+.sec{font-size:10pt;font-weight:bold;margin:12px 0 6px;border-bottom:1px solid #bbb;padding-bottom:2px}
+table{width:100%;border-collapse:collapse;font-size:8.5pt}
+th{background:#e5e5e5;border:1px solid #bbb;padding:3px 5px;text-align:left;font-weight:bold}
+td{border:1px solid #ddd;padding:3px 5px;vertical-align:top}
+tr:nth-child(even) td{background:#f6f6f6}
+.r{text-align:right}.b{font-weight:bold}.nw{white-space:nowrap}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.block{border:1px solid #ccc;padding:7px;border-radius:3px}
+.block h3{font-size:8.5pt;font-weight:bold;color:#444;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #eee;padding-bottom:2px;margin-bottom:5px}
+.row{display:flex;justify-content:space-between;font-size:8pt;margin-bottom:2px}
+.row.sep{border-top:1px solid #ddd;margin-top:3px;padding-top:3px}
+.row.tot{font-weight:bold;font-size:9.5pt}
+.footer{margin-top:12px;font-size:7.5pt;color:#aaa}
+@media print{body{padding:8mm}@page{margin:8mm}}
+</style>
+</head>
+<body>
+<h1>${escHtml(title)}</h1>
+<p class="sub">${userName ? `Utilizador: ${escHtml(userName)} &bull; ` : ''}Gerado em ${todayStr}</p>
+<div class="sec">Entradas do Mês</div>
+<table>
+<thead><tr>
+  <th>NUIPC</th><th>Local</th><th>Início</th><th>Fim</th>
+  <th>Prevenção</th><th>Viatura / KMs</th><th>Ajudas</th><th class="r">Valor bruto</th>
+</tr></thead>
+<tbody>${tableRows}</tbody>
+</table>
+<div class="sec">Resumo do Mês</div>
+<div class="grid">
+  <div class="block">
+    <h3>Horas Extra</h3>
+    <div class="row"><span>Semana 08-24h (${totais.semanaDia.toFixed(2)}h × ${fmtEur(totais.taxaSemanaDia)})</span><span>${fmtEur(totais.totalSemanaDia)}</span></div>
+    <div class="row"><span>Semana 00-08h (${totais.semanaNoite.toFixed(2)}h × ${fmtEur(totais.taxaSemanaNoite)})</span><span>${fmtEur(totais.totalSemanaNoite)}</span></div>
+    <div class="row"><span>FdS 08-24h (${totais.fdsDia.toFixed(2)}h × ${fmtEur(totais.taxaFdsDia)})</span><span>${fmtEur(totais.totalFdsDia)}</span></div>
+    <div class="row"><span>FdS 00-08h (${totais.fdsNoite.toFixed(2)}h × ${fmtEur(totais.taxaFdsNoite)})</span><span>${fmtEur(totais.totalFdsNoite)}</span></div>
+    <div class="row sep tot"><span>Subtotal H. Extra</span><span>${fmtEur(totais.totalHorasExtra)}</span></div>
+  </div>
+  <div class="block">
+    <h3>Prevenção / Ajudas</h3>
+    <div class="row"><span>Piquete Sem. (${totais.piqueteSemana} × ${fmtEur(totais.taxaPiqueteSemana)})</span><span>${fmtEur(totais.totalPiqueteSemana)}</span></div>
+    <div class="row"><span>Piquete FdS (${totais.piqueteFds} × ${fmtEur(totais.taxaPiqueteFds)})</span><span>${fmtEur(totais.totalPiqueteFds)}</span></div>
+    <div class="row"><span>Prev. Passiva Sem. (${totais.prevencaoSemana} × ${fmtEur(totais.taxaPrevencaoSemana)})</span><span>${fmtEur(totais.totalPrevencaoSemana)}</span></div>
+    <div class="row"><span>Prev. Passiva FdS (${totais.prevencaoFds} × ${fmtEur(totais.taxaPrevencaoFds)})</span><span>${fmtEur(totais.totalPrevencaoFds)}</span></div>
+    <div class="row sep"><span>Aj. Custo Almoço (${totais.ajudaCustoAlmoco} × ${fmtEur(totais.taxaAjudaAlmoco)})</span><span>${fmtEur(totais.ajudaCustoAlmoco * totais.taxaAjudaAlmoco)}</span></div>
+    <div class="row"><span>Aj. Custo Jantar (${totais.ajudaCustoJantar} × ${fmtEur(totais.taxaAjudaJantar)})</span><span>${fmtEur(totais.ajudaCustoJantar * totais.taxaAjudaJantar)}</span></div>
+    <div class="row"><span>Aj. Custo Ceia (${totais.ajudaCustoCeia} × ${fmtEur(totais.taxaAjudaCeia)})</span><span>${fmtEur(totais.ajudaCustoCeia * totais.taxaAjudaCeia)}</span></div>
+  </div>
+  <div class="block">
+    <h3>Cálculo Final</h3>
+    <div class="row"><span>Total Bruto</span><span>${fmtEur(totais.totalBruto)}</span></div>
+    <div class="row"><span>IRS (${(totais.taxaIRS * 100).toFixed(2)}%)</span><span>-${fmtEur(totais.irs)}</span></div>
+    <div class="row"><span>Seg. Social (${(totais.taxaSS * 100).toFixed(0)}%)</span><span>-${fmtEur(totais.ss)}</span></div>
+    <div class="row sep tot"><span>Líquido</span><span>${fmtEur(totais.liquido)}</span></div>
+    <div class="row sep"><span>Limite Mensal (venc./3)</span><span>${fmtEur(totais.limiteMensal)}</span></div>
+    <div class="row"><span>Utilizado</span><span>${fmtEur(totais.totalContaLimite)}</span></div>
+    <div class="row"><span>Em Falta</span><span>${fmtEur(totais.emFalta)}</span></div>
+  </div>
+</div>
+<p class="footer">Ajudas Mensais &bull; ${todayStr}</p>
+<script>window.onload=function(){window.print()}</script>
+</body>
+</html>`
+
+    win.document.write(html)
+    win.document.close()
+  }
+
   const distanciaMin = data?.config.distanciaMinKmAjudas ?? 35
   const linhas = data?.registo.linhas ?? []
   const totais = data?.totais
@@ -964,12 +1107,20 @@ export function AjudasMensaisView({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Entradas do Mês</CardTitle>
-              {data?.userConfigured && (
-                <Button size="sm" onClick={openAddDialog}>
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Nova entrada
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {linhas.length > 0 && data?.totais && (
+                  <Button size="sm" variant="outline" onClick={handleExportPDF}>
+                    <FileDown className="h-4 w-4 mr-1.5" />
+                    Exportar PDF
+                  </Button>
+                )}
+                {data?.userConfigured && (
+                  <Button size="sm" onClick={openAddDialog}>
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Nova entrada
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {linhas.length === 0 ? (
@@ -989,6 +1140,7 @@ export function AjudasMensaisView({
                         <th className="text-left py-2 px-2 font-medium">Prevenção</th>
                         <th className="text-left py-2 px-2 font-medium">Viatura/KMs</th>
                         <th className="text-left py-2 px-2 font-medium">Ajudas</th>
+                        <th className="text-right py-2 px-2 font-medium">Valor</th>
                         <th className="text-left py-2 px-2 font-medium">Observações</th>
                         <th className="py-2 px-2" />
                       </tr>
@@ -1028,6 +1180,29 @@ export function AjudasMensaisView({
                               l.ajudaCustoJantar > 0 && `Jt:${l.ajudaCustoJantar}`,
                               l.ajudaCustoCeia > 0 && `Ceia:${l.ajudaCustoCeia}`,
                             ].filter(Boolean).join(' ') || '—'}
+                          </td>
+                          <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-sm font-medium">
+                            {data?.totais
+                              ? fmtEur(calcLinhaValor(
+                                  {
+                                    dataInicio: new Date(l.dataInicio),
+                                    dataFim: new Date(l.dataFim),
+                                    prevencao: l.prevencao,
+                                    prevencaoOnly: l.prevencaoOnly,
+                                    ajudaCustoAlmoco: l.ajudaCustoAlmoco,
+                                    ajudaCustoJantar: l.ajudaCustoJantar,
+                                    ajudaCustoCeia: l.ajudaCustoCeia,
+                                    senhaAlmoco: l.senhaAlmoco,
+                                    senhaJantar: l.senhaJantar,
+                                    senhaCeia: l.senhaCeia,
+                                    km: l.km,
+                                  },
+                                  data.config,
+                                  data.totais.limiteBase,
+                                  ano,
+                                  mes,
+                                ))
+                              : '—'}
                           </td>
                           <td className="py-2 px-2 max-w-[150px] truncate" title={l.observacoes ?? undefined}>
                             {l.observacoes || '—'}
