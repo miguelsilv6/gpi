@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import type { AjudasTotais, ConfigData } from '@/lib/ajudas-calc'
 import { getPortugueseHolidays, splitHours } from '@/lib/ajudas-calc'
+import { MATRICULA_REGEX } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -84,9 +85,6 @@ interface LinhaFormData {
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
   ajudaCustoAlojamento: number
-  senhaAlmoco: number
-  senhaJantar: number
-  senhaCeia: number
   viaturaId: string
   km: number
   observacoes: string
@@ -148,9 +146,6 @@ const EMPTY_FORM: LinhaFormData = {
   ajudaCustoAlmoco: 0,
   ajudaCustoJantar: 0,
   ajudaCustoAlojamento: 0,
-  senhaAlmoco: 0,
-  senhaJantar: 0,
-  senhaCeia: 0,
   viaturaId: '',
   km: 0,
   observacoes: '',
@@ -159,6 +154,12 @@ const EMPTY_FORM: LinhaFormData = {
 // ─── Summary Panel ────────────────────────────────────────────────────────────
 
 function SummaryPanel({ totais }: { totais: AjudasTotais }) {
+  const uncappedSemana = totais.totalSemanaDia + totais.totalSemanaNoite
+  const uncappedFds = totais.totalFdsDia + totais.totalFdsNoite
+  const capApplied =
+    totais.totalHorasExtraSemana < uncappedSemana - 0.001 ||
+    totais.totalHorasExtraFds < uncappedFds - 0.001
+
   return (
     <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
       <h3 className="font-semibold text-base">Resumo do Mês</h3>
@@ -168,21 +169,38 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Horas Extra</p>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span>Semana 08-24h ({totais.semanaDia}h × {fmtEur(totais.taxaSemanaDia)})</span>
+              <span>Semana 08-24h ({totais.semanaDia.toFixed(2)}h × {fmtEur(totais.taxaSemanaDia)})</span>
               <span className="font-medium">{fmtEur(totais.totalSemanaDia)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Semana 00-08h ({totais.semanaNoite}h × {fmtEur(totais.taxaSemanaNoite)})</span>
+              <span>Semana 00-08h ({totais.semanaNoite.toFixed(2)}h × {fmtEur(totais.taxaSemanaNoite)})</span>
               <span className="font-medium">{fmtEur(totais.totalSemanaNoite)}</span>
             </div>
             <div className="flex justify-between">
-              <span>FdS/Feriado 08-24h ({totais.fdsDia}h × {fmtEur(totais.taxaFdsDia)})</span>
+              <span>FdS/Feriado 08-24h ({totais.fdsDia.toFixed(2)}h × {fmtEur(totais.taxaFdsDia)})</span>
               <span className="font-medium">{fmtEur(totais.totalFdsDia)}</span>
             </div>
             <div className="flex justify-between">
-              <span>FdS/Feriado 00-08h ({totais.fdsNoite}h × {fmtEur(totais.taxaFdsNoite)})</span>
+              <span>FdS/Feriado 00-08h ({totais.fdsNoite.toFixed(2)}h × {fmtEur(totais.taxaFdsNoite)})</span>
               <span className="font-medium">{fmtEur(totais.totalFdsNoite)}</span>
             </div>
+            {capApplied && (
+              <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-2 py-1 mt-1 space-y-0.5">
+                <p className="font-medium">Limite diário (piquete) aplicado:</p>
+                {totais.totalHorasExtraSemana < uncappedSemana - 0.001 && (
+                  <div className="flex justify-between">
+                    <span>Semana</span>
+                    <span>{fmtEur(totais.totalHorasExtraSemana)} <span className="line-through opacity-60">{fmtEur(uncappedSemana)}</span></span>
+                  </div>
+                )}
+                {totais.totalHorasExtraFds < uncappedFds - 0.001 && (
+                  <div className="flex justify-between">
+                    <span>FdS/Feriado</span>
+                    <span>{fmtEur(totais.totalHorasExtraFds)} <span className="line-through opacity-60">{fmtEur(uncappedFds)}</span></span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex justify-between font-semibold border-t pt-1 mt-1">
               <span>Subtotal horas extra</span>
               <span>{fmtEur(totais.totalHorasExtra)}</span>
@@ -223,18 +241,6 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
                 <span>Aj. Custo Alojamento ({totais.ajudaCustoAlojamento} × {fmtEur(totais.taxaAjudaAlojamento)})</span>
                 <span>{fmtEur(totais.ajudaCustoAlojamento * totais.taxaAjudaAlojamento)}</span>
               </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Senha Almoço ({totais.senhaAlmoco} × {fmtEur(totais.taxaSenhaAlmoco)})</span>
-                <span>{fmtEur(totais.senhaAlmoco * totais.taxaSenhaAlmoco)}</span>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Senha Jantar ({totais.senhaJantar} × {fmtEur(totais.taxaSenhaJantar)})</span>
-                <span>{fmtEur(totais.senhaJantar * totais.taxaSenhaJantar)}</span>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Senha Ceia ({totais.senhaCeia} × {fmtEur(totais.taxaSenhaCeia)})</span>
-                <span>{fmtEur(totais.senhaCeia * totais.taxaSenhaCeia)}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -248,11 +254,11 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
               <span className="font-medium">{fmtEur(totais.totalBruto)}</span>
             </div>
             <div className="flex justify-between text-red-600 dark:text-red-400">
-              <span>IRS ({(totais.taxaSemanaDia > 0 ? 11.16 : 0)}%)</span>
+              <span>IRS ({(totais.taxaIRS * 100).toFixed(2)}%)</span>
               <span>-{fmtEur(totais.irs)}</span>
             </div>
             <div className="flex justify-between text-red-600 dark:text-red-400">
-              <span>Seg. Social (11%)</span>
+              <span>Seg. Social ({(totais.taxaSS * 100).toFixed(0)}%)</span>
               <span>-{fmtEur(totais.ss)}</span>
             </div>
             <div className="flex justify-between font-bold text-base border-t pt-1 mt-1">
@@ -275,20 +281,27 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
                   {fmtEur(totais.emFalta)}
                 </span>
               </div>
-              {/* Progress bar */}
+              {/* Progress bar — turns red when over the monthly limit */}
               <div className="mt-2">
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className={cn(
                       'h-full rounded-full transition-all',
-                      totais.percentCompleto >= 1
-                        ? 'bg-green-500'
-                        : 'bg-blue-500',
+                      totais.percentCompleto > 1
+                        ? 'bg-red-500'
+                        : totais.percentCompleto >= 0.999
+                          ? 'bg-green-500'
+                          : 'bg-blue-500',
                     )}
                     style={{ width: `${Math.min(100, totais.percentCompleto * 100).toFixed(1)}%` }}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 text-right">
+                <p className={cn(
+                  'text-xs mt-0.5 text-right',
+                  totais.percentCompleto > 1
+                    ? 'text-red-600 dark:text-red-400 font-semibold'
+                    : 'text-muted-foreground',
+                )}>
                   {(totais.percentCompleto * 100).toFixed(0)}% do limite mensal
                 </p>
               </div>
@@ -332,11 +345,9 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
   const [addViaturaError, setAddViaturaError] = useState('')
   const [addViaturaLoading, setAddViaturaLoading] = useState(false)
 
-  const MATRICULA_RE = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i
-
   async function handleAddViatura() {
     if (!addViaturaForm.nome.trim()) { setAddViaturaError('Nome obrigatório'); return }
-    if (addViaturaForm.matricula && !MATRICULA_RE.test(addViaturaForm.matricula)) {
+    if (addViaturaForm.matricula && !MATRICULA_REGEX.test(addViaturaForm.matricula)) {
       setAddViaturaError('Formato inválido — use XX-XX-XX (ex: AB-12-CD)')
       return
     }
@@ -561,43 +572,6 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
         </div>
       </div>
 
-      {/* Senhas section */}
-      <div className="space-y-3 p-3 rounded-lg border">
-        <p className="text-sm font-medium">Senhas</p>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="senhaAlmoco" className="text-xs">Almoço</Label>
-            <Input
-              id="senhaAlmoco"
-              type="number"
-              min={0}
-              value={form.senhaAlmoco}
-              onChange={(e) => set('senhaAlmoco', parseInt(e.target.value, 10) || 0)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="senhaJantar" className="text-xs">Jantar</Label>
-            <Input
-              id="senhaJantar"
-              type="number"
-              min={0}
-              value={form.senhaJantar}
-              onChange={(e) => set('senhaJantar', parseInt(e.target.value, 10) || 0)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="senhaCeia" className="text-xs">Ceia</Label>
-            <Input
-              id="senhaCeia"
-              type="number"
-              min={0}
-              value={form.senhaCeia}
-              onChange={(e) => set('senhaCeia', parseInt(e.target.value, 10) || 0)}
-            />
-          </div>
-        </div>
-      </div>
-
       <div className="space-y-1.5">
         <Label htmlFor="observacoes">Observações</Label>
         <Textarea
@@ -629,6 +603,7 @@ export function AjudasMensaisView({
 
   const [ano, setAno] = useState(initialAno)
   const [mes, setMes] = useState(initialMes)
+  const fetchSeqRef = useRef(0)
   // When a chefe/coordenador views another user's record, this holds that user's ID
   const viewingUserId = initialViewingUserId ?? userId
   const [data, setData] = useState<ApiResponse | null>(null)
@@ -658,21 +633,24 @@ export function AjudasMensaisView({
   const [deleting, setDeleting] = useState(false)
 
   const fetchData = useCallback(async (a: number, m: number) => {
+    const seq = ++fetchSeqRef.current
     setLoading(true)
     try {
       const uidParam = viewingUserId !== userId ? `&utilizadorId=${viewingUserId}` : ''
       const res = await fetch(`/api/ajudas?ano=${a}&mes=${m}${uidParam}`)
+      if (fetchSeqRef.current !== seq) return
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         toast.error(err.error ?? 'Erro ao carregar dados')
         return
       }
       const d = await res.json()
+      if (fetchSeqRef.current !== seq) return
       setData(d)
     } catch {
-      toast.error('Erro ao carregar dados')
+      if (fetchSeqRef.current === seq) toast.error('Erro ao carregar dados')
     } finally {
-      setLoading(false)
+      if (fetchSeqRef.current === seq) setLoading(false)
     }
   }, [])
 
@@ -728,9 +706,6 @@ export function AjudasMensaisView({
       ajudaCustoAlmoco: linha.ajudaCustoAlmoco,
       ajudaCustoJantar: linha.ajudaCustoJantar,
       ajudaCustoAlojamento: linha.ajudaCustoAlojamento,
-      senhaAlmoco: linha.senhaAlmoco,
-      senhaJantar: linha.senhaJantar,
-      senhaCeia: linha.senhaCeia,
       viaturaId: linha.viaturaId ?? '',
       km: linha.km,
       observacoes: linha.observacoes ?? '',
@@ -814,9 +789,6 @@ export function AjudasMensaisView({
           ajudaCustoAlmoco: form.ajudaCustoAlmoco,
           ajudaCustoJantar: form.ajudaCustoJantar,
           ajudaCustoAlojamento: form.ajudaCustoAlojamento,
-          senhaAlmoco: form.senhaAlmoco,
-          senhaJantar: form.senhaJantar,
-          senhaCeia: form.senhaCeia,
           viaturaId: form.viaturaId || null,
           km: form.km,
           observacoes: form.observacoes || null,
@@ -1015,7 +987,6 @@ export function AjudasMensaisView({
                         <th className="text-left py-2 px-2 font-medium">Prevenção</th>
                         <th className="text-left py-2 px-2 font-medium">Viatura/KMs</th>
                         <th className="text-left py-2 px-2 font-medium">Ajudas</th>
-                        <th className="text-left py-2 px-2 font-medium">Senhas</th>
                         <th className="text-left py-2 px-2 font-medium">Observações</th>
                         <th className="py-2 px-2" />
                       </tr>
@@ -1053,14 +1024,7 @@ export function AjudasMensaisView({
                             {[
                               l.ajudaCustoAlmoco > 0 && `Al:${l.ajudaCustoAlmoco}`,
                               l.ajudaCustoJantar > 0 && `Jt:${l.ajudaCustoJantar}`,
-                              l.ajudaCustoAlojamento > 0 && `Al:${l.ajudaCustoAlojamento}`,
-                            ].filter(Boolean).join(' ') || '—'}
-                          </td>
-                          <td className="py-2 px-2 text-xs">
-                            {[
-                              l.senhaAlmoco > 0 && `Al:${l.senhaAlmoco}`,
-                              l.senhaJantar > 0 && `Jt:${l.senhaJantar}`,
-                              l.senhaCeia > 0 && `Ce:${l.senhaCeia}`,
+                              l.ajudaCustoAlojamento > 0 && `Aloj:${l.ajudaCustoAlojamento}`,
                             ].filter(Boolean).join(' ') || '—'}
                           </td>
                           <td className="py-2 px-2 max-w-[150px] truncate" title={l.observacoes ?? undefined}>

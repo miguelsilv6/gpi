@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
           where: { id: utilizadorIdParam },
           select: { brigadaId: true },
         })
-        if (!targetUser || targetUser.brigadaId !== session.user.brigadaId) {
+        if (!targetUser || !targetUser.brigadaId || !session.user.brigadaId || targetUser.brigadaId !== session.user.brigadaId) {
           return apiError('Sem permissão para ver registos deste utilizador', 403)
         }
       }

@@ -34,37 +34,77 @@ function DerivedRates({ config }: { config: AjudasConfig }) {
   const taxaFdsNoite = taxaFdsDia * 2
   const taxaPiqueteSemana = config.vencimentoBase * config.percentPiqueteSemana
   const taxaPiqueteFds = config.vencimentoBase * config.percentPiqueteFds
+  const taxaPrevencaoSemana = config.vencimentoBase * config.percentPrevencaoPassiva / 3
+  const taxaPrevencaoFds = taxaPrevencaoSemana * 1.265
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Taxas Calculadas (leitura)</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <div className="flex justify-between py-1 border-b">
-            <span className="text-muted-foreground">Semana 08-24h</span>
-            <span className="font-medium">{fmtEur(taxaSemanaDia)}/h</span>
+      <CardContent className="space-y-4">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Horas Extra</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Semana 08-24h</span>
+              <span className="font-medium">{fmtEur(taxaSemanaDia)}/h</span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Semana 00-08h</span>
+              <span className="font-medium">{fmtEur(taxaSemanaNoite)}/h</span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">FdS/Feriado 08-24h</span>
+              <span className="font-medium">{fmtEur(taxaFdsDia)}/h</span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">FdS/Feriado 00-08h</span>
+              <span className="font-medium">{fmtEur(taxaFdsNoite)}/h</span>
+            </div>
           </div>
-          <div className="flex justify-between py-1 border-b">
-            <span className="text-muted-foreground">Semana 00-08h</span>
-            <span className="font-medium">{fmtEur(taxaSemanaNoite)}/h</span>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Piquete</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Piquete Semana</span>
+              <span className="font-medium">{fmtEur(taxaPiqueteSemana)}/período</span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Piquete FdS/Feriado</span>
+              <span className="font-medium">{fmtEur(taxaPiqueteFds)}/período</span>
+            </div>
           </div>
-          <div className="flex justify-between py-1 border-b">
-            <span className="text-muted-foreground">FdS/Feriado 08-24h</span>
-            <span className="font-medium">{fmtEur(taxaFdsDia)}/h</span>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Prevenção Passiva</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Dia de Semana</span>
+              <span className="font-medium">{fmtEur(taxaPrevencaoSemana)}/dia</span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">FdS/Feriado</span>
+              <span className="font-medium">{fmtEur(taxaPrevencaoFds)}/dia</span>
+            </div>
           </div>
-          <div className="flex justify-between py-1 border-b">
-            <span className="text-muted-foreground">FdS/Feriado 00-08h</span>
-            <span className="font-medium">{fmtEur(taxaFdsNoite)}/h</span>
-          </div>
-          <div className="flex justify-between py-1 border-b">
-            <span className="text-muted-foreground">Piquete Semana</span>
-            <span className="font-medium">{fmtEur(taxaPiqueteSemana)}/período</span>
-          </div>
-          <div className="flex justify-between py-1 border-b">
-            <span className="text-muted-foreground">Piquete FdS</span>
-            <span className="font-medium">{fmtEur(taxaPiqueteFds)}/período</span>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Ajudas de Custo</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Almoço</span>
+              <span className="font-medium">{fmtEur(config.senhaAlmoco)}/refeição</span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Jantar</span>
+              <span className="font-medium">{fmtEur(config.senhaJantar)}/refeição</span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span className="text-muted-foreground">Alojamento</span>
+              <span className="font-medium">{fmtEur(config.ajudaCustoMaxDiario * 0.5)}/noite</span>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -216,7 +256,7 @@ export function AjudasConfigTab() {
                   onChange={(e) => setNum('percentPrevencaoPassiva', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
-                  {fmtEur(config.vencimentoBase * config.percentPrevencaoPassiva / 3)}/período
+                  {fmtEur(config.vencimentoBase * config.percentPrevencaoPassiva / 3)}/dia
                 </span>
               </div>
             </div>
@@ -272,6 +312,9 @@ export function AjudasConfigTab() {
                 value={config.ajudaCustoMaxDiario}
                 onChange={(e) => setNum('ajudaCustoMaxDiario', e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                Base para o cálculo do alojamento (50% deste valor). As refeições usam os valores configurados em "Senhas".
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="distanciaMinKmAjudas">Distância Mínima (km)</Label>
@@ -290,10 +333,10 @@ export function AjudasConfigTab() {
           </CardContent>
         </Card>
 
-        {/* Senhas */}
+        {/* Senhas — used as the per-meal/stay rates for ajudas de custo */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Senhas</CardTitle>
+            <CardTitle className="text-base">Valores das Refeições</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1.5">

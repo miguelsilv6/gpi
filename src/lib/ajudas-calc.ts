@@ -8,7 +8,7 @@ export interface HoursSplit {
 }
 
 export interface AjudasTotais {
-  // Overtime hours
+  // Overtime hours (raw totals for display)
   semanaDia: number
   semanaNoite: number
   fdsDia: number
@@ -18,11 +18,14 @@ export interface AjudasTotais {
   taxaSemanaNoite: number
   taxaFdsDia: number
   taxaFdsNoite: number
-  // Overtime subtotals
+  // Overtime subtotals uncapped (for display breakdown only — not used in final calc)
   totalSemanaDia: number
   totalSemanaNoite: number
   totalFdsDia: number
   totalFdsNoite: number
+  // Overtime after per-day piquete cap
+  totalHorasExtraSemana: number
+  totalHorasExtraFds: number
   totalHorasExtra: number
   // Piquete
   piqueteSemana: number
@@ -40,7 +43,7 @@ export interface AjudasTotais {
   totalPrevencaoSemana: number
   totalPrevencaoFds: number
   totalPrevencao: number
-  // Ajudas de custo
+  // Ajudas de custo (rates now come from config.senha* values)
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
   ajudaCustoAlojamento: number
@@ -48,7 +51,7 @@ export interface AjudasTotais {
   taxaAjudaJantar: number
   taxaAjudaAlojamento: number
   totalAjudasCusto: number
-  // Senhas
+  // Senhas (zeroed — removed from totals, kept for backward compat)
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -58,6 +61,8 @@ export interface AjudasTotais {
   totalSenhas: number
   // Deductions
   baseImponivel: number
+  taxaIRS: number
+  taxaSS: number
   irs: number
   ss: number
   // Final
@@ -68,7 +73,7 @@ export interface AjudasTotais {
   limiteMensal: number
   totalContaLimite: number
   emFalta: number
-  percentCompleto: number
+  percentCompleto: number  // may exceed 1 when over the monthly limit
 }
 
 export interface ConfigData {
@@ -247,24 +252,6 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     }
   }
 
-  // Accumulators
-  let semanaDia = 0
-  let semanaNoite = 0
-  let fdsDia = 0
-  let fdsNoite = 0
-
-  let piqueteSemana = 0
-  let piqueteFds = 0
-  let prevencaoSemana = 0
-  let prevencaoFds = 0
-
-  let ajudaCustoAlmoco = 0
-  let ajudaCustoJantar = 0
-  let ajudaCustoAlojamento = 0
-  let senhaAlmoco = 0
-  let senhaJantar = 0
-  let senhaCeia = 0
-
   const pad = (n: number) => String(n).padStart(2, '0')
   const fmtDate = (d: Date) =>
     `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
@@ -274,25 +261,71 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     return dow === 0 || dow === 6 || allHolidays.has(fmtDate(d))
   }
 
+  // --- Rates (computed upfront so per-day cap can use them) ---
+  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaNoite = taxaSemanaDia * 2
+  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsNoite = taxaFdsDia * 2
+  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
+  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
+  const taxaPrevencaoSemana = vencimentoBase * config.percentPrevencaoPassiva / 3
+  const taxaPrevencaoFds = vencimentoBase * config.percentPrevencaoPassiva / 3 * 1.265
+  // Ajudas de custo rates use the configured senha values directly
+  const taxaAjudaAlmoco = config.senhaAlmoco
+  const taxaAjudaJantar = config.senhaJantar
+  const taxaAjudaAlojamento = config.ajudaCustoMaxDiario * 0.5
+
+  // Per-day overtime accumulator (key = 'YYYY-MM-DD')
+  const dayOvertimeMap = new Map<string, HoursSplit>()
+
+  let piqueteSemana = 0
+  let piqueteFds = 0
+  let prevencaoSemana = 0
+  let prevencaoFds = 0
+
+  let ajudaCustoAlmoco = 0
+  let ajudaCustoJantar = 0
+  let ajudaCustoAlojamento = 0
+
   for (const linha of linhas) {
     const inicio = new Date(linha.dataInicio)
     const fim = new Date(linha.dataFim)
 
-    // prevencaoOnly entries record only the prevencao fee — skip hour calculation
     if (!linha.prevencaoOnly) {
-      const split = splitHours(inicio, fim, allHolidays)
-      semanaDia += split.semanaDia
-      semanaNoite += split.semanaNoite
-      fdsDia += split.fdsDia
-      fdsNoite += split.fdsNoite
+      // Group by calendar day to enable per-day piquete cap
+      const iterDay = new Date(inicio)
+      iterDay.setUTCHours(0, 0, 0, 0)
+
+      while (iterDay.getTime() < fim.getTime()) {
+        const nextDay = new Date(iterDay)
+        nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+
+        const segStart = inicio.getTime() > iterDay.getTime() ? inicio : iterDay
+        const segEnd = fim.getTime() < nextDay.getTime() ? fim : nextDay
+
+        if (segStart.getTime() < segEnd.getTime()) {
+          const dateKey = fmtDate(iterDay)
+          const split = splitHours(segStart, segEnd, allHolidays)
+          const existing = dayOvertimeMap.get(dateKey)
+          if (existing) {
+            existing.semanaDia += split.semanaDia
+            existing.semanaNoite += split.semanaNoite
+            existing.fdsDia += split.fdsDia
+            existing.fdsNoite += split.fdsNoite
+          } else {
+            dayOvertimeMap.set(dateKey, { ...split })
+          }
+        }
+
+        iterDay.setUTCDate(iterDay.getUTCDate() + 1)
+      }
     }
 
-    // Prevenção / Piquete — count one entry per line, classify by dataInicio day
+    // Prevenção / Piquete
     if (linha.prevencao === 'PIQUETE') {
       if (isFdsDay(inicio)) piqueteFds += 1
       else piqueteSemana += 1
     } else if (linha.prevencao === 'PREVENCAO_PASSIVA') {
-      // Count each calendar day in the prevention range (start date inclusive, end date inclusive)
       const cur = new Date(inicio)
       cur.setUTCHours(0, 0, 0, 0)
       const last = new Date(fim)
@@ -312,39 +345,38 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
       ajudaCustoJantar += linha.ajudaCustoJantar
       ajudaCustoAlojamento += linha.ajudaCustoAlojamento
     }
-
-    // Senhas always apply
-    senhaAlmoco += linha.senhaAlmoco
-    senhaJantar += linha.senhaJantar
-    senhaCeia += linha.senhaCeia
   }
 
-  // --- Rates calculation ---
-  // Overtime rates derived from piquete percentages
-  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
-  const taxaSemanaNoite = taxaSemanaDia * 2
-  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
-  const taxaFdsNoite = taxaFdsDia * 2
+  // Apply per-day piquete cap to overtime values
+  let semanaDia = 0
+  let semanaNoite = 0
+  let fdsDia = 0
+  let fdsNoite = 0
+  let totalHorasExtraSemana = 0
+  let totalHorasExtraFds = 0
 
-  // Piquete rates: full monthly allowance per piquete entry
-  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
-  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
+  for (const [, split] of dayOvertimeMap) {
+    semanaDia += split.semanaDia
+    semanaNoite += split.semanaNoite
+    fdsDia += split.fdsDia
+    fdsNoite += split.fdsNoite
 
-  // Prevenção passiva rates
-  const taxaPrevencaoSemana = vencimentoBase * config.percentPrevencaoPassiva / 3
-  const taxaPrevencaoFds = vencimentoBase * config.percentPrevencaoPassiva / 3 * 1.265
+    const rawSemana = split.semanaDia * taxaSemanaDia + split.semanaNoite * taxaSemanaNoite
+    const rawFds = split.fdsDia * taxaFdsDia + split.fdsNoite * taxaFdsNoite
 
-  // Ajudas de custo rates
-  const taxaAjudaAlmoco = config.ajudaCustoMaxDiario * 0.25 - 6
-  const taxaAjudaJantar = config.ajudaCustoMaxDiario * 0.25
-  const taxaAjudaAlojamento = config.ajudaCustoMaxDiario * 0.5
+    // Cap daily overtime value at the piquete rate for that day type
+    if (rawSemana > 0) totalHorasExtraSemana += Math.min(rawSemana, taxaPiqueteSemana)
+    if (rawFds > 0) totalHorasExtraFds += Math.min(rawFds, taxaPiqueteFds)
+  }
 
   // --- Subtotals ---
+  // Uncapped breakdown (for display — hours × rate, may exceed daily cap)
   const totalSemanaDia = semanaDia * taxaSemanaDia
   const totalSemanaNoite = semanaNoite * taxaSemanaNoite
   const totalFdsDia = fdsDia * taxaFdsDia
   const totalFdsNoite = fdsNoite * taxaFdsNoite
-  const totalHorasExtra = totalSemanaDia + totalSemanaNoite + totalFdsDia + totalFdsNoite
+  // Capped total used in all financial calculations
+  const totalHorasExtra = totalHorasExtraSemana + totalHorasExtraFds
 
   const totalPiqueteSemana = piqueteSemana * taxaPiqueteSemana
   const totalPiqueteFds = piqueteFds * taxaPiqueteFds
@@ -359,16 +391,11 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     ajudaCustoJantar * taxaAjudaJantar +
     ajudaCustoAlojamento * taxaAjudaAlojamento
 
-  const totalSenhas =
-    senhaAlmoco * config.senhaAlmoco +
-    senhaJantar * config.senhaJantar +
-    senhaCeia * config.senhaCeia
-
   // --- Final calculations ---
   const baseImponivel = totalHorasExtra + totalPiquete + totalPrevencao
   const irs = baseImponivel * taxaIRS
   const ss = baseImponivel * config.taxaSS
-  const totalBruto = baseImponivel + totalAjudasCusto + totalSenhas
+  const totalBruto = baseImponivel + totalAjudasCusto
   const liquido = totalBruto - irs - ss
 
   // Limits
@@ -376,9 +403,8 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   const limiteMensal = vencimentoBase / 3
   const totalContaLimite = baseImponivel
   const emFalta = Math.max(0, limiteMensal - totalContaLimite)
-  const percentCompleto = limiteMensal > 0
-    ? Math.min(1, totalContaLimite / limiteMensal)
-    : 0
+  // percentCompleto is intentionally uncapped — >1 means over monthly limit
+  const percentCompleto = limiteMensal > 0 ? totalContaLimite / limiteMensal : 0
 
   return {
     semanaDia,
@@ -393,6 +419,8 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     totalSemanaNoite,
     totalFdsDia,
     totalFdsNoite,
+    totalHorasExtraSemana,
+    totalHorasExtraFds,
     totalHorasExtra,
     piqueteSemana,
     piqueteFds,
@@ -415,14 +443,16 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     taxaAjudaJantar,
     taxaAjudaAlojamento,
     totalAjudasCusto,
-    senhaAlmoco,
-    senhaJantar,
-    senhaCeia,
+    senhaAlmoco: 0,
+    senhaJantar: 0,
+    senhaCeia: 0,
     taxaSenhaAlmoco: config.senhaAlmoco,
     taxaSenhaJantar: config.senhaJantar,
     taxaSenhaCeia: config.senhaCeia,
-    totalSenhas,
+    totalSenhas: 0,
     baseImponivel,
+    taxaIRS,
+    taxaSS: config.taxaSS,
     irs,
     ss,
     totalBruto,

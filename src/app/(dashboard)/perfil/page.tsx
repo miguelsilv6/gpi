@@ -174,7 +174,8 @@ export default function PerfilPage() {
         setUser(data)
         profileForm.reset({ nome: data.nome, email: data.email })
         setAjudasVencimento(data.ajudasVencimentoBase != null ? String(data.ajudasVencimentoBase) : '')
-        setAjudasIRS(data.ajudasTaxaIRS != null ? String(data.ajudasTaxaIRS) : '')
+        // Store IRS as percentage for display (DB stores decimal, e.g. 0.1116 → "11.16")
+        setAjudasIRS(data.ajudasTaxaIRS != null ? String(+(data.ajudasTaxaIRS * 100).toFixed(4)) : '')
         setLoading(false)
       })
       .catch(() => {
@@ -196,6 +197,7 @@ export default function PerfilPage() {
     }
     const updated = await res.json()
     setUser((prev) => prev ? { ...prev, ...updated } : prev)
+    profileForm.reset({ nome: updated.nome, email: updated.email })
     toast.success('Perfil actualizado')
   }
 
@@ -219,7 +221,8 @@ export default function PerfilPage() {
     try {
       const payload: Record<string, number | null> = {
         ajudasVencimentoBase: ajudasVencimento !== '' ? parseFloat(ajudasVencimento) : null,
-        ajudasTaxaIRS: ajudasIRS !== '' ? parseFloat(ajudasIRS) : null,
+        // User enters percentage (e.g. 11.16), convert back to decimal for storage
+        ajudasTaxaIRS: ajudasIRS !== '' ? parseFloat(ajudasIRS) / 100 : null,
       }
       if (
         (payload.ajudasVencimentoBase !== null && isNaN(payload.ajudasVencimentoBase as number)) ||
@@ -339,14 +342,14 @@ export default function PerfilPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="ajudasIRS">Taxa de Retenção de IRS (ex: 0.1116)</Label>
+            <Label htmlFor="ajudasIRS">Taxa de Retenção de IRS (%)</Label>
             <Input
               id="ajudasIRS"
               type="number"
-              step="0.0001"
+              step="0.01"
               min={0}
-              max={1}
-              placeholder="Taxa global das configurações"
+              max={100}
+              placeholder="ex: 11.16"
               value={ajudasIRS}
               onChange={(e) => setAjudasIRS(e.target.value)}
             />

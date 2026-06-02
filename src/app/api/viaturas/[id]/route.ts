@@ -5,8 +5,7 @@ import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
-
-const MATRICULA_REGEX = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i
+import { MATRICULA_REGEX } from '@/lib/constants'
 
 const updateSchema = z.object({
   nome: z.string().min(1).max(100).optional(),

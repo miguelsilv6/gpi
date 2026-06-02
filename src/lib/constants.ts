@@ -85,3 +85,5 @@ export const RATE_LIMITS = {
   // (CSV → MD → PDF do mesmo relatório).
   REPORT_EXPORT: { max: 30, windowMs: 5 * 60_000 },
 } as const
+
+export const MATRICULA_REGEX = /^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$/i
