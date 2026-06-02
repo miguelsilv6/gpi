@@ -12,6 +12,7 @@ const createSchema = z.object({
   descricao: z.string().max(500).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).default(0),
   ativo: z.boolean().default(true),
+  tribunalId: z.string().optional().nullable(),
 })
 
 export async function GET() {
@@ -42,9 +43,12 @@ export async function POST(req: NextRequest) {
     const nome = data.nome.trim()
 
     const existing = await prisma.seccao.findFirst({
-      where: { nome: { equals: nome, mode: 'insensitive' } },
+      where: {
+        nome: { equals: nome, mode: 'insensitive' },
+        tribunalId: data.tribunalId ?? null,
+      },
     })
-    if (existing) return apiError('Já existe uma secção com este nome', 409)
+    if (existing) return apiError('Já existe uma secção com este nome neste tribunal', 409)
 
     const created = await prisma.seccao.create({
       data: {
@@ -52,6 +56,7 @@ export async function POST(req: NextRequest) {
         descricao: data.descricao?.trim() || null,
         ordem: data.ordem,
         ativo: data.ativo,
+        tribunalId: data.tribunalId ?? null,
       },
     })
 

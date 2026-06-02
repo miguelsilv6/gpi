@@ -12,6 +12,7 @@ const updateSchema = z.object({
   descricao: z.string().max(500).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).optional(),
   ativo: z.boolean().optional(),
+  tribunalId: z.string().optional().nullable(),
 })
 
 export async function PUT(
@@ -35,16 +36,19 @@ export async function PUT(
 
     const data = parsed.data
 
+    const newTribunalId = data.tribunalId !== undefined ? (data.tribunalId ?? null) : existing.tribunalId
+
     if (data.nome !== undefined) {
       const nome = data.nome.trim()
       const collision = await prisma.seccao.findFirst({
         where: {
           nome: { equals: nome, mode: 'insensitive' },
+          tribunalId: newTribunalId,
           NOT: { id },
         },
         select: { id: true },
       })
-      if (collision) return apiError('Já existe outra secção com este nome', 409)
+      if (collision) return apiError('Já existe outra secção com este nome neste tribunal', 409)
       data.nome = nome
     }
 
@@ -55,10 +59,11 @@ export async function PUT(
         ...(data.descricao !== undefined && { descricao: data.descricao?.trim() || null }),
         ...(data.ordem !== undefined && { ordem: data.ordem }),
         ...(data.ativo !== undefined && { ativo: data.ativo }),
+        ...(data.tribunalId !== undefined && { tribunalId: data.tribunalId ?? null }),
       },
     })
 
-    const changes = diff(existing, updated, ['nome', 'descricao', 'ordem', 'ativo'])
+    const changes = diff(existing, updated, ['nome', 'descricao', 'ordem', 'ativo', 'tribunalId'])
     if (changes) {
       await writeAudit({
         req,

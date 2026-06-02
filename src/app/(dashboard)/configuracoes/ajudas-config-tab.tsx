@@ -24,7 +24,7 @@ interface AjudasConfig {
 }
 
 function fmtEur(n: number) {
-  return `€${n.toFixed(4)}`
+  return `€${n.toFixed(2)}`
 }
 
 function pct(n: number) {
@@ -196,6 +196,12 @@ export function AjudasConfigTab() {
     if (!isNaN(v)) set(key, v as never)
   }
 
+  function setNumPct(key: keyof AjudasConfig, raw: string) {
+    if (raw === '') { set(key, 0 as never); return }
+    const v = parseFloat(raw)
+    if (!isNaN(v)) set(key, (v / 100) as never)
+  }
+
   if (loading) {
     return <div className="text-sm text-muted-foreground py-4">A carregar...</div>
   }
@@ -242,16 +248,16 @@ export function AjudasConfigTab() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="percentPiqueteSemana">Piquete Semana</Label>
+              <Label htmlFor="percentPiqueteSemana">Piquete Semana (%)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="percentPiqueteSemana"
                   type="number"
-                  step="0.001"
+                  step="0.1"
                   min={0}
-                  max={1}
-                  value={config.percentPiqueteSemana}
-                  onChange={(e) => setNum('percentPiqueteSemana', e.target.value)}
+                  max={100}
+                  value={(config.percentPiqueteSemana * 100).toFixed(1)}
+                  onChange={(e) => setNumPct('percentPiqueteSemana', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
                   {fmtEur(config.vencimentoBase * config.percentPiqueteSemana)}/período
@@ -259,16 +265,16 @@ export function AjudasConfigTab() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="percentPiqueteFds">Piquete FdS</Label>
+              <Label htmlFor="percentPiqueteFds">Piquete FdS (%)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="percentPiqueteFds"
                   type="number"
-                  step="0.001"
+                  step="0.1"
                   min={0}
-                  max={1}
-                  value={config.percentPiqueteFds}
-                  onChange={(e) => setNum('percentPiqueteFds', e.target.value)}
+                  max={100}
+                  value={(config.percentPiqueteFds * 100).toFixed(1)}
+                  onChange={(e) => setNumPct('percentPiqueteFds', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
                   {fmtEur(config.vencimentoBase * config.percentPiqueteFds)}/período
@@ -281,11 +287,11 @@ export function AjudasConfigTab() {
                 <Input
                   id="percentPrevencaoPassiva"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min={0}
-                  max={1}
-                  value={config.percentPrevencaoPassiva}
-                  onChange={(e) => setNum('percentPrevencaoPassiva', e.target.value)}
+                  max={100}
+                  value={(config.percentPrevencaoPassiva * 100).toFixed(0)}
+                  onChange={(e) => setNumPct('percentPrevencaoPassiva', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
                   {(config.percentPrevencaoPassiva * 100).toFixed(0)}% do piquete
@@ -293,16 +299,16 @@ export function AjudasConfigTab() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="taxaIRS">Taxa IRS</Label>
+              <Label htmlFor="taxaIRS">Taxa IRS (%)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="taxaIRS"
                   type="number"
-                  step="0.0001"
+                  step="0.01"
                   min={0}
-                  max={1}
-                  value={config.taxaIRS}
-                  onChange={(e) => setNum('taxaIRS', e.target.value)}
+                  max={100}
+                  value={(config.taxaIRS * 100).toFixed(2)}
+                  onChange={(e) => setNumPct('taxaIRS', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
                   {(config.taxaIRS * 100).toFixed(2)}%
@@ -310,16 +316,16 @@ export function AjudasConfigTab() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="taxaSS">Taxa SS</Label>
+              <Label htmlFor="taxaSS">Taxa SS (%)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="taxaSS"
                   type="number"
-                  step="0.001"
+                  step="0.01"
                   min={0}
-                  max={1}
-                  value={config.taxaSS}
-                  onChange={(e) => setNum('taxaSS', e.target.value)}
+                  max={100}
+                  value={(config.taxaSS * 100).toFixed(2)}
+                  onChange={(e) => setNumPct('taxaSS', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
                   {(config.taxaSS * 100).toFixed(2)}%

@@ -52,7 +52,7 @@ export default async function NovoInqueritoPage() {
     prisma.seccao.findMany({
       where: { ativo: true },
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true },
+      select: { id: true, nome: true, ativo: true, tribunalId: true },
     }),
     prisma.localTratamento.findMany({
       where: { ativo: true },

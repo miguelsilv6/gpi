@@ -14,6 +14,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 
@@ -23,34 +30,53 @@ interface Seccao {
   descricao: string | null
   ordem: number
   ativo: boolean
+  tribunalId: string | null
 }
+
+interface TribunalOption {
+  id: string
+  nome: string
+}
+
+const NONE_VALUE = '__none__'
 
 const EMPTY_NEW = {
   nome: '',
   descricao: '',
   ordem: 0,
   ativo: true,
+  tribunalId: null as string | null,
 }
 
 export function SeccoesTab() {
   const [seccoes, setSeccoes] = useState<Seccao[]>([])
+  const [tribunais, setTribunais] = useState<TribunalOption[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [neu, setNeu] = useState(EMPTY_NEW)
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  const [edit, setEdit] = useState({ nome: '', descricao: '', ordem: 0 })
+  const [edit, setEdit] = useState({ nome: '', descricao: '', ordem: 0, tribunalId: null as string | null })
   const [deleteCandidate, setDeleteCandidate] = useState<Seccao | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   async function load() {
     setLoading(true)
-    const res = await fetch('/api/seccoes')
-    if (res.ok) setSeccoes(await res.json())
+    const [s, t] = await Promise.all([
+      fetch('/api/seccoes').then((r) => r.ok ? r.json() : []),
+      fetch('/api/tribunais').then((r) => r.ok ? r.json() : []),
+    ])
+    setSeccoes(s)
+    setTribunais(t)
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
+
+  function tribunalNome(id: string | null) {
+    if (!id) return null
+    return tribunais.find((t) => t.id === id)?.nome ?? null
+  }
 
   async function handleAdd() {
     if (!neu.nome.trim()) {
@@ -66,6 +92,7 @@ export function SeccoesTab() {
         descricao: neu.descricao.trim() || null,
         ordem: neu.ordem,
         ativo: neu.ativo,
+        tribunalId: neu.tribunalId || null,
       }),
     })
     setSaving(false)
@@ -96,7 +123,7 @@ export function SeccoesTab() {
 
   function startEdit(c: Seccao) {
     setEditId(c.id)
-    setEdit({ nome: c.nome, descricao: c.descricao ?? '', ordem: c.ordem })
+    setEdit({ nome: c.nome, descricao: c.descricao ?? '', ordem: c.ordem, tribunalId: c.tribunalId })
   }
 
   async function handleEditSave(id: string) {
@@ -111,6 +138,7 @@ export function SeccoesTab() {
         nome: edit.nome.trim(),
         descricao: edit.descricao.trim() || null,
         ordem: edit.ordem,
+        tribunalId: edit.tribunalId || null,
       }),
     })
     if (!res.ok) {
@@ -181,16 +209,39 @@ export function SeccoesTab() {
       {adding && (
         <Card className="border-dashed">
           <CardContent className="pt-4 space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="newNome">Nome *</Label>
-              <Input
-                id="newNome"
-                autoFocus
-                placeholder="Ex: 1ª Secção"
-                value={neu.nome}
-                onChange={(e) => setNeu({ ...neu, nome: e.target.value })}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="newNome">Nome *</Label>
+                <Input
+                  id="newNome"
+                  autoFocus
+                  placeholder="Ex: 1ª Secção"
+                  value={neu.nome}
+                  onChange={(e) => setNeu({ ...neu, nome: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tribunal</Label>
+                <Select
+                  value={neu.tribunalId ?? NONE_VALUE}
+                  onValueChange={(v) => setNeu({ ...neu, tribunalId: v === NONE_VALUE ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Nenhum (global)">
+                      {(v: string) => !v || v === NONE_VALUE
+                        ? <span className="text-muted-foreground">Nenhum (global)</span>
+                        : tribunais.find((t) => t.id === v)?.nome ?? 'Selecionar'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE_VALUE}>Nenhum (global)</SelectItem>
+                    {tribunais.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="newDescricao">Descrição</Label>
@@ -284,6 +335,28 @@ export function SeccoesTab() {
                       </button>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[200px]">
+                      <Select
+                        value={edit.tribunalId ?? NONE_VALUE}
+                        onValueChange={(v) => setEdit({ ...edit, tribunalId: v === NONE_VALUE ? null : v })}
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue>
+                            {(v: string) => !v || v === NONE_VALUE
+                              ? <span className="text-muted-foreground">Nenhum (global)</span>
+                              : tribunais.find((t) => t.id === v)?.nome ?? 'Tribunal'}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE_VALUE}>Nenhum (global)</SelectItem>
+                          {tribunais.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <Textarea
                     className="text-sm"
                     placeholder="Descrição"
@@ -296,6 +369,11 @@ export function SeccoesTab() {
                 <>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{c.nome}</p>
+                    {c.tribunalId && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {tribunalNome(c.tribunalId) ?? c.tribunalId}
+                      </p>
+                    )}
                     {c.descricao && (
                       <p className="text-xs text-muted-foreground mt-0.5">{c.descricao}</p>
                     )}
@@ -347,6 +425,9 @@ export function SeccoesTab() {
             <div className="space-y-3 text-sm">
               <p>
                 «<strong>{deleteCandidate.nome}</strong>»
+                {deleteCandidate.tribunalId && (
+                  <span className="text-muted-foreground"> — {tribunalNome(deleteCandidate.tribunalId)}</span>
+                )}
               </p>
               <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 space-y-2">
                 <p className="font-medium text-amber-900 dark:text-amber-200">
