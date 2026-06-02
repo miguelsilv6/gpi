@@ -36,20 +36,22 @@ export async function PUT(
 
     const data = parsed.data
 
+    const newNome = data.nome !== undefined ? data.nome.trim() : existing.nome
     const newTribunalId = data.tribunalId !== undefined ? (data.tribunalId ?? null) : existing.tribunalId
 
-    if (data.nome !== undefined) {
-      const nome = data.nome.trim()
+    // Run collision check whenever nome OR tribunalId changes (moving a section to
+    // another tribunal can create duplicates even without touching the name).
+    if (data.nome !== undefined || data.tribunalId !== undefined) {
       const collision = await prisma.seccao.findFirst({
         where: {
-          nome: { equals: nome, mode: 'insensitive' },
+          nome: { equals: newNome, mode: 'insensitive' },
           tribunalId: newTribunalId,
           NOT: { id },
         },
         select: { id: true },
       })
       if (collision) return apiError('Já existe outra secção com este nome neste tribunal', 409)
-      data.nome = nome
+      if (data.nome !== undefined) data.nome = newNome
     }
 
     const updated = await prisma.seccao.update({

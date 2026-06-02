@@ -153,10 +153,9 @@ export function InqueritoForm({
 
   const seccoesForSelect = useMemo(() => {
     const tribunalId = selectedTribunalId && selectedTribunalId !== NONE_VALUE ? selectedTribunalId : null
-    // When tribunal is selected, show only sections for that tribunal + global sections (no tribunal)
-    const scoped = tribunalId
-      ? seccoes.filter((s) => s.tribunalId === tribunalId || s.tribunalId === null)
-      : seccoes
+    // Always scope: global sections (null) + sections for the selected tribunal.
+    // When no tribunal is selected, tribunalId === null so only global sections show.
+    const scoped = seccoes.filter((s) => s.tribunalId === tribunalId || s.tribunalId === null)
     const ativas = scoped.filter((s) => s.ativo)
     const current = defaultValues?.seccaoId
       ? seccoes.find((s) => s.id === defaultValues.seccaoId)

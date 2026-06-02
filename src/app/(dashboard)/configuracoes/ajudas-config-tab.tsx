@@ -202,6 +202,12 @@ export function AjudasConfigTab() {
     if (!isNaN(v)) set(key, (v / 100) as never)
   }
 
+  // Converts a stored decimal (0.083) to a percentage view value (8.3) without
+  // .toFixed() rounding — keeps floating point clean without locking the input.
+  function toPctView(n: number) {
+    return Math.round(n * 10000) / 100
+  }
+
   if (loading) {
     return <div className="text-sm text-muted-foreground py-4">A carregar...</div>
   }
@@ -256,7 +262,7 @@ export function AjudasConfigTab() {
                   step="0.1"
                   min={0}
                   max={100}
-                  value={(config.percentPiqueteSemana * 100).toFixed(1)}
+                  value={toPctView(config.percentPiqueteSemana)}
                   onChange={(e) => setNumPct('percentPiqueteSemana', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
@@ -273,7 +279,7 @@ export function AjudasConfigTab() {
                   step="0.1"
                   min={0}
                   max={100}
-                  value={(config.percentPiqueteFds * 100).toFixed(1)}
+                  value={toPctView(config.percentPiqueteFds)}
                   onChange={(e) => setNumPct('percentPiqueteFds', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
@@ -290,7 +296,7 @@ export function AjudasConfigTab() {
                   step="1"
                   min={0}
                   max={100}
-                  value={(config.percentPrevencaoPassiva * 100).toFixed(0)}
+                  value={toPctView(config.percentPrevencaoPassiva)}
                   onChange={(e) => setNumPct('percentPrevencaoPassiva', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
@@ -307,7 +313,7 @@ export function AjudasConfigTab() {
                   step="0.01"
                   min={0}
                   max={100}
-                  value={(config.taxaIRS * 100).toFixed(2)}
+                  value={toPctView(config.taxaIRS)}
                   onChange={(e) => setNumPct('taxaIRS', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
@@ -324,7 +330,7 @@ export function AjudasConfigTab() {
                   step="0.01"
                   min={0}
                   max={100}
-                  value={(config.taxaSS * 100).toFixed(2)}
+                  value={toPctView(config.taxaSS)}
                   onChange={(e) => setNumPct('taxaSS', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">

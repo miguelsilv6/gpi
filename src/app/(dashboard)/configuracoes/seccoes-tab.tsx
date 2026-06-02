@@ -228,11 +228,7 @@ export function SeccoesTab() {
                   onValueChange={(v) => setNeu({ ...neu, tribunalId: v === NONE_VALUE ? null : v })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Nenhum (global)">
-                      {(v: string) => !v || v === NONE_VALUE
-                        ? <span className="text-muted-foreground">Nenhum (global)</span>
-                        : tribunais.find((t) => t.id === v)?.nome ?? 'Selecionar'}
-                    </SelectValue>
+                    <SelectValue placeholder="Nenhum (global)" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE_VALUE}>Nenhum (global)</SelectItem>
@@ -342,11 +338,7 @@ export function SeccoesTab() {
                         onValueChange={(v) => setEdit({ ...edit, tribunalId: v === NONE_VALUE ? null : v })}
                       >
                         <SelectTrigger className="h-8 text-sm">
-                          <SelectValue>
-                            {(v: string) => !v || v === NONE_VALUE
-                              ? <span className="text-muted-foreground">Nenhum (global)</span>
-                              : tribunais.find((t) => t.id === v)?.nome ?? 'Tribunal'}
-                          </SelectValue>
+                          <SelectValue placeholder="Nenhum (global)" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={NONE_VALUE}>Nenhum (global)</SelectItem>
