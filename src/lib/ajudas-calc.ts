@@ -306,16 +306,19 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
         const segEnd = fim.getTime() < nextDay.getTime() ? fim : nextDay
 
         if (segStart.getTime() < segEnd.getTime()) {
-          const dateKey = fmtDate(iterDay)
-          const split = splitHours(segStart, segEnd, allHolidays)
-          const existing = dayOvertimeMap.get(dateKey)
-          if (existing) {
-            existing.semanaDia += split.semanaDia
-            existing.semanaNoite += split.semanaNoite
-            existing.fdsDia += split.fdsDia
-            existing.fdsNoite += split.fdsNoite
-          } else {
-            dayOvertimeMap.set(dateKey, { ...split })
+          // Only count overtime for days that fall in the target month
+          if (iterDay.getUTCFullYear() === ano && iterDay.getUTCMonth() + 1 === mes) {
+            const dateKey = fmtDate(iterDay)
+            const split = splitHours(segStart, segEnd, allHolidays)
+            const existing = dayOvertimeMap.get(dateKey)
+            if (existing) {
+              existing.semanaDia += split.semanaDia
+              existing.semanaNoite += split.semanaNoite
+              existing.fdsDia += split.fdsDia
+              existing.fdsNoite += split.fdsNoite
+            } else {
+              dayOvertimeMap.set(dateKey, { ...split })
+            }
           }
         }
 
@@ -351,8 +354,8 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     // and dataInicio falls in the target month
     if (
       linha.km >= config.distanciaMinKmAjudas &&
-      linha.dataInicio.getUTCFullYear() === ano &&
-      linha.dataInicio.getUTCMonth() + 1 === mes
+      inicio.getUTCFullYear() === ano &&
+      inicio.getUTCMonth() + 1 === mes
     ) {
       ajudaCustoAlmoco += linha.ajudaCustoAlmoco
       ajudaCustoJantar += linha.ajudaCustoJantar

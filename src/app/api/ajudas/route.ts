@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { calcAjudasTotais } from '@/lib/ajudas-calc'
+import { loadCrossMonthLinhas } from '@/lib/ajudas-cross-month'
 import type { Role } from '@/generated/prisma/enums'
 
 export async function GET(req: NextRequest) {
@@ -72,39 +73,13 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Get config and user overrides in parallel, and also fetch linhas from
-    // adjacent registos that have dates falling in this target month so that
-    // cross-month prevention intervals and late-filed entries are attributed
-    // to the correct month.
-    const startOfMonth = new Date(Date.UTC(ano, mes - 1, 1))
-    const startOfNextMonth = new Date(Date.UTC(ano, mes, 1))
-
     const [config, targetUserData, crossMonthLinhas] = await Promise.all([
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
       prisma.utilizador.findUnique({
         where: { id: targetUserId },
         select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true },
       }),
-      prisma.ajudasLinha.findMany({
-        where: {
-          registo: {
-            utilizadorId: targetUserId,
-            NOT: { id: registo.id },
-          },
-          OR: [
-            // Ajudas de custo / piquete: entry starts in target month
-            { dataInicio: { gte: startOfMonth, lt: startOfNextMonth } },
-            // Prevenção passiva: interval overlaps with target month
-            {
-              prevencao: 'PREVENCAO_PASSIVA',
-              dataInicio: { lt: startOfNextMonth },
-              dataFim: { gte: startOfMonth },
-            },
-          ],
-        },
-        orderBy: { dataInicio: 'asc' },
-        include: { viatura: { select: { id: true, nome: true, matricula: true } } },
-      }),
+      loadCrossMonthLinhas(targetUserId, ano, mes, registo.id),
     ])
 
     const vencimentoBase = targetUserData?.ajudasVencimentoBase
