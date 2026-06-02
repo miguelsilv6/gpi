@@ -46,8 +46,14 @@ export async function POST(req: NextRequest) {
       return apiError('A data de fim deve ser posterior à data de início', 400)
     }
     const durationDays = (fim.getTime() - inicio.getTime()) / 86_400_000
+    const isPrevencao = parsed.data.prevencao === 'PREVENCAO_PASSIVA' || parsed.data.prevencaoOnly
     if (durationDays > 31) {
-      return apiError('O intervalo máximo para horas extra é de 31 dias', 400)
+      return apiError(
+        isPrevencao
+          ? 'O intervalo máximo para prevenção é de 31 dias'
+          : 'O intervalo máximo para horas extra é de 31 dias',
+        400
+      )
     }
 
     // Verify the registo belongs to the caller or caller has elevated permissions
