@@ -287,6 +287,7 @@ export function InqueritoForm({
     }
     const created = await res.json()
     setTribunais((prev) => [...prev, { id: created.id, nome: created.nome, ativo: true, comarcaId: created.comarcaId, morada: created.morada, telefone: created.telefone ?? null, email: created.email ?? null }])
+    setSelectedComarcaId(created.comarcaId)
     setValue('tribunalId', created.id, { shouldDirty: true })
     // Clear secção since different tribunal may imply different comarca
     setValue('seccaoId', null, { shouldDirty: true })

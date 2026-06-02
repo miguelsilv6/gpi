@@ -925,7 +925,10 @@ export function AjudasMensaisView({
     const vencimentoBase = totais.limiteBase
 
     const win = window.open('', '_blank', 'width=900,height=900')
-    if (!win) return
+    if (!win) {
+      toast.error('O bloqueador de popups impediu a abertura do PDF. Por favor, permita popups para este site.')
+      return
+    }
 
     const monthName = MONTH_NAMES[mes - 1]
     const title = `Ajudas Mensais — ${monthName} ${ano}`
@@ -1042,7 +1045,7 @@ tr:nth-child(even) td{background:#f6f6f6}
   </div>
 </div>
 <p class="footer">Ajudas Mensais &bull; ${todayStr}</p>
-<script>window.onload=function(){window.print()}</script>
+<script>window.print()</script>
 </body>
 </html>`
 

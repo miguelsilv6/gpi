@@ -532,7 +532,7 @@ export function EstatisticasDashboard({
               </CardHeader>
               <CardContent>
                 <div className="grid gap-6 lg:grid-cols-2">
-                  <TribunalBarChart data={stats.porTribunal} />
+                  <TribunalBarChart data={stats.porTribunal.slice(0, 15)} />
                   <StatsTable data={stats.porTribunal} total={stats.total} />
                 </div>
               </CardContent>
