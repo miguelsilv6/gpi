@@ -47,12 +47,12 @@ export default async function NovoInqueritoPage() {
     prisma.tribunal.findMany({
       where: { ativo: true },
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true },
+      select: { id: true, nome: true, ativo: true, comarcaId: true, morada: true },
     }),
     prisma.seccao.findMany({
       where: { ativo: true },
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true, tribunalId: true },
+      select: { id: true, nome: true, ativo: true, comarcaId: true },
     }),
     prisma.localTratamento.findMany({
       where: { ativo: true },
@@ -88,6 +88,8 @@ export default async function NovoInqueritoPage() {
         tribunais={tribunais}
         seccoes={seccoes}
         locaisTratamento={locaisTratamento}
+        canCreateSeccao={true}
+        canCreateTribunal={true}
         defaultValues={{
           ...(session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
           ...(defaultEstado ? { estadoId: defaultEstado.id } : {}),
