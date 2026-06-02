@@ -9,10 +9,10 @@ import type { Role } from '@/generated/prisma/enums'
 
 export async function GET(req: NextRequest) {
   try {
-    if (!await isModuloAjudasAtivo()) return apiError('Módulo Ajudas Mensais está desativado', 503)
-
     const session = await getSession()
     const role = session.user.role as Role
+
+    if (!await isModuloAjudasAtivo() && role !== 'ADMINISTRACAO') return apiError('Módulo Ajudas Mensais está desativado', 503)
 
     if (!hasPermission(role, 'ajudas:own')) return apiError('Sem permissão', 403)
 

@@ -27,7 +27,7 @@ export default async function AjudasMensaisPage({
   }
 
   const moduloAtivo = await isModuloAjudasAtivo()
-  if (!moduloAtivo) {
+  if (!moduloAtivo && role !== 'ADMINISTRACAO') {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted text-muted-foreground">

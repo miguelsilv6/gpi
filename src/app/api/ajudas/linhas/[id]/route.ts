@@ -55,10 +55,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    if (!await isModuloAjudasAtivo()) return apiError('Módulo Ajudas Mensais está desativado', 503)
-
     const session = await getSession()
     const role = session.user.role as Role
+
+    if (!await isModuloAjudasAtivo() && role !== 'ADMINISTRACAO') return apiError('Módulo Ajudas Mensais está desativado', 503)
+
     if (!hasPermission(role, 'ajudas:own')) return apiError('Sem permissão', 403)
 
     const { id } = await params
@@ -131,10 +132,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    if (!await isModuloAjudasAtivo()) return apiError('Módulo Ajudas Mensais está desativado', 503)
-
     const session = await getSession()
     const role = session.user.role as Role
+
+    if (!await isModuloAjudasAtivo() && role !== 'ADMINISTRACAO') return apiError('Módulo Ajudas Mensais está desativado', 503)
+
     if (!hasPermission(role, 'ajudas:own')) return apiError('Sem permissão', 403)
 
     const { id } = await params
