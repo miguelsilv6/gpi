@@ -35,8 +35,15 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
-    if (!hasPermission(role, 'tribunal:manage')) {
-      return apiError('Sem permissão para gerir tribunais', 403)
+
+    const canCreate =
+      hasPermission(role, 'tribunal:manage') ||
+      hasPermission(role, 'inquerito:create') ||
+      hasPermission(role, 'inquerito:edit:own') ||
+      hasPermission(role, 'inquerito:edit:brigade') ||
+      hasPermission(role, 'inquerito:edit:all')
+    if (!canCreate) {
+      return apiError('Sem permissão para criar tribunais', 403)
     }
 
     const body = await req.json()

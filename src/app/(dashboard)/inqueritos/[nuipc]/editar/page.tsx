@@ -94,7 +94,7 @@ export default async function EditarInqueritoPage({
     listEtiquetasByOwner(session.user.id),
     prisma.tribunal.findMany({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true, comarcaId: true },
+      select: { id: true, nome: true, ativo: true, comarcaId: true, morada: true },
     }),
     prisma.seccao.findMany({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
@@ -142,6 +142,7 @@ export default async function EditarInqueritoPage({
         seccoes={seccoes}
         locaisTratamento={locaisTratamento}
         canCreateSeccao={true}
+        canCreateTribunal={true}
         defaultValues={{
           nuipc: inquerito.nuipc,
           etiquetaIds: inquerito.etiquetas.map((e) => e.id),
