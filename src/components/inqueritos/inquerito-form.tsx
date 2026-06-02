@@ -17,7 +17,7 @@ import { nuipcToSlug } from '@/lib/utils'
 import { EtiquetaInput } from './etiqueta-input'
 import { CrimeInput } from './crime-input'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, MapPin, Phone, Mail, Plus } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
@@ -25,7 +25,7 @@ interface Estado { id: string; codigo: string; nome: string; terminal: boolean; 
 interface Crime { id: string; nome: string; ativo: boolean }
 interface Etiqueta { id: string; nome: string }
 interface ComarcaOption { id: string; nome: string }
-interface TribunalOption { id: string; nome: string; ativo: boolean; comarcaId: string | null; morada: string | null }
+interface TribunalOption { id: string; nome: string; ativo: boolean; comarcaId: string | null; morada: string | null; telefone: string | null; email: string | null }
 interface SeccaoOption { id: string; nome: string; ativo: boolean; comarcaId: string | null }
 interface LocalTratamentoOption { id: string; nome: string; ativo: boolean }
 
@@ -286,7 +286,7 @@ export function InqueritoForm({
       return
     }
     const created = await res.json()
-    setTribunais((prev) => [...prev, { id: created.id, nome: created.nome, ativo: true, comarcaId: created.comarcaId, morada: created.morada }])
+    setTribunais((prev) => [...prev, { id: created.id, nome: created.nome, ativo: true, comarcaId: created.comarcaId, morada: created.morada, telefone: created.telefone ?? null, email: created.email ?? null }])
     setValue('tribunalId', created.id, { shouldDirty: true })
     // Clear secção since different tribunal may imply different comarca
     setValue('seccaoId', null, { shouldDirty: true })
@@ -600,11 +600,29 @@ export function InqueritoForm({
                   ))}
                 </SelectContent>
               </Select>
-              {selectedTribunalData?.morada && (
-                <p className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
-                  <span className="shrink-0">📍</span>
-                  <span>{selectedTribunalData.morada}</span>
-                </p>
+              {selectedTribunalData && (selectedTribunalData.morada || selectedTribunalData.telefone || selectedTribunalData.email) && (
+                <div className="mt-2 rounded-md border bg-muted/40 px-3 py-2.5 space-y-1.5 text-xs">
+                  {selectedTribunalData.morada && (
+                    <div className="flex items-start gap-2 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>{selectedTribunalData.morada}</span>
+                    </div>
+                  )}
+                  {selectedTribunalData.telefone && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      <span>{selectedTribunalData.telefone}</span>
+                    </div>
+                  )}
+                  {selectedTribunalData.email && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5 shrink-0" />
+                      <a href={`mailto:${selectedTribunalData.email}`} className="hover:text-foreground hover:underline transition-colors">
+                        {selectedTribunalData.email}
+                      </a>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <div className="space-y-1.5">
