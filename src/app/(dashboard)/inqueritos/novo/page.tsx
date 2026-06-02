@@ -27,12 +27,21 @@ export default async function NovoInqueritoPage() {
 
   const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes, locaisTratamento] = await Promise.all([
     prisma.brigada.findMany({
-      where: { ativa: true },
+      where: {
+        ativa: true,
+        // INSPETOR can only create within their own brigade
+        ...(role === 'INSPETOR' && session.user.brigadaId ? { id: session.user.brigadaId } : {}),
+      },
       orderBy: { nome: 'asc' },
       select: { id: true, nome: true },
     }),
     prisma.utilizador.findMany({
-      where: { role: 'INSPETOR', ativo: true },
+      where: {
+        role: 'INSPETOR',
+        ativo: true,
+        // INSPETOR only sees inspetores in their own brigade
+        ...(role === 'INSPETOR' && session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
+      },
       orderBy: { nome: 'asc' },
       select: { id: true, nome: true, brigadaId: true },
     }),
@@ -99,6 +108,8 @@ export default async function NovoInqueritoPage() {
         defaultValues={{
           ...(session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
           ...(defaultEstado ? { estadoId: defaultEstado.id } : {}),
+          // INSPETOR is pre-assigned to themselves
+          ...(role === 'INSPETOR' ? { inspetorId: session.user.id } : {}),
         }}
       />
     </div>
