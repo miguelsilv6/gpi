@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -11,20 +11,21 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { inqueritoSchema, type InqueritoFormData } from '@/lib/validations/inquerito'
 import { nuipcToSlug } from '@/lib/utils'
 import { EtiquetaInput } from './etiqueta-input'
 import { CrimeInput } from './crime-input'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
 interface Estado { id: string; codigo: string; nome: string; terminal: boolean; ativo: boolean }
 interface Crime { id: string; nome: string; ativo: boolean }
 interface Etiqueta { id: string; nome: string }
-interface TribunalOption { id: string; nome: string; ativo: boolean }
-interface SeccaoOption { id: string; nome: string; ativo: boolean; tribunalId: string | null }
+interface TribunalOption { id: string; nome: string; ativo: boolean; comarcaId: string | null }
+interface SeccaoOption { id: string; nome: string; ativo: boolean; comarcaId: string | null }
 interface LocalTratamentoOption { id: string; nome: string; ativo: boolean }
 
 const NONE_VALUE = '__none__'
@@ -46,6 +47,8 @@ interface InqueritoFormProps {
   locaisTratamento: LocalTratamentoOption[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
+  /** Whether the current user can create new sections inline from this form. */
+  canCreateSeccao?: boolean
 }
 
 export function InqueritoForm({
@@ -58,12 +61,19 @@ export function InqueritoForm({
   etiquetasAtribuidas = [],
   crimesAssociadosIniciais = [],
   tribunais,
-  seccoes,
+  seccoes: seccoesProp,
   locaisTratamento,
   nuipcOriginal,
   mode,
+  canCreateSeccao = false,
 }: InqueritoFormProps) {
   const router = useRouter()
+
+  // Local seccoes list — starts from server-fetched prop, updated on inline creation.
+  const [seccoes, setSeccoes] = useState<SeccaoOption[]>(seccoesProp)
+  const [addSeccaoOpen, setAddSeccaoOpen] = useState(false)
+  const [addSeccaoNome, setAddSeccaoNome] = useState('')
+  const [addSeccaoSaving, setAddSeccaoSaving] = useState(false)
 
   const defaultEstadoId =
     defaultValues?.estadoId ??
@@ -151,18 +161,25 @@ export function InqueritoForm({
     return ativos
   }, [tribunais, defaultValues?.tribunalId])
 
+  // Derive the comarca from the selected tribunal.
+  const selectedComarcaId = useMemo(() => {
+    if (!selectedTribunalId || selectedTribunalId === NONE_VALUE) return null
+    return tribunais.find((t) => t.id === selectedTribunalId)?.comarcaId ?? null
+  }, [tribunais, selectedTribunalId])
+
   const seccoesForSelect = useMemo(() => {
-    const tribunalId = selectedTribunalId && selectedTribunalId !== NONE_VALUE ? selectedTribunalId : null
-    // Always scope: global sections (null) + sections for the selected tribunal.
-    // When no tribunal is selected, tribunalId === null so only global sections show.
-    const scoped = seccoes.filter((s) => s.tribunalId === tribunalId || s.tribunalId === null)
+    // Show sections for the current comarca + global sections (comarcaId === null).
+    // When no tribunal is selected, selectedComarcaId === null, so only global sections show.
+    const scoped = seccoes.filter(
+      (s) => s.comarcaId === selectedComarcaId || s.comarcaId === null,
+    )
     const ativas = scoped.filter((s) => s.ativo)
     const current = defaultValues?.seccaoId
       ? seccoes.find((s) => s.id === defaultValues.seccaoId)
       : null
     if (current && !current.ativo) return [current, ...ativas]
     return ativas
-  }, [seccoes, defaultValues?.seccaoId, selectedTribunalId])
+  }, [seccoes, defaultValues?.seccaoId, selectedComarcaId])
 
   const locaisForSelect = useMemo(() => {
     const ativos = locaisTratamento.filter((l) => l.ativo)
@@ -197,17 +214,39 @@ export function InqueritoForm({
     }
   }, [selectedBrigadaId, selectedInspetorId, filteredInspetores, setValue])
 
-  // When tribunal changes, clear seccaoId if the current secção doesn't belong to it
+  // When tribunal changes, clear seccaoId if the current secção doesn't belong to the comarca.
   useEffect(() => {
     if (!selectedSeccaoId) return
-    const tribunalId = selectedTribunalId && selectedTribunalId !== NONE_VALUE ? selectedTribunalId : null
     const currentSeccao = seccoes.find((s) => s.id === selectedSeccaoId)
     if (!currentSeccao) return
-    // Clear if the secção is tribunal-specific and doesn't match the selected tribunal
-    if (currentSeccao.tribunalId !== null && currentSeccao.tribunalId !== tribunalId) {
+    // Clear if the secção is comarca-specific and doesn't match the current comarca.
+    if (currentSeccao.comarcaId !== null && currentSeccao.comarcaId !== selectedComarcaId) {
       setValue('seccaoId', null, { shouldDirty: true })
     }
-  }, [selectedTribunalId, selectedSeccaoId, seccoes, setValue])
+  }, [selectedComarcaId, selectedSeccaoId, seccoes, setValue])
+
+  async function handleAddSeccao() {
+    const nome = addSeccaoNome.trim()
+    if (!nome) return
+    setAddSeccaoSaving(true)
+    const res = await fetch('/api/seccoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, comarcaId: selectedComarcaId }),
+    })
+    setAddSeccaoSaving(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro ao criar secção')
+      return
+    }
+    const created = await res.json()
+    setSeccoes((prev) => [...prev, { id: created.id, nome: created.nome, ativo: true, comarcaId: created.comarcaId }])
+    setValue('seccaoId', created.id, { shouldDirty: true })
+    setAddSeccaoNome('')
+    setAddSeccaoOpen(false)
+    toast.success('Secção criada')
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
@@ -456,7 +495,19 @@ export function InqueritoForm({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Secção</Label>
+              <div className="flex items-center justify-between">
+                <Label>Secção</Label>
+                {canCreateSeccao && (
+                  <button
+                    type="button"
+                    onClick={() => setAddSeccaoOpen(true)}
+                    className="flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Nova
+                  </button>
+                )}
+              </div>
               <Select
                 value={selectedSeccaoId || NONE_VALUE}
                 onValueChange={(v) => setValue('seccaoId', v === NONE_VALUE ? null : v, { shouldDirty: true })}
@@ -466,7 +517,7 @@ export function InqueritoForm({
                     {(v: string) =>
                       !v || v === NONE_VALUE
                         ? 'Nenhuma'
-                        : seccoesForSelect.find((s) => s.id === v)?.nome ?? 'Selecionar secção'
+                        : seccoes.find((s) => s.id === v)?.nome ?? 'Selecionar secção'
                     }
                   </SelectValue>
                 </SelectTrigger>
@@ -702,6 +753,46 @@ export function InqueritoForm({
           Cancelar
         </Button>
       </div>
+
+      {/* Inline section creation dialog */}
+      <Dialog open={addSeccaoOpen} onOpenChange={(open) => { setAddSeccaoOpen(open); if (!open) setAddSeccaoNome('') }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nova Secção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            {selectedComarcaId ? (
+              <p className="text-xs text-muted-foreground">
+                Será associada à comarca do tribunal selecionado.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Nenhum tribunal selecionado — a secção ficará sem associação a comarca.
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="newSeccaoNome">Nome *</Label>
+              <Input
+                id="newSeccaoNome"
+                autoFocus
+                placeholder="Ex: 1ª Secção"
+                value={addSeccaoNome}
+                onChange={(e) => setAddSeccaoNome(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddSeccao()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setAddSeccaoOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleAddSeccao} disabled={addSeccaoSaving || !addSeccaoNome.trim()}>
+              {addSeccaoSaving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   )
 }

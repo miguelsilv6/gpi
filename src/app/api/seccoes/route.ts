@@ -12,7 +12,7 @@ const createSchema = z.object({
   descricao: z.string().max(500).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).default(0),
   ativo: z.boolean().default(true),
-  tribunalId: z.string().optional().nullable(),
+  comarcaId: z.string().optional().nullable(),
 })
 
 export async function GET() {
@@ -20,6 +20,7 @@ export async function GET() {
     await getSession()
     const seccoes = await prisma.seccao.findMany({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+      include: { comarca: { select: { id: true, nome: true } } },
     })
     return Response.json(seccoes)
   } catch (error) {
@@ -31,8 +32,15 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
-    if (!hasPermission(role, 'seccao:manage')) {
-      return apiError('Sem permissão para gerir secções', 403)
+
+    const canCreate =
+      hasPermission(role, 'seccao:manage') ||
+      hasPermission(role, 'inquerito:create') ||
+      hasPermission(role, 'inquerito:edit:own') ||
+      hasPermission(role, 'inquerito:edit:brigade') ||
+      hasPermission(role, 'inquerito:edit:all')
+    if (!canCreate) {
+      return apiError('Sem permissão para criar secções', 403)
     }
 
     const body = await req.json()
@@ -45,10 +53,10 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.seccao.findFirst({
       where: {
         nome: { equals: nome, mode: 'insensitive' },
-        tribunalId: data.tribunalId ?? null,
+        comarcaId: data.comarcaId ?? null,
       },
     })
-    if (existing) return apiError('Já existe uma secção com este nome neste tribunal', 409)
+    if (existing) return apiError('Já existe uma secção com este nome nesta comarca', 409)
 
     const created = await prisma.seccao.create({
       data: {
@@ -56,8 +64,9 @@ export async function POST(req: NextRequest) {
         descricao: data.descricao?.trim() || null,
         ordem: data.ordem,
         ativo: data.ativo,
-        tribunalId: data.tribunalId ?? null,
+        comarcaId: data.comarcaId ?? null,
       },
+      include: { comarca: { select: { id: true, nome: true } } },
     })
 
     await writeAudit({

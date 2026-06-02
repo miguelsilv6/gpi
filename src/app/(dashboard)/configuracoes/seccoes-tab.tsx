@@ -30,10 +30,11 @@ interface Seccao {
   descricao: string | null
   ordem: number
   ativo: boolean
-  tribunalId: string | null
+  comarcaId: string | null
+  comarca: { id: string; nome: string } | null
 }
 
-interface TribunalOption {
+interface ComarcaOption {
   id: string
   nome: string
 }
@@ -45,38 +46,33 @@ const EMPTY_NEW = {
   descricao: '',
   ordem: 0,
   ativo: true,
-  tribunalId: null as string | null,
+  comarcaId: null as string | null,
 }
 
 export function SeccoesTab() {
   const [seccoes, setSeccoes] = useState<Seccao[]>([])
-  const [tribunais, setTribunais] = useState<TribunalOption[]>([])
+  const [comarcas, setComarcas] = useState<ComarcaOption[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [neu, setNeu] = useState(EMPTY_NEW)
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  const [edit, setEdit] = useState({ nome: '', descricao: '', ordem: 0, tribunalId: null as string | null })
+  const [edit, setEdit] = useState({ nome: '', descricao: '', ordem: 0, comarcaId: null as string | null })
   const [deleteCandidate, setDeleteCandidate] = useState<Seccao | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   async function load() {
     setLoading(true)
-    const [s, t] = await Promise.all([
+    const [s, c] = await Promise.all([
       fetch('/api/seccoes').then((r) => r.ok ? r.json() : []),
-      fetch('/api/tribunais').then((r) => r.ok ? r.json() : []),
+      fetch('/api/comarcas').then((r) => r.ok ? r.json() : []),
     ])
     setSeccoes(s)
-    setTribunais(t)
+    setComarcas(c)
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
-
-  function tribunalNome(id: string | null) {
-    if (!id) return null
-    return tribunais.find((t) => t.id === id)?.nome ?? null
-  }
 
   async function handleAdd() {
     if (!neu.nome.trim()) {
@@ -92,7 +88,7 @@ export function SeccoesTab() {
         descricao: neu.descricao.trim() || null,
         ordem: neu.ordem,
         ativo: neu.ativo,
-        tribunalId: neu.tribunalId || null,
+        comarcaId: neu.comarcaId || null,
       }),
     })
     setSaving(false)
@@ -123,7 +119,7 @@ export function SeccoesTab() {
 
   function startEdit(c: Seccao) {
     setEditId(c.id)
-    setEdit({ nome: c.nome, descricao: c.descricao ?? '', ordem: c.ordem, tribunalId: c.tribunalId })
+    setEdit({ nome: c.nome, descricao: c.descricao ?? '', ordem: c.ordem, comarcaId: c.comarcaId })
   }
 
   async function handleEditSave(id: string) {
@@ -138,7 +134,7 @@ export function SeccoesTab() {
         nome: edit.nome.trim(),
         descricao: edit.descricao.trim() || null,
         ordem: edit.ordem,
-        tribunalId: edit.tribunalId || null,
+        comarcaId: edit.comarcaId || null,
       }),
     })
     if (!res.ok) {
@@ -196,7 +192,7 @@ export function SeccoesTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Catálogo de secções de tribunal. Apenas secções ativas aparecem na seleção de inquéritos.
+          Catálogo de secções. Secções ficam associadas à respetiva comarca — não podem existir duas com o mesmo nome na mesma comarca. Apenas secções ativas aparecem na seleção de inquéritos.
         </p>
         {!adding && (
           <Button size="sm" onClick={() => setAdding(true)}>
@@ -222,18 +218,18 @@ export function SeccoesTab() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Tribunal</Label>
+                <Label>Comarca</Label>
                 <Select
-                  value={neu.tribunalId ?? NONE_VALUE}
-                  onValueChange={(v) => setNeu({ ...neu, tribunalId: v === NONE_VALUE ? null : v })}
+                  value={neu.comarcaId ?? NONE_VALUE}
+                  onValueChange={(v) => setNeu({ ...neu, comarcaId: v === NONE_VALUE ? null : v })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Nenhum (global)" />
+                    <SelectValue placeholder="Nenhuma (global)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE_VALUE}>Nenhum (global)</SelectItem>
-                    {tribunais.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                    <SelectItem value={NONE_VALUE}>Nenhuma (global)</SelectItem>
+                    {comarcas.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -334,16 +330,16 @@ export function SeccoesTab() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex-1 min-w-[200px]">
                       <Select
-                        value={edit.tribunalId ?? NONE_VALUE}
-                        onValueChange={(v) => setEdit({ ...edit, tribunalId: v === NONE_VALUE ? null : v })}
+                        value={edit.comarcaId ?? NONE_VALUE}
+                        onValueChange={(v) => setEdit({ ...edit, comarcaId: v === NONE_VALUE ? null : v })}
                       >
                         <SelectTrigger className="h-8 text-sm">
-                          <SelectValue placeholder="Nenhum (global)" />
+                          <SelectValue placeholder="Nenhuma (global)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={NONE_VALUE}>Nenhum (global)</SelectItem>
-                          {tribunais.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          <SelectItem value={NONE_VALUE}>Nenhuma (global)</SelectItem>
+                          {comarcas.map((co) => (
+                            <SelectItem key={co.id} value={co.id}>{co.nome}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -361,9 +357,9 @@ export function SeccoesTab() {
                 <>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{c.nome}</p>
-                    {c.tribunalId && (
+                    {c.comarca && (
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {tribunalNome(c.tribunalId) ?? c.tribunalId}
+                        {c.comarca.nome}
                       </p>
                     )}
                     {c.descricao && (
@@ -417,8 +413,8 @@ export function SeccoesTab() {
             <div className="space-y-3 text-sm">
               <p>
                 «<strong>{deleteCandidate.nome}</strong>»
-                {deleteCandidate.tribunalId && (
-                  <span className="text-muted-foreground"> — {tribunalNome(deleteCandidate.tribunalId)}</span>
+                {deleteCandidate.comarca && (
+                  <span className="text-muted-foreground"> — {deleteCandidate.comarca.nome}</span>
                 )}
               </p>
               <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 space-y-2">

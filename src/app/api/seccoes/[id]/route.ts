@@ -12,7 +12,7 @@ const updateSchema = z.object({
   descricao: z.string().max(500).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).optional(),
   ativo: z.boolean().optional(),
-  tribunalId: z.string().optional().nullable(),
+  comarcaId: z.string().optional().nullable(),
 })
 
 export async function PUT(
@@ -37,20 +37,18 @@ export async function PUT(
     const data = parsed.data
 
     const newNome = data.nome !== undefined ? data.nome.trim() : existing.nome
-    const newTribunalId = data.tribunalId !== undefined ? (data.tribunalId ?? null) : existing.tribunalId
+    const newComarcaId = data.comarcaId !== undefined ? (data.comarcaId ?? null) : existing.comarcaId
 
-    // Run collision check whenever nome OR tribunalId changes (moving a section to
-    // another tribunal can create duplicates even without touching the name).
-    if (data.nome !== undefined || data.tribunalId !== undefined) {
+    if (data.nome !== undefined || data.comarcaId !== undefined) {
       const collision = await prisma.seccao.findFirst({
         where: {
           nome: { equals: newNome, mode: 'insensitive' },
-          tribunalId: newTribunalId,
+          comarcaId: newComarcaId,
           NOT: { id },
         },
         select: { id: true },
       })
-      if (collision) return apiError('Já existe outra secção com este nome neste tribunal', 409)
+      if (collision) return apiError('Já existe outra secção com este nome nesta comarca', 409)
       if (data.nome !== undefined) data.nome = newNome
     }
 
@@ -61,11 +59,12 @@ export async function PUT(
         ...(data.descricao !== undefined && { descricao: data.descricao?.trim() || null }),
         ...(data.ordem !== undefined && { ordem: data.ordem }),
         ...(data.ativo !== undefined && { ativo: data.ativo }),
-        ...(data.tribunalId !== undefined && { tribunalId: data.tribunalId ?? null }),
+        ...(data.comarcaId !== undefined && { comarcaId: data.comarcaId ?? null }),
       },
+      include: { comarca: { select: { id: true, nome: true } } },
     })
 
-    const changes = diff(existing, updated, ['nome', 'descricao', 'ordem', 'ativo', 'tribunalId'])
+    const changes = diff(existing, updated, ['nome', 'descricao', 'ordem', 'ativo', 'comarcaId'])
     if (changes) {
       await writeAudit({
         req,

@@ -202,6 +202,7 @@ model Comarca {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   tribunais Tribunal[]
+  seccoes   Seccao[]
   @@index([ativo, ordem])
 }
 
@@ -219,24 +220,23 @@ model Tribunal {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   inqueritos Inquerito[]
-  seccoes    Seccao[]
   @@index([ativo, ordem])
   @@index([comarcaId])
 }
 
 model Seccao {
-  id         String    @id @default(cuid())
-  nome       String
-  descricao  String?
-  ordem      Int       @default(0)
-  ativo      Boolean   @default(true)
-  tribunalId String?
-  tribunal   Tribunal? @relation(fields: [tribunalId], references: [id], onDelete: SetNull)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  nome      String
+  descricao String?
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  comarcaId String?
+  comarca   Comarca? @relation(fields: [comarcaId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   inqueritos Inquerito[]
   @@index([ativo, ordem])
-  @@index([tribunalId])
+  @@index([comarcaId])
 }
 
 model LocalTratamento {
