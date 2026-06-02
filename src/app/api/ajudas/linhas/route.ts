@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { calcAjudasTotais } from '@/lib/ajudas-calc'
+import { loadCrossMonthLinhas } from '@/lib/ajudas-cross-month'
 import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
@@ -17,7 +18,7 @@ const linhaSchema = z.object({
   prevencaoOnly: z.boolean().default(false),
   ajudaCustoAlmoco: z.number().int().min(0).default(0),
   ajudaCustoJantar: z.number().int().min(0).default(0),
-  ajudaCustoAlojamento: z.number().int().min(0).default(0),
+  ajudaCustoCeia: z.number().int().min(0).default(0),
   senhaAlmoco: z.number().int().min(0).default(0),
   senhaJantar: z.number().int().min(0).default(0),
   senhaCeia: z.number().int().min(0).default(0),
@@ -110,8 +111,12 @@ export async function POST(req: NextRequest) {
     const taxaIRS = updatedRegisto?.utilizador?.ajudasTaxaIRS
     const userConfigured = vencimentoBase != null && taxaIRS != null
 
+    const crossMonthLinhas = updatedRegisto
+      ? await loadCrossMonthLinhas(updatedRegisto.utilizadorId, updatedRegisto.ano, updatedRegisto.mes, updatedRegisto.id)
+      : []
+
     const totais = userConfigured
-      ? calcAjudasTotais(updatedRegisto!.linhas, config, vencimentoBase!, taxaIRS!)
+      ? calcAjudasTotais([...updatedRegisto!.linhas, ...crossMonthLinhas], config, vencimentoBase!, taxaIRS!, updatedRegisto!.ano, updatedRegisto!.mes)
       : null
 
     return Response.json({ registo: updatedRegisto, config, totais, userConfigured }, { status: 201 })

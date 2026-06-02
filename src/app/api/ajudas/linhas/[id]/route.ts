@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { calcAjudasTotais } from '@/lib/ajudas-calc'
+import { loadCrossMonthLinhas } from '@/lib/ajudas-cross-month'
 import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
@@ -16,7 +17,7 @@ const updateSchema = z.object({
   prevencaoOnly: z.boolean().optional(),
   ajudaCustoAlmoco: z.number().int().min(0).optional(),
   ajudaCustoJantar: z.number().int().min(0).optional(),
-  ajudaCustoAlojamento: z.number().int().min(0).optional(),
+  ajudaCustoCeia: z.number().int().min(0).optional(),
   senhaAlmoco: z.number().int().min(0).optional(),
   senhaJantar: z.number().int().min(0).optional(),
   senhaCeia: z.number().int().min(0).optional(),
@@ -108,8 +109,12 @@ export async function PUT(
     const irsPut = registo?.utilizador?.ajudasTaxaIRS
     const putConfigured = vbPut != null && irsPut != null
 
+    const crossMonthLinhasPut = registo
+      ? await loadCrossMonthLinhas(registo.utilizadorId, registo.ano, registo.mes, registo.id)
+      : []
+
     const totais = putConfigured
-      ? calcAjudasTotais(registo!.linhas, config, vbPut!, irsPut!)
+      ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasPut], config, vbPut!, irsPut!, registo!.ano, registo!.mes)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: putConfigured })
@@ -160,8 +165,12 @@ export async function DELETE(
     const irsDel = registo?.utilizador?.ajudasTaxaIRS
     const delConfigured = vbDel != null && irsDel != null
 
+    const crossMonthLinhasDel = registo
+      ? await loadCrossMonthLinhas(registo.utilizadorId, registo.ano, registo.mes, registo.id)
+      : []
+
     const totais = delConfigured
-      ? calcAjudasTotais(registo!.linhas, config, vbDel!, irsDel!)
+      ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasDel], config, vbDel!, irsDel!, registo!.ano, registo!.mes)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: delConfigured })

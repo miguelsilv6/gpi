@@ -46,10 +46,10 @@ export interface AjudasTotais {
   // Ajudas de custo (rates now come from config.senha* values)
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
-  ajudaCustoAlojamento: number
+  ajudaCustoCeia: number
   taxaAjudaAlmoco: number
   taxaAjudaJantar: number
-  taxaAjudaAlojamento: number
+  taxaAjudaCeia: number
   totalAjudasCusto: number
   // Senhas (zeroed — removed from totals, kept for backward compat)
   senhaAlmoco: number
@@ -82,7 +82,6 @@ export interface ConfigData {
   percentPiqueteSemana: number
   percentPiqueteFds: number
   percentPrevencaoPassiva: number
-  senhaAlojamento: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -98,7 +97,7 @@ export interface LinhaWithData {
   prevencaoOnly: boolean
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
-  ajudaCustoAlojamento: number
+  ajudaCustoCeia: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -236,8 +235,10 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
 /**
  * Calculates all totals for a month's ajudas record.
  * vencimentoBase and taxaIRS must be the user's personal configured values.
+ * ano and mes define the target month — entries and prevention days outside
+ * this month are excluded so cross-month entries are attributed correctly.
  */
-export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, vencimentoBase: number, taxaIRS: number): AjudasTotais {
+export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, vencimentoBase: number, taxaIRS: number, ano: number, mes: number): AjudasTotais {
   // Gather all years from the data to compute holidays
   const years = new Set<number>()
   for (const l of linhas) {
@@ -274,7 +275,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   // Ajudas de custo rates use the configured senha values directly
   const taxaAjudaAlmoco = config.senhaAlmoco
   const taxaAjudaJantar = config.senhaJantar
-  const taxaAjudaAlojamento = config.senhaAlojamento
+  const taxaAjudaCeia = config.senhaCeia
 
   // Per-day overtime accumulator (key = 'YYYY-MM-DD')
   const dayOvertimeMap = new Map<string, HoursSplit>()
@@ -286,7 +287,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
 
   let ajudaCustoAlmoco = 0
   let ajudaCustoJantar = 0
-  let ajudaCustoAlojamento = 0
+  let ajudaCustoCeia = 0
 
   for (const linha of linhas) {
     const inicio = new Date(linha.dataInicio)
@@ -305,16 +306,19 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
         const segEnd = fim.getTime() < nextDay.getTime() ? fim : nextDay
 
         if (segStart.getTime() < segEnd.getTime()) {
-          const dateKey = fmtDate(iterDay)
-          const split = splitHours(segStart, segEnd, allHolidays)
-          const existing = dayOvertimeMap.get(dateKey)
-          if (existing) {
-            existing.semanaDia += split.semanaDia
-            existing.semanaNoite += split.semanaNoite
-            existing.fdsDia += split.fdsDia
-            existing.fdsNoite += split.fdsNoite
-          } else {
-            dayOvertimeMap.set(dateKey, { ...split })
+          // Only count overtime for days that fall in the target month
+          if (iterDay.getUTCFullYear() === ano && iterDay.getUTCMonth() + 1 === mes) {
+            const dateKey = fmtDate(iterDay)
+            const split = splitHours(segStart, segEnd, allHolidays)
+            const existing = dayOvertimeMap.get(dateKey)
+            if (existing) {
+              existing.semanaDia += split.semanaDia
+              existing.semanaNoite += split.semanaNoite
+              existing.fdsDia += split.fdsDia
+              existing.fdsNoite += split.fdsNoite
+            } else {
+              dayOvertimeMap.set(dateKey, { ...split })
+            }
           }
         }
 
@@ -324,8 +328,11 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
 
     // Prevenção / Piquete
     if (linha.prevencao === 'PIQUETE') {
-      if (isFdsDay(inicio)) piqueteFds += 1
-      else piqueteSemana += 1
+      // Piquete is a single-day event — attribute to the day's month
+      if (inicio.getUTCFullYear() === ano && inicio.getUTCMonth() + 1 === mes) {
+        if (isFdsDay(inicio)) piqueteFds += 1
+        else piqueteSemana += 1
+      }
     } else if (linha.prevencao === 'PREVENCAO_PASSIVA') {
       const cur = new Date(inicio)
       cur.setUTCHours(0, 0, 0, 0)
@@ -333,18 +340,26 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
       last.setUTCHours(0, 0, 0, 0)
       let daysCount = 0
       while (cur.getTime() <= last.getTime() && daysCount < 90) {
-        if (isFdsDay(cur)) prevencaoFds += 1
-        else prevencaoSemana += 1
+        // Only count days that fall in the target month
+        if (cur.getUTCFullYear() === ano && cur.getUTCMonth() + 1 === mes) {
+          if (isFdsDay(cur)) prevencaoFds += 1
+          else prevencaoSemana += 1
+        }
         cur.setUTCDate(cur.getUTCDate() + 1)
         daysCount++
       }
     }
 
     // Ajudas de custo: only applicable when km >= distanciaMinKmAjudas
-    if (linha.km >= config.distanciaMinKmAjudas) {
+    // and dataInicio falls in the target month
+    if (
+      linha.km >= config.distanciaMinKmAjudas &&
+      inicio.getUTCFullYear() === ano &&
+      inicio.getUTCMonth() + 1 === mes
+    ) {
       ajudaCustoAlmoco += linha.ajudaCustoAlmoco
       ajudaCustoJantar += linha.ajudaCustoJantar
-      ajudaCustoAlojamento += linha.ajudaCustoAlojamento
+      ajudaCustoCeia += linha.ajudaCustoCeia
     }
   }
 
@@ -390,7 +405,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   const totalAjudasCusto =
     ajudaCustoAlmoco * taxaAjudaAlmoco +
     ajudaCustoJantar * taxaAjudaJantar +
-    ajudaCustoAlojamento * taxaAjudaAlojamento
+    ajudaCustoCeia * taxaAjudaCeia
 
   // --- Final calculations ---
   const baseImponivel = totalHorasExtra + totalPiquete + totalPrevencao
@@ -439,10 +454,10 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     totalPrevencao,
     ajudaCustoAlmoco,
     ajudaCustoJantar,
-    ajudaCustoAlojamento,
+    ajudaCustoCeia,
     taxaAjudaAlmoco,
     taxaAjudaJantar,
-    taxaAjudaAlojamento,
+    taxaAjudaCeia,
     totalAjudasCusto,
     senhaAlmoco: 0,
     senhaJantar: 0,

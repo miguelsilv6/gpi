@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { calcAjudasTotais } from '@/lib/ajudas-calc'
+import { loadCrossMonthLinhas } from '@/lib/ajudas-cross-month'
 import type { Role } from '@/generated/prisma/enums'
 
 export async function GET(req: NextRequest) {
@@ -72,21 +73,22 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Get config and user overrides in parallel
-    const [config, targetUserData] = await Promise.all([
+    const [config, targetUserData, crossMonthLinhas] = await Promise.all([
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
       prisma.utilizador.findUnique({
         where: { id: targetUserId },
         select: { ajudasVencimentoBase: true, ajudasTaxaIRS: true },
       }),
+      loadCrossMonthLinhas(targetUserId, ano, mes, registo.id),
     ])
 
     const vencimentoBase = targetUserData?.ajudasVencimentoBase
     const taxaIRS = targetUserData?.ajudasTaxaIRS
     const userConfigured = vencimentoBase != null && taxaIRS != null
 
+    const allLinhas = [...registo.linhas, ...crossMonthLinhas]
     const totais = userConfigured
-      ? calcAjudasTotais(registo.linhas, config, vencimentoBase!, taxaIRS!)
+      ? calcAjudasTotais(allLinhas, config, vencimentoBase!, taxaIRS!, ano, mes)
       : null
 
     return Response.json({ registo, config, totais, userConfigured })
