@@ -46,10 +46,10 @@ export interface AjudasTotais {
   // Ajudas de custo (rates now come from config.senha* values)
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
-  ajudaCustoAlojamento: number
+  ajudaCustoCeia: number
   taxaAjudaAlmoco: number
   taxaAjudaJantar: number
-  taxaAjudaAlojamento: number
+  taxaAjudaCeia: number
   totalAjudasCusto: number
   // Senhas (zeroed — removed from totals, kept for backward compat)
   senhaAlmoco: number
@@ -82,7 +82,6 @@ export interface ConfigData {
   percentPiqueteSemana: number
   percentPiqueteFds: number
   percentPrevencaoPassiva: number
-  senhaAlojamento: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -98,7 +97,7 @@ export interface LinhaWithData {
   prevencaoOnly: boolean
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
-  ajudaCustoAlojamento: number
+  ajudaCustoCeia: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -276,7 +275,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   // Ajudas de custo rates use the configured senha values directly
   const taxaAjudaAlmoco = config.senhaAlmoco
   const taxaAjudaJantar = config.senhaJantar
-  const taxaAjudaAlojamento = config.senhaAlojamento
+  const taxaAjudaCeia = config.senhaCeia
 
   // Per-day overtime accumulator (key = 'YYYY-MM-DD')
   const dayOvertimeMap = new Map<string, HoursSplit>()
@@ -288,7 +287,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
 
   let ajudaCustoAlmoco = 0
   let ajudaCustoJantar = 0
-  let ajudaCustoAlojamento = 0
+  let ajudaCustoCeia = 0
 
   for (const linha of linhas) {
     const inicio = new Date(linha.dataInicio)
@@ -357,7 +356,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     ) {
       ajudaCustoAlmoco += linha.ajudaCustoAlmoco
       ajudaCustoJantar += linha.ajudaCustoJantar
-      ajudaCustoAlojamento += linha.ajudaCustoAlojamento
+      ajudaCustoCeia += linha.ajudaCustoCeia
     }
   }
 
@@ -403,7 +402,7 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   const totalAjudasCusto =
     ajudaCustoAlmoco * taxaAjudaAlmoco +
     ajudaCustoJantar * taxaAjudaJantar +
-    ajudaCustoAlojamento * taxaAjudaAlojamento
+    ajudaCustoCeia * taxaAjudaCeia
 
   // --- Final calculations ---
   const baseImponivel = totalHorasExtra + totalPiquete + totalPrevencao
@@ -452,10 +451,10 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     totalPrevencao,
     ajudaCustoAlmoco,
     ajudaCustoJantar,
-    ajudaCustoAlojamento,
+    ajudaCustoCeia,
     taxaAjudaAlmoco,
     taxaAjudaJantar,
-    taxaAjudaAlojamento,
+    taxaAjudaCeia,
     totalAjudasCusto,
     senhaAlmoco: 0,
     senhaJantar: 0,

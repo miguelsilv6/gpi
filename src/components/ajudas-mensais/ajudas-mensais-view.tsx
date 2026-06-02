@@ -52,7 +52,7 @@ interface AjudasLinha {
   prevencaoOnly: boolean
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
-  ajudaCustoAlojamento: number
+  ajudaCustoCeia: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -84,7 +84,7 @@ interface LinhaFormData {
   dataFim: string
   ajudaCustoAlmoco: number
   ajudaCustoJantar: number
-  ajudaCustoAlojamento: number
+  ajudaCustoCeia: number
   viaturaId: string
   km: number
   observacoes: string
@@ -145,7 +145,7 @@ const EMPTY_FORM: LinhaFormData = {
   dataFim: '',
   ajudaCustoAlmoco: 0,
   ajudaCustoJantar: 0,
-  ajudaCustoAlojamento: 0,
+  ajudaCustoCeia: 0,
   viaturaId: '',
   km: 0,
   observacoes: '',
@@ -238,8 +238,8 @@ function SummaryPanel({ totais }: { totais: AjudasTotais }) {
                 <span>{fmtEur(totais.ajudaCustoJantar * totais.taxaAjudaJantar)}</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Aj. Custo Alojamento ({totais.ajudaCustoAlojamento} × {fmtEur(totais.taxaAjudaAlojamento)})</span>
-                <span>{fmtEur(totais.ajudaCustoAlojamento * totais.taxaAjudaAlojamento)}</span>
+                <span>Aj. Custo Ceia ({totais.ajudaCustoCeia} × {fmtEur(totais.taxaAjudaCeia)})</span>
+                <span>{fmtEur(totais.ajudaCustoCeia * totais.taxaAjudaCeia)}</span>
               </div>
             </div>
           </div>
@@ -559,13 +559,13 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="ajudaAlojamento" className="text-xs">Alojamento</Label>
+            <Label htmlFor="ajudaCeia" className="text-xs">Ceia</Label>
             <Input
-              id="ajudaAlojamento"
+              id="ajudaCeia"
               type="number"
               min={0}
-              value={form.ajudaCustoAlojamento}
-              onChange={(e) => set('ajudaCustoAlojamento', parseInt(e.target.value, 10) || 0)}
+              value={form.ajudaCustoCeia}
+              onChange={(e) => set('ajudaCustoCeia', parseInt(e.target.value, 10) || 0)}
               disabled={ajudasDisabled}
             />
           </div>
@@ -705,7 +705,7 @@ export function AjudasMensaisView({
       dataFim: toDatetimeLocal(linha.dataFim),
       ajudaCustoAlmoco: linha.ajudaCustoAlmoco,
       ajudaCustoJantar: linha.ajudaCustoJantar,
-      ajudaCustoAlojamento: linha.ajudaCustoAlojamento,
+      ajudaCustoCeia: linha.ajudaCustoCeia,
       viaturaId: linha.viaturaId ?? '',
       km: linha.km,
       observacoes: linha.observacoes ?? '',
@@ -788,7 +788,7 @@ export function AjudasMensaisView({
           prevencao: (editingLinha ? editingLinhaPrevencao : 'NENHUMA') as 'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA',
           ajudaCustoAlmoco: form.ajudaCustoAlmoco,
           ajudaCustoJantar: form.ajudaCustoJantar,
-          ajudaCustoAlojamento: form.ajudaCustoAlojamento,
+          ajudaCustoCeia: form.ajudaCustoCeia,
           viaturaId: form.viaturaId || null,
           km: form.km,
           observacoes: form.observacoes || null,
@@ -1026,7 +1026,7 @@ export function AjudasMensaisView({
                             {[
                               l.ajudaCustoAlmoco > 0 && `Al:${l.ajudaCustoAlmoco}`,
                               l.ajudaCustoJantar > 0 && `Jt:${l.ajudaCustoJantar}`,
-                              l.ajudaCustoAlojamento > 0 && `Aloj:${l.ajudaCustoAlojamento}`,
+                              l.ajudaCustoCeia > 0 && `Ceia:${l.ajudaCustoCeia}`,
                             ].filter(Boolean).join(' ') || '—'}
                           </td>
                           <td className="py-2 px-2 max-w-[150px] truncate" title={l.observacoes ?? undefined}>

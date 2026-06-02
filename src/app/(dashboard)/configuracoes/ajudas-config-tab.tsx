@@ -14,7 +14,6 @@ interface AjudasConfig {
   percentPiqueteSemana: number
   percentPiqueteFds: number
   percentPrevencaoPassiva: number
-  senhaAlojamento: number
   senhaAlmoco: number
   senhaJantar: number
   senhaCeia: number
@@ -131,8 +130,8 @@ function DerivedRates({ config }: { config: AjudasConfig }) {
               formula="valor direto configurado"
             />
             <Row
-              label="Alojamento"
-              value={`${fmtEur(config.senhaAlojamento)}/noite`}
+              label="Ceia"
+              value={`${fmtEur(config.senhaCeia)}/refeição`}
               formula="valor direto configurado"
             />
           </div>
@@ -375,16 +374,6 @@ export function AjudasConfigTab() {
                 step="0.01"
                 value={config.senhaCeia}
                 onChange={(e) => setNum('senhaCeia', e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="senhaAlojamento">Alojamento (€/noite)</Label>
-              <Input
-                id="senhaAlojamento"
-                type="number"
-                step="0.01"
-                value={config.senhaAlojamento}
-                onChange={(e) => setNum('senhaAlojamento', e.target.value)}
               />
             </div>
           </CardContent>

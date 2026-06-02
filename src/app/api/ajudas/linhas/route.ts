@@ -17,7 +17,7 @@ const linhaSchema = z.object({
   prevencaoOnly: z.boolean().default(false),
   ajudaCustoAlmoco: z.number().int().min(0).default(0),
   ajudaCustoJantar: z.number().int().min(0).default(0),
-  ajudaCustoAlojamento: z.number().int().min(0).default(0),
+  ajudaCustoCeia: z.number().int().min(0).default(0),
   senhaAlmoco: z.number().int().min(0).default(0),
   senhaJantar: z.number().int().min(0).default(0),
   senhaCeia: z.number().int().min(0).default(0),

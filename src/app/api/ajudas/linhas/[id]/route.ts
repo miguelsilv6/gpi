@@ -16,7 +16,7 @@ const updateSchema = z.object({
   prevencaoOnly: z.boolean().optional(),
   ajudaCustoAlmoco: z.number().int().min(0).optional(),
   ajudaCustoJantar: z.number().int().min(0).optional(),
-  ajudaCustoAlojamento: z.number().int().min(0).optional(),
+  ajudaCustoCeia: z.number().int().min(0).optional(),
   senhaAlmoco: z.number().int().min(0).optional(),
   senhaJantar: z.number().int().min(0).optional(),
   senhaCeia: z.number().int().min(0).optional(),
