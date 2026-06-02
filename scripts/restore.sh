@@ -17,7 +17,9 @@ BACKUP_FILE="${1:-}"
 LOCKFILE="/tmp/gpi-backup.lock"
 
 # psql/libpq não aceita parâmetros específicos do Prisma (e.g. ?schema=X).
-PG_URL="$(echo "${DATABASE_URL:-}" | sed 's/[?&]schema=[^&]*//g; s/[?&]connection_limit=[^&]*//g; s/[?&]pool_timeout=[^&]*//g; s/?$//')"
+# sed -E: remove cada param preservando o delimitador anterior (?/&) para que
+# parâmetros libpq válidos a seguir (e.g. sslmode=require) não fiquem órfãos.
+PG_URL="$(printf '%s\n' "${DATABASE_URL:-}" | sed -E 's/([?&])(schema|connection_limit|pool_timeout)=[^&]*&?/\1/g; s/\?&/?/g; s/[?&]$//')"
 
 if [ -z "$BACKUP_FILE" ]; then
   echo "Usage: $0 <backup_file.sql.gz>" >&2

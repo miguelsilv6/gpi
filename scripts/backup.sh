@@ -26,8 +26,9 @@ FILE_PATH="${BACKUP_DIR}/${FILENAME}"
 LOCKFILE="/tmp/gpi-backup.lock"
 
 # pg_dump usa libpq e não aceita parâmetros específicos do Prisma como ?schema=X.
-# Removemos qualquer query string não-padrão para garantir ligação limpa.
-PG_URL="$(echo "${DATABASE_URL:-}" | sed 's/[?&]schema=[^&]*//g; s/[?&]connection_limit=[^&]*//g; s/[?&]pool_timeout=[^&]*//g; s/?$//')"
+# sed -E: remove cada param preservando o delimitador anterior (?/&) para que
+# parâmetros libpq válidos a seguir (e.g. sslmode=require) não fiquem órfãos.
+PG_URL="$(printf '%s\n' "${DATABASE_URL:-}" | sed -E 's/([?&])(schema|connection_limit|pool_timeout)=[^&]*&?/\1/g; s/\?&/?/g; s/[?&]$//')"
 
 # World-readable backups → o operador no host consegue copiar via `docker cp`
 # independentemente do UID dentro do contentor.
