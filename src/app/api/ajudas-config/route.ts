@@ -12,7 +12,7 @@ const schema = z.object({
   percentPiqueteSemana: z.number().min(0).max(1),
   percentPiqueteFds: z.number().min(0).max(1),
   percentPrevencaoPassiva: z.number().min(0).max(1),
-  ajudaCustoMaxDiario: z.number().positive(),
+  senhaAlojamento: z.number().min(0),
   senhaAlmoco: z.number().min(0),
   senhaJantar: z.number().min(0),
   senhaCeia: z.number().min(0),

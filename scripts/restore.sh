@@ -16,6 +16,11 @@ set -euo pipefail
 BACKUP_FILE="${1:-}"
 LOCKFILE="/tmp/gpi-backup.lock"
 
+# psql/libpq não aceita parâmetros específicos do Prisma (e.g. ?schema=X).
+# sed -E: remove cada param preservando o delimitador anterior (?/&) para que
+# parâmetros libpq válidos a seguir (e.g. sslmode=require) não fiquem órfãos.
+PG_URL="$(printf '%s\n' "${DATABASE_URL:-}" | sed -E 's/([?&])(schema|connection_limit|pool_timeout)=[^&]*&?/\1/g; s/\?&/?/g; s/[?&]$//')"
+
 if [ -z "$BACKUP_FILE" ]; then
   echo "Usage: $0 <backup_file.sql.gz>" >&2
   exit 1
@@ -46,7 +51,7 @@ echo "[restore] A restaurar de: $BACKUP_FILE"
 # -v ON_ERROR_STOP=1: aborta na primeira instrução SQL com erro.
 # Com --clean --if-exists no dump, podemos restaurar sobre uma BD existente
 # sem mexer no schema.
-if ! gunzip -c "$BACKUP_FILE" | psql -1 -v ON_ERROR_STOP=1 "$DATABASE_URL"; then
+if ! gunzip -c "$BACKUP_FILE" | psql -1 -v ON_ERROR_STOP=1 "$PG_URL"; then
   echo "[restore] psql falhou — transação cancelada, BD inalterada." >&2
   exit 1
 fi

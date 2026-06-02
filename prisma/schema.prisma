@@ -476,7 +476,7 @@ model AjudasConfig {
   percentPiqueteSemana    Float    @default(0.083)
   percentPiqueteFds       Float    @default(0.105)
   percentPrevencaoPassiva Float    @default(0.4)
-  ajudaCustoMaxDiario     Float    @default(62.75)
+  senhaAlojamento         Float    @default(31.375)
   senhaAlmoco             Float    @default(9.60)
   senhaJantar             Float    @default(8.23)
   senhaCeia               Float    @default(4.24)

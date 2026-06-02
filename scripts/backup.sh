@@ -25,6 +25,11 @@ FILENAME="${BACKUP_PREFIX}${TIMESTAMP}.sql.gz"
 FILE_PATH="${BACKUP_DIR}/${FILENAME}"
 LOCKFILE="/tmp/gpi-backup.lock"
 
+# pg_dump usa libpq e não aceita parâmetros específicos do Prisma como ?schema=X.
+# sed -E: remove cada param preservando o delimitador anterior (?/&) para que
+# parâmetros libpq válidos a seguir (e.g. sslmode=require) não fiquem órfãos.
+PG_URL="$(printf '%s\n' "${DATABASE_URL:-}" | sed -E 's/([?&])(schema|connection_limit|pool_timeout)=[^&]*&?/\1/g; s/\?&/?/g; s/[?&]$//')"
+
 # World-readable backups → o operador no host consegue copiar via `docker cp`
 # independentemente do UID dentro do contentor.
 umask 0022
@@ -65,7 +70,7 @@ fi
 if ! pg_dump \
       --clean --if-exists \
       --no-owner --no-privileges \
-      "$DATABASE_URL" \
+      "$PG_URL" \
     | gzip > "$FILE_PATH"; then
   echo "[backup] pg_dump falhou — a remover ficheiro parcial." >&2
   rm -f "$FILE_PATH"
