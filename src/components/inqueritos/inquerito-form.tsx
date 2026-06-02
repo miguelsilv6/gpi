@@ -191,7 +191,9 @@ export function InqueritoForm({
     const current = defaultValues?.seccaoId
       ? seccoes.find((s) => s.id === defaultValues.seccaoId)
       : null
-    if (current && !current.ativo) return [current, ...ativas]
+    if (current && !current.ativo && (current.comarcaId === selectedComarcaId || current.comarcaId === null)) {
+      return [current, ...ativas]
+    }
     return ativas
   }, [seccoes, defaultValues?.seccaoId, selectedComarcaId])
 
@@ -242,8 +244,16 @@ export function InqueritoForm({
   async function openAddTribunalDialog() {
     setAddTribunalOpen(true)
     if (comarcas.length === 0) {
-      const res = await fetch('/api/comarcas')
-      if (res.ok) setComarcas(await res.json())
+      try {
+        const res = await fetch('/api/comarcas')
+        if (res.ok) {
+          setComarcas(await res.json())
+        } else {
+          toast.error('Erro ao carregar comarcas')
+        }
+      } catch {
+        toast.error('Erro ao carregar comarcas')
+      }
     }
   }
 
