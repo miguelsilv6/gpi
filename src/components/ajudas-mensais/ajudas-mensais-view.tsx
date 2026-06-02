@@ -964,10 +964,12 @@ export function AjudasMensaisView({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Entradas do Mês</CardTitle>
-              <Button size="sm" onClick={openAddDialog}>
-                <Plus className="h-4 w-4 mr-1.5" />
-                Nova entrada
-              </Button>
+              {data?.userConfigured && (
+                <Button size="sm" onClick={openAddDialog}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Nova entrada
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {linhas.length === 0 ? (

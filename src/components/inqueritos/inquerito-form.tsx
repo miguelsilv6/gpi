@@ -24,7 +24,7 @@ interface Estado { id: string; codigo: string; nome: string; terminal: boolean; 
 interface Crime { id: string; nome: string; ativo: boolean }
 interface Etiqueta { id: string; nome: string }
 interface TribunalOption { id: string; nome: string; ativo: boolean }
-interface SeccaoOption { id: string; nome: string; ativo: boolean }
+interface SeccaoOption { id: string; nome: string; ativo: boolean; tribunalId: string | null }
 interface LocalTratamentoOption { id: string; nome: string; ativo: boolean }
 
 const NONE_VALUE = '__none__'
@@ -152,13 +152,17 @@ export function InqueritoForm({
   }, [tribunais, defaultValues?.tribunalId])
 
   const seccoesForSelect = useMemo(() => {
-    const ativas = seccoes.filter((s) => s.ativo)
+    const tribunalId = selectedTribunalId && selectedTribunalId !== NONE_VALUE ? selectedTribunalId : null
+    // Always scope: global sections (null) + sections for the selected tribunal.
+    // When no tribunal is selected, tribunalId === null so only global sections show.
+    const scoped = seccoes.filter((s) => s.tribunalId === tribunalId || s.tribunalId === null)
+    const ativas = scoped.filter((s) => s.ativo)
     const current = defaultValues?.seccaoId
       ? seccoes.find((s) => s.id === defaultValues.seccaoId)
       : null
     if (current && !current.ativo) return [current, ...ativas]
     return ativas
-  }, [seccoes, defaultValues?.seccaoId])
+  }, [seccoes, defaultValues?.seccaoId, selectedTribunalId])
 
   const locaisForSelect = useMemo(() => {
     const ativos = locaisTratamento.filter((l) => l.ativo)
@@ -192,6 +196,18 @@ export function InqueritoForm({
       setValue('inspetorId', '', { shouldDirty: true })
     }
   }, [selectedBrigadaId, selectedInspetorId, filteredInspetores, setValue])
+
+  // When tribunal changes, clear seccaoId if the current secção doesn't belong to it
+  useEffect(() => {
+    if (!selectedSeccaoId) return
+    const tribunalId = selectedTribunalId && selectedTribunalId !== NONE_VALUE ? selectedTribunalId : null
+    const currentSeccao = seccoes.find((s) => s.id === selectedSeccaoId)
+    if (!currentSeccao) return
+    // Clear if the secção is tribunal-specific and doesn't match the selected tribunal
+    if (currentSeccao.tribunalId !== null && currentSeccao.tribunalId !== tribunalId) {
+      setValue('seccaoId', null, { shouldDirty: true })
+    }
+  }, [selectedTribunalId, selectedSeccaoId, seccoes, setValue])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">

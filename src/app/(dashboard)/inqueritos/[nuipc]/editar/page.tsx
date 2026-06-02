@@ -98,7 +98,7 @@ export default async function EditarInqueritoPage({
     }),
     prisma.seccao.findMany({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true },
+      select: { id: true, nome: true, ativo: true, tribunalId: true },
     }),
     prisma.localTratamento.findMany({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],

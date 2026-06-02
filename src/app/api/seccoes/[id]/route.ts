@@ -12,6 +12,7 @@ const updateSchema = z.object({
   descricao: z.string().max(500).optional().nullable(),
   ordem: z.number().int().min(0).max(9999).optional(),
   ativo: z.boolean().optional(),
+  tribunalId: z.string().optional().nullable(),
 })
 
 export async function PUT(
@@ -35,17 +36,22 @@ export async function PUT(
 
     const data = parsed.data
 
-    if (data.nome !== undefined) {
-      const nome = data.nome.trim()
+    const newNome = data.nome !== undefined ? data.nome.trim() : existing.nome
+    const newTribunalId = data.tribunalId !== undefined ? (data.tribunalId ?? null) : existing.tribunalId
+
+    // Run collision check whenever nome OR tribunalId changes (moving a section to
+    // another tribunal can create duplicates even without touching the name).
+    if (data.nome !== undefined || data.tribunalId !== undefined) {
       const collision = await prisma.seccao.findFirst({
         where: {
-          nome: { equals: nome, mode: 'insensitive' },
+          nome: { equals: newNome, mode: 'insensitive' },
+          tribunalId: newTribunalId,
           NOT: { id },
         },
         select: { id: true },
       })
-      if (collision) return apiError('Já existe outra secção com este nome', 409)
-      data.nome = nome
+      if (collision) return apiError('Já existe outra secção com este nome neste tribunal', 409)
+      if (data.nome !== undefined) data.nome = newNome
     }
 
     const updated = await prisma.seccao.update({
@@ -55,10 +61,11 @@ export async function PUT(
         ...(data.descricao !== undefined && { descricao: data.descricao?.trim() || null }),
         ...(data.ordem !== undefined && { ordem: data.ordem }),
         ...(data.ativo !== undefined && { ativo: data.ativo }),
+        ...(data.tribunalId !== undefined && { tribunalId: data.tribunalId ?? null }),
       },
     })
 
-    const changes = diff(existing, updated, ['nome', 'descricao', 'ordem', 'ativo'])
+    const changes = diff(existing, updated, ['nome', 'descricao', 'ordem', 'ativo', 'tribunalId'])
     if (changes) {
       await writeAudit({
         req,
