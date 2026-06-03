@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { isWorkingDay, countWorkingDays } from '@/lib/ferias'
 import type { MembroFerias, Ausencia } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
@@ -126,7 +127,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
     return bands
   }, [dayList])
 
-  function barFor(a: Ausencia): { left: number; width: number; title: string } | null {
+  function barFor(a: Ausencia): { left: number; width: number; dias: number } | null {
     const inicio = startOfDay(new Date(a.dataInicio))
     const fim = startOfDay(new Date(a.dataFim))
     const clampStart = inicio < rangeStart ? rangeStart : inicio
@@ -139,7 +140,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
     return {
       left: (startIdx / total) * 100,
       width: ((endIdx - startIdx + 1) / total) * 100,
-      title: `${TIPO_LABEL[a.tipo]} • ${a.dataInicio.slice(0, 10)} → ${a.dataFim.slice(0, 10)} • ${dias} dia(s) úteis`,
+      dias,
     }
   }
 
@@ -313,18 +314,29 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
                         ))}
                       </div>
                       {/* Absence bars */}
-                      {m.ausencias.map((a) => {
-                        const bar = barFor(a)
-                        if (!bar) return null
-                        return (
-                          <div
-                            key={a.id}
-                            className={`absolute top-1.5 bottom-1.5 rounded ${TIPO_COR[a.tipo].bar}`}
-                            style={{ left: `${bar.left}%`, width: `${bar.width}%` }}
-                            title={bar.title}
-                          />
-                        )
-                      })}
+                      <TooltipProvider>
+                        {m.ausencias.map((a) => {
+                          const bar = barFor(a)
+                          if (!bar) return null
+                          return (
+                            <Tooltip key={a.id}>
+                              <TooltipTrigger
+                                className={`absolute top-1.5 bottom-1.5 rounded cursor-default ${TIPO_COR[a.tipo].bar}`}
+                                style={{ left: `${bar.left}%`, width: `${bar.width}%` }}
+                              />
+                              <TooltipContent side="top" className="text-center">
+                                <p className="font-semibold">{TIPO_LABEL[a.tipo]}</p>
+                                <p className="opacity-80">
+                                  {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
+                                </p>
+                                <p>
+                                  {bar.dias} dia{bar.dias === 1 ? '' : 's'} útei{bar.dias === 1 ? 'l' : 's'}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        })}
+                      </TooltipProvider>
                     </div>
                   ))}
                 </div>
