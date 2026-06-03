@@ -26,7 +26,7 @@ export async function GET(
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
 
     const inquerito = await prisma.inquerito.findFirst({
-      where: { nuipc, ...roleWhere },
+      where: { nuipc, deletedAt: null, ...roleWhere },
       select: { id: true },
     })
     if (!inquerito) return apiError('Inquérito não encontrado', 404)

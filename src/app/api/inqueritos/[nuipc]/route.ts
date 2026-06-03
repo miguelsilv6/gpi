@@ -404,11 +404,12 @@ export async function DELETE(
 
     const { nuipc: slug } = await params
     const nuipc = slugToNuipc(slug)
-    const existing = await prisma.inquerito.findUnique({
-      where: { nuipc },
+    const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+    const existing = await prisma.inquerito.findFirst({
+      where: { nuipc, deletedAt: null, ...roleWhere },
       include: { estado: ESTADO_INCLUDE },
     })
-    if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
+    if (!existing) return apiError('Inquérito não encontrado', 404)
 
     await prisma.inquerito.update({
       where: { nuipc },

@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { checkPermission, handleApiError, apiError } from '@/lib/auth-helpers'
+import { checkPermission, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { getRequestInfo } from '@/lib/request-info'
 import { notifyInqueritoTransferido } from '@/lib/notifications'
 import { nuipcToSlug } from '@/lib/utils'
 import { getDistribuidoEstado } from '@/lib/estados'
 import { z } from 'zod'
+import type { Role } from '@/generated/prisma/enums'
 
 const schema = z.object({
   nuipc: z.string().min(1),
@@ -16,17 +17,19 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await checkPermission('inquerito:transfer')
+    const role = session.user.role as Role
     const body = await req.json()
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
     const { nuipc, brigadaId } = parsed.data
 
-    const inquerito = await prisma.inquerito.findUnique({
-      where: { nuipc },
+    const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+    const inquerito = await prisma.inquerito.findFirst({
+      where: { nuipc, deletedAt: null, ...roleWhere },
       include: { estado: { select: { codigo: true, terminal: true } } },
     })
-    if (!inquerito || inquerito.deletedAt) return apiError('Inquérito não encontrado', 404)
+    if (!inquerito) return apiError('Inquérito não encontrado', 404)
 
     if (inquerito.brigadaId === brigadaId) {
       return apiError('Brigada destino é igual à actual', 409)
