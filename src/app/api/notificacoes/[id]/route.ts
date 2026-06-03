@@ -13,7 +13,7 @@ export async function PATCH(
     const { searchParams } = new URL(req.url)
     const action = searchParams.get('action')
 
-    const notif = await prisma.notificacao.findUnique({
+    const notif = await prisma.notificacao.findFirst({
       where: { id, utilizadorId: session.user.id },
     })
     if (!notif) return apiError('Não encontrada', 404)

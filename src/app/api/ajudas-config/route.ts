@@ -6,7 +6,6 @@ import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
-
 const schema = z.object({
   vencimentoBase: z.number().positive(),
   vencimentoDN: z.number().positive(),
