@@ -27,7 +27,6 @@ interface Etiqueta { id: string; nome: string }
 interface ComarcaOption { id: string; nome: string }
 interface TribunalOption { id: string; nome: string; ativo: boolean; comarcaId: string | null; morada: string | null; telefone: string | null; email: string | null }
 interface SeccaoOption { id: string; nome: string; ativo: boolean; comarcaId: string | null }
-interface LocalTratamentoOption { id: string; nome: string; ativo: boolean }
 
 const NONE_VALUE = '__none__'
 
@@ -46,7 +45,6 @@ interface InqueritoFormProps {
   comarcas: ComarcaOption[]
   tribunais: TribunalOption[]
   seccoes: SeccaoOption[]
-  locaisTratamento: LocalTratamentoOption[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
   /** Whether the current user can create new sections inline from this form. */
@@ -67,7 +65,6 @@ export function InqueritoForm({
   comarcas: comarcasProp,
   tribunais: tribunaisProp,
   seccoes: seccoesProp,
-  locaisTratamento,
   nuipcOriginal,
   mode,
   canCreateSeccao = false,
@@ -173,7 +170,6 @@ export function InqueritoForm({
   const selectedCrimeIdsAssociados = watch('crimeIdsAssociados') ?? []
   const selectedTribunalId = watch('tribunalId')
   const selectedSeccaoId = watch('seccaoId')
-  const selectedLocalTratamentoId = watch('localTratamentoId')
 
   // Tribunais filtered by the selected comarca (null = tribunals with no comarca).
   const tribunaisForSelect = useMemo(() => {
@@ -208,16 +204,7 @@ export function InqueritoForm({
     return ativas
   }, [seccoes, defaultValues?.seccaoId, selectedComarcaId])
 
-  const locaisForSelect = useMemo(() => {
-    const ativos = locaisTratamento.filter((l) => l.ativo)
-    const current = defaultValues?.localTratamentoId
-      ? locaisTratamento.find((l) => l.id === defaultValues.localTratamentoId)
-      : null
-    if (current && !current.ativo) return [current, ...ativos]
-    return ativos
-  }, [locaisTratamento, defaultValues?.localTratamentoId])
-
-  // Merge edit-mode initially-assigned associated crimes (may include deactivated)
+// Merge edit-mode initially-assigned associated crimes (may include deactivated)
   // with the active catalog so the CrimeInput can resolve names and deactivated labels.
   const crimesForAssociados = useMemo(() => {
     const known = new Map(crimes.map((c) => [c.id, c]))
@@ -531,31 +518,6 @@ export function InqueritoForm({
                   Não há inspetores activos atribuídos a esta brigada.
                 </p>
               )}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Local de Tratamento</Label>
-              <Select
-                value={selectedLocalTratamentoId || NONE_VALUE}
-                onValueChange={(v) => setValue('localTratamentoId', v === NONE_VALUE ? null : v, { shouldDirty: true })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar local">
-                    {(v: string) =>
-                      !v || v === NONE_VALUE
-                        ? 'Nenhum'
-                        : locaisForSelect.find((l) => l.id === v)?.nome ?? 'Selecionar local'
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>Nenhum</SelectItem>
-                  {locaisForSelect.map((l) => (
-                    <SelectItem key={l.id} value={l.id}>
-                      {l.nome}{!l.ativo ? ' (inativo)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>

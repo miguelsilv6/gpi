@@ -25,7 +25,7 @@ export default async function NovoInqueritoPage() {
     )
   }
 
-  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes, locaisTratamento] = await Promise.all([
+  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes] = await Promise.all([
     prisma.brigada.findMany({
       where: {
         ativa: true,
@@ -68,11 +68,6 @@ export default async function NovoInqueritoPage() {
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, ativo: true, comarcaId: true },
     }),
-    prisma.localTratamento.findMany({
-      where: { ativo: true },
-      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true },
-    }),
   ])
 
   return (
@@ -102,7 +97,7 @@ export default async function NovoInqueritoPage() {
         comarcas={comarcas}
         tribunais={tribunais}
         seccoes={seccoes}
-        locaisTratamento={locaisTratamento}
+
         canCreateSeccao={true}
         canCreateTribunal={true}
         defaultValues={{
