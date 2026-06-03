@@ -79,6 +79,8 @@ export default async function InqueritosPage({
       OR: [
         { nuipc: { contains: sp.search, mode: 'insensitive' as const } },
         { nai: { contains: sp.search, mode: 'insensitive' as const } },
+        { denuncianteNome: { contains: sp.search, mode: 'insensitive' as const } },
+        { denuncianteNif: { contains: sp.search, mode: 'insensitive' as const } },
       ],
     }),
     ...(estadoCodigos.length > 0 && {

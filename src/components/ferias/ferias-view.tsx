@@ -20,9 +20,12 @@ import { TIPO_LABEL, TIPO_COR } from './types'
 
 interface Props {
   canViewBrigade: boolean
+  canViewAll?: boolean
+  userBrigadaId?: string | null
+  brigadas?: { id: string; nome: string }[]
 }
 
-export function FeriasView({ canViewBrigade }: Props) {
+export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, brigadas = [] }: Props) {
   const [month, setMonth] = useState(() => {
     const n = new Date()
     return new Date(n.getFullYear(), n.getMonth(), 1)
@@ -36,42 +39,65 @@ export function FeriasView({ canViewBrigade }: Props) {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
+  // For canViewAll roles (COORDENADOR/ADMINISTRACAO) without their own brigade,
+  // default to the first available brigade so the overview loads immediately.
+  const [selectedBrigadaId, setSelectedBrigadaId] = useState<string | null>(
+    userBrigadaId ?? brigadas[0]?.id ?? null,
+  )
+
   const [editing, setEditing] = useState<Ausencia | null>(null)
   const [deleting, setDeleting] = useState<Ausencia | null>(null)
 
-  const fetchSelf = useCallback(async (y: number) => {
+  const fetchSelf = useCallback(async (y: number, signal?: AbortSignal) => {
     setLoading(true)
-    const res = await fetch(`/api/ferias?ano=${y}`)
-    if (res.ok) {
-      const data = await res.json()
-      setAusencias(data.ausencias)
-      setTotais(data.totais)
-    } else {
+    try {
+      const res = await fetch(`/api/ferias?ano=${y}`, { signal })
+      if (res.ok) {
+        const data = await res.json()
+        setAusencias(data.ausencias)
+        setTotais(data.totais)
+      } else {
+        toast.error('Erro ao carregar marcações')
+      }
+      setLoading(false)
+    } catch (e) {
+      // A superseded request was aborted — a newer fetch is already in flight.
+      if ((e as Error).name === 'AbortError') return
       toast.error('Erro ao carregar marcações')
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
-  const fetchBrigade = useCallback(async (y: number) => {
-    const res = await fetch(`/api/ferias?ano=${y}&scope=brigade`)
-    if (res.ok) {
-      const data = await res.json()
-      setMembros(data.membros)
-    } else {
+  const fetchBrigade = useCallback(async (y: number, brigadaId: string | null, signal?: AbortSignal) => {
+    if (!brigadaId) return
+    const params = new URLSearchParams({ ano: String(y), scope: 'brigade', brigadaId })
+    try {
+      const res = await fetch(`/api/ferias?${params}`, { signal })
+      if (res.ok) {
+        const data = await res.json()
+        setMembros(data.membros)
+      } else {
+        toast.error('Erro ao carregar a visão de brigada')
+      }
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
       toast.error('Erro ao carregar a visão de brigada')
     }
   }, [])
 
-  // Refetch whenever the year changes (data is loaded per-year; month nav within
-  // a year is purely client-side rendering).
+  // Refetch whenever the year or selected brigade changes. The AbortController
+  // cancels superseded requests so a slow earlier response can't overwrite the
+  // data for a newer year/brigade selection.
   useEffect(() => {
-    fetchSelf(ano)
-    if (canViewBrigade) fetchBrigade(ano)
-  }, [ano, canViewBrigade, fetchSelf, fetchBrigade])
+    const controller = new AbortController()
+    fetchSelf(ano, controller.signal)
+    if (canViewBrigade) fetchBrigade(ano, selectedBrigadaId, controller.signal)
+    return () => controller.abort()
+  }, [ano, canViewBrigade, selectedBrigadaId, fetchSelf, fetchBrigade])
 
   async function refresh() {
     await fetchSelf(ano)
-    if (canViewBrigade) await fetchBrigade(ano)
+    if (canViewBrigade) await fetchBrigade(ano, selectedBrigadaId)
   }
 
   async function handleCreate(payload: {
@@ -231,6 +257,24 @@ export function FeriasView({ canViewBrigade }: Props) {
           </TabsList>
           <TabsContent value="me" className="mt-4">{meContent}</TabsContent>
           <TabsContent value="brigade" className="mt-4">
+            {canViewAll && brigadas.length > 0 && (
+              <div className="mb-4 flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground shrink-0">Brigada:</Label>
+                <Select
+                  value={selectedBrigadaId ?? ''}
+                  onValueChange={(v) => setSelectedBrigadaId(v || null)}
+                >
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="Selecionar brigada…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brigadas.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <FeriasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} />
           </TabsContent>
         </Tabs>

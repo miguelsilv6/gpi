@@ -4,6 +4,7 @@ import { hasPermission } from '@/lib/rbac'
 import { isModuloFeriasAtivo } from '@/lib/ferias-module'
 import { AccessDenied } from '@/components/access-denied'
 import { FeriasView } from '@/components/ferias/ferias-view'
+import { prisma } from '@/lib/prisma'
 import type { Role } from '@/generated/prisma/enums'
 import { CalendarDays } from 'lucide-react'
 
@@ -31,8 +32,25 @@ export default async function FeriasPage() {
     )
   }
 
-  const canViewBrigade =
-    hasPermission(role, 'ferias:read:brigade') || hasPermission(role, 'ferias:read:all')
+  const canViewAll = hasPermission(role, 'ferias:read:all')
+  const canViewBrigade = canViewAll || hasPermission(role, 'ferias:read:brigade')
 
-  return <FeriasView canViewBrigade={canViewBrigade} />
+  // For roles that can view any brigade (COORDENADOR, ADMINISTRACAO), fetch the
+  // full brigade list so the client can render a selector.
+  const brigadas = canViewAll
+    ? await prisma.brigada.findMany({
+        where: { ativa: true },
+        select: { id: true, nome: true },
+        orderBy: { nome: 'asc' },
+      })
+    : []
+
+  return (
+    <FeriasView
+      canViewBrigade={canViewBrigade}
+      canViewAll={canViewAll}
+      userBrigadaId={session.user.brigadaId ?? null}
+      brigadas={brigadas}
+    />
+  )
 }
