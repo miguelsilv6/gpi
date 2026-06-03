@@ -23,6 +23,10 @@ export type Permission =
   | 'ajudas:read:brigade'
   | 'ajudas:read:all'
   | 'ajudas:config'
+  | 'ferias:own'
+  | 'ferias:read:brigade'
+  | 'ferias:read:all'
+  | 'ferias:config'
   | 'comarca:manage'
   | 'tribunal:manage'
   | 'seccao:manage'
@@ -50,6 +54,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'prazo:read:own',
     'estatistica:own',
     'ajudas:own',
+    'ferias:own',
   ],
   INSPETOR_CHEFE: [
     'inquerito:read:own',
@@ -70,6 +75,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'relatorio:read',
     'ajudas:own',
     'ajudas:read:brigade',
+    'ferias:own',
+    'ferias:read:brigade',
   ],
   COORDENADOR: [
     'inquerito:read:own',
@@ -97,6 +104,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'relatorio:read',
     'ajudas:own',
     'ajudas:read:all',
+    'ferias:own',
+    'ferias:read:all',
   ],
   ESTATISTICA: [
     'inquerito:read:all',
@@ -143,6 +152,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'ajudas:read:brigade',
     'ajudas:read:all',
     'ajudas:config',
+    'ferias:own',
+    'ferias:read:brigade',
+    'ferias:read:all',
+    'ferias:config',
   ],
 }
 

@@ -19,7 +19,7 @@ export default async function DashboardLayout({
 
   const sysConfig = await prisma.configuracaoSistema.findUnique({
     where: { id: 'singleton' },
-    select: { maintenanceMode: true, moduloAjudasAtivo: true },
+    select: { maintenanceMode: true, moduloAjudasAtivo: true, moduloFeriasAtivo: true },
   })
 
   // Maintenance mode gate — só ADMINISTRACAO passa enquanto o sistema está em
@@ -43,12 +43,13 @@ export default async function DashboardLayout({
   }
 
   const moduloAjudasAtivo = sysConfig?.moduloAjudasAtivo ?? true
+  const moduloFeriasAtivo = sysConfig?.moduloFeriasAtivo ?? true
 
   return (
     <div className="flex h-screen bg-muted/30">
       {/* Sidebar — desktop only */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-background shrink-0">
-        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} />
+        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} />
       </aside>
 
       {/* Main content */}
@@ -60,6 +61,7 @@ export default async function DashboardLayout({
             role,
           }}
           moduloAjudasAtivo={moduloAjudasAtivo}
+          moduloFeriasAtivo={moduloFeriasAtivo}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
@@ -68,7 +70,7 @@ export default async function DashboardLayout({
       </div>
 
       {/* Bottom nav — mobile only */}
-      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} />
+      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} />
     </div>
   )
 }

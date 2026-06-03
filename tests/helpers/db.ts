@@ -47,6 +47,7 @@ export async function resetDatabase(prisma: PrismaClient = getTestPrisma()): Pro
       "NotificationPolicy",
       "PasswordResetToken",
       "Atividade",
+      "Ausencia",
       "Sessao",
       "VerificationToken",
       "Inquerito",
