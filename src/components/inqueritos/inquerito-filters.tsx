@@ -106,7 +106,7 @@ export function InqueritoFilters({
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Pesquisar NUIPC ou NAI..."
+            placeholder="Pesquisar NUIPC, NAI ou Denunciante..."
             className="pl-8"
             defaultValue={searchParams.get('search') ?? ''}
             onChange={(e) => update({ search: e.target.value || null })}
