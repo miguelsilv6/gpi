@@ -48,35 +48,51 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   const [editing, setEditing] = useState<Ausencia | null>(null)
   const [deleting, setDeleting] = useState<Ausencia | null>(null)
 
-  const fetchSelf = useCallback(async (y: number) => {
+  const fetchSelf = useCallback(async (y: number, signal?: AbortSignal) => {
     setLoading(true)
-    const res = await fetch(`/api/ferias?ano=${y}`)
-    if (res.ok) {
-      const data = await res.json()
-      setAusencias(data.ausencias)
-      setTotais(data.totais)
-    } else {
+    try {
+      const res = await fetch(`/api/ferias?ano=${y}`, { signal })
+      if (res.ok) {
+        const data = await res.json()
+        setAusencias(data.ausencias)
+        setTotais(data.totais)
+      } else {
+        toast.error('Erro ao carregar marcações')
+      }
+      setLoading(false)
+    } catch (e) {
+      // A superseded request was aborted — a newer fetch is already in flight.
+      if ((e as Error).name === 'AbortError') return
       toast.error('Erro ao carregar marcações')
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
-  const fetchBrigade = useCallback(async (y: number, brigadaId: string | null) => {
+  const fetchBrigade = useCallback(async (y: number, brigadaId: string | null, signal?: AbortSignal) => {
     if (!brigadaId) return
     const params = new URLSearchParams({ ano: String(y), scope: 'brigade', brigadaId })
-    const res = await fetch(`/api/ferias?${params}`)
-    if (res.ok) {
-      const data = await res.json()
-      setMembros(data.membros)
-    } else {
+    try {
+      const res = await fetch(`/api/ferias?${params}`, { signal })
+      if (res.ok) {
+        const data = await res.json()
+        setMembros(data.membros)
+      } else {
+        toast.error('Erro ao carregar a visão de brigada')
+      }
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
       toast.error('Erro ao carregar a visão de brigada')
     }
   }, [])
 
-  // Refetch whenever the year or selected brigade changes.
+  // Refetch whenever the year or selected brigade changes. The AbortController
+  // cancels superseded requests so a slow earlier response can't overwrite the
+  // data for a newer year/brigade selection.
   useEffect(() => {
-    fetchSelf(ano)
-    if (canViewBrigade) fetchBrigade(ano, selectedBrigadaId)
+    const controller = new AbortController()
+    fetchSelf(ano, controller.signal)
+    if (canViewBrigade) fetchBrigade(ano, selectedBrigadaId, controller.signal)
+    return () => controller.abort()
   }, [ano, canViewBrigade, selectedBrigadaId, fetchSelf, fetchBrigade])
 
   async function refresh() {

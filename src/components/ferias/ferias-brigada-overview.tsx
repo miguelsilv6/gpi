@@ -289,7 +289,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
                                 ? 'bg-muted text-muted-foreground'
                                 : 'text-muted-foreground')
                           }
-                          title={multi ? `${absentPerDay[idx]} inspetores ausentes em ${dm.date.toLocaleDateString('pt-PT')}` : undefined}
+                          title={multi ? `${absentPerDay[idx]} inspetores ausentes em ${format(dm.date, 'dd/MM/yyyy')}` : undefined}
                         >
                           {showDayNumbers ? dm.day : ''}
                         </div>
