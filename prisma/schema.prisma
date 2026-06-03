@@ -15,6 +15,11 @@ enum Role {
   ADMINISTRACAO
 }
 
+enum TipoAusencia {
+  FERIAS
+  FOLGA
+}
+
 enum TipoNotificacao {
   BACKUP_FALHOU
   PRAZO_APROXIMANDO
@@ -37,6 +42,7 @@ model Brigada {
 
   utilizadores Utilizador[]
   inqueritos   Inquerito[]
+  ausencias    Ausencia[]
 }
 
 model Utilizador {
@@ -75,6 +81,7 @@ model Utilizador {
   ajudasVencimentoBase Float?
   ajudasTaxaIRS        Float?
   viaturas             Viatura[]
+  ausencias            Ausencia[]    @relation("AusenciasInspetor")
 
   @@index([brigadaId])
   @@index([role])
@@ -364,6 +371,9 @@ model ConfiguracaoSistema {
   // When false, the Ajudas Mensais module is hidden and all its API routes
   // return 503. Only ADMINISTRACAO can toggle this in Configurações → Sistema.
   moduloAjudasAtivo               Boolean  @default(true)
+  // When false, the Férias module is hidden and all its API routes return 503.
+  // Only ADMINISTRACAO can toggle this in Configurações → Sistema.
+  moduloFeriasAtivo               Boolean  @default(true)
   prazoAlertaDias                 Int      @default(7)
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")
@@ -535,6 +545,30 @@ model AjudasLinha {
 
   @@index([registoId])
   @@index([viaturaId])
+}
+
+// Vacation / days-off marking by an inspector. View-only for the chefe (no
+// approval flow). Dates are date-only (local midnight) and inclusive.
+model Ausencia {
+  id         String       @id @default(cuid())
+  inspetorId String
+  inspetor   Utilizador   @relation("AusenciasInspetor", fields: [inspetorId], references: [id], onDelete: Cascade)
+  // Snapshot of inspetor.brigadaId at create time — keeps brigade queries fast
+  // and stable even if the inspector later changes brigade.
+  brigadaId  String?
+  brigada    Brigada?     @relation(fields: [brigadaId], references: [id], onDelete: SetNull)
+  tipo       TipoAusencia
+  dataInicio DateTime
+  dataFim    DateTime
+  nota       String?
+  deletedAt  DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([inspetorId])
+  @@index([brigadaId])
+  @@index([deletedAt])
+  @@index([inspetorId, dataInicio])
 }
 
 model Sessao {

@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
@@ -709,7 +709,9 @@ export default function ConfiguracoesPage() {
   const [estadosDefault, setEstadosDefault] = useState<string[]>([])
   const [savingDefault, setSavingDefault] = useState(false)
   const [moduloAjudasAtivo, setModuloAjudasAtivo] = useState(true)
+  const [moduloFeriasAtivo, setModuloFeriasAtivo] = useState(true)
   const [savingModulo, setSavingModulo] = useState(false)
+  const [savingModuloFerias, setSavingModuloFerias] = useState(false)
 
   const {
     register,
@@ -732,6 +734,7 @@ export default function ConfiguracoesPage() {
         })
         setEstadosDefault(d.inqueritoFiltroEstadosDefault ?? [])
         setModuloAjudasAtivo(d.moduloAjudasAtivo ?? true)
+        setModuloFeriasAtivo(d.moduloFeriasAtivo ?? true)
         setEstados(Array.isArray(e) ? e : [])
         setLoading(false)
       })
@@ -810,6 +813,25 @@ export default function ConfiguracoesPage() {
       return
     }
     toast.success(next ? 'Módulo Ajudas Mensais ativado' : 'Módulo Ajudas Mensais desativado')
+  }
+
+  async function toggleModuloFerias() {
+    const next = !moduloFeriasAtivo
+    setSavingModuloFerias(true)
+    setModuloFeriasAtivo(next)
+    const res = await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moduloFeriasAtivo: next }),
+    })
+    setSavingModuloFerias(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setModuloFeriasAtivo(!next)
+      toast.error(err.error ?? 'Erro ao guardar')
+      return
+    }
+    toast.success(next ? 'Módulo Férias ativado' : 'Módulo Férias desativado')
   }
 
   if (loading) return <div className="text-sm text-muted-foreground">A carregar...</div>
@@ -1006,6 +1028,40 @@ export default function ConfiguracoesPage() {
                   className={cn(
                     'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
                     moduloAjudasAtivo ? 'translate-x-5' : 'translate-x-0',
+                  )}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 border-t pt-3">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'flex items-center justify-center w-9 h-9 rounded-lg',
+                  moduloFeriasAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                )}>
+                  <CalendarDays className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Férias</p>
+                  <p className="text-xs text-muted-foreground">
+                    Marcação de férias e folgas por inspetor
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={toggleModuloFerias}
+                disabled={savingModuloFerias}
+                aria-label={moduloFeriasAtivo ? 'Desativar módulo Férias' : 'Ativar módulo Férias'}
+                className={cn(
+                  'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                  moduloFeriasAtivo ? 'bg-green-600' : 'bg-input',
+                )}
+              >
+                <span
+                  className={cn(
+                    'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                    moduloFeriasAtivo ? 'translate-x-5' : 'translate-x-0',
                   )}
                 />
               </button>

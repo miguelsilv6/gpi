@@ -6,6 +6,7 @@ import {
   Shield,
   BarChart3,
   CalendarRange,
+  CalendarDays,
   Bell,
   Settings,
   ClipboardList,
@@ -76,6 +77,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Ajudas Mensais',
     href: '/ajudas-mensais',
     icon: Banknote,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Férias',
+    href: '/ferias',
+    icon: CalendarDays,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
