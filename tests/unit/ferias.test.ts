@@ -1,10 +1,11 @@
 import { describe, test, expect } from 'vitest'
 import { countWorkingDays, countByTipo, isWorkingDay } from '@/lib/ferias'
 
-// Local-midnight Date from 'YYYY-MM-DD'.
+// UTC-midnight Date from 'YYYY-MM-DD' — matches how the app stores dates, so
+// tests are stable regardless of the machine's timezone.
 function d(s: string): Date {
   const [y, m, day] = s.split('-').map(Number)
-  return new Date(y!, m! - 1, day!)
+  return new Date(Date.UTC(y!, m! - 1, day!))
 }
 
 describe('countWorkingDays', () => {

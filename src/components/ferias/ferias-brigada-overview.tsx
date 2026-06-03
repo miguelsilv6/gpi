@@ -16,8 +16,10 @@ interface Props {
   onMonthChange: (d: Date) => void
 }
 
+// Dates arrive from the API as UTC instants — read the calendar day in UTC so
+// bars/positions don't shift by ±1 day across client timezones.
 function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }
 
 export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) {
@@ -30,13 +32,18 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
   // where more than one person is away.
   const absentPerDay = useMemo(() => {
     const counts = new Array(daysInMonth + 1).fill(0)
-    for (const m of membros) {
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(ano, mIdx, d)
-        const covered = m.ausencias.some(
-          (a) => startOfDay(new Date(a.dataInicio)) <= date && date <= startOfDay(new Date(a.dataFim)),
-        )
-        if (covered) counts[d]++
+    // Pre-parse each member's ranges once instead of re-allocating Dates inside
+    // the nested day loop.
+    const parsed = membros.map((m) =>
+      m.ausencias.map((a) => ({
+        inicio: startOfDay(new Date(a.dataInicio)),
+        fim: startOfDay(new Date(a.dataFim)),
+      })),
+    )
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(ano, mIdx, d)
+      for (const ausencias of parsed) {
+        if (ausencias.some((a) => a.inicio <= date && date <= a.fim)) counts[d]++
       }
     }
     return counts
@@ -65,7 +72,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
     return {
       left: ((startDay - 1) / daysInMonth) * 100,
       width: ((endDay - startDay + 1) / daysInMonth) * 100,
-      title: `${TIPO_LABEL[a.tipo]} • ${a.dataInicio} → ${a.dataFim} • ${dias} dia(s) úteis`,
+      title: `${TIPO_LABEL[a.tipo]} • ${a.dataInicio.slice(0, 10)} → ${a.dataFim.slice(0, 10)} • ${dias} dia(s) úteis`,
     }
   }
 

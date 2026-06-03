@@ -33,11 +33,13 @@ function fromKey(s: string): Date {
 
 /** Enumerate each calendar day in the inclusive ISO range. */
 function enumerateDays(inicioISO: string, fimISO: string): Date[] {
+  // ISO strings from the server are UTC — read the calendar day in UTC, then
+  // build local dates for react-day-picker (which matches in local time).
   const start = new Date(inicioISO)
   const end = new Date(fimISO)
   const days: Date[] = []
-  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-  const last = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+  const cursor = new Date(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
+  const last = new Date(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
   while (cursor <= last) {
     days.push(new Date(cursor))
     cursor.setDate(cursor.getDate() + 1)

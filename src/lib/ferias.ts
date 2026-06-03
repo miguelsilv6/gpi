@@ -35,8 +35,10 @@ export function isWorkingDay(d: Date): boolean {
  * Returns 0 if fim < inicio.
  */
 export function countWorkingDays(inicio: Date, fim: Date): number {
-  const start = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate())
-  const end = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate())
+  // Dates from the DB are UTC instants — read the calendar day in UTC so the
+  // count is independent of the server timezone, then iterate in local time.
+  const start = new Date(inicio.getUTCFullYear(), inicio.getUTCMonth(), inicio.getUTCDate())
+  const end = new Date(fim.getUTCFullYear(), fim.getUTCMonth(), fim.getUTCDate())
   if (end < start) return 0
 
   let count = 0
@@ -66,8 +68,8 @@ export function countByTipo(
   let ferias = 0
   let folga = 0
 
-  const yearStart = ano != null ? new Date(ano, 0, 1) : null
-  const yearEnd = ano != null ? new Date(ano, 11, 31) : null
+  const yearStart = ano != null ? new Date(Date.UTC(ano, 0, 1)) : null
+  const yearEnd = ano != null ? new Date(Date.UTC(ano, 11, 31)) : null
 
   for (const a of ausencias) {
     let inicio = new Date(a.dataInicio)

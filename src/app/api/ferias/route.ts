@@ -8,10 +8,10 @@ import { ausenciaCreateSchema } from '@/lib/validations/ferias'
 import { writeAudit } from '@/lib/audit'
 import type { Role } from '@/generated/prisma/enums'
 
-/** Parse 'YYYY-MM-DD' into a local-midnight Date. */
+/** Parse 'YYYY-MM-DD' into a UTC-midnight Date (timezone-independent). */
 function parseDateOnly(s: string): Date {
   const [y, m, d] = s.split('-').map(Number)
-  return new Date(y!, m! - 1, d!)
+  return new Date(Date.UTC(y!, m! - 1, d!))
 }
 
 export async function GET(req: NextRequest) {
@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
     const ano = anoParam ? parseInt(anoParam, 10) : new Date().getFullYear()
     if (isNaN(ano) || ano < 2000 || ano > 2100) return apiError('Parâmetro ano inválido', 400)
 
-    const yearStart = new Date(ano, 0, 1)
-    const yearEnd = new Date(ano, 11, 31)
+    const yearStart = new Date(Date.UTC(ano, 0, 1))
+    const yearEnd = new Date(Date.UTC(ano, 11, 31, 23, 59, 59, 999))
     const overlapWhere = { dataInicio: { lte: yearEnd }, dataFim: { gte: yearStart } }
 
     // ── Brigade overview (chefe / coordenador / admin) ──────────────────────

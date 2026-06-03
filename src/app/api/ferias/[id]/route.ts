@@ -7,10 +7,10 @@ import { ausenciaUpdateSchema } from '@/lib/validations/ferias'
 import { writeAudit } from '@/lib/audit'
 import type { Role } from '@/generated/prisma/enums'
 
-/** Parse 'YYYY-MM-DD' into a local-midnight Date. */
+/** Parse 'YYYY-MM-DD' into a UTC-midnight Date (timezone-independent). */
 function parseDateOnly(s: string): Date {
   const [y, m, d] = s.split('-').map(Number)
-  return new Date(y!, m! - 1, d!)
+  return new Date(Date.UTC(y!, m! - 1, d!))
 }
 
 type AusenciaRow = {
