@@ -20,9 +20,12 @@ import { TIPO_LABEL, TIPO_COR } from './types'
 
 interface Props {
   canViewBrigade: boolean
+  canViewAll?: boolean
+  userBrigadaId?: string | null
+  brigadas?: { id: string; nome: string }[]
 }
 
-export function FeriasView({ canViewBrigade }: Props) {
+export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, brigadas = [] }: Props) {
   const [month, setMonth] = useState(() => {
     const n = new Date()
     return new Date(n.getFullYear(), n.getMonth(), 1)
@@ -35,6 +38,12 @@ export function FeriasView({ canViewBrigade }: Props) {
   const [membros, setMembros] = useState<MembroFerias[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+
+  // For canViewAll roles (COORDENADOR/ADMINISTRACAO) without their own brigade,
+  // default to the first available brigade so the overview loads immediately.
+  const [selectedBrigadaId, setSelectedBrigadaId] = useState<string | null>(
+    userBrigadaId ?? brigadas[0]?.id ?? null,
+  )
 
   const [editing, setEditing] = useState<Ausencia | null>(null)
   const [deleting, setDeleting] = useState<Ausencia | null>(null)
@@ -52,8 +61,10 @@ export function FeriasView({ canViewBrigade }: Props) {
     setLoading(false)
   }, [])
 
-  const fetchBrigade = useCallback(async (y: number) => {
-    const res = await fetch(`/api/ferias?ano=${y}&scope=brigade`)
+  const fetchBrigade = useCallback(async (y: number, brigadaId: string | null) => {
+    if (!brigadaId) return
+    const params = new URLSearchParams({ ano: String(y), scope: 'brigade', brigadaId })
+    const res = await fetch(`/api/ferias?${params}`)
     if (res.ok) {
       const data = await res.json()
       setMembros(data.membros)
@@ -62,16 +73,15 @@ export function FeriasView({ canViewBrigade }: Props) {
     }
   }, [])
 
-  // Refetch whenever the year changes (data is loaded per-year; month nav within
-  // a year is purely client-side rendering).
+  // Refetch whenever the year or selected brigade changes.
   useEffect(() => {
     fetchSelf(ano)
-    if (canViewBrigade) fetchBrigade(ano)
-  }, [ano, canViewBrigade, fetchSelf, fetchBrigade])
+    if (canViewBrigade) fetchBrigade(ano, selectedBrigadaId)
+  }, [ano, canViewBrigade, selectedBrigadaId, fetchSelf, fetchBrigade])
 
   async function refresh() {
     await fetchSelf(ano)
-    if (canViewBrigade) await fetchBrigade(ano)
+    if (canViewBrigade) await fetchBrigade(ano, selectedBrigadaId)
   }
 
   async function handleCreate(payload: {
@@ -231,6 +241,24 @@ export function FeriasView({ canViewBrigade }: Props) {
           </TabsList>
           <TabsContent value="me" className="mt-4">{meContent}</TabsContent>
           <TabsContent value="brigade" className="mt-4">
+            {canViewAll && brigadas.length > 0 && (
+              <div className="mb-4 flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground shrink-0">Brigada:</Label>
+                <Select
+                  value={selectedBrigadaId ?? ''}
+                  onValueChange={(v) => setSelectedBrigadaId(v || null)}
+                >
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="Selecionar brigada…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brigadas.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <FeriasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} />
           </TabsContent>
         </Tabs>
