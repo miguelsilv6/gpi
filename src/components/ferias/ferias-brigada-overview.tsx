@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -10,73 +10,155 @@ import { isWorkingDay, countWorkingDays } from '@/lib/ferias'
 import type { MembroFerias, Ausencia } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
 
+type Scale = 'month' | 'quarter' | 'year'
+
 interface Props {
   membros: MembroFerias[]
   month: Date
   onMonthChange: (d: Date) => void
 }
 
+const MONTHS_PT = [
+  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+]
+
 // Dates arrive from the API as UTC instants — read the calendar day in UTC so
-// bars/positions don't shift by ±1 day across client timezones.
+// bars/positions don't shift by ±1 day across client timezones, then build a
+// local-midnight Date for rendering/comparison.
 function startOfDay(d: Date): Date {
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }
 
-export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) {
-  const mIdx = month.getMonth()
-  const ano = month.getFullYear()
-  const daysInMonth = new Date(ano, mIdx + 1, 0).getDate()
-  const days = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => i + 1), [daysInMonth])
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
 
-  // Per-day count of how many members are absent (any tipo) — used to flag days
-  // where more than one person is away.
+// Per-day pixel width by scale — drives the scrollable timeline minWidth.
+const PER_DAY_PX: Record<Scale, number> = { month: 30, quarter: 12, year: 5 }
+
+export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) {
+  const [scale, setScale] = useState<Scale>('month')
+
+  const ano = month.getFullYear()
+  const mIdx = month.getMonth()
+
+  // Visible range [rangeStart, rangeEnd] (local midnight) per scale. All scales
+  // stay within a single calendar year, so the per-year fetch upstream covers it.
+  const { rangeStart, rangeEnd, startMonthIdx, endMonthIdx } = useMemo(() => {
+    if (scale === 'month') {
+      return {
+        rangeStart: new Date(ano, mIdx, 1),
+        rangeEnd: new Date(ano, mIdx + 1, 0),
+        startMonthIdx: mIdx,
+        endMonthIdx: mIdx,
+      }
+    }
+    if (scale === 'quarter') {
+      const qStart = Math.floor(mIdx / 3) * 3
+      return {
+        rangeStart: new Date(ano, qStart, 1),
+        rangeEnd: new Date(ano, qStart + 3, 0),
+        startMonthIdx: qStart,
+        endMonthIdx: qStart + 2,
+      }
+    }
+    return {
+      rangeStart: new Date(ano, 0, 1),
+      rangeEnd: new Date(ano, 12, 0),
+      startMonthIdx: 0,
+      endMonthIdx: 11,
+    }
+  }, [scale, ano, mIdx])
+
+  // Enumerate every day in range with metadata + an index map keyed by day. The
+  // index map makes bar positioning robust against DST (no day-diff arithmetic).
+  const { dayList, indexByKey } = useMemo(() => {
+    const list: { date: Date; key: string; day: number; monthIdx: number; nonWorking: boolean }[] = []
+    const map = new Map<string, number>()
+    const cursor = new Date(rangeStart)
+    let i = 0
+    while (cursor <= rangeEnd) {
+      const key = dayKey(cursor)
+      list.push({
+        date: new Date(cursor),
+        key,
+        day: cursor.getDate(),
+        monthIdx: cursor.getMonth(),
+        nonWorking: !isWorkingDay(cursor),
+      })
+      map.set(key, i)
+      i++
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    return { dayList: list, indexByKey: map }
+  }, [rangeStart, rangeEnd])
+
+  const total = dayList.length
+
+  // Per-day count of how many members are absent (any tipo). Pre-parse each
+  // member's ranges once instead of re-allocating Dates inside the day loop.
   const absentPerDay = useMemo(() => {
-    const counts = new Array(daysInMonth + 1).fill(0)
-    // Pre-parse each member's ranges once instead of re-allocating Dates inside
-    // the nested day loop.
+    const counts = new Array(total).fill(0)
     const parsed = membros.map((m) =>
       m.ausencias.map((a) => ({
         inicio: startOfDay(new Date(a.dataInicio)),
         fim: startOfDay(new Date(a.dataFim)),
       })),
     )
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(ano, mIdx, d)
+    for (let idx = 0; idx < total; idx++) {
+      const date = dayList[idx]!.date
       for (const ausencias of parsed) {
-        if (ausencias.some((a) => a.inicio <= date && date <= a.fim)) counts[d]++
+        if (ausencias.some((a) => a.inicio <= date && date <= a.fim)) counts[idx]++
       }
     }
     return counts
-  }, [membros, daysInMonth, ano, mIdx])
+  }, [membros, dayList, total])
 
-  const dayMeta = useMemo(
-    () =>
-      days.map((d) => {
-        const date = new Date(ano, mIdx, d)
-        return { d, nonWorking: !isWorkingDay(date), multi: absentPerDay[d] > 1 }
-      }),
-    [days, ano, mIdx, absentPerDay],
-  )
+  // Month band labels (sit above the day cells); each spans its days in the range.
+  const monthBands = useMemo(() => {
+    const bands: { monthIdx: number; count: number }[] = []
+    for (const d of dayList) {
+      const last = bands[bands.length - 1]
+      if (last && last.monthIdx === d.monthIdx) last.count++
+      else bands.push({ monthIdx: d.monthIdx, count: 1 })
+    }
+    return bands
+  }, [dayList])
 
   function barFor(a: Ausencia): { left: number; width: number; title: string } | null {
-    const monthStart = new Date(ano, mIdx, 1)
-    const monthEnd = new Date(ano, mIdx, daysInMonth)
     const inicio = startOfDay(new Date(a.dataInicio))
     const fim = startOfDay(new Date(a.dataFim))
-    const clampStart = inicio < monthStart ? monthStart : inicio
-    const clampEnd = fim > monthEnd ? monthEnd : fim
+    const clampStart = inicio < rangeStart ? rangeStart : inicio
+    const clampEnd = fim > rangeEnd ? rangeEnd : fim
     if (clampEnd < clampStart) return null
-    const startDay = clampStart.getDate()
-    const endDay = clampEnd.getDate()
+    const startIdx = indexByKey.get(dayKey(clampStart))
+    const endIdx = indexByKey.get(dayKey(clampEnd))
+    if (startIdx == null || endIdx == null) return null
     const dias = countWorkingDays(new Date(a.dataInicio), new Date(a.dataFim))
     return {
-      left: ((startDay - 1) / daysInMonth) * 100,
-      width: ((endDay - startDay + 1) / daysInMonth) * 100,
+      left: (startIdx / total) * 100,
+      width: ((endIdx - startIdx + 1) / total) * 100,
       title: `${TIPO_LABEL[a.tipo]} • ${a.dataInicio.slice(0, 10)} → ${a.dataFim.slice(0, 10)} • ${dias} dia(s) úteis`,
     }
   }
 
-  const minWidth = Math.max(daysInMonth * 30, 320)
+  const minWidth = Math.max(total * PER_DAY_PX[scale], 320)
+  const showDayNumbers = scale === 'month'
+
+  // Navigation jumps by the current scale's span.
+  function shift(dir: -1 | 1) {
+    if (scale === 'month') onMonthChange(new Date(ano, mIdx + dir, 1))
+    else if (scale === 'quarter') onMonthChange(new Date(ano, startMonthIdx + dir * 3, 1))
+    else onMonthChange(new Date(ano + dir, mIdx, 1))
+  }
+
+  const rangeLabel =
+    scale === 'month'
+      ? format(month, 'MMMM yyyy', { locale: ptBR })
+      : scale === 'quarter'
+        ? `${Math.floor(startMonthIdx / 3) + 1}.º trimestre ${ano}`
+        : String(ano)
 
   return (
     <div className="space-y-4">
@@ -122,27 +204,35 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
 
       {/* Gantt timeline */}
       <Card>
-        <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+        <CardHeader className="pb-2 flex-row items-center justify-between space-y-0 gap-2">
           <CardTitle className="text-sm font-medium text-muted-foreground capitalize">
-            {format(month, 'MMMM yyyy', { locale: ptBR })}
+            {rangeLabel}
           </CardTitle>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onMonthChange(new Date(ano, mIdx - 1, 1))}
-              aria-label="Mês anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onMonthChange(new Date(ano, mIdx + 1, 1))}
-              aria-label="Mês seguinte"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-2">
+            {/* Scale selector */}
+            <div className="flex rounded-md border p-0.5">
+              {(['month', 'quarter', 'year'] as Scale[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setScale(s)}
+                  className={
+                    'rounded px-2 py-0.5 text-xs transition-colors ' +
+                    (scale === s ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground')
+                  }
+                >
+                  {s === 'month' ? 'Mês' : s === 'quarter' ? 'Trimestre' : 'Ano'}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon-sm" onClick={() => shift(-1)} aria-label="Anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon-sm" onClick={() => shift(1)} aria-label="Seguinte">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -152,7 +242,8 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
             <div className="flex">
               {/* Sticky names column */}
               <div className="w-32 shrink-0">
-                <div className="h-7 border-b" />
+                {/* Spacer matching the month-band + day-tick header height */}
+                <div className={showDayNumbers ? 'h-12 border-b' : 'h-9 border-b'} />
                 {membros.map((m) => (
                   <div
                     key={m.id}
@@ -167,27 +258,43 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
               {/* Scrollable timeline */}
               <div className="flex-1 overflow-x-auto">
                 <div style={{ minWidth }}>
-                  {/* Header day numbers */}
-                  <div
-                    className="grid h-7 border-b"
-                    style={{ gridTemplateColumns: `repeat(${daysInMonth}, 1fr)` }}
-                  >
-                    {dayMeta.map((dm) => (
+                  {/* Month band labels */}
+                  <div className="flex h-5 border-b">
+                    {monthBands.map((b, i) => (
                       <div
-                        key={dm.d}
-                        className={
-                          'flex items-center justify-center text-[10px] tabular-nums border-l first:border-l-0 ' +
-                          (dm.multi
-                            ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 font-semibold'
-                            : dm.nonWorking
-                              ? 'bg-muted text-muted-foreground'
-                              : 'text-muted-foreground')
-                        }
-                        title={dm.multi ? `${absentPerDay[dm.d]} inspetores ausentes` : undefined}
+                        key={`${b.monthIdx}-${i}`}
+                        className="flex items-center justify-center border-l first:border-l-0 text-[10px] font-medium text-muted-foreground overflow-hidden"
+                        style={{ width: `${(b.count / total) * 100}%` }}
                       >
-                        {dm.d}
+                        {MONTHS_PT[b.monthIdx]}
                       </div>
                     ))}
+                  </div>
+
+                  {/* Day ticks: numbers only at month scale; shading + multi cue always */}
+                  <div
+                    className={(showDayNumbers ? 'h-7' : 'h-4') + ' grid border-b'}
+                    style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }}
+                  >
+                    {dayList.map((dm, idx) => {
+                      const multi = absentPerDay[idx] > 1
+                      return (
+                        <div
+                          key={dm.key}
+                          className={
+                            'flex items-center justify-center text-[10px] tabular-nums border-l first:border-l-0 ' +
+                            (multi
+                              ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 font-semibold'
+                              : dm.nonWorking
+                                ? 'bg-muted text-muted-foreground'
+                                : 'text-muted-foreground')
+                          }
+                          title={multi ? `${absentPerDay[idx]} inspetores ausentes em ${dm.date.toLocaleDateString('pt-PT')}` : undefined}
+                        >
+                          {showDayNumbers ? dm.day : ''}
+                        </div>
+                      )
+                    })}
                   </div>
 
                   {/* One row per member */}
@@ -196,15 +303,12 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
                       {/* Background day cells (weekend/holiday shading) */}
                       <div
                         className="absolute inset-0 grid"
-                        style={{ gridTemplateColumns: `repeat(${daysInMonth}, 1fr)` }}
+                        style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }}
                       >
-                        {dayMeta.map((dm) => (
+                        {dayList.map((dm) => (
                           <div
-                            key={dm.d}
-                            className={
-                              'border-l first:border-l-0 ' +
-                              (dm.nonWorking ? 'bg-muted/60' : '')
-                            }
+                            key={dm.key}
+                            className={'border-l first:border-l-0 ' + (dm.nonWorking ? 'bg-muted/60' : '')}
                           />
                         ))}
                       </div>
