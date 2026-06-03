@@ -38,7 +38,11 @@ export default async function FeriasPage() {
   // For roles that can view any brigade (COORDENADOR, ADMINISTRACAO), fetch the
   // full brigade list so the client can render a selector.
   const brigadas = canViewAll
-    ? await prisma.brigada.findMany({ select: { id: true, nome: true }, orderBy: { nome: 'asc' } })
+    ? await prisma.brigada.findMany({
+        where: { ativa: true },
+        select: { id: true, nome: true },
+        orderBy: { nome: 'asc' },
+      })
     : []
 
   return (
