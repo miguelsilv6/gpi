@@ -33,7 +33,6 @@ export default async function EditarInqueritoPage({
       crimesAssociados: { select: { id: true, nome: true, ativo: true } },
       tribunal: { select: { id: true, nome: true, ativo: true } },
       seccao: { select: { id: true, nome: true, ativo: true } },
-      localTratamento: { select: { id: true, nome: true, ativo: true } },
     },
   })
 
@@ -75,7 +74,7 @@ export default async function EditarInqueritoPage({
     )
   }
 
-  const [brigadas, inspetores, estados, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes, locaisTratamento] = await Promise.all([
+  const [brigadas, inspetores, estados, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes] = await Promise.all([
     prisma.brigada.findMany({
       where: { ativa: true },
       orderBy: { nome: 'asc' },
@@ -104,10 +103,6 @@ export default async function EditarInqueritoPage({
     prisma.seccao.findMany({
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, ativo: true, comarcaId: true },
-    }),
-    prisma.localTratamento.findMany({
-      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true },
     }),
   ])
 
@@ -146,7 +141,6 @@ export default async function EditarInqueritoPage({
         comarcas={comarcas}
         tribunais={tribunais}
         seccoes={seccoes}
-        locaisTratamento={locaisTratamento}
         canCreateSeccao={true}
         canCreateTribunal={true}
         defaultValues={{
@@ -164,7 +158,6 @@ export default async function EditarInqueritoPage({
           inspetorId: inquerito.inspetorId ?? undefined,
           tribunalId: inquerito.tribunalId ?? undefined,
           seccaoId: inquerito.seccaoId ?? undefined,
-          localTratamentoId: inquerito.localTratamentoId ?? undefined,
           procurador: inquerito.procurador ?? undefined,
           oficialJustica: inquerito.oficialJustica ?? undefined,
           voip: inquerito.voip ?? undefined,

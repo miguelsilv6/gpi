@@ -25,14 +25,23 @@ export default async function NovoInqueritoPage() {
     )
   }
 
-  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes, locaisTratamento] = await Promise.all([
+  const [brigadas, inspetores, estados, defaultEstado, crimes, etiquetasDisponiveis, comarcas, tribunais, seccoes] = await Promise.all([
     prisma.brigada.findMany({
-      where: { ativa: true },
+      where: {
+        ativa: true,
+        // INSPETOR can only create within their own brigade
+        ...(role === 'INSPETOR' && session.user.brigadaId ? { id: session.user.brigadaId } : {}),
+      },
       orderBy: { nome: 'asc' },
       select: { id: true, nome: true },
     }),
     prisma.utilizador.findMany({
-      where: { role: 'INSPETOR', ativo: true },
+      where: {
+        role: 'INSPETOR',
+        ativo: true,
+        // INSPETOR only sees inspetores in their own brigade
+        ...(role === 'INSPETOR' && session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
+      },
       orderBy: { nome: 'asc' },
       select: { id: true, nome: true, brigadaId: true },
     }),
@@ -58,11 +67,6 @@ export default async function NovoInqueritoPage() {
       where: { ativo: true },
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       select: { id: true, nome: true, ativo: true, comarcaId: true },
-    }),
-    prisma.localTratamento.findMany({
-      where: { ativo: true },
-      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-      select: { id: true, nome: true, ativo: true },
     }),
   ])
 
@@ -93,12 +97,14 @@ export default async function NovoInqueritoPage() {
         comarcas={comarcas}
         tribunais={tribunais}
         seccoes={seccoes}
-        locaisTratamento={locaisTratamento}
+
         canCreateSeccao={true}
         canCreateTribunal={true}
         defaultValues={{
           ...(session.user.brigadaId ? { brigadaId: session.user.brigadaId } : {}),
           ...(defaultEstado ? { estadoId: defaultEstado.id } : {}),
+          // INSPETOR is pre-assigned to themselves
+          ...(role === 'INSPETOR' ? { inspetorId: session.user.id } : {}),
         }}
       />
     </div>

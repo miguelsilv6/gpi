@@ -118,6 +118,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await checkPermission('inquerito:create')
+    const role = session.user.role as Role
     const body = await req.json()
     const parsed = inqueritoSchema.safeParse(body)
 
@@ -126,6 +127,14 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data
+
+    // INSPETOR is locked to their own brigade — they cannot create inquiries for
+    // another brigade even if they craft the request manually.
+    if (role === 'INSPETOR') {
+      if (!session.user.brigadaId) return apiError('Sessão sem brigada associada — refresh ou re-login', 403)
+      if (data.brigadaId !== session.user.brigadaId) return apiError('Não pode criar inquéritos para outra brigada', 403)
+    }
+
     const inspetorId = data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null
 
     // Resolve estado and validate

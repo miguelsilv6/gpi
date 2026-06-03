@@ -43,6 +43,7 @@ export type Permission =
 const PERMISSIONS: Record<Role, Permission[]> = {
   INSPETOR: [
     'inquerito:read:own',
+    'inquerito:create',
     'inquerito:edit:own',
     'inquerito:export',
     'atividade:create:own',

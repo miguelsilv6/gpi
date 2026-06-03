@@ -22,7 +22,9 @@ const schema = z.object({
 
 export async function GET() {
   try {
-    await getSession()
+    const session = await getSession()
+    const role = session.user.role as Role
+    if (!hasPermission(role, 'ajudas:own')) return apiError('Sem permissão', 403)
     const config = await prisma.ajudasConfig.upsert({
       where: { id: 'default' },
       create: { id: 'default' },

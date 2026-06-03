@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
+import { getSession, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { getReopenEstado } from '@/lib/estados'
@@ -31,11 +31,12 @@ export async function POST(
     const { nuipc: slug } = await params
     const nuipc = slugToNuipc(slug)
 
-    const existing = await prisma.inquerito.findUnique({
-      where: { nuipc },
+    const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+    const existing = await prisma.inquerito.findFirst({
+      where: { nuipc, deletedAt: null, ...roleWhere },
       include: { estado: { select: { codigo: true, terminal: true } } },
     })
-    if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
+    if (!existing) return apiError('Inquérito não encontrado', 404)
 
     if (!existing.estado.terminal) {
       return apiError('Apenas inquéritos em estado terminal podem ser reabertos', 409)

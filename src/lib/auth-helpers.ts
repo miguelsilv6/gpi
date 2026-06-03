@@ -57,6 +57,8 @@ export function handleApiError(error: unknown) {
     const status = (error.cause as number) || 500
     if (status === 401) return apiError('Não autenticado', 401)
     if (status === 403) return apiError('Sem permissão', 403)
+    // Never forward raw exception messages for 5xx — they may contain internal details.
+    if (status >= 500) return apiError('Erro interno', 500)
     return apiError(error.message, status)
   }
   return apiError('Erro interno', 500)

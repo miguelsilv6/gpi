@@ -27,7 +27,6 @@ interface Etiqueta { id: string; nome: string }
 interface ComarcaOption { id: string; nome: string }
 interface TribunalOption { id: string; nome: string; ativo: boolean; comarcaId: string | null; morada: string | null; telefone: string | null; email: string | null }
 interface SeccaoOption { id: string; nome: string; ativo: boolean; comarcaId: string | null }
-interface LocalTratamentoOption { id: string; nome: string; ativo: boolean }
 
 const NONE_VALUE = '__none__'
 
@@ -46,7 +45,6 @@ interface InqueritoFormProps {
   comarcas: ComarcaOption[]
   tribunais: TribunalOption[]
   seccoes: SeccaoOption[]
-  locaisTratamento: LocalTratamentoOption[]
   nuipcOriginal?: string
   mode: 'create' | 'edit'
   /** Whether the current user can create new sections inline from this form. */
@@ -67,7 +65,6 @@ export function InqueritoForm({
   comarcas: comarcasProp,
   tribunais: tribunaisProp,
   seccoes: seccoesProp,
-  locaisTratamento,
   nuipcOriginal,
   mode,
   canCreateSeccao = false,
@@ -173,7 +170,6 @@ export function InqueritoForm({
   const selectedCrimeIdsAssociados = watch('crimeIdsAssociados') ?? []
   const selectedTribunalId = watch('tribunalId')
   const selectedSeccaoId = watch('seccaoId')
-  const selectedLocalTratamentoId = watch('localTratamentoId')
 
   // Tribunais filtered by the selected comarca (null = tribunals with no comarca).
   const tribunaisForSelect = useMemo(() => {
@@ -208,16 +204,7 @@ export function InqueritoForm({
     return ativas
   }, [seccoes, defaultValues?.seccaoId, selectedComarcaId])
 
-  const locaisForSelect = useMemo(() => {
-    const ativos = locaisTratamento.filter((l) => l.ativo)
-    const current = defaultValues?.localTratamentoId
-      ? locaisTratamento.find((l) => l.id === defaultValues.localTratamentoId)
-      : null
-    if (current && !current.ativo) return [current, ...ativos]
-    return ativos
-  }, [locaisTratamento, defaultValues?.localTratamentoId])
-
-  // Merge edit-mode initially-assigned associated crimes (may include deactivated)
+// Merge edit-mode initially-assigned associated crimes (may include deactivated)
   // with the active catalog so the CrimeInput can resolve names and deactivated labels.
   const crimesForAssociados = useMemo(() => {
     const known = new Map(crimes.map((c) => [c.id, c]))
@@ -541,14 +528,16 @@ export function InqueritoForm({
           <CardTitle className="text-base">Tribunal / M.P.</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Comarca and Tribunal are each full-width — they're the primary cascade
+              selectors and need enough room to display long names clearly. */}
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Comarca</Label>
               <Select
                 value={selectedComarcaId ?? NONE_VALUE}
                 onValueChange={(v) => setSelectedComarcaId(v === NONE_VALUE ? null : v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecionar comarca">
                     {(v: string) =>
                       !v || v === NONE_VALUE
@@ -557,7 +546,7 @@ export function InqueritoForm({
                     }
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-[var(--anchor-width)]">
                   <SelectItem value={NONE_VALUE}>Nenhuma</SelectItem>
                   {comarcas.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
@@ -583,7 +572,7 @@ export function InqueritoForm({
                 value={selectedTribunalId || NONE_VALUE}
                 onValueChange={(v) => setValue('tribunalId', v === NONE_VALUE ? null : v, { shouldDirty: true })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecionar tribunal">
                     {(v: string) =>
                       !v || v === NONE_VALUE
@@ -592,7 +581,7 @@ export function InqueritoForm({
                     }
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-[var(--anchor-width)]">
                   <SelectItem value={NONE_VALUE}>Nenhum</SelectItem>
                   {tribunaisForSelect.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
@@ -626,6 +615,8 @@ export function InqueritoForm({
                 </div>
               )}
             </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Secção</Label>
@@ -658,31 +649,6 @@ export function InqueritoForm({
                   {seccoesForSelect.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.nome}{!s.ativo ? ' (inativa)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Local de Tratamento</Label>
-              <Select
-                value={selectedLocalTratamentoId || NONE_VALUE}
-                onValueChange={(v) => setValue('localTratamentoId', v === NONE_VALUE ? null : v, { shouldDirty: true })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar local">
-                    {(v: string) =>
-                      !v || v === NONE_VALUE
-                        ? 'Nenhum'
-                        : locaisForSelect.find((l) => l.id === v)?.nome ?? 'Selecionar local'
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>Nenhum</SelectItem>
-                  {locaisForSelect.map((l) => (
-                    <SelectItem key={l.id} value={l.id}>
-                      {l.nome}{!l.ativo ? ' (inativo)' : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

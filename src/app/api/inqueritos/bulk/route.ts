@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
+import { getSession, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { getRequestInfo } from '@/lib/request-info'
 import { bulkActionSchema } from '@/lib/validations/inquerito'
@@ -43,15 +43,14 @@ export async function POST(req: NextRequest) {
     if (action === 'changeState' && !estadoId) return apiError('estadoId obrigatório', 400)
     if (action === 'transfer' && !brigadaId) return apiError('brigadaId obrigatório', 400)
 
-    // Scope: INSPETOR_CHEFE limited to own brigada
-    const scopeWhere: Prisma.InqueritoWhereInput = { deletedAt: null }
-    if (role === 'INSPETOR_CHEFE') {
-      if (!session.user.brigadaId) return apiError('Configuração inválida: sem brigada', 403)
-      scopeWhere.brigadaId = session.user.brigadaId
+    // Scope enforced via buildInqueritoWhere — handles all roles consistently.
+    const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+    if (role === 'INSPETOR_CHEFE' && !session.user.brigadaId) {
+      return apiError('Configuração inválida: sem brigada', 403)
     }
 
     const targets = await prisma.inquerito.findMany({
-      where: { id: { in: ids }, ...scopeWhere },
+      where: { id: { in: ids }, deletedAt: null, ...roleWhere },
       select: {
         id: true,
         nuipc: true,

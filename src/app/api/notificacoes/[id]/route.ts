@@ -13,9 +13,10 @@ export async function PATCH(
     const { searchParams } = new URL(req.url)
     const action = searchParams.get('action')
 
-    const notif = await prisma.notificacao.findUnique({ where: { id } })
+    const notif = await prisma.notificacao.findFirst({
+      where: { id, utilizadorId: session.user.id },
+    })
     if (!notif) return apiError('Não encontrada', 404)
-    if (notif.utilizadorId !== session.user.id) return apiError('Sem permissão', 403)
 
     if (action === 'clear') {
       await prisma.notificacao.update({ where: { id }, data: { limpa: true, lida: true } })
