@@ -391,19 +391,21 @@ const COURTS_DATA: Array<{ comarca: string; tribunais: Array<{ nome: string; mor
   },
   {
     comarca: 'Tribunal Judicial da Comarca de Viseu',
+    // Ministério Público — Departamento de Investigação e Ação Penal (DIAP) de
+    // Viseu e respetivas secções. O MP é o titular dos inquéritos, por isso o
+    // catálogo lista as secções de DIAP (não os juízos judiciais).
     tribunais: [
-      { nome: 'Juízos Centrais de Viseu (Sede)', morada: 'Palácio da Justiça, Av. da Europa – 3514-506 Viseu', telefone: '232427000', email: 'viseu.centralcivel@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Armamar', morada: 'Rua Gaspar e Manuel Cardoso – 5110-121 Armamar', telefone: '254095500', email: 'armamar@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Castro Daire', morada: 'Palácio da Justiça, Rua Padre Américo – 3600-132 Castro Daire', telefone: '232091520', email: 'cdaire.judicial@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Cinfães', morada: 'Palácio da Justiça, Rua Major Monteiro Leite – 4690-030 Cinfães', telefone: '255560130', email: 'cinfaes.ministeriopublico@tribunais.org.pt' },
-      { nome: 'Juízos de Competência Especializada de Lamego', morada: 'Palácio da Justiça, Av. Infantaria 9 – 5100-147 Lamego', telefone: '254093540', email: 'lamego.ministeriopublico@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Mangualde', morada: 'Palácio da Justiça, Largo Dr. Couto, 72 – 3530-134 Mangualde', telefone: '', email: 'mangualde.judicial@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Resende', morada: 'Palácio da Justiça, Jardim 25 de Abril – 4660-211 Resende', telefone: '254095510', email: 'resende@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Santa Comba Dão', morada: 'Palácio da Justiça, Largo Alves Mateus – 3440-333 Santa Comba Dão', telefone: '232880130', email: 'scdao.judicial@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Sátão', morada: 'Praça Paulo VI – 3560-154 Sátão', telefone: '232980060', email: 'satao.ministeriopublico@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Tabuaço', morada: 'Palácio da Justiça, Rua Dr. António José de Almeida – 5120-413 Tabuaço', telefone: '254095520', email: 'tabuaco@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Tondela', morada: 'Palácio da Justiça, Largo Dr. Anselmo Ferraz de Carvalho – 3464-002 Tondela', telefone: '232814280', email: 'tondela.judicial@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Vouzela', morada: 'Palácio da Justiça, Rua Dr. Guilherme Coutinho – 3670-235 Vouzela', telefone: '232740720', email: 'vouzela@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Viseu (Sede)', morada: 'Palácio da Justiça, Av. da Europa – 3514-506 Viseu', telefone: '232427000', email: 'viseu.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Castro Daire', morada: 'Palácio da Justiça, Rua Padre Américo – 3600-132 Castro Daire', telefone: '', email: 'cdaire.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Cinfães', morada: 'Palácio da Justiça, Rua Major Monteiro Leite – 4630-030 Cinfães', telefone: '', email: 'cinfaes.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Lamego', morada: 'Palácio da Justiça, Av. Infantaria 9 – 5100-147 Lamego', telefone: '', email: 'lamego.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Mangualde', morada: 'Palácio da Justiça, Largo Dr. Couto – 3530-134 Mangualde', telefone: '232619580', email: 'mangualde.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Moimenta da Beira', morada: 'Palácio da Justiça, Praceta Fernão Mergulhão – 3620-325 Moimenta da Beira', telefone: '254520200', email: 'moimentab.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Nelas', morada: 'Praça do Município – 3520-001 Nelas', telefone: '', email: 'nelas.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Oliveira de Frades', morada: 'Palácio da Justiça, Av. Dr. António José de Almeida – 3680-112 Oliveira de Frades', telefone: '', email: 'ofrades.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Santa Comba Dão', morada: 'Palácio da Justiça, Avenida da República – 3440-322 Santa Comba Dão', telefone: '', email: 'scdao.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de São Pedro do Sul', morada: 'Palácio da Justiça, Largo de Camões – 3660-482 São Pedro do Sul', telefone: '', email: 'spsul.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Viseu - Secção de Tondela', morada: 'Palácio da Justiça, Largo Prof. Anselmo Ferraz de Carvalho – 3464-002 Tondela', telefone: '232814284', email: 'tondela.ministeriopublico@tribunais.org.pt' },
     ],
   },
 ]
@@ -412,6 +414,8 @@ async function seedComarcasETribunais() {
   console.log('  ↳ A importar comarcas e tribunais...')
   let comarcaCount = 0
   let tribunalCount = 0
+  let removedCount = 0
+  let deactivatedCount = 0
   for (let i = 0; i < COURTS_DATA.length; i++) {
     const { comarca: nomeComarca, tribunais } = COURTS_DATA[i]!
     const comarca = await prisma.comarca.upsert({
@@ -443,8 +447,30 @@ async function seedComarcasETribunais() {
       })
       tribunalCount++
     }
+
+    // Remove entradas desta comarca que já não constam do seed (ex.: juízos
+    // substituídos pelas secções de DIAP). Upsert nunca apaga, por isso a
+    // limpeza é feita aqui. Entradas ainda referenciadas por inquéritos são
+    // desativadas (preserva o histórico) em vez de apagadas.
+    const nomesValidos = tribunais.map((t) => t.nome)
+    const orphans = await prisma.tribunal.findMany({
+      where: { comarcaId: comarca.id, nome: { notIn: nomesValidos } },
+      select: { id: true, nome: true, _count: { select: { inqueritos: true } } },
+    })
+    for (const o of orphans) {
+      if (o._count.inqueritos === 0) {
+        await prisma.tribunal.delete({ where: { id: o.id } })
+        removedCount++
+      } else {
+        await prisma.tribunal.update({ where: { id: o.id }, data: { ativo: false } })
+        deactivatedCount++
+      }
+    }
   }
-  console.log(`  ↳ ${comarcaCount} comarcas e ${tribunalCount} tribunais importados.`)
+  console.log(
+    `  ↳ ${comarcaCount} comarcas e ${tribunalCount} tribunais importados` +
+      ` (${removedCount} removidos, ${deactivatedCount} desativados).`,
+  )
 }
 
 main()
