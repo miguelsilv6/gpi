@@ -50,7 +50,6 @@ export default async function InqueritoDetailPage({
       crimesAssociados: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
       tribunal: { select: { id: true, nome: true } },
       seccao: { select: { id: true, nome: true } },
-      localTratamento: { select: { id: true, nome: true } },
       _count: { select: { atividades: true } },
     },
   })
@@ -417,7 +416,6 @@ export default async function InqueritoDetailPage({
 
       {(inquerito.tribunal ||
         inquerito.seccao ||
-        inquerito.localTratamento ||
         inquerito.procurador ||
         inquerito.oficialJustica ||
         inquerito.voip ||
@@ -440,12 +438,6 @@ export default async function InqueritoDetailPage({
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground shrink-0">Secção</span>
                 <span className="font-medium text-right">{inquerito.seccao.nome}</span>
-              </div>
-            )}
-            {inquerito.localTratamento && (
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground shrink-0">Local de Tratamento</span>
-                <span className="font-medium text-right">{inquerito.localTratamento.nome}</span>
               </div>
             )}
             {inquerito.procurador && (

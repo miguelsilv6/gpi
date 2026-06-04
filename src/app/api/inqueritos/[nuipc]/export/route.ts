@@ -59,7 +59,6 @@ export async function GET(
         inspetor: { select: { nome: true, email: true } },
         tribunal: { select: { nome: true } },
         seccao: { select: { nome: true } },
-        localTratamento: { select: { nome: true } },
         atividades: {
           // Sorted by createdAt to match the on-screen detail / print views.
           orderBy: { createdAt: 'desc' },
@@ -95,7 +94,6 @@ export async function GET(
       ['Inspetor (email)', inquerito.inspetor?.email ?? ''],
       ['Tribunal / M.P.', inquerito.tribunal?.nome ?? ''],
       ['Secção', inquerito.seccao?.nome ?? ''],
-      ['Local de Tratamento', inquerito.localTratamento?.nome ?? ''],
       ['Procurador/a', inquerito.procurador],
       ['Oficial de Justiça', inquerito.oficialJustica],
       ['VoIP / Contacto', inquerito.voip],

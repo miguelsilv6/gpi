@@ -100,7 +100,6 @@ export async function GET(req: NextRequest) {
       arquivados,
       anoRaw,
       porTribunalRaw,
-      porLocalTratamentoRaw,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
       prisma.inquerito.groupBy({
@@ -182,7 +181,6 @@ export async function GET(req: NextRequest) {
         select: { dataAbertura: true, nuipc: true },
       }),
       prisma.inquerito.groupBy({ by: ['tribunalId'], where, _count: true, orderBy: { _count: { tribunalId: 'desc' } } }),
-      prisma.inquerito.groupBy({ by: ['localTratamentoId'], where, _count: true, orderBy: { _count: { localTratamentoId: 'desc' } }, take: 15 }),
     ])
 
     // Atividade breakdown for the selected inspetor (only when filtered).
@@ -264,10 +262,7 @@ export async function GET(req: NextRequest) {
     const tribunalIds = porTribunalRaw
       .map((r) => r.tribunalId)
       .filter((id): id is string => id !== null)
-    const localTratamentoIds = porLocalTratamentoRaw
-      .map((r) => r.localTratamentoId)
-      .filter((id): id is string => id !== null)
-    const [brigadas, estados, inspetores, tribunaisNomes, locaisNomes] = await Promise.all([
+    const [brigadas, estados, inspetores, tribunaisNomes] = await Promise.all([
       prisma.brigada.findMany({
         where: { id: { in: porBrigada.map((b) => b.brigadaId).filter((id): id is string => id !== null) } },
         select: { id: true, nome: true },
@@ -288,18 +283,11 @@ export async function GET(req: NextRequest) {
             select: { id: true, nome: true, comarcaId: true },
           })
         : Promise.resolve([]),
-      localTratamentoIds.length
-        ? prisma.localTratamento.findMany({
-            where: { id: { in: localTratamentoIds } },
-            select: { id: true, nome: true },
-          })
-        : Promise.resolve([]),
     ])
     const brigadaNomes = Object.fromEntries(brigadas.map((b) => [b.id, b.nome]))
     const estadoById = new Map(estados.map((e) => [e.id, e]))
     const inspetorNomes = Object.fromEntries(inspetores.map((u) => [u.id, u.nome]))
     const tribunalNomesMap = Object.fromEntries(tribunaisNomes.map((t) => [t.id, t.nome]))
-    const localNomesMap = Object.fromEntries(locaisNomes.map((l) => [l.id, l.nome]))
 
     // Aggregate tribunal counts by comarca in JS (Inquerito has no direct comarcaId).
     const tribunalComarcaMap = new Map(tribunaisNomes.map((t) => [t.id, t.comarcaId ?? null]))
@@ -365,13 +353,6 @@ export async function GET(req: NextRequest) {
         .map((r) => ({
           tribunalId: r.tribunalId!,
           nome: tribunalNomesMap[r.tribunalId!] ?? '—',
-          count: r._count,
-        })),
-      porLocalTratamento: porLocalTratamentoRaw
-        .filter((r) => r.localTratamentoId !== null)
-        .map((r) => ({
-          localTratamentoId: r.localTratamentoId!,
-          nome: localNomesMap[r.localTratamentoId!] ?? '—',
           count: r._count,
         })),
       atividadesInspetor,

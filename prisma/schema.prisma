@@ -142,8 +142,6 @@ model Inquerito {
   tribunalId String?
   seccao     Seccao? @relation(fields: [seccaoId], references: [id])
   seccaoId   String?
-  localTratamento   LocalTratamento? @relation(fields: [localTratamentoId], references: [id])
-  localTratamentoId String?
 
   // Etiquetas (tags) pessoais aplicadas ao inquérito. Relação m2m implícita —
   // o join table `_EtiquetaToInquerito` é gerido pelo Prisma.
@@ -165,7 +163,6 @@ model Inquerito {
   @@index([deletedAt])
   @@index([tribunalId])
   @@index([seccaoId])
-  @@index([localTratamentoId])
 }
 
 model EstadoInquerito {
@@ -246,17 +243,6 @@ model Seccao {
   @@index([comarcaId])
 }
 
-model LocalTratamento {
-  id        String   @id @default(cuid())
-  nome      String   @unique
-  descricao String?
-  ordem     Int      @default(0)
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  inqueritos Inquerito[]
-  @@index([ativo, ordem])
-}
 
 // Etiqueta (tag) pessoal — cada utilizador cria as suas, únicas dentro do seu
 // perfil (@@unique [criadoPorId, nome]). Atribuível a vários inquéritos (m2m

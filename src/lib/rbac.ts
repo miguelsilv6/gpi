@@ -30,7 +30,6 @@ export type Permission =
   | 'comarca:manage'
   | 'tribunal:manage'
   | 'seccao:manage'
-  | 'local-tratamento:manage'
   | 'atividade:create:own'
   | 'atividade:create:brigade'
   | 'prazo:read:own'
@@ -136,7 +135,6 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'comarca:manage',
     'tribunal:manage',
     'seccao:manage',
-    'local-tratamento:manage',
     'atividade:create:own',
     'atividade:create:brigade',
     'prazo:read:own',

@@ -142,7 +142,6 @@ export function InqueritoForm({
       inspetorId: data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null,
       tribunalId: data.tribunalId === NONE_VALUE ? null : (data.tribunalId || null),
       seccaoId: data.seccaoId === NONE_VALUE ? null : (data.seccaoId || null),
-      localTratamentoId: data.localTratamentoId === NONE_VALUE ? null : (data.localTratamentoId || null),
     }
 
     const res = await fetch(url, {

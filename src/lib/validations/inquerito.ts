@@ -32,7 +32,6 @@ export const inqueritoSchema = z
     // Tribunal / Ministério Público — all optional
     tribunalId: z.string().optional().nullable(),
     seccaoId: z.string().optional().nullable(),
-    localTratamentoId: z.string().optional().nullable(),
     procurador: z.string().max(200).optional().nullable(),
     oficialJustica: z.string().max(200).optional().nullable(),
     voip: z.string().max(100).optional().nullable(),
