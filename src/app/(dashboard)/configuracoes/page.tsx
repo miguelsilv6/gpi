@@ -1019,7 +1019,7 @@ export default function ConfiguracoesPage() {
                   type="number"
                   min={0}
                   max={1440}
-                  {...register('sessaoTimeoutMinutos')}
+                  {...register('sessaoTimeoutMinutos', { valueAsNumber: true })}
                 />
                 <p className="text-xs text-muted-foreground">
                   Termina a sessão após este período de inatividade. 0 desativa a funcionalidade.

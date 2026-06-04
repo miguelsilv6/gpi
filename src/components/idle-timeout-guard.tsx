@@ -24,13 +24,32 @@ const ACTIVITY_EVENTS = [
   'pointerdown',
 ] as const
 
+const STORAGE_KEY = 'gpi_last_activity'
+
+function readStoredActivity(): number | null {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY)
+    if (!v) return null
+    const n = parseInt(v, 10)
+    return isNaN(n) ? null : n
+  } catch {
+    return null
+  }
+}
+
+function writeStoredActivity(ts: number) {
+  try { localStorage.setItem(STORAGE_KEY, ts.toString()) } catch { /* private browsing */ }
+}
+
 export function IdleTimeoutGuard({ timeoutMinutes }: Props) {
   const lastActivityRef = useRef(Date.now())
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [warning, setWarning] = useState(false)
 
   const resetActivity = useCallback(() => {
-    lastActivityRef.current = Date.now()
+    const now = Date.now()
+    lastActivityRef.current = now
+    writeStoredActivity(now)
     setWarning(false)
     setSecondsLeft(null)
   }, [])
@@ -41,21 +60,52 @@ export function IdleTimeoutGuard({ timeoutMinutes }: Props) {
     const timeoutMs = timeoutMinutes * 60_000
     const warnMs = Math.min(timeoutMs * 0.25, 60_000)
 
+    // Initialise from localStorage so a page reload doesn't reset the clock.
+    const stored = readStoredActivity()
+    if (stored) {
+      lastActivityRef.current = stored
+    } else {
+      writeStoredActivity(Date.now())
+    }
+
     const handleActivity = () => {
-      lastActivityRef.current = Date.now()
+      const now = Date.now()
+      lastActivityRef.current = now
+      writeStoredActivity(now)
+    }
+
+    // Sync activity across tabs — another tab's activity resets this tab's timer.
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || !e.newValue) return
+      const parsed = parseInt(e.newValue, 10)
+      if (!isNaN(parsed)) {
+        lastActivityRef.current = parsed
+        setWarning(false)
+        setSecondsLeft(null)
+      }
     }
 
     for (const ev of ACTIVITY_EVENTS) {
       window.addEventListener(ev, handleActivity, { passive: true })
     }
+    window.addEventListener('storage', handleStorage)
 
     const interval = setInterval(() => {
+      // Pull the latest value from localStorage in case another tab wrote it
+      // between storage events (e.g. same-tab throttling).
+      const latest = readStoredActivity()
+      if (latest && latest > lastActivityRef.current) {
+        lastActivityRef.current = latest
+      }
+
       const idle = Date.now() - lastActivityRef.current
       if (idle >= timeoutMs) {
         clearInterval(interval)
-        void signOut({ redirect: false }).then(() => {
-          window.location.replace('/login?reason=idle')
-        })
+        void signOut({ redirect: false })
+          .catch(() => {/* ignore — redirect happens regardless */})
+          .finally(() => {
+            window.location.replace('/login?reason=idle')
+          })
         return
       }
       const remaining = timeoutMs - idle
@@ -66,6 +116,7 @@ export function IdleTimeoutGuard({ timeoutMinutes }: Props) {
 
     return () => {
       clearInterval(interval)
+      window.removeEventListener('storage', handleStorage)
       for (const ev of ACTIVITY_EVENTS) {
         window.removeEventListener(ev, handleActivity)
       }
@@ -74,8 +125,9 @@ export function IdleTimeoutGuard({ timeoutMinutes }: Props) {
 
   if (!timeoutMinutes || timeoutMinutes <= 0) return null
 
+  // onOpenChange no-op blocks Escape; disablePointerDismissal blocks outside click
   return (
-    <Dialog open={warning} onOpenChange={() => {}}>
+    <Dialog open={warning} onOpenChange={() => {}} disablePointerDismissal>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Sessão prestes a expirar</DialogTitle>
