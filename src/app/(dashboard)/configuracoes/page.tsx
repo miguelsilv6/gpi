@@ -708,9 +708,12 @@ export default function ConfiguracoesPage() {
   const [estadosDefault, setEstadosDefault] = useState<string[]>([])
   const [savingDefault, setSavingDefault] = useState(false)
   const [moduloAjudasAtivo, setModuloAjudasAtivo] = useState(true)
+  const [moduloAjudasRoles, setModuloAjudasRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloFeriasAtivo, setModuloFeriasAtivo] = useState(true)
+  const [moduloFeriasRoles, setModuloFeriasRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [savingModulo, setSavingModulo] = useState(false)
   const [savingModuloFerias, setSavingModuloFerias] = useState(false)
+  const [savingRoles, setSavingRoles] = useState(false)
 
   const {
     register,
@@ -733,7 +736,9 @@ export default function ConfiguracoesPage() {
         })
         setEstadosDefault(d.inqueritoFiltroEstadosDefault ?? [])
         setModuloAjudasAtivo(d.moduloAjudasAtivo ?? true)
+        setModuloAjudasRoles((d.moduloAjudasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloFeriasAtivo(d.moduloFeriasAtivo ?? true)
+        setModuloFeriasRoles((d.moduloFeriasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setEstados(Array.isArray(e) ? e : [])
         setLoading(false)
       })
@@ -831,6 +836,26 @@ export default function ConfiguracoesPage() {
       return
     }
     toast.success(next ? 'Módulo Férias ativado' : 'Módulo Férias desativado')
+  }
+
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias', role: string) {
+    const current = modulo === 'ajudas' ? moduloAjudasRoles : moduloFeriasRoles
+    const setter = modulo === 'ajudas' ? setModuloAjudasRoles : setModuloFeriasRoles
+    const key = modulo === 'ajudas' ? 'moduloAjudasRoles' : 'moduloFeriasRoles'
+    const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
+    setter(next)
+    setSavingRoles(true)
+    const res = await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: next.join(',') }),
+    })
+    setSavingRoles(false)
+    if (!res.ok) {
+      setter(current)
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro ao guardar')
+    }
   }
 
   if (loading) return <div className="text-sm text-muted-foreground">A carregar...</div>
@@ -996,72 +1021,90 @@ export default function ConfiguracoesPage() {
             <CardTitle className="text-base">Módulos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'flex items-center justify-center w-9 h-9 rounded-lg',
-                  moduloAjudasAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
-                )}>
-                  <Banknote className="h-4 w-4" />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloAjudasAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <Banknote className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Ajudas Mensais</p>
+                    <p className="text-xs text-muted-foreground">
+                      Registo de horas extra, prevenção e ajudas de custo
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Ajudas Mensais</p>
-                  <p className="text-xs text-muted-foreground">
-                    Registo de horas extra, prevenção e ajudas de custo
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={toggleModuloAjudas}
-                disabled={savingModulo}
-                aria-label={moduloAjudasAtivo ? 'Desativar módulo Ajudas Mensais' : 'Ativar módulo Ajudas Mensais'}
-                className={cn(
-                  'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-                  moduloAjudasAtivo ? 'bg-green-600' : 'bg-input',
-                )}
-              >
-                <span
+                <button
+                  type="button"
+                  onClick={toggleModuloAjudas}
+                  disabled={savingModulo}
+                  aria-label={moduloAjudasAtivo ? 'Desativar módulo Ajudas Mensais' : 'Ativar módulo Ajudas Mensais'}
                   className={cn(
-                    'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
-                    moduloAjudasAtivo ? 'translate-x-5' : 'translate-x-0',
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloAjudasAtivo ? 'bg-green-600' : 'bg-input',
                   )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloAjudasAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloAjudasAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloAjudasRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('ajudas', r)}
                 />
-              </button>
+              )}
             </div>
 
-            <div className="flex items-center justify-between gap-4 border-t pt-3">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'flex items-center justify-center w-9 h-9 rounded-lg',
-                  moduloFeriasAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
-                )}>
-                  <CalendarDays className="h-4 w-4" />
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloFeriasAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <CalendarDays className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Férias</p>
+                    <p className="text-xs text-muted-foreground">
+                      Marcação de férias e folgas por inspetor
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Férias</p>
-                  <p className="text-xs text-muted-foreground">
-                    Marcação de férias e folgas por inspetor
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={toggleModuloFerias}
-                disabled={savingModuloFerias}
-                aria-label={moduloFeriasAtivo ? 'Desativar módulo Férias' : 'Ativar módulo Férias'}
-                className={cn(
-                  'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-                  moduloFeriasAtivo ? 'bg-green-600' : 'bg-input',
-                )}
-              >
-                <span
+                <button
+                  type="button"
+                  onClick={toggleModuloFerias}
+                  disabled={savingModuloFerias}
+                  aria-label={moduloFeriasAtivo ? 'Desativar módulo Férias' : 'Ativar módulo Férias'}
                   className={cn(
-                    'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
-                    moduloFeriasAtivo ? 'translate-x-5' : 'translate-x-0',
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloFeriasAtivo ? 'bg-green-600' : 'bg-input',
                   )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloFeriasAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloFeriasAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloFeriasRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('ferias', r)}
                 />
-              </button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1102,6 +1145,54 @@ export default function ConfiguracoesPage() {
 
       {/* Ajudas config tab */}
       {tab === 'ajudas-config' && <AjudasConfigTab />}
+    </div>
+  )
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  INSPETOR: 'Inspetor',
+  INSPETOR_CHEFE: 'Inspetor Chefe',
+  COORDENADOR: 'Coordenador',
+  ESTATISTICA: 'Estatística',
+}
+const SELECTABLE_ROLES = ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA']
+
+function ModuloRoleSelector({
+  roles,
+  disabled,
+  onToggle,
+}: {
+  roles: string[]
+  disabled: boolean
+  onToggle: (role: string) => void
+}) {
+  return (
+    <div className="pl-12 space-y-1.5">
+      <p className="text-xs text-muted-foreground">Perfis com acesso:</p>
+      <div className="flex flex-wrap gap-1.5">
+        {SELECTABLE_ROLES.map((r) => {
+          const active = roles.includes(r)
+          return (
+            <button
+              key={r}
+              type="button"
+              onClick={() => onToggle(r)}
+              disabled={disabled}
+              className={cn(
+                'rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                active
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background text-muted-foreground border-border hover:border-foreground hover:text-foreground',
+              )}
+            >
+              {ROLE_LABELS[r]}
+            </button>
+          )
+        })}
+        <span className="rounded-full px-2.5 py-0.5 text-xs font-medium border bg-muted text-muted-foreground opacity-60 cursor-default select-none">
+          Administração ✓
+        </span>
+      </div>
     </div>
   )
 }

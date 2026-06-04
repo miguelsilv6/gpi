@@ -357,9 +357,15 @@ model ConfiguracaoSistema {
   // When false, the Ajudas Mensais module is hidden and all its API routes
   // return 503. Only ADMINISTRACAO can toggle this in Configurações → Sistema.
   moduloAjudasAtivo               Boolean  @default(true)
+  // Comma-separated list of Role values that can access the Ajudas module when
+  // it is active. ADMINISTRACAO always has access and is never stored here.
+  moduloAjudasRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // When false, the Férias module is hidden and all its API routes return 503.
   // Only ADMINISTRACAO can toggle this in Configurações → Sistema.
   moduloFeriasAtivo               Boolean  @default(true)
+  // Comma-separated list of Role values that can access the Férias module when
+  // it is active. ADMINISTRACAO always has access and is never stored here.
+  moduloFeriasRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   prazoAlertaDias                 Int      @default(7)
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")

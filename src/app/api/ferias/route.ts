@@ -19,9 +19,7 @@ export async function GET(req: NextRequest) {
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo()) && role !== 'ADMINISTRACAO') {
-      return apiError('Módulo Férias está desativado', 503)
-    }
+    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
     if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
 
     const { searchParams } = new URL(req.url)
@@ -128,9 +126,7 @@ export async function POST(req: NextRequest) {
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo()) && role !== 'ADMINISTRACAO') {
-      return apiError('Módulo Férias está desativado', 503)
-    }
+    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
     if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
 
     const body = await req.json()
