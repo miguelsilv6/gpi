@@ -31,7 +31,6 @@ import { CrimesTab } from './crimes-tab'
 import { ComarcasTab } from './comarcas-tab'
 import { TribunaisTab } from './tribunais-tab'
 import { SeccoesTab } from './seccoes-tab'
-import { LocaisTratamentoTab } from './locais-tratamento-tab'
 import { BackupsTab } from './backups-tab'
 import { NotificacoesTab } from './notificacoes-tab'
 import { AtualizacoesTab } from './atualizacoes-tab'
@@ -700,7 +699,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'locais-tratamento' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
+type Tab = 'sistema' | 'estados' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -849,7 +848,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'locais-tratamento', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -874,9 +873,7 @@ export default function ConfiguracoesPage() {
                       ? 'Tribunais'
                     : t === 'seccoes'
                       ? 'Secções'
-                      : t === 'locais-tratamento'
-                        ? 'Locais'
-                        : t === 'atividades'
+                      : t === 'atividades'
                           ? 'Atividades'
                           : t === 'notificacoes'
                             ? 'Notificações'
@@ -1087,9 +1084,6 @@ export default function ConfiguracoesPage() {
 
       {/* Secções tab */}
       {tab === 'seccoes' && <SeccoesTab />}
-
-      {/* Locais de Tratamento tab */}
-      {tab === 'locais-tratamento' && <LocaisTratamentoTab />}
 
       {/* Atividades tab */}
       {tab === 'atividades' && <AtividadesTab estados={estados} />}

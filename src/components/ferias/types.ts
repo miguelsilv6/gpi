@@ -1,4 +1,5 @@
 export type TipoAusencia = 'FERIAS' | 'FOLGA'
+export type GanttScale = 'month' | 'quarter' | 'year'
 
 export interface Ausencia {
   id: string

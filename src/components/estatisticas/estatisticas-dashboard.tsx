@@ -20,7 +20,6 @@ import {
   AnoBarChart,
   ComarcaBarChart,
   TribunalBarChart,
-  LocalTratamentoBarChart,
 } from './charts'
 import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity } from 'lucide-react'
 
@@ -43,7 +42,6 @@ interface Stats {
   porAno: { ano: string; count: number }[]
   porComarca: { comarcaId: string; nome: string; count: number }[]
   porTribunal: { tribunalId: string; nome: string; count: number }[]
-  porLocalTratamento: { localTratamentoId: string; nome: string; count: number }[]
   atividadesInspetor: {
     descricao: string
     count: number
@@ -539,17 +537,6 @@ export function EstatisticasDashboard({
             </Card>
           )}
 
-          {/* Local tratamento */}
-          {stats.porLocalTratamento.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Por Local de Tratamento</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LocalTratamentoBarChart data={stats.porLocalTratamento} />
-              </CardContent>
-            </Card>
-          )}
         </>
       ) : (
         <div className="text-sm text-muted-foreground py-8 text-center">
