@@ -19,7 +19,13 @@ export default async function DashboardLayout({
 
   const sysConfig = await prisma.configuracaoSistema.findUnique({
     where: { id: 'singleton' },
-    select: { maintenanceMode: true, moduloAjudasAtivo: true, moduloFeriasAtivo: true },
+    select: {
+      maintenanceMode: true,
+      moduloAjudasAtivo: true,
+      moduloAjudasRoles: true,
+      moduloFeriasAtivo: true,
+      moduloFeriasRoles: true,
+    },
   })
 
   // Maintenance mode gate — só ADMINISTRACAO passa enquanto o sistema está em
@@ -42,8 +48,13 @@ export default async function DashboardLayout({
     )
   }
 
-  const moduloAjudasAtivo = sysConfig?.moduloAjudasAtivo ?? true
-  const moduloFeriasAtivo = sysConfig?.moduloFeriasAtivo ?? true
+  function checkModuloAcesso(ativo: boolean | null | undefined, roles: string | null | undefined): boolean {
+    if (role === 'ADMINISTRACAO') return true
+    if (!(ativo ?? true)) return false
+    return (roles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean).includes(role)
+  }
+  const moduloAjudasAtivo = checkModuloAcesso(sysConfig?.moduloAjudasAtivo, sysConfig?.moduloAjudasRoles)
+  const moduloFeriasAtivo = checkModuloAcesso(sysConfig?.moduloFeriasAtivo, sysConfig?.moduloFeriasRoles)
 
   return (
     <div className="flex h-screen bg-muted/30">

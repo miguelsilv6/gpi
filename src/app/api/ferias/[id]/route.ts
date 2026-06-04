@@ -47,9 +47,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo()) && role !== 'ADMINISTRACAO') {
-      return apiError('Módulo Férias está desativado', 503)
-    }
+    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
     if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
 
     const { id } = await params
@@ -115,9 +113,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo()) && role !== 'ADMINISTRACAO') {
-      return apiError('Módulo Férias está desativado', 503)
-    }
+    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
     if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
 
     const { id } = await params

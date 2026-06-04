@@ -26,8 +26,8 @@ export default async function AjudasMensaisPage({
     return <AccessDenied message="Não dispões de privilégios para ver ajudas mensais." />
   }
 
-  const moduloAtivo = await isModuloAjudasAtivo()
-  if (!moduloAtivo && role !== 'ADMINISTRACAO') {
+  const moduloAtivo = await isModuloAjudasAtivo(role)
+  if (!moduloAtivo) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted text-muted-foreground">

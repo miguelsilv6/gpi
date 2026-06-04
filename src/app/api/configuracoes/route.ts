@@ -14,7 +14,9 @@ const schema = z.object({
   inqueritoFiltroEstadosDefault: z.array(z.string().min(1).max(40)).max(20).optional(),
   maintenanceMode: z.boolean().optional(),
   moduloAjudasAtivo: z.boolean().optional(),
+  moduloAjudasRoles: z.string().optional(),
   moduloFeriasAtivo: z.boolean().optional(),
+  moduloFeriasRoles: z.string().optional(),
 })
 
 export async function GET() {
@@ -63,7 +65,9 @@ export async function PUT(req: NextRequest) {
             emailRemetenteAddr: before.emailRemetenteAddr,
             maintenanceMode: before.maintenanceMode,
             moduloAjudasAtivo: before.moduloAjudasAtivo,
+            moduloAjudasRoles: before.moduloAjudasRoles,
             moduloFeriasAtivo: before.moduloFeriasAtivo,
+            moduloFeriasRoles: before.moduloFeriasRoles,
           },
           {
             prazoAlertaDias: config.prazoAlertaDias,
@@ -72,7 +76,9 @@ export async function PUT(req: NextRequest) {
             emailRemetenteAddr: config.emailRemetenteAddr,
             maintenanceMode: config.maintenanceMode,
             moduloAjudasAtivo: config.moduloAjudasAtivo,
+            moduloAjudasRoles: config.moduloAjudasRoles,
             moduloFeriasAtivo: config.moduloFeriasAtivo,
+            moduloFeriasRoles: config.moduloFeriasRoles,
           },
           [
             'prazoAlertaDias',
@@ -81,7 +87,9 @@ export async function PUT(req: NextRequest) {
             'emailRemetenteAddr',
             'maintenanceMode',
             'moduloAjudasAtivo',
+            'moduloAjudasRoles',
             'moduloFeriasAtivo',
+            'moduloFeriasRoles',
           ],
         )
       : null
