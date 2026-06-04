@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { ptBR } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
@@ -103,6 +103,7 @@ export function FeriasCalendar({ ausencias, month, onMonthChange, onCreate, busy
           month={month}
           onMonthChange={onMonthChange}
           locale={ptBR}
+          style={{ '--cell-size': 'var(--spacing-12)' } as React.CSSProperties}
           modifiers={{ feriado: feriadoDays, feria: feriasDays, folga: folgaDays }}
           modifiersClassNames={{
             feriado:
