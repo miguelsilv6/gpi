@@ -1153,9 +1153,8 @@ const ROLE_LABELS: Record<string, string> = {
   INSPETOR: 'Inspetor',
   INSPETOR_CHEFE: 'Inspetor Chefe',
   COORDENADOR: 'Coordenador',
-  ESTATISTICA: 'Estatística',
 }
-const SELECTABLE_ROLES = ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA']
+const SELECTABLE_ROLES = ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR']
 
 function ModuloRoleSelector({
   roles,
