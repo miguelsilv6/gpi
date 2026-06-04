@@ -15,7 +15,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { FeriasCalendar } from './ferias-calendar'
 import { FeriasBrigadaOverview } from './ferias-brigada-overview'
-import type { Ausencia, MembroFerias, Totais, TipoAusencia } from './types'
+import type { Ausencia, MembroFerias, Totais, TipoAusencia, GanttScale } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
 
 interface Props {
@@ -44,6 +44,8 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   const [selectedBrigadaId, setSelectedBrigadaId] = useState<string | null>(
     userBrigadaId ?? brigadas[0]?.id ?? null,
   )
+
+  const [ganttScale, setGanttScale] = useState<GanttScale>('month')
 
   const [editing, setEditing] = useState<Ausencia | null>(null)
   const [deleting, setDeleting] = useState<Ausencia | null>(null)
@@ -168,7 +170,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   }
 
   const meContent = (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 xl:grid-cols-2">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <CounterCard
@@ -265,7 +267,11 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
                   onValueChange={(v) => setSelectedBrigadaId(v || null)}
                 >
                   <SelectTrigger className="w-56">
-                    <SelectValue placeholder="Selecionar brigada…" />
+                    <span className="flex-1 truncate text-left">
+                      {selectedBrigadaId
+                        ? brigadas.find((b) => b.id === selectedBrigadaId)?.nome ?? ''
+                        : <span className="text-muted-foreground">Selecionar brigada…</span>}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     {brigadas.map((b) => (
@@ -275,7 +281,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
                 </Select>
               </div>
             )}
-            <FeriasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} />
+            <FeriasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} scale={ganttScale} onScaleChange={setGanttScale} />
           </TabsContent>
         </Tabs>
       ) : (

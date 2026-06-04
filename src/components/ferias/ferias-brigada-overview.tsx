@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -8,15 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { isWorkingDay, countWorkingDays } from '@/lib/ferias'
-import type { MembroFerias, Ausencia } from './types'
+import type { MembroFerias, Ausencia, GanttScale } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
 
-type Scale = 'month' | 'quarter' | 'year'
+type Scale = GanttScale
 
 interface Props {
   membros: MembroFerias[]
   month: Date
   onMonthChange: (d: Date) => void
+  scale: Scale
+  onScaleChange: (s: Scale) => void
 }
 
 const MONTHS_PT = [
@@ -38,8 +40,7 @@ function dayKey(d: Date): string {
 // Per-day pixel width by scale — drives the scrollable timeline minWidth.
 const PER_DAY_PX: Record<Scale, number> = { month: 30, quarter: 12, year: 5 }
 
-export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) {
-  const [scale, setScale] = useState<Scale>('month')
+export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, onScaleChange }: Props) {
 
   const ano = month.getFullYear()
   const mIdx = month.getMonth()
@@ -216,7 +217,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange }: Props) 
                 <button
                   key={s}
                   type="button"
-                  onClick={() => setScale(s)}
+                  onClick={() => onScaleChange(s)}
                   className={
                     'rounded px-2 py-0.5 text-xs transition-colors ' +
                     (scale === s ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground')
