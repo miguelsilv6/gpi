@@ -334,7 +334,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
                                   {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
                                 </p>
                                 <p>
-                                  {bar.dias} dia{bar.dias === 1 ? '' : 's'} útei{bar.dias === 1 ? 'l' : 's'}
+                                  {bar.dias} dia{bar.dias === 1 ? '' : 's'}
                                 </p>
                               </TooltipContent>
                             </Tooltip>

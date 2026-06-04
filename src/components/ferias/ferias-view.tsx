@@ -15,6 +15,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { FeriasCalendar } from './ferias-calendar'
 import { FeriasBrigadaOverview } from './ferias-brigada-overview'
+import { countWorkingDays } from '@/lib/ferias'
 import type { Ausencia, MembroFerias, Totais, TipoAusencia, GanttScale } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
 
@@ -200,26 +201,34 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
               <p className="py-4 text-center text-sm text-muted-foreground">Sem marcações este ano.</p>
             ) : (
               <ul className="divide-y">
-                {ausencias.map((a) => (
-                  <li key={a.id} className="flex items-center justify-between gap-2 py-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TIPO_COR[a.tipo].badge}`}>
-                        {TIPO_LABEL[a.tipo]}
-                      </span>
-                      <span className="text-sm tabular-nums truncate">
-                        {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="ghost" size="icon-sm" onClick={() => setEditing(a)} aria-label="Editar">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(a)} aria-label="Apagar">
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </div>
-                  </li>
-                ))}
+                {ausencias.map((a) => {
+                  const dias = countWorkingDays(new Date(a.dataInicio.slice(0, 10)), new Date(a.dataFim.slice(0, 10)))
+                  return (
+                    <li key={a.id} className="flex items-center justify-between gap-2 py-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TIPO_COR[a.tipo].badge}`}>
+                          {TIPO_LABEL[a.tipo]}
+                        </span>
+                        <span className="text-sm tabular-nums truncate">
+                          {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {dias} dia{dias === 1 ? '' : 's'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon-sm" onClick={() => setEditing(a)} aria-label="Editar">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(a)} aria-label="Apagar">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </CardContent>
