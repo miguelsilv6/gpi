@@ -380,13 +380,17 @@ const COURTS_DATA: Array<{ comarca: string; tribunais: Array<{ nome: string; mor
   },
   {
     comarca: 'Tribunal Judicial da Comarca de Vila Real',
+    // Ministério Público — secções da Procuradoria da República da Comarca de
+    // Vila Real. O MP é o titular dos inquéritos; cada secção tem jurisdição
+    // sobre os municípios listados em competência territorial.
     tribunais: [
-      { nome: 'Juízos Centrais de Vila Real (Sede)', morada: 'Avenida Almeida Lucena, 327 – 5000-660 Vila Real', telefone: '', email: 'vilareal.ministeriopublico@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Alijó', morada: 'R. Comendador José Rufino – 5070-031 Alijó', telefone: '259957210', email: 'alijo.judicial@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Boticas', morada: 'Tv. do Município – 5460-304 Boticas', telefone: '276095600', email: 'boticas@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Chaves', morada: 'Palácio da Justiça, Largo do Arrabalde – 5400-097 Chaves', telefone: '', email: 'chaves.ministeriopublico@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Mesão Frio', morada: 'Av. Cons. José Maria de Alpoim, 432 – 5040-310 Mesão Frio', telefone: '254095600', email: 'mesaofrio@tribunais.org.pt' },
-      { nome: 'Juízo de Competência Genérica de Montalegre', morada: 'Palácio da Justiça, Praça do Município – 5470-214 Montalegre', telefone: '', email: 'montalegre.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Vila Real - Secção de Vila Real (Sede)', morada: 'Palácio da Justiça, Praça Luís de Camões – 5000-626 Vila Real', telefone: '259309963', email: 'vilareal.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Vila Real - Secção de Alijó', morada: 'Rua José Rufino – 5070-031 Alijó', telefone: '259957214', email: 'alijo.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Vila Real - Secção de Chaves', morada: 'Palácio da Justiça, Largo do Arrabalde – 5400-093 Chaves', telefone: '276340528', email: 'chaves.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Vila Real - Secção de Montalegre', morada: 'Palácio da Justiça, n.º 13 – 5470-214 Montalegre', telefone: '276090000', email: 'montalegre.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Vila Real - Secção de Valpaços', morada: 'Palácio da Justiça, Largo do Jardim – 5430-482 Valpaços', telefone: '278712150', email: 'valpacos.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Vila Real - Secção de Vila Pouca de Aguiar', morada: 'Praça Sousa e Costa – 5450-000 Vila Pouca de Aguiar', telefone: '259419260', email: 'vpaguiar.ministeriopublico@tribunais.org.pt' },
+      { nome: 'DIAP de Vila Real - Secção de Peso da Régua', morada: 'Palácio da Justiça, Praça General Humberto Delgado – 5054-002 Peso da Régua', telefone: '254320943', email: 'pregua.ministeriopublico@tribunais.org.pt' },
     ],
   },
   {
