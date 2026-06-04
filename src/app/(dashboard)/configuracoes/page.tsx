@@ -860,12 +860,9 @@ export default function ConfiguracoesPage() {
 
   if (loading) return <div className="text-sm text-muted-foreground">A carregar...</div>
 
-  // The Atividades + Estados + Crimes tabs render rows with many inline badges
-  // and action icons; max-w-xl (576px) used to truncate them. Bumped to
-  // max-w-4xl (896px). The Sistema form panels were always single-column so
-  // they remain comfortable at this width.
+  // All dashboard pages use the full available width; no outer max-width constraint here.
   return (
-    <div className="space-y-4 max-w-4xl">
+    <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
         <p className="text-muted-foreground text-sm">Configurações do sistema</p>
