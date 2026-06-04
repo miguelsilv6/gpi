@@ -16,7 +16,7 @@ interface Props {
   ausencias: Ausencia[]
   month: Date
   onMonthChange: (d: Date) => void
-  onCreate: (payload: { tipo: TipoAusencia; dataInicio: string; dataFim: string; nota: string | null }) => Promise<void>
+  onCreate: (payload: { tipo: TipoAusencia; dataInicio: string; dataFim: string; nota: string | null }) => Promise<boolean>
   busy?: boolean
 }
 
@@ -69,17 +69,26 @@ export function FeriasCalendar({ ausencias, month, onMonthChange, onCreate, busy
     return { feriadoDays: feriado, feriasDays: ferias, folgaDays: folga }
   }, [ausencias, month])
 
-  const selectedCount = range?.from && range?.to ? countWorkingDays(range.from, range.to) : 0
+  // react-day-picker gives local-midnight dates; countWorkingDays reads UTC fields.
+  // Convert to UTC midnight to avoid off-by-one in UTC+1 (Portugal summer).
+  const selectedCount =
+    range?.from && range?.to
+      ? countWorkingDays(
+          new Date(Date.UTC(range.from.getFullYear(), range.from.getMonth(), range.from.getDate())),
+          new Date(Date.UTC(range.to.getFullYear(), range.to.getMonth(), range.to.getDate())),
+        )
+      : 0
   const canConfirm = !!(range?.from && range?.to) && !busy
 
   async function confirm() {
     if (!range?.from || !range?.to) return
-    await onCreate({
+    const ok = await onCreate({
       tipo,
       dataInicio: toKey(range.from),
       dataFim: toKey(range.to),
       nota: nota.trim() || null,
     })
+    if (!ok) return
     setRange(undefined)
     setNota('')
   }

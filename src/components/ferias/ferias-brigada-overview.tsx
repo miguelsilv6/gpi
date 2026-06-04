@@ -137,7 +137,10 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
     const startIdx = indexByKey.get(dayKey(clampStart))
     const endIdx = indexByKey.get(dayKey(clampEnd))
     if (startIdx == null || endIdx == null) return null
-    const dias = countWorkingDays(new Date(a.dataInicio), new Date(a.dataFim))
+    // Tooltip shows days in the VISIBLE (clamped) range, not the full absence span.
+    // clampStart/clampEnd are local-midnight; convert to UTC midnight for countWorkingDays.
+    const toUtcDay = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+    const dias = countWorkingDays(toUtcDay(clampStart), toUtcDay(clampEnd))
     return {
       left: (startIdx / total) * 100,
       width: ((endIdx - startIdx + 1) / total) * 100,

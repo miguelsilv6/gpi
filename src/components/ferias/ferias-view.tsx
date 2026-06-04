@@ -104,7 +104,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
 
   async function handleCreate(payload: {
     tipo: TipoAusencia; dataInicio: string; dataFim: string; nota: string | null
-  }) {
+  }): Promise<boolean> {
     setBusy(true)
     try {
       const res = await fetch('/api/ferias', {
@@ -115,10 +115,11 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         toast.error(err.error ?? 'Erro ao marcar')
-        return
+        return false
       }
       toast.success(`${TIPO_LABEL[payload.tipo]} marcada`)
       await refresh()
+      return true
     } finally {
       setBusy(false)
     }
