@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { SidebarNav } from '@/components/layout/sidebar-nav'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { Header } from '@/components/layout/header'
+import { IdleTimeoutGuard } from '@/components/idle-timeout-guard'
 import type { Role } from '@/generated/prisma/enums'
 import { Wrench } from 'lucide-react'
 
@@ -25,6 +26,7 @@ export default async function DashboardLayout({
       moduloAjudasRoles: true,
       moduloFeriasAtivo: true,
       moduloFeriasRoles: true,
+      sessaoTimeoutMinutos: true,
     },
   })
 
@@ -82,6 +84,8 @@ export default async function DashboardLayout({
 
       {/* Bottom nav — mobile only */}
       <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} />
+
+      <IdleTimeoutGuard timeoutMinutes={sysConfig?.sessaoTimeoutMinutos ?? 0} />
     </div>
   )
 }
