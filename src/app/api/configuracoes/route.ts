@@ -17,6 +17,7 @@ const schema = z.object({
   moduloAjudasRoles: z.string().optional(),
   moduloFeriasAtivo: z.boolean().optional(),
   moduloFeriasRoles: z.string().optional(),
+  sessaoTimeoutMinutos: z.number().int().min(0).max(1440).optional(),
 })
 
 export async function GET() {
@@ -68,6 +69,7 @@ export async function PUT(req: NextRequest) {
             moduloAjudasRoles: before.moduloAjudasRoles,
             moduloFeriasAtivo: before.moduloFeriasAtivo,
             moduloFeriasRoles: before.moduloFeriasRoles,
+            sessaoTimeoutMinutos: before.sessaoTimeoutMinutos,
           },
           {
             prazoAlertaDias: config.prazoAlertaDias,
@@ -79,6 +81,7 @@ export async function PUT(req: NextRequest) {
             moduloAjudasRoles: config.moduloAjudasRoles,
             moduloFeriasAtivo: config.moduloFeriasAtivo,
             moduloFeriasRoles: config.moduloFeriasRoles,
+            sessaoTimeoutMinutos: config.sessaoTimeoutMinutos,
           },
           [
             'prazoAlertaDias',
@@ -90,6 +93,7 @@ export async function PUT(req: NextRequest) {
             'moduloAjudasRoles',
             'moduloFeriasAtivo',
             'moduloFeriasRoles',
+            'sessaoTimeoutMinutos',
           ],
         )
       : null

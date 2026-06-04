@@ -45,6 +45,7 @@ const schema = z.object({
   backupScheduleCron: z.string().min(1),
   emailRemetenteNome: z.string().min(1),
   emailRemetenteAddr: z.string().email('Email inválido'),
+  sessaoTimeoutMinutos: z.number().int().min(0).max(1440),
 })
 type FormData = z.infer<typeof schema>
 
@@ -733,6 +734,7 @@ export default function ConfiguracoesPage() {
           backupScheduleCron: d.backupScheduleCron,
           emailRemetenteNome: d.emailRemetenteNome,
           emailRemetenteAddr: d.emailRemetenteAddr,
+          sessaoTimeoutMinutos: d.sessaoTimeoutMinutos ?? 0,
         })
         setEstadosDefault(d.inqueritoFiltroEstadosDefault ?? [])
         setModuloAjudasAtivo(d.moduloAjudasAtivo ?? true)
@@ -1002,6 +1004,30 @@ export default function ConfiguracoesPage() {
                   Nenhum estado predefinido — a lista abre sem filtro de estado.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Sessão</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="sessaoTimeoutMinutos">Timeout por inatividade (minutos)</Label>
+                <Input
+                  id="sessaoTimeoutMinutos"
+                  type="number"
+                  min={0}
+                  max={1440}
+                  {...register('sessaoTimeoutMinutos')}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Termina a sessão após este período de inatividade. 0 desativa a funcionalidade.
+                </p>
+                {errors.sessaoTimeoutMinutos && (
+                  <p className="text-xs text-red-600">{errors.sessaoTimeoutMinutos.message}</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 

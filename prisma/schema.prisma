@@ -366,6 +366,8 @@ model ConfiguracaoSistema {
   // Comma-separated list of Role values that can access the Férias module when
   // it is active. ADMINISTRACAO always has access and is never stored here.
   moduloFeriasRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // Idle timeout in minutes. 0 disables the feature.
+  sessaoTimeoutMinutos            Int      @default(0)
   prazoAlertaDias                 Int      @default(7)
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")
