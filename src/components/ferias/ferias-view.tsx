@@ -202,7 +202,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
             ) : (
               <ul className="divide-y">
                 {ausencias.map((a) => {
-                  const dias = countWorkingDays(new Date(a.dataInicio), new Date(a.dataFim))
+                  const dias = countWorkingDays(new Date(a.dataInicio.slice(0, 10)), new Date(a.dataFim.slice(0, 10)))
                   return (
                     <li key={a.id} className="flex items-center justify-between gap-2 py-2">
                       <div className="flex items-center gap-2 min-w-0">

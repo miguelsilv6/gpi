@@ -103,7 +103,7 @@ export function FeriasCalendar({ ausencias, month, onMonthChange, onCreate, busy
           month={month}
           onMonthChange={onMonthChange}
           locale={ptBR}
-          style={{ '--cell-size': 'var(--spacing-12)' } as React.CSSProperties}
+          style={{ '--cell-size': 'calc(var(--spacing) * 12)' } as React.CSSProperties}
           modifiers={{ feriado: feriadoDays, feria: feriasDays, folga: folgaDays }}
           modifiersClassNames={{
             feriado:
