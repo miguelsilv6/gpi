@@ -835,8 +835,7 @@ export default function ConfiguracoesPage() {
 
   if (loading) return <div className="text-sm text-muted-foreground">A carregar...</div>
 
-  // The comment about max-w-4xl is no longer applicable — all dashboard pages
-  // use the full available width; no outer max-width constraint here either.
+  // All dashboard pages use the full available width; no outer max-width constraint here.
   return (
     <div className="space-y-4">
       <div>
