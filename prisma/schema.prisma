@@ -652,5 +652,4 @@ model NotificacaoPreferencia {
   utilizador   Utilizador      @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
 
   @@id([utilizadorId, tipo])
-  @@index([utilizadorId])
 }

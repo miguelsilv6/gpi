@@ -153,7 +153,10 @@ function NotificacoesPreferencias() {
       })
   }, [])
 
-  const isDirty = prefs.some((p, i) => original[i] && p.emailEnabled !== original[i]!.emailEnabled)
+  const isDirty = prefs.some((p) => {
+    const orig = original.find((o) => o.tipo === p.tipo)
+    return orig ? p.emailEnabled !== orig.emailEnabled : false
+  })
 
   function toggle(tipo: string) {
     setPrefs((prev) => prev.map((p) => (p.tipo === tipo ? { ...p, emailEnabled: !p.emailEnabled } : p)))

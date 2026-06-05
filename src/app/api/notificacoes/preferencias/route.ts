@@ -53,15 +53,23 @@ export async function PUT(req: NextRequest) {
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
     const userId = session.user.id
-    await prisma.$transaction(
-      parsed.data.preferencias.map((p) =>
-        prisma.notificacaoPreferencia.upsert({
-          where: { utilizadorId_tipo: { utilizadorId: userId, tipo: p.tipo as TipoNotificacao } },
-          update: { emailEnabled: p.emailEnabled },
-          create: { utilizadorId: userId, tipo: p.tipo as TipoNotificacao, emailEnabled: p.emailEnabled },
-        }),
-      ),
-    )
+    const optOuts = parsed.data.preferencias.filter((p) => !p.emailEnabled)
+
+    await prisma.$transaction([
+      prisma.notificacaoPreferencia.deleteMany({
+        where: {
+          utilizadorId: userId,
+          tipo: { in: parsed.data.preferencias.map((p) => p.tipo as TipoNotificacao) },
+        },
+      }),
+      prisma.notificacaoPreferencia.createMany({
+        data: optOuts.map((p) => ({
+          utilizadorId: userId,
+          tipo: p.tipo as TipoNotificacao,
+          emailEnabled: false,
+        })),
+      }),
+    ])
 
     return Response.json({ ok: true })
   } catch (error) {

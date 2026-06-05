@@ -22,14 +22,18 @@ const KEY_BYTES = 32 // AES-256
 // do próprio segredo da aplicação.
 const SCRYPT_SALT = 'gpi-settings-secret-v1'
 
+let cachedKey: Buffer | null = null
+
 function getKey(): Buffer {
+  if (cachedKey) return cachedKey
   const secret = process.env.SETTINGS_ENCRYPTION_KEY ?? process.env.NEXTAUTH_SECRET
   if (!secret) {
     throw new Error(
       'SETTINGS_ENCRYPTION_KEY ou NEXTAUTH_SECRET em falta — não é possível cifrar segredos.',
     )
   }
-  return scryptSync(secret, SCRYPT_SALT, KEY_BYTES)
+  cachedKey = scryptSync(secret, SCRYPT_SALT, KEY_BYTES)
+  return cachedKey
 }
 
 /** Cifra `plain` e devolve a string serializada `v1:<iv>:<tag>:<ct>`. */

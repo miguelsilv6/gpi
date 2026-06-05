@@ -15,9 +15,6 @@ CREATE TABLE "NotificacaoPreferencia" (
     CONSTRAINT "NotificacaoPreferencia_pkey" PRIMARY KEY ("utilizadorId", "tipo")
 );
 
--- CreateIndex
-CREATE INDEX "NotificacaoPreferencia_utilizadorId_idx" ON "NotificacaoPreferencia"("utilizadorId");
-
 -- AddForeignKey
 ALTER TABLE "NotificacaoPreferencia" ADD CONSTRAINT "NotificacaoPreferencia_utilizadorId_fkey"
     FOREIGN KEY ("utilizadorId") REFERENCES "Utilizador"("id")

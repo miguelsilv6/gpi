@@ -6,11 +6,24 @@ import { childLogger } from '@/lib/logger'
 
 const log = childLogger({ subsystem: 'mailer' })
 
+type SmtpCfg = {
+  smtpHost: string | null
+  smtpPort: number | null
+  smtpSecure: boolean
+  smtpUser: string | null
+  smtpPasswordEnc: string | null
+}
+
+let cachedTransport: nodemailer.Transporter | null = null
+let cachedCfg: SmtpCfg | null = null
+
 /**
  * Constrói o transporte SMTP. Precedência:
  *   1. ConfiguracaoSistema.smtpHost (definido pelo admin na UI) — usa toda a
  *      config da BD (host/port/secure/user + palavra-passe cifrada).
  *   2. Variáveis de ambiente SMTP_* (fallback / deploys sem config na UI).
+ *
+ * O transporte é cacheado e só recriado se a configuração na BD mudar.
  */
 async function createTransport() {
   try {
@@ -24,6 +37,21 @@ async function createTransport() {
         smtpPasswordEnc: true,
       },
     })
+
+    if (
+      cachedTransport &&
+      cachedCfg &&
+      cachedCfg.smtpHost === cfg?.smtpHost &&
+      cachedCfg.smtpPort === cfg?.smtpPort &&
+      cachedCfg.smtpSecure === cfg?.smtpSecure &&
+      cachedCfg.smtpUser === cfg?.smtpUser &&
+      cachedCfg.smtpPasswordEnc === cfg?.smtpPasswordEnc
+    ) {
+      return cachedTransport
+    }
+
+    cachedCfg = cfg ?? null
+
     if (cfg?.smtpHost) {
       let pass: string | undefined
       if (cfg.smtpPasswordEnc) {
@@ -33,18 +61,24 @@ async function createTransport() {
           log.error({ err }, 'Falha a decifrar smtpPasswordEnc — a ignorar autenticação')
         }
       }
-      return nodemailer.createTransport({
+      cachedTransport = nodemailer.createTransport({
         host: cfg.smtpHost,
         port: cfg.smtpPort ?? 587,
         secure: cfg.smtpSecure,
         auth: cfg.smtpUser && pass ? { user: cfg.smtpUser, pass } : undefined,
       })
+      return cachedTransport
     }
   } catch (err) {
     log.warn({ err }, 'Falha a ler config SMTP da BD — a usar variáveis de ambiente')
   }
 
-  return nodemailer.createTransport({
+  if (cachedTransport && cachedCfg && !cachedCfg.smtpHost) {
+    return cachedTransport
+  }
+
+  cachedCfg = { smtpHost: null, smtpPort: null, smtpSecure: false, smtpUser: null, smtpPasswordEnc: null }
+  cachedTransport = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? 'localhost',
     port: parseInt(process.env.SMTP_PORT ?? '1025'),
     secure: process.env.SMTP_SECURE === 'true',
@@ -53,6 +87,7 @@ async function createTransport() {
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
         : undefined,
   })
+  return cachedTransport
 }
 
 /**

@@ -63,6 +63,20 @@ export async function PUT(req: NextRequest) {
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
+    // Validate urgent threshold < normal threshold. When only one is in the
+    // payload, fall back to the current DB value for the other.
+    if (parsed.data.prazoAlertaDiasUrgente != null) {
+      const currentNormal = parsed.data.prazoAlertaDias
+        ?? (await prisma.configuracaoSistema.findUnique({ where: { id: 'singleton' }, select: { prazoAlertaDias: true } }))?.prazoAlertaDias
+        ?? 7
+      if (parsed.data.prazoAlertaDiasUrgente >= currentNormal) {
+        return apiError(
+          'prazoAlertaDiasUrgente deve ser inferior a prazoAlertaDias',
+          400,
+        )
+      }
+    }
+
     // A palavra-passe SMTP não é uma coluna directa — cifra-se para smtpPasswordEnc.
     // Vazio = remover; ausente = manter inalterada.
     const { smtpPassword, smtpHost, smtpUser, ...rest } = parsed.data
