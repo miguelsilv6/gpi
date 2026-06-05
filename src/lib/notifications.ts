@@ -117,6 +117,21 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
     return
   }
 
+  // Preferências por utilizador: opt-out de email por tipo. A ausência de linha
+  // = ativo (default on); só guardamos opt-outs explícitos. Não afeta o in-app.
+  let emailOptOut = new Set<string>()
+  if (policy.emailEnabled) {
+    const prefs = await prisma.notificacaoPreferencia.findMany({
+      where: {
+        tipo: opts.tipo,
+        emailEnabled: false,
+        utilizadorId: { in: [...recipients.keys()] },
+      },
+      select: { utilizadorId: true },
+    })
+    emailOptOut = new Set(prefs.map((p) => p.utilizadorId))
+  }
+
   await Promise.all(
     [...recipients.values()].map(async (r) => {
       let notificacaoId: string | null = null
@@ -132,7 +147,7 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
         })
         notificacaoId = n.id
       }
-      if (policy.emailEnabled && r.email) {
+      if (policy.emailEnabled && r.email && !emailOptOut.has(r.id)) {
         try {
           await sendMail({
             to: r.email,
@@ -293,6 +308,49 @@ export async function escalateOverdueToChefes(
         tipo: 'PRAZO_ULTRAPASSADO',
         titulo: `Prazo ultrapassado na brigada — ${inq.nuipc}`,
         mensagem: `O prazo do inquérito ${inq.nuipc} (sua brigada) foi ultrapassado.`,
+        inqueritoid: inq.id,
+        naturalUserId: chefeId,
+      }),
+    )
+  }
+  await Promise.all(jobs)
+}
+
+/**
+ * Escala inquéritos com prazo a aproximar-se do limiar "urgente" (configurável
+ * em ConfiguracaoSistema.prazoAlertaDiasUrgente) ao Inspetor-Chefe da brigada —
+ * para além do aviso normal ao inspetor. Mesmo padrão de
+ * `escalateOverdueToChefes`, mas usa PRAZO_APROXIMANDO com mensagem urgente e
+ * salta quando o chefe é o próprio inspetor (já avisado no loop principal).
+ */
+export async function escalateUrgentToChefes(
+  urgent: { id: string; nuipc: string; brigadaId: string | null; inspetorId: string | null }[],
+): Promise<void> {
+  const brigadaIds = [...new Set(urgent.map((o) => o.brigadaId).filter((b): b is string => !!b))]
+  if (brigadaIds.length === 0) return
+
+  const chefes = await prisma.utilizador.findMany({
+    where: { role: 'INSPETOR_CHEFE', ativo: true, brigadaId: { in: brigadaIds } },
+    select: { id: true, brigadaId: true },
+  })
+  const chefeByBrigada = new Map<string, string>()
+  for (const c of chefes) {
+    if (c.brigadaId && !chefeByBrigada.has(c.brigadaId)) {
+      chefeByBrigada.set(c.brigadaId, c.id)
+    }
+  }
+  if (chefeByBrigada.size === 0) return
+
+  const jobs: Promise<unknown>[] = []
+  for (const inq of urgent) {
+    if (!inq.brigadaId) continue
+    const chefeId = chefeByBrigada.get(inq.brigadaId)
+    if (!chefeId || chefeId === inq.inspetorId) continue
+    jobs.push(
+      applyPolicy({
+        tipo: 'PRAZO_APROXIMANDO',
+        titulo: `Prazo urgente na brigada — ${inq.nuipc}`,
+        mensagem: `O prazo do inquérito ${inq.nuipc} (sua brigada) está prestes a terminar.`,
         inqueritoid: inq.id,
         naturalUserId: chefeId,
       }),

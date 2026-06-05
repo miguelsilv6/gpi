@@ -6,6 +6,7 @@ import {
   notifyUpdateFailed,
   notifyUpdateConcluida,
   escalateOverdueToChefes,
+  escalateUrgentToChefes,
 } from '@/lib/notifications'
 import { childLogger } from '@/lib/logger'
 import { spawn } from 'child_process'
@@ -406,9 +407,21 @@ async function runDeadlineCheck() {
   // Escalar os vencidos ao Inspetor-Chefe da brigada (para além do inspetor).
   jobs.push(escalateOverdueToChefes(overdue))
 
+  // Limiar "urgente" opcional: prazos a aproximar-se ainda mais (≤ urgentDays)
+  // são também escalados ao Inspetor-Chefe da brigada.
+  const urgentDays = config?.prazoAlertaDiasUrgente ?? null
+  let urgentCount = 0
+  if (urgentDays != null) {
+    const urgentThreshold = new Date()
+    urgentThreshold.setDate(urgentThreshold.getDate() + urgentDays)
+    const urgent = approaching.filter((inq) => inq.dataPrazo && inq.dataPrazo <= urgentThreshold)
+    urgentCount = urgent.length
+    jobs.push(escalateUrgentToChefes(urgent))
+  }
+
   await Promise.allSettled(jobs)
   log.info(
-    { approaching: approaching.length, overdue: overdue.length },
+    { approaching: approaching.length, overdue: overdue.length, urgent: urgentCount },
     'Deadline check completed',
   )
 }

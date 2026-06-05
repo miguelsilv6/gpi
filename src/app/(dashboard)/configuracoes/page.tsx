@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
@@ -715,6 +715,13 @@ export default function ConfiguracoesPage() {
   const [savingModulo, setSavingModulo] = useState(false)
   const [savingModuloFerias, setSavingModuloFerias] = useState(false)
   const [savingRoles, setSavingRoles] = useState(false)
+  // Limiar urgente — gerido fora do RHF para lidar com o valor opcional (vazio = null).
+  const [prazoUrgente, setPrazoUrgente] = useState('')
+  // Configuração SMTP — estado próprio (a palavra-passe vazia = manter inalterada).
+  const [smtp, setSmtp] = useState({ host: '', port: '', secure: false, user: '', password: '' })
+  const [smtpPasswordSet, setSmtpPasswordSet] = useState(false)
+  const [savingSmtp, setSavingSmtp] = useState(false)
+  const [testingEmail, setTestingEmail] = useState(false)
 
   const {
     register,
@@ -736,6 +743,15 @@ export default function ConfiguracoesPage() {
           emailRemetenteAddr: d.emailRemetenteAddr,
           sessaoTimeoutMinutos: d.sessaoTimeoutMinutos ?? 0,
         })
+        setPrazoUrgente(d.prazoAlertaDiasUrgente != null ? String(d.prazoAlertaDiasUrgente) : '')
+        setSmtp({
+          host: d.smtpHost ?? '',
+          port: d.smtpPort != null ? String(d.smtpPort) : '',
+          secure: d.smtpSecure ?? false,
+          user: d.smtpUser ?? '',
+          password: '',
+        })
+        setSmtpPasswordSet(!!d.smtpPasswordSet)
         setEstadosDefault(d.inqueritoFiltroEstadosDefault ?? [])
         setModuloAjudasAtivo(d.moduloAjudasAtivo ?? true)
         setModuloAjudasRoles((d.moduloAjudasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
@@ -765,10 +781,15 @@ export default function ConfiguracoesPage() {
   }, [tab, loading])
 
   async function onSubmit(data: FormData) {
+    const payload = {
+      ...data,
+      // Vazio = desligar o limiar urgente (null).
+      prazoAlertaDiasUrgente: prazoUrgente.trim() === '' ? null : Number(prazoUrgente),
+    }
     const res = await fetch('/api/configuracoes', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
     if (!res.ok) {
       const err = await res.json()
@@ -776,6 +797,56 @@ export default function ConfiguracoesPage() {
       return
     }
     toast.success('Configurações guardadas')
+  }
+
+  async function saveSmtp() {
+    setSavingSmtp(true)
+    try {
+      // A palavra-passe só é enviada quando o utilizador escreve uma nova
+      // (vazia = manter a atual). Para limpar, o utilizador remove host/user.
+      const payload: Record<string, unknown> = {
+        smtpHost: smtp.host.trim(),
+        smtpPort: smtp.port.trim() === '' ? null : Number(smtp.port),
+        smtpSecure: smtp.secure,
+        smtpUser: smtp.user.trim(),
+      }
+      if (smtp.password !== '') payload.smtpPassword = smtp.password
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      const updated = await res.json()
+      setSmtpPasswordSet(!!updated.smtpPasswordSet)
+      setSmtp((s) => ({ ...s, password: '' }))
+      toast.success('Configuração SMTP guardada')
+    } catch {
+      toast.error('Erro ao guardar')
+    } finally {
+      setSavingSmtp(false)
+    }
+  }
+
+  async function sendTestEmail() {
+    setTestingEmail(true)
+    try {
+      const res = await fetch('/api/configuracoes/test-email', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error ?? 'Falha ao enviar email de teste')
+        return
+      }
+      toast.success(`Email de teste enviado para ${data.to}`)
+    } catch {
+      toast.error('Falha ao enviar email de teste')
+    } finally {
+      setTestingEmail(false)
+    }
   }
 
   async function saveEstadosDefault(next: string[]) {
@@ -933,6 +1004,22 @@ export default function ConfiguracoesPage() {
                   <p className="text-xs text-red-600">{errors.prazoAlertaDias.message}</p>
                 )}
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prazoAlertaDiasUrgente">Aviso urgente com antecedência (dias)</Label>
+                <Input
+                  id="prazoAlertaDiasUrgente"
+                  type="number"
+                  min={1}
+                  max={365}
+                  placeholder="Deixe vazio para desativar"
+                  value={prazoUrgente}
+                  onChange={(e) => setPrazoUrgente(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Quando o prazo de um inquérito cai dentro deste nº de dias, o Inspetor-Chefe
+                  da brigada é também notificado. Vazio = desativado.
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -1036,6 +1123,83 @@ export default function ConfiguracoesPage() {
             Guardar configurações
           </Button>
         </form>
+      )}
+
+      {tab === 'sistema' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Servidor de email (SMTP)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Defina o servidor SMTP usado para enviar emails (notificações, recuperação
+              de password). Se deixar o servidor vazio, são usadas as variáveis de ambiente.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="smtpHost">Servidor</Label>
+                <Input
+                  id="smtpHost"
+                  placeholder="ex: smtp.gmail.com"
+                  value={smtp.host}
+                  onChange={(e) => setSmtp((s) => ({ ...s, host: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="smtpPort">Porta</Label>
+                <Input
+                  id="smtpPort"
+                  type="number"
+                  min={1}
+                  max={65535}
+                  placeholder="587"
+                  value={smtp.port}
+                  onChange={(e) => setSmtp((s) => ({ ...s, port: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="smtpUser">Utilizador</Label>
+              <Input
+                id="smtpUser"
+                autoComplete="off"
+                placeholder="(opcional)"
+                value={smtp.user}
+                onChange={(e) => setSmtp((s) => ({ ...s, user: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="smtpPassword">Palavra-passe</Label>
+              <Input
+                id="smtpPassword"
+                type="password"
+                autoComplete="new-password"
+                placeholder={smtpPasswordSet ? '•••••••• (definida — deixe vazio para manter)' : '(opcional)'}
+                value={smtp.password}
+                onChange={(e) => setSmtp((s) => ({ ...s, password: e.target.value }))}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={smtp.secure}
+                onChange={(e) => setSmtp((s) => ({ ...s, secure: e.target.checked }))}
+                className="h-4 w-4 rounded border"
+              />
+              <span>Usar TLS/SSL (porta 465)</span>
+            </label>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" onClick={saveSmtp} disabled={savingSmtp}>
+                {savingSmtp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar SMTP
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={sendTestEmail} disabled={testingEmail}>
+                {testingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                Enviar email de teste
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {tab === 'sistema' && (

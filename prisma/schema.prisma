@@ -82,6 +82,7 @@ model Utilizador {
   ajudasTaxaIRS        Float?
   viaturas             Viatura[]
   ausencias            Ausencia[]    @relation("AusenciasInspetor")
+  notificacaoPreferencias NotificacaoPreferencia[]
 
   @@index([brigadaId])
   @@index([role])
@@ -369,8 +370,22 @@ model ConfiguracaoSistema {
   // Idle timeout in minutes. 0 disables the feature.
   sessaoTimeoutMinutos            Int      @default(0)
   prazoAlertaDias                 Int      @default(7)
+  // Segundo limiar (opcional, mais próximo do prazo) para um aviso "urgente"
+  // de inquéritos: quando o prazo cai dentro deste nº de dias, escala também
+  // ao Inspetor-Chefe da brigada. null = desligado.
+  prazoAlertaDiasUrgente          Int?
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")
+  // Ligação ao servidor SMTP, configurável pelo ADMINISTRACAO em
+  // /configurações → Sistema. Quando smtpHost está definido, sobrepõe-se às
+  // variáveis de ambiente SMTP_*; caso contrário usa-se o fallback de env.
+  // A palavra-passe é guardada cifrada (AES-256-GCM, ver src/lib/crypto-secrets.ts)
+  // e nunca é devolvida em texto pela API.
+  smtpHost                        String?
+  smtpPort                        Int?
+  smtpSecure                      Boolean  @default(false)
+  smtpUser                        String?
+  smtpPasswordEnc                 String?
   // Default estado codigos applied to /inqueritos when the user has no explicit
   // filter set on the URL. Stored as codigos for stability across renames.
   inqueritoFiltroEstadosDefault   String[] @default([])
@@ -624,4 +639,18 @@ model NotificationPolicy {
   emailEnabled Boolean         @default(true)
   ccRoles      Role[]          @default([])
   updatedAt    DateTime        @updatedAt
+}
+
+// Preferência de email por utilizador e por tipo de notificação. Permite a
+// cada utilizador optar por NÃO receber emails de um dado tipo (o in-app
+// mantém-se sempre, controlado pela NotificationPolicy global). A ausência de
+// linha significa "ativo" (default on) — só guardamos opt-outs explícitos.
+model NotificacaoPreferencia {
+  utilizadorId String
+  tipo         TipoNotificacao
+  emailEnabled Boolean         @default(true)
+  utilizador   Utilizador      @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+
+  @@id([utilizadorId, tipo])
+  @@index([utilizadorId])
 }
