@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { timingSafeEqual, createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { createNotification, notifyAtividadePrazo, escalateOverdueToChefes } from '@/lib/notifications'
+import { createNotification, notifyAtividadePrazo, escalateOverdueToChefes, escalateUrgentToChefes } from '@/lib/notifications'
 import { childLogger } from '@/lib/logger'
 
 const log = childLogger({ subsystem: 'cron/deadline-check' })
@@ -87,6 +87,16 @@ export async function POST(req: NextRequest) {
 
     // Escalar os vencidos ao Inspetor-Chefe da brigada (para além do inspetor).
     jobs.push(escalateOverdueToChefes(overdue))
+
+    // Limiar "urgente" opcional: prazos a aproximar-se ≤ urgentDays também são
+    // escalados ao Inspetor-Chefe da brigada.
+    const urgentDays = config?.prazoAlertaDiasUrgente ?? null
+    if (urgentDays != null) {
+      const urgentThreshold = new Date()
+      urgentThreshold.setDate(urgentThreshold.getDate() + urgentDays)
+      const urgent = approaching.filter((inq) => inq.dataPrazo && inq.dataPrazo <= urgentThreshold)
+      jobs.push(escalateUrgentToChefes(urgent))
+    }
 
     // ── 2. Activity deadlines ──────────────────────────────────────────────────
     const today = new Date(now)

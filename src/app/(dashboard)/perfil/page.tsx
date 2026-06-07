@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save } from 'lucide-react'
 import { ROLE_LABELS } from '@/lib/rbac'
+import { NOTIFICATION_TIPO_LABELS, NOTIFICATION_TIPO_DESCRIPTIONS } from '@/lib/notification-labels'
 import type { Role } from '@/generated/prisma/enums'
 
 // ─── Viaturas sub-component ───────────────────────────────────────────────────
@@ -118,6 +119,115 @@ function ViaturasList() {
                 <Plus className="h-3.5 w-3.5 mr-1" />Adicionar viatura
               </Button>
             )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Notification email preferences sub-component ─────────────────────────────
+
+interface PreferenciaItem {
+  tipo: string
+  emailEnabled: boolean
+}
+
+function NotificacoesPreferencias() {
+  const [prefs, setPrefs] = useState<PreferenciaItem[]>([])
+  const [original, setOriginal] = useState<PreferenciaItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/notificacoes/preferencias')
+      .then((r) => r.json())
+      .then((d) => {
+        setPrefs(d.preferencias ?? [])
+        setOriginal(d.preferencias ?? [])
+        setLoading(false)
+      })
+      .catch(() => {
+        toast.error('Erro ao carregar preferências de notificação')
+        setLoading(false)
+      })
+  }, [])
+
+  const isDirty = prefs.some((p) => {
+    const orig = original.find((o) => o.tipo === p.tipo)
+    return orig ? p.emailEnabled !== orig.emailEnabled : false
+  })
+
+  function toggle(tipo: string) {
+    setPrefs((prev) => prev.map((p) => (p.tipo === tipo ? { ...p, emailEnabled: !p.emailEnabled } : p)))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/notificacoes/preferencias', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferencias: prefs }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        toast.error(e.error ?? 'Erro ao guardar')
+        return
+      }
+      setOriginal(prefs)
+      toast.success('Preferências guardadas')
+    } catch {
+      toast.error('Erro ao guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+          <Bell className="h-4 w-4" />
+          Notificações por email
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Escolha que tipos de notificação quer receber por email. As notificações na
+          aplicação continuam sempre disponíveis.
+        </p>
+        {loading ? (
+          <div className="text-sm text-muted-foreground py-2">A carregar...</div>
+        ) : (
+          <>
+            <div className="rounded-xl border divide-y">
+              {prefs.map((p) => (
+                <label
+                  key={p.tipo}
+                  className="flex items-start justify-between gap-3 px-3 py-2.5 cursor-pointer select-none"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {NOTIFICATION_TIPO_LABELS[p.tipo as keyof typeof NOTIFICATION_TIPO_LABELS] ?? p.tipo}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {NOTIFICATION_TIPO_DESCRIPTIONS[p.tipo as keyof typeof NOTIFICATION_TIPO_DESCRIPTIONS]}
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={p.emailEnabled}
+                    onChange={() => toggle(p.tipo)}
+                    className="mt-0.5 h-4 w-4 rounded border shrink-0"
+                  />
+                </label>
+              ))}
+            </div>
+            <Button size="sm" onClick={handleSave} disabled={!isDirty || saving}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Guardar
+            </Button>
           </>
         )}
       </CardContent>
@@ -363,6 +473,9 @@ export default function PerfilPage() {
 
       {/* Viaturas */}
       <ViaturasList />
+
+      {/* Notification email preferences */}
+      <NotificacoesPreferencias />
 
       {/* Password change */}
       <Card>
