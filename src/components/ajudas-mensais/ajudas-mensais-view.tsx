@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import {
   ChevronLeft,
@@ -405,30 +406,12 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label>Data e Hora Início *</Label>
-          <div className="flex gap-2">
-            <Input
-              id="dataInicio"
-              type="date"
-              value={form.dataInicio.split('T')[0] ?? ''}
-              onChange={(e) => {
-                const time = form.dataInicio.split('T')[1] ?? '00:00'
-                set('dataInicio', e.target.value ? `${e.target.value}T${time}` : '')
-              }}
-              className="flex-1"
-              required
-            />
-            <Input
-              id="dataInicioHora"
-              type="time"
-              value={form.dataInicio.split('T')[1] ?? ''}
-              onChange={(e) => {
-                const date = form.dataInicio.split('T')[0] ?? ''
-                if (date) set('dataInicio', `${date}T${e.target.value}`)
-              }}
-              className="w-28"
-            />
-          </div>
+          <Label htmlFor="dataInicio">Data e Hora Início *</Label>
+          <DateTimePicker
+            id="dataInicio"
+            value={form.dataInicio}
+            onChange={(v) => set('dataInicio', v)}
+          />
           {form.dataInicio && (() => {
             const type = getDayType(form.dataInicio)
             if (!type) return null
@@ -445,30 +428,12 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
           })()}
         </div>
         <div className="space-y-1.5">
-          <Label>Data e Hora Fim *</Label>
-          <div className="flex gap-2">
-            <Input
-              id="dataFim"
-              type="date"
-              value={form.dataFim.split('T')[0] ?? ''}
-              onChange={(e) => {
-                const time = form.dataFim.split('T')[1] ?? '00:00'
-                set('dataFim', e.target.value ? `${e.target.value}T${time}` : '')
-              }}
-              className="flex-1"
-              required
-            />
-            <Input
-              id="dataFimHora"
-              type="time"
-              value={form.dataFim.split('T')[1] ?? ''}
-              onChange={(e) => {
-                const date = form.dataFim.split('T')[0] ?? ''
-                if (date) set('dataFim', `${date}T${e.target.value}`)
-              }}
-              className="w-28"
-            />
-          </div>
+          <Label htmlFor="dataFim">Data e Hora Fim *</Label>
+          <DateTimePicker
+            id="dataFim"
+            value={form.dataFim}
+            onChange={(v) => set('dataFim', v)}
+          />
         </div>
       </div>
 
