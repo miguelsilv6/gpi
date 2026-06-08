@@ -30,9 +30,10 @@ interface HeaderProps {
   }
   moduloAjudasAtivo?: boolean
   moduloFeriasAtivo?: boolean
+  moduloBugReportsAtivo?: boolean
 }
 
-export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = true }: HeaderProps) {
+export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true }: HeaderProps) {
   const initials = user.nome
     .split(' ')
     .map((n) => n[0])
@@ -52,7 +53,7 @@ export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = tru
             <span className="sr-only">Menu</span>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
-            <SidebarNav role={user.role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} onNavigate={() => setMobileOpen(false)} />
+            <SidebarNav role={user.role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
 

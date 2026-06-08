@@ -38,7 +38,7 @@ describe('Notification labels coverage', () => {
   test('tipos de sistema (sem inquérito/utilizador associado) não têm destinatário natural', () => {
     const semNatural = enumValues.filter((t) => !NOTIFICATION_TIPO_HAS_NATURAL[t]).sort()
     expect(semNatural).toEqual(
-      ['ATUALIZACAO_CONCLUIDA', 'ATUALIZACAO_FALHOU', 'BACKUP_FALHOU'].sort(),
+      ['ATUALIZACAO_CONCLUIDA', 'ATUALIZACAO_FALHOU', 'BACKUP_FALHOU', 'BUGREPORT_CRIADO'].sort(),
     )
   })
 })

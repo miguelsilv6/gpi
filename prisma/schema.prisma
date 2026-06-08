@@ -30,6 +30,21 @@ enum TipoNotificacao {
   ATIVIDADE_PRAZO_APROXIMANDO
   ATUALIZACAO_FALHOU
   ATUALIZACAO_CONCLUIDA
+  BUGREPORT_CRIADO
+}
+
+enum SeveridadeBug {
+  BAIXA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum EstadoBug {
+  ABERTO
+  EM_ANALISE
+  RESOLVIDO
+  REJEITADO
 }
 
 model Brigada {
@@ -83,6 +98,7 @@ model Utilizador {
   viaturas             Viatura[]
   ausencias            Ausencia[]    @relation("AusenciasInspetor")
   notificacaoPreferencias NotificacaoPreferencia[]
+  bugReports           BugReport[]
 
   @@index([brigadaId])
   @@index([role])
@@ -367,6 +383,13 @@ model ConfiguracaoSistema {
   // Comma-separated list of Role values that can access the Férias module when
   // it is active. ADMINISTRACAO always has access and is never stored here.
   moduloFeriasRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // When false, users can no longer submit bug reports (the /reportar-bug page
+  // and its POST route return "module disabled"). The ADMINISTRACAO management
+  // page (/bugs) is always available so existing reports can still be analysed.
+  moduloBugReportsAtivo           Boolean  @default(true)
+  // Comma-separated list of Role values allowed to submit bug reports when the
+  // module is active. ADMINISTRACAO always has access and is never stored here.
+  moduloBugReportsRoles           String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Idle timeout in minutes. 0 disables the feature.
   sessaoTimeoutMinutos            Int      @default(0)
   prazoAlertaDias                 Int      @default(7)
@@ -652,4 +675,27 @@ model NotificacaoPreferencia {
   utilizador   Utilizador      @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
 
   @@id([utilizadorId, tipo])
+}
+
+// Relatório de bug submetido por um utilizador para análise do ADMINISTRACAO.
+// Centralizado em /bugs (gestão admin); submetido em /reportar-bug. O módulo
+// pode ser ligado/desligado em Configurações → Sistema.
+model BugReport {
+  id          String        @id @default(cuid())
+  titulo      String
+  descricao   String
+  severidade  SeveridadeBug @default(MEDIA)
+  estado      EstadoBug     @default(ABERTO)
+  // Página/contexto onde o bug foi observado (path ou URL), opcional.
+  pagina      String?
+  // Nota interna do administrador ao triar/analisar o report.
+  notaAdmin   String?
+  criadoPor   Utilizador    @relation(fields: [criadoPorId], references: [id], onDelete: Cascade)
+  criadoPorId String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([estado, createdAt])
+  @@index([criadoPorId])
+  @@index([createdAt])
 }

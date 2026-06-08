@@ -21,6 +21,7 @@ export const NOTIFICATION_TIPO_LABELS: Record<TipoNotificacao, string> = {
   BACKUP_FALHOU: 'Falha de backup/restauro',
   ATUALIZACAO_FALHOU: 'Atualização do sistema falhou',
   ATUALIZACAO_CONCLUIDA: 'Atualização do sistema concluída',
+  BUGREPORT_CRIADO: 'Novo relatório de bug',
 }
 
 /**
@@ -38,6 +39,7 @@ export const NOTIFICATION_TIPO_DESCRIPTIONS: Record<TipoNotificacao, string> = {
   BACKUP_FALHOU: 'Disparada quando um backup automático, manual ou restauro falha. Sem destinatário "natural" — só envia para os roles CC configurados.',
   ATUALIZACAO_FALHOU: 'Disparada quando uma atualização automática do sistema falha ou é revertida. Sem destinatário natural — só envia para os roles CC configurados.',
   ATUALIZACAO_CONCLUIDA: 'Disparada quando uma atualização automática do sistema termina com sucesso. Sem destinatário natural — só envia para os roles CC configurados.',
+  BUGREPORT_CRIADO: 'Disparada quando um utilizador submete um novo relatório de bug. Sem destinatário natural — só envia para os roles CC configurados (por defeito, ADMINISTRACAO).',
 }
 
 /**
@@ -59,6 +61,7 @@ export const NOTIFICATION_TIPO_HAS_NATURAL: Record<TipoNotificacao, boolean> = {
   BACKUP_FALHOU: false,
   ATUALIZACAO_FALHOU: false,
   ATUALIZACAO_CONCLUIDA: false,
+  BUGREPORT_CRIADO: false,
 }
 
 /**

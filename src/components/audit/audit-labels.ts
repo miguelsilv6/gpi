@@ -37,6 +37,9 @@ export const ACAO_LABELS: Record<string, string> = {
   PASSWORD_RESET_REQUESTED: 'Reset de password pedido',
   PASSWORD_RESET_COMPLETED: 'Password redefinida via reset',
   UPDATE_NOTIFICATION_POLICIES: 'Configurações de notificação alteradas',
+  CREATE_BUG_REPORT: 'Bug reportado',
+  UPDATE_BUG_REPORT: 'Bug report alterado',
+  DELETE_BUG_REPORT: 'Bug report eliminado',
 }
 
 /** Cor categórica para os badges de acao em listas. */
@@ -128,6 +131,13 @@ export const FIELD_LABELS: Record<string, string> = {
   etiquetas: 'Etiquetas',
   etiquetasBefore: 'Etiquetas (antes)',
   etiquetasAfter: 'Etiquetas (depois)',
+  // Bug reports
+  titulo: 'Título',
+  severidade: 'Severidade',
+  estado: 'Estado',
+  notaAdmin: 'Nota do admin',
+  moduloBugReportsAtivo: 'Módulo Reportar Bug',
+  moduloBugReportsRoles: 'Perfis com acesso (Reportar Bug)',
   // Bulk markers
   __bulk__: '(lote)',
   __bulk_export__: '(exportação)',
