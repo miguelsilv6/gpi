@@ -14,6 +14,7 @@ import {
   FileBarChart,
   BarChart2,
   Banknote,
+  Bug,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -92,9 +93,21 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
+    label: 'Reportar Bug',
+    href: '/reportar-bug',
+    icon: Bug,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
+  },
+  {
     label: 'Utilizadores',
     href: '/utilizadores',
     icon: Users,
+    roles: ['ADMINISTRACAO'],
+  },
+  {
+    label: 'Gestão de Bugs',
+    href: '/bugs',
+    icon: Bug,
     roles: ['ADMINISTRACAO'],
   },
   {

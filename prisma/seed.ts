@@ -81,6 +81,7 @@ async function main() {
       TipoNotificacao.BACKUP_FALHOU,
       TipoNotificacao.ATUALIZACAO_FALHOU,
       TipoNotificacao.ATUALIZACAO_CONCLUIDA,
+      TipoNotificacao.BUGREPORT_CRIADO,
     ]
     const ccRoles: Role[] = adminCcTypes.includes(tipo) ? [Role.ADMINISTRACAO] : []
     await prisma.notificationPolicy.upsert({

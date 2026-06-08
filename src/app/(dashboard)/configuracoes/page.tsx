@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
@@ -712,8 +712,11 @@ export default function ConfiguracoesPage() {
   const [moduloAjudasRoles, setModuloAjudasRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloFeriasAtivo, setModuloFeriasAtivo] = useState(true)
   const [moduloFeriasRoles, setModuloFeriasRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [moduloBugReportsAtivo, setModuloBugReportsAtivo] = useState(true)
+  const [moduloBugReportsRoles, setModuloBugReportsRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [savingModulo, setSavingModulo] = useState(false)
   const [savingModuloFerias, setSavingModuloFerias] = useState(false)
+  const [savingModuloBugReports, setSavingModuloBugReports] = useState(false)
   const [savingRoles, setSavingRoles] = useState(false)
   // Limiar urgente — gerido fora do RHF para lidar com o valor opcional (vazio = null).
   const [prazoUrgente, setPrazoUrgente] = useState('')
@@ -757,6 +760,8 @@ export default function ConfiguracoesPage() {
         setModuloAjudasRoles((d.moduloAjudasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloFeriasAtivo(d.moduloFeriasAtivo ?? true)
         setModuloFeriasRoles((d.moduloFeriasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setModuloBugReportsAtivo(d.moduloBugReportsAtivo ?? true)
+        setModuloBugReportsRoles((d.moduloBugReportsRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setEstados(Array.isArray(e) ? e : [])
         setLoading(false)
       })
@@ -911,10 +916,32 @@ export default function ConfiguracoesPage() {
     toast.success(next ? 'Módulo Férias ativado' : 'Módulo Férias desativado')
   }
 
-  async function toggleModuloRole(modulo: 'ajudas' | 'ferias', role: string) {
-    const current = modulo === 'ajudas' ? moduloAjudasRoles : moduloFeriasRoles
-    const setter = modulo === 'ajudas' ? setModuloAjudasRoles : setModuloFeriasRoles
-    const key = modulo === 'ajudas' ? 'moduloAjudasRoles' : 'moduloFeriasRoles'
+  async function toggleModuloBugReports() {
+    const next = !moduloBugReportsAtivo
+    setSavingModuloBugReports(true)
+    setModuloBugReportsAtivo(next)
+    const res = await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moduloBugReportsAtivo: next }),
+    })
+    setSavingModuloBugReports(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setModuloBugReportsAtivo(!next)
+      toast.error(err.error ?? 'Erro ao guardar')
+      return
+    }
+    toast.success(next ? 'Módulo Reportar Bug ativado' : 'Módulo Reportar Bug desativado')
+  }
+
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports', role: string) {
+    const current =
+      modulo === 'ajudas' ? moduloAjudasRoles : modulo === 'ferias' ? moduloFeriasRoles : moduloBugReportsRoles
+    const setter =
+      modulo === 'ajudas' ? setModuloAjudasRoles : modulo === 'ferias' ? setModuloFeriasRoles : setModuloBugReportsRoles
+    const key =
+      modulo === 'ajudas' ? 'moduloAjudasRoles' : modulo === 'ferias' ? 'moduloFeriasRoles' : 'moduloBugReportsRoles'
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
     setter(next)
     setSavingRoles(true)
@@ -1290,6 +1317,49 @@ export default function ConfiguracoesPage() {
                   roles={moduloFeriasRoles}
                   disabled={savingRoles}
                   onToggle={(r) => toggleModuloRole('ferias', r)}
+                />
+              )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloBugReportsAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <Bug className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Reportar Bug</p>
+                    <p className="text-xs text-muted-foreground">
+                      Permite aos utilizadores reportar problemas ao administrador
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleModuloBugReports}
+                  disabled={savingModuloBugReports}
+                  aria-label={moduloBugReportsAtivo ? 'Desativar módulo Reportar Bug' : 'Ativar módulo Reportar Bug'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloBugReportsAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloBugReportsAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloBugReportsAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloBugReportsRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('bugreports', r)}
                 />
               )}
             </div>

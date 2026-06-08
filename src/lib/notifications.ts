@@ -445,6 +445,24 @@ export async function notifyUpdateConcluida(opts: {
   })
 }
 
+/**
+ * Notifica os administradores (via ccRoles da policy BUGREPORT_CRIADO, que o
+ * seed cria com [ADMINISTRACAO]) quando um utilizador submete um novo bug
+ * report. Sem destinatário "natural" — o report dirige-se à administração.
+ */
+export async function notifyBugReportCriado(opts: {
+  titulo: string
+  autorNome: string
+  severidadeLabel: string
+}): Promise<void> {
+  await applyPolicy({
+    tipo: 'BUGREPORT_CRIADO',
+    titulo: `Novo bug reportado — ${opts.titulo}`,
+    mensagem: `${opts.autorNome} submeteu um relatório de bug (severidade: ${opts.severidadeLabel}). Consulte a gestão de bugs para analisar.`,
+    naturalUserId: null,
+  })
+}
+
 export async function notifyInqueritoTransferido(opts: {
   inqueritoid: string
   nuipc: string
