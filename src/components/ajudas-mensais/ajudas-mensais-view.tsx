@@ -405,14 +405,30 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="dataInicio">Data e Hora Início *</Label>
-          <Input
-            id="dataInicio"
-            type="datetime-local"
-            value={form.dataInicio}
-            onChange={(e) => set('dataInicio', e.target.value)}
-            required
-          />
+          <Label>Data e Hora Início *</Label>
+          <div className="flex gap-2">
+            <Input
+              id="dataInicio"
+              type="date"
+              value={form.dataInicio.split('T')[0] ?? ''}
+              onChange={(e) => {
+                const time = form.dataInicio.split('T')[1] ?? '00:00'
+                set('dataInicio', e.target.value ? `${e.target.value}T${time}` : '')
+              }}
+              className="flex-1"
+              required
+            />
+            <Input
+              id="dataInicioHora"
+              type="time"
+              value={form.dataInicio.split('T')[1] ?? ''}
+              onChange={(e) => {
+                const date = form.dataInicio.split('T')[0] ?? ''
+                if (date) set('dataInicio', `${date}T${e.target.value}`)
+              }}
+              className="w-28"
+            />
+          </div>
           {form.dataInicio && (() => {
             const type = getDayType(form.dataInicio)
             if (!type) return null
@@ -429,14 +445,30 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
           })()}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="dataFim">Data e Hora Fim *</Label>
-          <Input
-            id="dataFim"
-            type="datetime-local"
-            value={form.dataFim}
-            onChange={(e) => set('dataFim', e.target.value)}
-            required
-          />
+          <Label>Data e Hora Fim *</Label>
+          <div className="flex gap-2">
+            <Input
+              id="dataFim"
+              type="date"
+              value={form.dataFim.split('T')[0] ?? ''}
+              onChange={(e) => {
+                const time = form.dataFim.split('T')[1] ?? '00:00'
+                set('dataFim', e.target.value ? `${e.target.value}T${time}` : '')
+              }}
+              className="flex-1"
+              required
+            />
+            <Input
+              id="dataFimHora"
+              type="time"
+              value={form.dataFim.split('T')[1] ?? ''}
+              onChange={(e) => {
+                const date = form.dataFim.split('T')[0] ?? ''
+                if (date) set('dataFim', `${date}T${e.target.value}`)
+              }}
+              className="w-28"
+            />
+          </div>
         </div>
       </div>
 
