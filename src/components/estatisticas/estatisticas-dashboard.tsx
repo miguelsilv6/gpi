@@ -273,7 +273,7 @@ export function EstatisticasDashboard({
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Período</Label>
           <Select value={preset} onValueChange={(v) => applyPreset(v as Preset)}>
-            <SelectTrigger className="h-9 w-full sm:w-[170px] text-sm">
+            <SelectTrigger className="h-9 w-full sm:w-56 text-sm">
               <SelectValue placeholder="Período">
                 {(v: string) => PRESET_LABELS[v as Preset] ?? 'Período'}
               </SelectValue>

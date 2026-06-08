@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import {
   ChevronLeft,
@@ -406,12 +407,10 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="dataInicio">Data e Hora Início *</Label>
-          <Input
+          <DateTimePicker
             id="dataInicio"
-            type="datetime-local"
             value={form.dataInicio}
-            onChange={(e) => set('dataInicio', e.target.value)}
-            required
+            onChange={(v) => set('dataInicio', v)}
           />
           {form.dataInicio && (() => {
             const type = getDayType(form.dataInicio)
@@ -430,12 +429,10 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="dataFim">Data e Hora Fim *</Label>
-          <Input
+          <DateTimePicker
             id="dataFim"
-            type="datetime-local"
             value={form.dataFim}
-            onChange={(e) => set('dataFim', e.target.value)}
-            required
+            onChange={(v) => set('dataFim', v)}
           />
         </div>
       </div>
