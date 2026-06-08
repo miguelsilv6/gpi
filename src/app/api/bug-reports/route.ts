@@ -107,16 +107,13 @@ export async function POST(req: NextRequest) {
       detalhes: { titulo: report.titulo, severidade: report.severidade },
     })
 
-    // Notifica a administração (não bloqueia a resposta em caso de falha).
-    try {
-      await notifyBugReportCriado({
-        titulo: report.titulo,
-        autorNome: session.user.nome,
-        severidadeLabel: SEVERIDADE_LABELS[report.severidade],
-      })
-    } catch {
-      // Notificação é best-effort; o report já está persistido.
-    }
+    // Notifica a administração em segundo plano — não bloqueia a resposta HTTP
+    // com a latência do SMTP. Best-effort: o report já está persistido.
+    void notifyBugReportCriado({
+      titulo: report.titulo,
+      autorNome: session.user.nome,
+      severidadeLabel: SEVERIDADE_LABELS[report.severidade],
+    }).catch(() => {})
 
     return Response.json(report, { status: 201 })
   } catch (error) {

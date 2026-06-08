@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -57,6 +57,7 @@ export function BugReportsAdmin({ initialItems, initialCursor, counts }: Props) 
       if (estado !== 'all') params.set('estado', estado)
       if (!reset && cursor) params.set('cursor', cursor)
       const res = await fetch(`/api/bug-reports?${params.toString()}`)
+      if (!res.ok) throw new Error('Erro na resposta do servidor')
       const data = await res.json()
       setItems((prev) => (reset ? data.items : [...prev, ...data.items]))
       setCursor(data.nextCursor)
@@ -163,6 +164,14 @@ function BugReportCard({
   const [severidade, setSeveridade] = useState<SeveridadeBug>(report.severidade)
   const [nota, setNota] = useState(report.notaAdmin ?? '')
   const [saving, setSaving] = useState(false)
+
+  // Sincroniza o estado local quando os valores guardados do report mudam (ex:
+  // recarga/filtragem no componente pai), evitando UI desatualizada.
+  useEffect(() => {
+    setEstado(report.estado)
+    setSeveridade(report.severidade)
+    setNota(report.notaAdmin ?? '')
+  }, [report.estado, report.severidade, report.notaAdmin])
 
   const dirty =
     estado !== report.estado || severidade !== report.severidade || (nota.trim() || null) !== (report.notaAdmin ?? null)
