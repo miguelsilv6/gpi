@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Calendar } from '@/components/ui/calendar'
@@ -113,6 +113,7 @@ export function PrazosCalendar({
             onSelect={onSelect}
             onMonthChange={onMonthChange}
             locale={ptBR}
+            style={{ '--cell-size': 'calc(var(--spacing) * 12)' } as React.CSSProperties}
             modifiers={{
               overdue: overdueDays,
               urgent: urgentDays,
