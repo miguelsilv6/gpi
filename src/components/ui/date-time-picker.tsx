@@ -19,6 +19,7 @@ interface DateTimePickerProps {
 }
 
 function parseParts(value: string): { dateStr: string; timeStr: string } {
+  if (!value || typeof value !== 'string') return { dateStr: '', timeStr: '00:00' }
   const idx = value.indexOf('T')
   if (idx === -1) return { dateStr: '', timeStr: '00:00' }
   return { dateStr: value.slice(0, idx), timeStr: value.slice(idx + 1) || '00:00' }
@@ -26,6 +27,7 @@ function parseParts(value: string): { dateStr: string; timeStr: string } {
 
 function toDisplay(dateStr: string, timeStr: string): string {
   const [y, m, d] = dateStr.split('-')
+  if (!y || !m || !d) return 'Data inválida'
   return `${d}/${m}/${y}  ${timeStr}`
 }
 
@@ -38,7 +40,11 @@ export function DateTimePicker({
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
   const { dateStr, timeStr } = parseParts(value)
-  const selected = dateStr ? new Date(`${dateStr}T00:00:00`) : undefined
+  const selected = React.useMemo(() => {
+    if (!dateStr) return undefined
+    const d = new Date(`${dateStr}T00:00:00`)
+    return isNaN(d.getTime()) ? undefined : d
+  }, [dateStr])
 
   function handleDaySelect(day: Date | undefined) {
     if (!day) {
