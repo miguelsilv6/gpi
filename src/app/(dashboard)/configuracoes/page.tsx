@@ -962,38 +962,50 @@ export default function ConfiguracoesPage() {
     const next = !moduloBugReportsAtivo
     setSavingModuloBugReports(true)
     setModuloBugReportsAtivo(next)
-    const res = await fetch('/api/configuracoes', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ moduloBugReportsAtivo: next }),
-    })
-    setSavingModuloBugReports(false)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduloBugReportsAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setModuloBugReportsAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Módulo Reportar Bug ativado' : 'Módulo Reportar Bug desativado')
+    } catch {
       setModuloBugReportsAtivo(!next)
-      toast.error(err.error ?? 'Erro ao guardar')
-      return
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingModuloBugReports(false)
     }
-    toast.success(next ? 'Módulo Reportar Bug ativado' : 'Módulo Reportar Bug desativado')
   }
 
   async function toggleEmailNotificacoes() {
     const next = !emailNotificacoesAtivo
     setSavingEmailNotificacoes(true)
     setEmailNotificacoesAtivo(next)
-    const res = await fetch('/api/configuracoes', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emailNotificacoesAtivo: next }),
-    })
-    setSavingEmailNotificacoes(false)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailNotificacoesAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setEmailNotificacoesAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Notificações por email ativadas' : 'Notificações por email desativadas')
+    } catch {
       setEmailNotificacoesAtivo(!next)
-      toast.error(err.error ?? 'Erro ao guardar')
-      return
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingEmailNotificacoes(false)
     }
-    toast.success(next ? 'Notificações por email ativadas' : 'Notificações por email desativadas')
   }
 
   async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports', role: string) {
@@ -1006,16 +1018,22 @@ export default function ConfiguracoesPage() {
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
     setter(next)
     setSavingRoles(true)
-    const res = await fetch('/api/configuracoes', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [key]: next.join(',') }),
-    })
-    setSavingRoles(false)
-    if (!res.ok) {
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: next.join(',') }),
+      })
+      if (!res.ok) {
+        setter(current)
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+      }
+    } catch {
       setter(current)
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao guardar')
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingRoles(false)
     }
   }
 

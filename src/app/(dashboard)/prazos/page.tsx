@@ -186,16 +186,19 @@ export default async function PrazosPage({
     session.user.brigadaId ?? null,
   )
 
-  const controlosData = hasControloAccess && panel === 'controlos'
-    ? await prisma.controlo.findMany({
-        where: {
-          AND: [controloScopeWhere, { concluidoEm: null }],
-        },
-        orderBy: { dataInicio: 'asc' },
-        take: PAGE_SIZE,
-        select: CONTROLO_SELECT,
-      })
-    : []
+  const [controlosData, controlosTotal] = hasControloAccess && panel === 'controlos'
+    ? await prisma.$transaction([
+        prisma.controlo.findMany({
+          where: { AND: [controloScopeWhere, { concluidoEm: null }] },
+          orderBy: { dataInicio: 'asc' },
+          take: PAGE_SIZE,
+          select: CONTROLO_SELECT,
+        }),
+        prisma.controlo.count({
+          where: { AND: [controloScopeWhere, { concluidoEm: null }] },
+        }),
+      ])
+    : [[], 0]
 
   const showCriador = hasPermission(role, 'controlo:read:brigade')
   const showBrigadaControlos = hasPermission(role, 'controlo:read:all')
@@ -216,7 +219,7 @@ export default async function PrazosPage({
           <h1 className="text-2xl font-bold tracking-tight">Prazos e Controlos</h1>
           <p className="text-muted-foreground text-sm">
             {panel === 'controlos'
-              ? `${controlosData.length} controlo${controlosData.length !== 1 ? 's' : ''} pendente${controlosData.length !== 1 ? 's' : ''}`
+              ? `${controlosTotal} controlo${controlosTotal !== 1 ? 's' : ''} pendente${controlosTotal !== 1 ? 's' : ''}`
               : isCalendar
                 ? `Mês de ${monthDate?.toLocaleDateString('pt-PT', {
                     month: 'long',
@@ -298,6 +301,7 @@ export default async function PrazosPage({
       ) : (
         <ControlosList
           items={controlosData as unknown as ControloItem[]}
+          total={controlosTotal}
           showCriador={showCriador}
           showBrigada={showBrigadaControlos}
           emptyMessage="Sem controlos pendentes."

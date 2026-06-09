@@ -29,6 +29,7 @@ import { diasRestantes } from '@/lib/prazos'
 
 interface Props {
   items: ControloItem[]
+  total?: number
   showCriador: boolean
   showBrigada: boolean
   emptyMessage?: string
@@ -36,6 +37,7 @@ interface Props {
 
 export function ControlosList({
   items,
+  total,
   showCriador,
   showBrigada,
   emptyMessage = 'Sem controlos pendentes.',
@@ -195,6 +197,11 @@ export function ControlosList({
           )
         })}
       </div>
+      {total !== undefined && total > items.length && (
+        <p className="text-xs text-muted-foreground text-center pt-1">
+          A mostrar {items.length} de {total} controlos — filtre para ver mais.
+        </p>
+      )}
     </>
   )
 }
@@ -255,24 +262,29 @@ function ConfirmButton({
 
   async function submit() {
     setLoading(true)
-    const res = await fetch(`/api/controlos/${controloId}/realizacoes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        realizacaoId: realizacao.id,
-        observacoes: obs.trim() || null,
-      }),
-    })
-    setLoading(false)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao confirmar controlo')
-      return
+    try {
+      const res = await fetch(`/api/controlos/${controloId}/realizacoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          realizacaoId: realizacao.id,
+          observacoes: obs.trim() || null,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao confirmar controlo')
+        return
+      }
+      toast.success(`${ordinalControlo(realizacao.numero)} confirmado`)
+      setObs('')
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede ao confirmar controlo')
+    } finally {
+      setLoading(false)
     }
-    toast.success(`${ordinalControlo(realizacao.numero)} confirmado`)
-    setObs('')
-    setOpen(false)
-    router.refresh()
   }
 
   return (

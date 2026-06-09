@@ -11,7 +11,10 @@ const PAGE_SIZE = 50
 const createSchema = z.object({
   descricao: z.string().min(1, 'Descrição obrigatória').max(500),
   observacoes: z.string().max(2000).optional().nullable(),
-  dataInicio: z.string().min(1, 'Data de início obrigatória'),
+  dataInicio: z.string().min(1, 'Data de início obrigatória').refine(
+    (val) => !isNaN(Date.parse(val)),
+    { message: 'Data de início inválida' },
+  ),
   periodoDias: z.number().int().min(1).max(365).optional().nullable(),
   alertaDias: z.number().int().min(1).max(90).default(3),
   nuipc: z.string().optional().nullable(),

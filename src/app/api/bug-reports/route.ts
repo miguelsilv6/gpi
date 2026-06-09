@@ -7,7 +7,7 @@ import { writeAudit } from '@/lib/audit'
 import { notifyBugReportCriado } from '@/lib/notifications'
 import { SEVERIDADE_LABELS, SEVERIDADE_VALUES, ESTADO_VALUES } from '@/lib/bugreport-labels'
 import { z } from 'zod'
-import type { Role, EstadoBug } from '@/generated/prisma/enums'
+import type { Role, EstadoBug, SeveridadeBug } from '@/generated/prisma/enums'
 
 const PAGE_SIZE = 30
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       data: {
         titulo: titulo.trim(),
         descricao: descricao.trim(),
-        severidade: (severidade as never) ?? 'MEDIA',
+        severidade: (severidade as SeveridadeBug) ?? 'MEDIA',
         pagina: pagina?.trim() || null,
         criadoPorId: session.user.id,
       },

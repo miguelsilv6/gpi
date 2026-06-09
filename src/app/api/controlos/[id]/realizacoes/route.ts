@@ -9,7 +9,10 @@ import { hasPermission } from '@/lib/rbac'
 const confirmSchema = z.object({
   realizacaoId: z.string().min(1),
   observacoes: z.string().max(2000).optional().nullable(),
-  dataRealizacao: z.string().optional(),
+  dataRealizacao: z.string().optional().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: 'Data de realização inválida' },
+  ),
 })
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
