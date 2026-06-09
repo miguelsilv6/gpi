@@ -24,7 +24,7 @@ import {
   ESTADO_COLORS,
 } from '@/lib/bugreport-labels'
 import type { SeveridadeBug, EstadoBug } from '@/generated/prisma/enums'
-import { Send } from 'lucide-react'
+import { Loader2, Send } from 'lucide-react'
 
 interface MyBugReport {
   id: string
@@ -45,16 +45,24 @@ export function BugReportForm() {
 
   const [mine, setMine] = useState<MyBugReport[]>([])
   const [loadingMine, setLoadingMine] = useState(true)
+  const [mineCursor, setMineCursor] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
 
-  async function loadMine() {
+  async function loadMine(cursor?: string) {
+    const isInitial = !cursor
+    if (isInitial) setLoadingMine(true); else setLoadingMore(true)
     try {
-      const res = await fetch('/api/bug-reports?mine=1')
+      const params = new URLSearchParams({ mine: '1' })
+      if (cursor) params.set('cursor', cursor)
+      const res = await fetch(`/api/bug-reports?${params}`)
       const data = await res.json()
-      setMine(data.items ?? [])
+      const items: MyBugReport[] = data.items ?? []
+      setMine((prev) => (isInitial ? items : [...prev, ...items]))
+      setMineCursor(data.nextCursor ?? null)
     } catch {
       // silencioso — a lista é informativa
     } finally {
-      setLoadingMine(false)
+      if (isInitial) setLoadingMine(false); else setLoadingMore(false)
     }
   }
 
@@ -87,7 +95,7 @@ export function BugReportForm() {
       setDescricao('')
       setSeveridade('MEDIA')
       setPagina('')
-      void loadMine()
+      void loadMine(undefined)
     } catch {
       toast.error('Erro ao submeter o report')
     } finally {
@@ -178,30 +186,43 @@ export function BugReportForm() {
           ) : mine.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ainda não submeteu nenhum report.</p>
           ) : (
-            <ul className="space-y-3">
-              {mine.map((r) => (
-                <li key={r.id} className="rounded-lg border p-3 space-y-1.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-sm">{r.titulo}</p>
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0', ESTADO_COLORS[r.estado])}>
-                      {ESTADO_LABELS[r.estado]}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{r.descricao}</p>
-                  <div className="flex items-center gap-2">
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', SEVERIDADE_COLORS[r.severidade])}>
-                      {SEVERIDADE_LABELS[r.severidade]}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{formatDateTime(r.createdAt)}</span>
-                  </div>
-                  {r.notaAdmin && (
-                    <p className="text-xs bg-muted/50 rounded p-2 mt-1">
-                      <span className="font-medium">Resposta do admin:</span> {r.notaAdmin}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-3">
+              <ul className="space-y-3">
+                {mine.map((r) => (
+                  <li key={r.id} className="rounded-lg border p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-sm">{r.titulo}</p>
+                      <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium shrink-0', ESTADO_COLORS[r.estado])}>
+                        {ESTADO_LABELS[r.estado]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{r.descricao}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', SEVERIDADE_COLORS[r.severidade])}>
+                        {SEVERIDADE_LABELS[r.severidade]}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{formatDateTime(r.createdAt)}</span>
+                    </div>
+                    {r.notaAdmin && (
+                      <p className="text-xs bg-muted/50 rounded p-2 mt-1">
+                        <span className="font-medium">Resposta do admin:</span> {r.notaAdmin}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {mineCursor && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={loadingMore}
+                  onClick={() => void loadMine(mineCursor)}
+                >
+                  {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Carregar mais'}
+                </Button>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

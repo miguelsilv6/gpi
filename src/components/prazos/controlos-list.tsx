@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
@@ -13,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { CalendarCheck, Loader2, AlertTriangle, Bell, Clock, CheckCircle2 } from 'lucide-react'
+import { CalendarCheck, Loader2, AlertTriangle, Bell, Clock, CheckCircle2, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn, nuipcToSlug, formatDate } from '@/lib/utils'
 import Link from 'next/link'
@@ -131,9 +132,13 @@ export function ControlosList({
                     </td>
                   )}
                   <td className="px-4 py-3 text-center">
-                    {next && !c.concluidoEm && (
-                      <ConfirmButton controloId={c.id} realizacao={next} />
-                    )}
+                    <div className="flex items-center justify-center gap-1">
+                      {next && !c.concluidoEm && (
+                        <ConfirmButton controloId={c.id} realizacao={next} />
+                      )}
+                      <EditButton controlo={c} />
+                      <DeleteButton controloId={c.id} descricao={c.descricao} />
+                    </div>
                   </td>
                 </tr>
               )
@@ -188,9 +193,13 @@ export function ControlosList({
                       <p>Brigada: {c.inquerito.brigada.nome}</p>
                     )}
                   </div>
-                  {next && !c.concluidoEm && (
-                    <ConfirmButton controloId={c.id} realizacao={next} compact />
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {next && !c.concluidoEm && (
+                      <ConfirmButton controloId={c.id} realizacao={next} compact />
+                    )}
+                    <EditButton controlo={c} compact />
+                    <DeleteButton controloId={c.id} descricao={c.descricao} compact />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -243,6 +252,196 @@ function ControloUrgencyBadge({
       <Icon className="h-3 w-3" />
       {label}
     </span>
+  )
+}
+
+function EditButton({
+  controlo,
+  compact = false,
+}: {
+  controlo: ControloItem
+  compact?: boolean
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [descricao, setDescricao] = useState(controlo.descricao)
+  const [observacoes, setObservacoes] = useState(controlo.observacoes ?? '')
+  const [alertaDias, setAlertaDias] = useState(String(controlo.alertaDias))
+
+  function handleOpen() {
+    setDescricao(controlo.descricao)
+    setObservacoes(controlo.observacoes ?? '')
+    setAlertaDias(String(controlo.alertaDias))
+    setOpen(true)
+  }
+
+  async function submit() {
+    const alertaDiasNum = parseInt(alertaDias, 10)
+    if (!descricao.trim()) { toast.error('A descrição é obrigatória'); return }
+    if (isNaN(alertaDiasNum) || alertaDiasNum < 1 || alertaDiasNum > 90) {
+      toast.error('Dias de alerta deve ser entre 1 e 90'); return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/controlos/${controlo.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descricao: descricao.trim(),
+          observacoes: observacoes.trim() || null,
+          alertaDias: alertaDiasNum,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao atualizar controlo')
+        return
+      }
+      toast.success('Controlo atualizado')
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className={cn('gap-1', compact ? 'h-7 w-7 p-0' : 'h-8 px-2')}
+        onClick={handleOpen}
+        title="Editar controlo"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+        {!compact && <span className="sr-only">Editar</span>}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar controlo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-descricao">Descrição *</Label>
+              <Input
+                id="edit-descricao"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-alerta">Alertar com antecedência (dias)</Label>
+              <Input
+                id="edit-alerta"
+                type="number"
+                min={1}
+                max={90}
+                value={alertaDias}
+                onChange={(e) => setAlertaDias(e.target.value)}
+                className="max-w-[120px]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-obs">Observações</Label>
+              <Textarea
+                id="edit-obs"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                rows={3}
+                maxLength={2000}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button onClick={submit} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function DeleteButton({
+  controloId,
+  descricao,
+  compact = false,
+}: {
+  controloId: string
+  descricao: string
+  compact?: boolean
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function confirm() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/controlos/${controloId}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao eliminar controlo')
+        return
+      }
+      toast.success('Controlo eliminado')
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className={cn('gap-1 text-destructive hover:text-destructive', compact ? 'h-7 w-7 p-0' : 'h-8 px-2')}
+        onClick={() => setOpen(true)}
+        title="Eliminar controlo"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        {!compact && <span className="sr-only">Eliminar</span>}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Eliminar controlo?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Vai eliminar permanentemente o controlo <strong>{descricao}</strong> e todo o
+            histórico de realizações. Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirm}
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
