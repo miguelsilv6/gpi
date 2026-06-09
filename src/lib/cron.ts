@@ -419,9 +419,55 @@ async function runDeadlineCheck() {
     jobs.push(escalateUrgentToChefes(urgent))
   }
 
+  // ── Controlos: alert before each upcoming realizacao ──────────────────────
+  const controloThreshold = new Date()
+  controloThreshold.setDate(controloThreshold.getDate() + alertDays)
+
+  const pendingRealizacoes = await prisma.controloRealizacao.findMany({
+    where: {
+      dataRealizacao: null,
+      alertaEnviado: false,
+      dataEsperada: { lte: controloThreshold },
+      controlo: { concluidoEm: null },
+    },
+    include: {
+      controlo: {
+        include: {
+          criador: { select: { id: true, email: true, nome: true } },
+          inquerito: { select: { nuipc: true } },
+        },
+      },
+    },
+  })
+
+  for (const realizacao of pendingRealizacoes) {
+    const { controlo } = realizacao
+    const nuipcLabel = controlo.inquerito ? ` — ${controlo.inquerito.nuipc}` : ''
+    jobs.push(
+      createNotification({
+        utilizadorId: controlo.criadorId,
+        tipo: 'CONTROLO_APROXIMANDO',
+        titulo: `${realizacao.numero}.º Controlo a aproximar${nuipcLabel}`,
+        mensagem: `${controlo.descricao}: ${realizacao.numero}.º controlo previsto para ${new Date(realizacao.dataEsperada).toLocaleDateString('pt-PT')}.`,
+        sendEmail: true,
+        emailAddress: controlo.criador.email,
+      }).then(() =>
+        prisma.controloRealizacao.update({
+          where: { id: realizacao.id },
+          data: { alertaEnviado: true },
+        }),
+      ),
+    )
+  }
+
   await Promise.allSettled(jobs)
   log.info(
-    { approaching: approaching.length, overdue: overdue.length, urgent: urgentCount },
+    {
+      approaching: approaching.length,
+      overdue: overdue.length,
+      urgent: urgentCount,
+      controlos: pendingRealizacoes.length,
+    },
     'Deadline check completed',
   )
 }

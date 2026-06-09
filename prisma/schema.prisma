@@ -31,6 +31,7 @@ enum TipoNotificacao {
   ATUALIZACAO_FALHOU
   ATUALIZACAO_CONCLUIDA
   BUGREPORT_CRIADO
+  CONTROLO_APROXIMANDO
 }
 
 enum SeveridadeBug {
@@ -99,6 +100,8 @@ model Utilizador {
   ausencias            Ausencia[]    @relation("AusenciasInspetor")
   notificacaoPreferencias NotificacaoPreferencia[]
   bugReports           BugReport[]
+  controlosCriados     Controlo[]   @relation("ControloCriador")
+  controloRealizacoes  ControloRealizacao[] @relation("ControloRealizacaoPor")
 
   @@index([brigadaId])
   @@index([role])
@@ -165,6 +168,7 @@ model Inquerito {
   etiquetas Etiqueta[]
 
   atividades   Atividade[]
+  controlos    Controlo[]
   notificacoes Notificacao[]
 
   @@index([brigadaId])
@@ -310,6 +314,52 @@ model Atividade {
   @@index([inqueritoid, dataRealizacao])
   @@index([dataPrazo])
   @@index([concluidaEm])
+}
+
+// Controlos — recurring (or one-time) check-ins, optionally linked to an inquiry.
+// periodoDias = null → one-time deadline; > 0 → repeats every N days.
+model Controlo {
+  id          String    @id @default(cuid())
+  descricao   String
+  observacoes String?
+  dataInicio  DateTime
+  periodoDias Int?
+  alertaDias  Int       @default(3)
+  concluidoEm DateTime?
+  createdAt   DateTime  @default(now())
+
+  inqueritoid String?
+  inquerito   Inquerito?  @relation(fields: [inqueritoid], references: [id], onDelete: SetNull)
+
+  criadorId   String
+  criador     Utilizador  @relation("ControloCriador", fields: [criadorId], references: [id])
+
+  realizacoes ControloRealizacao[]
+
+  @@index([inqueritoid])
+  @@index([criadorId])
+  @@index([dataInicio])
+}
+
+// Each numbered occurrence of a Controlo (1.º Controlo, 2.º Controlo, …).
+model ControloRealizacao {
+  id             String    @id @default(cuid())
+  numero         Int
+  dataEsperada   DateTime
+  dataRealizacao DateTime?
+  observacoes    String?
+  alertaEnviado  Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+
+  controlo    Controlo   @relation(fields: [controloId], references: [id], onDelete: Cascade)
+  controloId  String
+
+  realizadoPorId String?
+  realizadoPor   Utilizador? @relation("ControloRealizacaoPor", fields: [realizadoPorId], references: [id], onDelete: SetNull)
+
+  @@unique([controloId, numero])
+  @@index([controloId])
+  @@index([dataEsperada])
 }
 
 model Notificacao {

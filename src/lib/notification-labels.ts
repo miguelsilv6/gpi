@@ -22,6 +22,7 @@ export const NOTIFICATION_TIPO_LABELS: Record<TipoNotificacao, string> = {
   ATUALIZACAO_FALHOU: 'Atualização do sistema falhou',
   ATUALIZACAO_CONCLUIDA: 'Atualização do sistema concluída',
   BUGREPORT_CRIADO: 'Novo relatório de bug',
+  CONTROLO_APROXIMANDO: 'Controlo a aproximar-se',
 }
 
 /**
@@ -40,6 +41,7 @@ export const NOTIFICATION_TIPO_DESCRIPTIONS: Record<TipoNotificacao, string> = {
   ATUALIZACAO_FALHOU: 'Disparada quando uma atualização automática do sistema falha ou é revertida. Sem destinatário natural — só envia para os roles CC configurados.',
   ATUALIZACAO_CONCLUIDA: 'Disparada quando uma atualização automática do sistema termina com sucesso. Sem destinatário natural — só envia para os roles CC configurados.',
   BUGREPORT_CRIADO: 'Disparada quando um utilizador submete um novo relatório de bug. Sem destinatário natural — só envia para os roles CC configurados (por defeito, ADMINISTRACAO).',
+  CONTROLO_APROXIMANDO: 'Disparada quando um controlo periódico está prestes a vencer (configurable via alertaDias no controlo).',
 }
 
 /**
@@ -62,6 +64,7 @@ export const NOTIFICATION_TIPO_HAS_NATURAL: Record<TipoNotificacao, boolean> = {
   ATUALIZACAO_FALHOU: false,
   ATUALIZACAO_CONCLUIDA: false,
   BUGREPORT_CRIADO: false,
+  CONTROLO_APROXIMANDO: true,
 }
 
 /**

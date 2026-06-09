@@ -1,0 +1,323 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { CalendarCheck, Loader2, AlertTriangle, Bell, Clock, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn, nuipcToSlug, formatDate } from '@/lib/utils'
+import Link from 'next/link'
+import type { ControloItem, ControloRealizacaoItem } from '@/lib/controlos'
+import {
+  nextRealizacao,
+  countConfirmadas,
+  urgencyControlo,
+  ordinalControlo,
+} from '@/lib/controlos'
+import type { Urgency } from '@/lib/prazos'
+import { diasRestantes } from '@/lib/prazos'
+
+interface Props {
+  items: ControloItem[]
+  showCriador: boolean
+  showBrigada: boolean
+  emptyMessage?: string
+}
+
+export function ControlosList({
+  items,
+  showCriador,
+  showBrigada,
+  emptyMessage = 'Sem controlos pendentes.',
+}: Props) {
+  if (items.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-sm text-muted-foreground">
+          {emptyMessage}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <>
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-xl border overflow-hidden bg-card">
+        <table className="w-full text-sm">
+          <thead className="border-b bg-muted/50">
+            <tr>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Descrição</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Inquérito</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Próximo controlo</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Data esperada</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Urgência</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Progresso</th>
+              {showCriador && (
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Criador</th>
+              )}
+              {showBrigada && (
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Brigada</th>
+              )}
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Ação</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {items.map((c) => {
+              const next = nextRealizacao(c.realizacoes)
+              const confirmed = countConfirmadas(c.realizacoes)
+              const urgency = urgencyControlo(c, next)
+              return (
+                <tr key={c.id} className="hover:bg-accent/30 transition-colors">
+                  <td className="px-4 py-3 max-w-[200px]">
+                    <p className="line-clamp-2 font-medium">{c.descricao}</p>
+                    {c.periodoDias && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        A cada {c.periodoDias} dias
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.inquerito ? (
+                      <Link
+                        href={`/inqueritos/${nuipcToSlug(c.inquerito.nuipc)}`}
+                        className="font-mono font-medium hover:text-blue-600 hover:underline text-sm"
+                      >
+                        {c.inquerito.nuipc}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {next ? (
+                      <span className="text-sm">{ordinalControlo(next.numero)}</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-green-700 dark:text-green-400">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Concluído
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    {next ? formatDate(next.dataEsperada) : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <ControloUrgencyBadge urgency={urgency} next={next} />
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {confirmed} confirmado{confirmed !== 1 ? 's' : ''}
+                  </td>
+                  {showCriador && (
+                    <td className="px-4 py-3 text-muted-foreground text-sm">
+                      {c.criador.nome}
+                    </td>
+                  )}
+                  {showBrigada && (
+                    <td className="px-4 py-3 text-muted-foreground text-sm">
+                      {c.inquerito?.brigada?.nome ?? '—'}
+                    </td>
+                  )}
+                  <td className="px-4 py-3 text-center">
+                    {next && !c.concluidoEm && (
+                      <ConfirmButton controloId={c.id} realizacao={next} />
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {items.map((c) => {
+          const next = nextRealizacao(c.realizacoes)
+          const confirmed = countConfirmadas(c.realizacoes)
+          const urgency = urgencyControlo(c, next)
+          return (
+            <Card key={c.id} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm line-clamp-2">{c.descricao}</p>
+                    {c.periodoDias && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        A cada {c.periodoDias} dias
+                      </p>
+                    )}
+                    {c.inquerito && (
+                      <Link
+                        href={`/inqueritos/${nuipcToSlug(c.inquerito.nuipc)}`}
+                        className="font-mono text-xs font-medium text-blue-600 hover:underline mt-1 block"
+                      >
+                        {c.inquerito.nuipc}
+                      </Link>
+                    )}
+                  </div>
+                  <ControloUrgencyBadge urgency={urgency} next={next} />
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    {next ? (
+                      <>
+                        <p>{ordinalControlo(next.numero)} — {formatDate(next.dataEsperada)}</p>
+                        <p>{confirmed} confirmado{confirmed !== 1 ? 's' : ''}</p>
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Sem controlos pendentes
+                      </span>
+                    )}
+                    {showCriador && <p>Criador: {c.criador.nome}</p>}
+                    {showBrigada && c.inquerito?.brigada && (
+                      <p>Brigada: {c.inquerito.brigada.nome}</p>
+                    )}
+                  </div>
+                  {next && !c.concluidoEm && (
+                    <ConfirmButton controloId={c.id} realizacao={next} compact />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+function ControloUrgencyBadge({
+  urgency,
+  next,
+}: {
+  urgency: Urgency
+  next: ControloRealizacaoItem | null
+}) {
+  if (!next) return null
+
+  const date = typeof next.dataEsperada === 'string' ? new Date(next.dataEsperada) : next.dataEsperada
+  const days = diasRestantes(date)
+
+  let label: string
+  if (days < 0) label = `Vencido há ${Math.abs(days)}d`
+  else if (days === 0) label = 'Hoje'
+  else if (days === 1) label = 'Amanhã'
+  else label = `Em ${days} dias`
+
+  const Icon = urgency === 'overdue' ? AlertTriangle : urgency === 'urgent' ? Bell : Clock
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border',
+        urgency === 'overdue' &&
+          'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-900',
+        urgency === 'urgent' &&
+          'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900',
+        urgency === 'soon' &&
+          'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-900',
+        urgency === 'ok' &&
+          'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </span>
+  )
+}
+
+function ConfirmButton({
+  controloId,
+  realizacao,
+  compact = false,
+}: {
+  controloId: string
+  realizacao: ControloRealizacaoItem
+  compact?: boolean
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [obs, setObs] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function submit() {
+    setLoading(true)
+    const res = await fetch(`/api/controlos/${controloId}/realizacoes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        realizacaoId: realizacao.id,
+        observacoes: obs.trim() || null,
+      }),
+    })
+    setLoading(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro ao confirmar controlo')
+      return
+    }
+    toast.success(`${ordinalControlo(realizacao.numero)} confirmado`)
+    setObs('')
+    setOpen(false)
+    router.refresh()
+  }
+
+  return (
+    <>
+      {compact ? (
+        <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => setOpen(true)}>
+          <CalendarCheck className="h-3.5 w-3.5" />
+          Confirmar
+        </Button>
+      ) : (
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
+          <CalendarCheck className="h-3.5 w-3.5" />
+          Confirmar
+        </Button>
+      )}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar {ordinalControlo(realizacao.numero)}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Data esperada: <strong>{formatDate(realizacao.dataEsperada)}</strong>
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="obs-controlo">Observações (opcional)</Label>
+            <Textarea
+              id="obs-controlo"
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              rows={3}
+              placeholder="Observações sobre a realização deste controlo..."
+              maxLength={2000}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button onClick={submit} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar realização
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
