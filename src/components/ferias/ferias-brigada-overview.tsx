@@ -209,7 +209,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
 
       {/* Gantt timeline */}
       <Card>
-        <CardHeader className="pb-2 flex-row items-center justify-between space-y-0 gap-2">
+        <CardHeader className="pb-2 flex-row flex-wrap items-center justify-between space-y-0 gap-2">
           <CardTitle className="text-sm font-medium text-muted-foreground capitalize">
             {rangeLabel}
           </CardTitle>
@@ -244,7 +244,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
           {membros.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">Sem dados para apresentar.</p>
           ) : (
-            <div className="flex">
+            <div className="flex overflow-hidden">
               {/* Sticky names column */}
               <div className="w-32 shrink-0">
                 {/* Spacer matching the month-band + day-tick header height */}

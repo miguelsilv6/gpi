@@ -714,6 +714,8 @@ export default function ConfiguracoesPage() {
   const [moduloFeriasRoles, setModuloFeriasRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloBugReportsAtivo, setModuloBugReportsAtivo] = useState(true)
   const [moduloBugReportsRoles, setModuloBugReportsRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [emailNotificacoesAtivo, setEmailNotificacoesAtivo] = useState(true)
+  const [savingEmailNotificacoes, setSavingEmailNotificacoes] = useState(false)
   const [savingModulo, setSavingModulo] = useState(false)
   const [savingModuloFerias, setSavingModuloFerias] = useState(false)
   const [savingModuloBugReports, setSavingModuloBugReports] = useState(false)
@@ -762,6 +764,7 @@ export default function ConfiguracoesPage() {
         setModuloFeriasRoles((d.moduloFeriasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloBugReportsAtivo(d.moduloBugReportsAtivo ?? true)
         setModuloBugReportsRoles((d.moduloBugReportsRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
         setEstados(Array.isArray(e) ? e : [])
         setLoading(false)
       })
@@ -933,6 +936,25 @@ export default function ConfiguracoesPage() {
       return
     }
     toast.success(next ? 'Módulo Reportar Bug ativado' : 'Módulo Reportar Bug desativado')
+  }
+
+  async function toggleEmailNotificacoes() {
+    const next = !emailNotificacoesAtivo
+    setSavingEmailNotificacoes(true)
+    setEmailNotificacoesAtivo(next)
+    const res = await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailNotificacoesAtivo: next }),
+    })
+    setSavingEmailNotificacoes(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setEmailNotificacoesAtivo(!next)
+      toast.error(err.error ?? 'Erro ao guardar')
+      return
+    }
+    toast.success(next ? 'Notificações por email ativadas' : 'Notificações por email desativadas')
   }
 
   async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports', role: string) {
@@ -1362,6 +1384,42 @@ export default function ConfiguracoesPage() {
                   onToggle={(r) => toggleModuloRole('bugreports', r)}
                 />
               )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    emailNotificacoesAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Notificações por email</p>
+                    <p className="text-xs text-muted-foreground">
+                      Envio de emails para notificações do sistema (em fase de testes)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleEmailNotificacoes}
+                  disabled={savingEmailNotificacoes}
+                  aria-label={emailNotificacoesAtivo ? 'Desativar notificações por email' : 'Ativar notificações por email'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    emailNotificacoesAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      emailNotificacoesAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>

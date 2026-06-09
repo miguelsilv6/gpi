@@ -409,6 +409,9 @@ model ConfiguracaoSistema {
   smtpSecure                      Boolean  @default(false)
   smtpUser                        String?
   smtpPasswordEnc                 String?
+  // Módulo de notificações por email. false = nenhum email é enviado pelo sistema,
+  // independentemente das políticas por tipo. Útil durante fases de teste/integração.
+  emailNotificacoesAtivo          Boolean  @default(true)
   // Default estado codigos applied to /inqueritos when the user has no explicit
   // filter set on the URL. Stored as codigos for stability across renames.
   inqueritoFiltroEstadosDefault   String[] @default([])

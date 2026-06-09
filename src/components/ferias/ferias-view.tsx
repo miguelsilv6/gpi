@@ -270,13 +270,13 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
           <TabsContent value="me" className="mt-4">{meContent}</TabsContent>
           <TabsContent value="brigade" className="mt-4">
             {canViewAll && brigadas.length > 0 && (
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Label className="text-sm text-muted-foreground shrink-0">Brigada:</Label>
                 <Select
                   value={selectedBrigadaId ?? ''}
                   onValueChange={(v) => setSelectedBrigadaId(v || null)}
                 >
-                  <SelectTrigger className="w-56">
+                  <SelectTrigger className="w-full sm:w-56">
                     <span className="flex-1 truncate text-left">
                       {selectedBrigadaId
                         ? brigadas.find((b) => b.id === selectedBrigadaId)?.nome ?? ''
