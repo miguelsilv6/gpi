@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1581,6 +1582,11 @@ function LinhaDetailBody({
                 />
               )}
               <DetailRow label="Subtotal H. Extra" value={`€${det.totalHorasExtra.toFixed(2)}`} bold sep />
+              {det.totalHorasExtra < (det.totalSemanaDiaBruto + det.totalSemanaNoiteBruto + det.totalFdsDiaBruto + det.totalFdsNoiteBruto) - 0.001 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 text-right">
+                  * Limite diário (piquete) aplicado a esta entrada.
+                </p>
+              )}
             </DetailSection>
           )}
 
@@ -1676,7 +1682,7 @@ function LinhaDetailBody({
       ) : (
         <p className="text-sm text-muted-foreground text-center py-4">
           Configure o seu vencimento base e taxa de IRS no{' '}
-          <a href="/perfil" className="underline">Perfil</a> para ver o cálculo detalhado.
+          <Link href="/perfil" className="underline">Perfil</Link> para ver o cálculo detalhado.
         </p>
       )}
     </div>
