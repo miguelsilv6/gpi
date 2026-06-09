@@ -62,13 +62,15 @@ export async function PUT(req: NextRequest) {
           tipo: { in: parsed.data.preferencias.map((p) => p.tipo as TipoNotificacao) },
         },
       }),
-      prisma.notificacaoPreferencia.createMany({
-        data: optOuts.map((p) => ({
-          utilizadorId: userId,
-          tipo: p.tipo as TipoNotificacao,
-          emailEnabled: false,
-        })),
-      }),
+      ...(optOuts.length > 0
+        ? [prisma.notificacaoPreferencia.createMany({
+            data: optOuts.map((p) => ({
+              utilizadorId: userId,
+              tipo: p.tipo as TipoNotificacao,
+              emailEnabled: false,
+            })),
+          })]
+        : []),
     ])
 
     return Response.json({ ok: true })

@@ -22,7 +22,10 @@ function parseParts(value: string): { dateStr: string; timeStr: string } {
   if (!value || typeof value !== 'string') return { dateStr: '', timeStr: '00:00' }
   const idx = value.indexOf('T')
   if (idx === -1) return { dateStr: '', timeStr: '00:00' }
-  return { dateStr: value.slice(0, idx), timeStr: value.slice(idx + 1) || '00:00' }
+  const dateStr = value.slice(0, idx)
+  const rawTime = value.slice(idx + 1)
+  const timeStr = rawTime.slice(0, 5) || '00:00'
+  return { dateStr, timeStr }
 }
 
 function toDisplay(dateStr: string, timeStr: string): string {
@@ -42,8 +45,10 @@ export function DateTimePicker({
   const { dateStr, timeStr } = parseParts(value)
   const selected = React.useMemo(() => {
     if (!dateStr) return undefined
-    const d = new Date(`${dateStr}T00:00:00`)
-    return isNaN(d.getTime()) ? undefined : d
+    const [y, m, d] = dateStr.split('-').map(Number)
+    if (y === undefined || m === undefined || d === undefined) return undefined
+    const date = new Date(y, m - 1, d)
+    return isNaN(date.getTime()) ? undefined : date
   }, [dateStr])
 
   function handleDaySelect(day: Date | undefined) {

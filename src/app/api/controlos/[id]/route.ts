@@ -10,7 +10,10 @@ const updateSchema = z.object({
   descricao: z.string().min(1).max(500).optional(),
   observacoes: z.string().max(2000).optional().nullable(),
   alertaDias: z.number().int().min(1).max(90).optional(),
-  concluidoEm: z.string().optional().nullable(),
+  concluidoEm: z.string().optional().nullable().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: 'Data de conclusão inválida' },
+  ),
 })
 
 async function getControloAndCheckAccess(

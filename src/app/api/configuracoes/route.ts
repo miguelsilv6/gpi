@@ -67,12 +67,17 @@ export async function PUT(req: NextRequest) {
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
     // Validate urgent threshold < normal threshold. When only one is in the
-    // payload, fall back to the current DB value for the other.
-    if (parsed.data.prazoAlertaDiasUrgente != null) {
-      const currentNormal = parsed.data.prazoAlertaDias
-        ?? (await prisma.configuracaoSistema.findUnique({ where: { id: 'singleton' }, select: { prazoAlertaDias: true } }))?.prazoAlertaDias
-        ?? 7
-      if (parsed.data.prazoAlertaDiasUrgente >= currentNormal) {
+    // Validate both thresholds together — one side may not be in the payload.
+    if (parsed.data.prazoAlertaDias !== undefined || parsed.data.prazoAlertaDiasUrgente !== undefined) {
+      const currentConfig = await prisma.configuracaoSistema.findUnique({
+        where: { id: 'singleton' },
+        select: { prazoAlertaDias: true, prazoAlertaDiasUrgente: true },
+      })
+      const normal = parsed.data.prazoAlertaDias ?? currentConfig?.prazoAlertaDias ?? 7
+      const urgent = parsed.data.prazoAlertaDiasUrgente !== undefined
+        ? parsed.data.prazoAlertaDiasUrgente
+        : (currentConfig?.prazoAlertaDiasUrgente ?? null)
+      if (urgent != null && urgent >= normal) {
         return apiError(
           'prazoAlertaDiasUrgente deve ser inferior a prazoAlertaDias',
           400,

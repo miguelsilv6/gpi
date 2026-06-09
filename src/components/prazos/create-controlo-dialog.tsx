@@ -203,30 +203,33 @@ export function CreateControloDialog() {
     }
 
     setLoading(true)
-    const res = await fetch('/api/controlos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        descricao: descricao.trim(),
-        observacoes: observacoes.trim() || null,
-        dataInicio,
-        periodoDias: periodoDiasNum,
-        alertaDias: alertaDiasNum,
-        nuipc: nuipc.trim() || null,
-      }),
-    })
-    setLoading(false)
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao criar controlo')
-      return
+    try {
+      const res = await fetch('/api/controlos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descricao: descricao.trim(),
+          observacoes: observacoes.trim() || null,
+          dataInicio,
+          periodoDias: periodoDiasNum,
+          alertaDias: alertaDiasNum,
+          nuipc: nuipc.trim() || null,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao criar controlo')
+        return
+      }
+      toast.success('Controlo criado')
+      reset()
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede ao criar controlo')
+    } finally {
+      setLoading(false)
     }
-
-    toast.success('Controlo criado')
-    reset()
-    setOpen(false)
-    router.refresh()
   }
 
   return (

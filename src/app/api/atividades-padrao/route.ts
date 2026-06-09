@@ -12,6 +12,7 @@ const schema = z.object({
   ordem: z.coerce.number().int().min(0).optional(),
   temPrazo: z.boolean().optional(),
   temQuantidade: z.boolean().optional(),
+  temControlo: z.boolean().optional(),
   contaParaEstatistica: z.boolean().optional(),
   transicaoEstadoId: z.string().nullable().optional(),
   categoriaDashboard: z.enum(['AGUARDA_EXAMES', 'ENVIADO']).nullable().optional(),

@@ -5,7 +5,7 @@ import { hasPermission } from '@/lib/rbac'
 import { writeAudit, diff } from '@/lib/audit'
 import { SEVERIDADE_VALUES, ESTADO_VALUES } from '@/lib/bugreport-labels'
 import { z } from 'zod'
-import type { Role } from '@/generated/prisma/enums'
+import type { Role, EstadoBug, SeveridadeBug } from '@/generated/prisma/enums'
 
 const updateSchema = z.object({
   estado: z.enum(ESTADO_VALUES as [string, ...string[]]).optional(),
@@ -40,8 +40,8 @@ export async function PATCH(
     const updated = await prisma.bugReport.update({
       where: { id },
       data: {
-        ...(data.estado !== undefined && { estado: data.estado as never }),
-        ...(data.severidade !== undefined && { severidade: data.severidade as never }),
+        ...(data.estado !== undefined && { estado: data.estado as EstadoBug }),
+        ...(data.severidade !== undefined && { severidade: data.severidade as SeveridadeBug }),
         ...(data.notaAdmin !== undefined && { notaAdmin: data.notaAdmin?.trim() || null }),
       },
     })

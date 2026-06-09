@@ -38,14 +38,20 @@ async function createTransport() {
       },
     })
 
+    const smtpHost = cfg?.smtpHost ?? null
+    const smtpPort = cfg?.smtpPort ?? null
+    const smtpSecure = cfg?.smtpSecure ?? false
+    const smtpUser = cfg?.smtpUser ?? null
+    const smtpPasswordEnc = cfg?.smtpPasswordEnc ?? null
+
     if (
       cachedTransport &&
       cachedCfg &&
-      cachedCfg.smtpHost === cfg?.smtpHost &&
-      cachedCfg.smtpPort === cfg?.smtpPort &&
-      cachedCfg.smtpSecure === cfg?.smtpSecure &&
-      cachedCfg.smtpUser === cfg?.smtpUser &&
-      cachedCfg.smtpPasswordEnc === cfg?.smtpPasswordEnc
+      cachedCfg.smtpHost === smtpHost &&
+      cachedCfg.smtpPort === smtpPort &&
+      cachedCfg.smtpSecure === smtpSecure &&
+      cachedCfg.smtpUser === smtpUser &&
+      cachedCfg.smtpPasswordEnc === smtpPasswordEnc
     ) {
       return cachedTransport
     }
