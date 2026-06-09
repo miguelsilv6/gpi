@@ -37,6 +37,10 @@ export type Permission =
   | 'prazo:read:own'
   | 'prazo:read:brigade'
   | 'prazo:read:all'
+  | 'controlo:create'
+  | 'controlo:read:own'
+  | 'controlo:read:brigade'
+  | 'controlo:read:all'
   | 'estatistica:read'
   | 'estatistica:own'
   | 'brigada:read'
@@ -53,6 +57,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:export',
     'atividade:create:own',
     'prazo:read:own',
+    'controlo:create',
+    'controlo:read:own',
     'estatistica:own',
     'ajudas:own',
     'ferias:own',
@@ -72,6 +78,9 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'atividade:create:brigade',
     'prazo:read:own',
     'prazo:read:brigade',
+    'controlo:create',
+    'controlo:read:own',
+    'controlo:read:brigade',
     'estatistica:read',
     'brigada:read',
     'relatorio:read',
@@ -101,6 +110,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'prazo:read:own',
     'prazo:read:brigade',
     'prazo:read:all',
+    'controlo:create',
+    'controlo:read:own',
+    'controlo:read:brigade',
+    'controlo:read:all',
     'estatistica:read',
     'brigada:read',
     'brigada:manage',
@@ -146,6 +159,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'prazo:read:own',
     'prazo:read:brigade',
     'prazo:read:all',
+    'controlo:create',
+    'controlo:read:own',
+    'controlo:read:brigade',
+    'controlo:read:all',
     'estatistica:read',
     'brigada:read',
     'brigada:manage',

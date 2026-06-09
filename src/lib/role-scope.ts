@@ -35,6 +35,35 @@ export function buildAtividadePrazoWhere(
   return {}
 }
 
+/**
+ * Controlo where-clause scoped by role for the /prazos page.
+ *   INSPETOR        → controlos que ele criou
+ *   INSPETOR_CHEFE  → controlos seus + controlos de inquéritos da brigada
+ *   COORDENADOR/ADMIN → todos
+ */
+export function buildControloWhere(
+  role: Role,
+  userId: string,
+  brigadaId: string | null,
+): Prisma.ControloWhereInput {
+  if (role === 'INSPETOR') {
+    return { criadorId: userId }
+  }
+  if (role === 'INSPETOR_CHEFE') {
+    if (!brigadaId) {
+      return { id: '__inspetor_chefe_sem_brigada__' }
+    }
+    return {
+      OR: [
+        { criadorId: userId },
+        { inquerito: { brigadaId } },
+        { criador: { brigadaId } },
+      ],
+    }
+  }
+  return {}
+}
+
 export function buildInqueritoWhere(
   role: Role,
   userId: string,

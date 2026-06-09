@@ -136,6 +136,12 @@ export async function sendMail(opts: {
 }) {
   if (process.env.DISABLE_EMAIL === 'true') return
 
+  const emailCfg = await prisma.configuracaoSistema.findUnique({
+    where: { id: 'singleton' },
+    select: { emailNotificacoesAtivo: true },
+  })
+  if (emailCfg && !emailCfg.emailNotificacoesAtivo) return
+
   const transport = await createTransport()
   await transport.sendMail({
     from: await resolveFromHeader(),

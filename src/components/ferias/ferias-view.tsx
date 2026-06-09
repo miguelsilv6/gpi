@@ -172,8 +172,8 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   }
 
   const meContent = (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <div className="space-y-4">
+    <div className="grid gap-4 xl:grid-cols-2 min-w-0 overflow-x-hidden">
+      <div className="space-y-4 min-w-0">
         <div className="grid grid-cols-2 gap-4">
           <CounterCard
             icon={<Plane className="h-4 w-4 text-blue-500" />}
@@ -270,13 +270,13 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
           <TabsContent value="me" className="mt-4">{meContent}</TabsContent>
           <TabsContent value="brigade" className="mt-4">
             {canViewAll && brigadas.length > 0 && (
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Label className="text-sm text-muted-foreground shrink-0">Brigada:</Label>
                 <Select
                   value={selectedBrigadaId ?? ''}
                   onValueChange={(v) => setSelectedBrigadaId(v || null)}
                 >
-                  <SelectTrigger className="w-56">
+                  <SelectTrigger className="w-full sm:w-56">
                     <span className="flex-1 truncate text-left">
                       {selectedBrigadaId
                         ? brigadas.find((b) => b.id === selectedBrigadaId)?.nome ?? ''

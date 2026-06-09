@@ -39,7 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
   },
   {
-    label: 'Prazos',
+    label: 'Prazos e Controlos',
     href: '/prazos',
     icon: CalendarClock,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],

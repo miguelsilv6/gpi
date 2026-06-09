@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 export {
   buildAtividadePrazoWhere,
   buildInqueritoWhere,
+  buildControloWhere,
   canEditInquerito,
 } from '@/lib/role-scope'
 
