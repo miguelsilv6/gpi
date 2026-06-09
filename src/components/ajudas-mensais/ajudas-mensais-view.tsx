@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +28,7 @@ import { cn, iconButtonClasses } from '@/lib/utils'
 import {
   ChevronLeft,
   ChevronRight,
+  Eye,
   FileDown,
   Loader2,
   Pencil,
@@ -34,8 +36,8 @@ import {
   Trash2,
   Bell,
 } from 'lucide-react'
-import type { AjudasTotais, ConfigData } from '@/lib/ajudas-calc'
-import { getPortugueseHolidays, splitHours, calcLinhaValor } from '@/lib/ajudas-calc'
+import type { AjudasTotais, ConfigData, LinhaDetalhes } from '@/lib/ajudas-calc'
+import { getPortugueseHolidays, splitHours, calcLinhaValor, calcLinhaDetalhes } from '@/lib/ajudas-calc'
 import { MATRICULA_REGEX } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -637,6 +639,9 @@ export function AjudasMensaisView({
   const [editingLinhaPrevencao, setEditingLinhaPrevencao] = useState<'NENHUMA' | 'PIQUETE' | 'PREVENCAO_PASSIVA'>('NENHUMA')
   const [saving, setSaving] = useState(false)
 
+  // Detail view
+  const [detailLinha, setDetailLinha] = useState<AjudasLinha | null>(null)
+
   // Delete confirmation
   const [deleteCandidate, setDeleteCandidate] = useState<AjudasLinha | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -1209,6 +1214,13 @@ tr:nth-child(even) td{background:#f6f6f6}
                           </td>
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setDetailLinha(l)}
+                                className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+                                aria-label="Ver detalhes"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
                               {!l.prevencaoOnly && (
                                 <button
                                   onClick={() => openEditDialog(l)}
@@ -1415,6 +1427,261 @@ tr:nth-child(even) td{background:#f6f6f6}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Detail dialog */}
+      <Dialog open={!!detailLinha} onOpenChange={(open) => !open && setDetailLinha(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da entrada</DialogTitle>
+          </DialogHeader>
+          {detailLinha && (
+            <LinhaDetailBody
+              linha={detailLinha}
+              data={data}
+              ano={ano}
+              mes={mes}
+            />
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDetailLinha(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// ─── Detail dialog body ────────────────────────────────────────────────────────
+
+function DetailRow({ label, value, muted, bold, sep }: {
+  label: string
+  value: string
+  muted?: boolean
+  bold?: boolean
+  sep?: boolean
+}) {
+  return (
+    <div className={cn(
+      'flex justify-between items-center text-sm py-1',
+      sep && 'border-t mt-1 pt-2',
+    )}>
+      <span className={muted ? 'text-muted-foreground' : ''}>{label}</span>
+      <span className={cn('tabular-nums', bold && 'font-semibold')}>{value}</span>
+    </div>
+  )
+}
+
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{title}</p>
+      <div className="rounded-lg border px-3 py-2 space-y-0.5">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function LinhaDetailBody({
+  linha,
+  data,
+  ano,
+  mes,
+}: {
+  linha: AjudasLinha
+  data: ApiResponse | null
+  ano: number
+  mes: number
+}) {
+  const det: LinhaDetalhes | null = data?.totais
+    ? calcLinhaDetalhes(
+        {
+          dataInicio: new Date(linha.dataInicio),
+          dataFim: new Date(linha.dataFim),
+          prevencao: linha.prevencao,
+          prevencaoOnly: linha.prevencaoOnly,
+          ajudaCustoAlmoco: linha.ajudaCustoAlmoco,
+          ajudaCustoJantar: linha.ajudaCustoJantar,
+          ajudaCustoCeia: linha.ajudaCustoCeia,
+          senhaAlmoco: linha.senhaAlmoco,
+          senhaJantar: linha.senhaJantar,
+          senhaCeia: linha.senhaCeia,
+          km: linha.km,
+        },
+        data.config,
+        data.totais.limiteBase,
+        data.totais.taxaIRS,
+        ano,
+        mes,
+      )
+    : null
+
+  const prevLabel =
+    linha.prevencao === 'PIQUETE'
+      ? 'Piquete'
+      : linha.prevencao === 'PREVENCAO_PASSIVA'
+        ? 'Prevenção Passiva'
+        : 'Nenhuma'
+
+  const viaturaStr = linha.viatura
+    ? `${linha.viatura.nome}${linha.viatura.matricula ? ` (${linha.viatura.matricula})` : ''}`
+    : '—'
+
+  return (
+    <div className="space-y-4 text-sm">
+      {/* Info geral */}
+      <DetailSection title="Informação Geral">
+        {linha.nuipc && <DetailRow label="NUIPC" value={linha.nuipc} />}
+        {linha.local && <DetailRow label="Local" value={linha.local} />}
+        <DetailRow label="Início" value={formatDT(linha.dataInicio)} />
+        <DetailRow label="Fim" value={formatDT(linha.dataFim)} />
+        <DetailRow label="Prevenção" value={prevLabel} />
+        {linha.km > 0 && (
+          <>
+            <DetailRow label="Viatura" value={viaturaStr} />
+            <DetailRow label="Km" value={`${linha.km} km`} />
+          </>
+        )}
+        {linha.observacoes && <DetailRow label="Observações" value={linha.observacoes} />}
+      </DetailSection>
+
+      {det ? (
+        <>
+          {/* Horas Extra */}
+          {!linha.prevencaoOnly && (det.semanaDia > 0 || det.semanaNoite > 0 || det.fdsDia > 0 || det.fdsNoite > 0) && (
+            <DetailSection title="Horas Extra">
+              {det.semanaDia > 0 && (
+                <DetailRow
+                  label={`Semana 08-24h (${det.semanaDia.toFixed(2)}h × €${det.taxaSemanaDia.toFixed(2)})`}
+                  value={`€${det.totalSemanaDiaBruto.toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.semanaNoite > 0 && (
+                <DetailRow
+                  label={`Semana 00-08h (${det.semanaNoite.toFixed(2)}h × €${det.taxaSemanaNoite.toFixed(2)})`}
+                  value={`€${det.totalSemanaNoiteBruto.toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.fdsDia > 0 && (
+                <DetailRow
+                  label={`FdS 08-24h (${det.fdsDia.toFixed(2)}h × €${det.taxaFdsDia.toFixed(2)})`}
+                  value={`€${det.totalFdsDiaBruto.toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.fdsNoite > 0 && (
+                <DetailRow
+                  label={`FdS 00-08h (${det.fdsNoite.toFixed(2)}h × €${det.taxaFdsNoite.toFixed(2)})`}
+                  value={`€${det.totalFdsNoiteBruto.toFixed(2)}`}
+                  muted
+                />
+              )}
+              <DetailRow label="Subtotal H. Extra" value={`€${det.totalHorasExtra.toFixed(2)}`} bold sep />
+              {det.totalHorasExtra < (det.totalSemanaDiaBruto + det.totalSemanaNoiteBruto + det.totalFdsDiaBruto + det.totalFdsNoiteBruto) - 0.001 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 text-right">
+                  * Limite diário (piquete) aplicado a esta entrada.
+                </p>
+              )}
+            </DetailSection>
+          )}
+
+          {/* Piquete / Prevenção */}
+          {(det.totalPiquete > 0 || det.totalPrevencao > 0) && (
+            <DetailSection title="Prevenção">
+              {det.piqueteSemana > 0 && (
+                <DetailRow
+                  label={`Piquete Semana (${det.piqueteSemana} × €${det.taxaPiqueteSemana.toFixed(2)})`}
+                  value={`€${(det.piqueteSemana * det.taxaPiqueteSemana).toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.piqueteFds > 0 && (
+                <DetailRow
+                  label={`Piquete FdS (${det.piqueteFds} × €${det.taxaPiqueteFds.toFixed(2)})`}
+                  value={`€${(det.piqueteFds * det.taxaPiqueteFds).toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.prevencaoSemana > 0 && (
+                <DetailRow
+                  label={`Prev. Passiva Semana (${det.prevencaoSemana}d × €${det.taxaPrevencaoSemana.toFixed(2)})`}
+                  value={`€${(det.prevencaoSemana * det.taxaPrevencaoSemana).toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.prevencaoFds > 0 && (
+                <DetailRow
+                  label={`Prev. Passiva FdS (${det.prevencaoFds}d × €${det.taxaPrevencaoFds.toFixed(2)})`}
+                  value={`€${(det.prevencaoFds * det.taxaPrevencaoFds).toFixed(2)}`}
+                  muted
+                />
+              )}
+              <DetailRow
+                label="Subtotal Prevenção"
+                value={`€${(det.totalPiquete + det.totalPrevencao).toFixed(2)}`}
+                bold
+                sep
+              />
+            </DetailSection>
+          )}
+
+          {/* Ajudas de custo */}
+          {det.totalAjudasCusto > 0 && (
+            <DetailSection title="Ajudas de Custo">
+              {det.ajudaCustoAlmoco > 0 && (
+                <DetailRow
+                  label={`Almoço (${det.ajudaCustoAlmoco} × €${det.taxaAjudaAlmoco.toFixed(2)})`}
+                  value={`€${(det.ajudaCustoAlmoco * det.taxaAjudaAlmoco).toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.ajudaCustoJantar > 0 && (
+                <DetailRow
+                  label={`Jantar (${det.ajudaCustoJantar} × €${det.taxaAjudaJantar.toFixed(2)})`}
+                  value={`€${(det.ajudaCustoJantar * det.taxaAjudaJantar).toFixed(2)}`}
+                  muted
+                />
+              )}
+              {det.ajudaCustoCeia > 0 && (
+                <DetailRow
+                  label={`Ceia (${det.ajudaCustoCeia} × €${det.taxaAjudaCeia.toFixed(2)})`}
+                  value={`€${(det.ajudaCustoCeia * det.taxaAjudaCeia).toFixed(2)}`}
+                  muted
+                />
+              )}
+              <DetailRow label="Subtotal Ajudas" value={`€${det.totalAjudasCusto.toFixed(2)}`} bold sep />
+            </DetailSection>
+          )}
+
+          {/* Descontos e valor final */}
+          <DetailSection title="Descontos e Valor Final">
+            <DetailRow label="Base imponível" value={`€${det.baseImponivel.toFixed(2)}`} muted />
+            <DetailRow
+              label={`IRS (${(det.taxaIRS * 100).toFixed(2)}%)`}
+              value={`-€${det.irs.toFixed(2)}`}
+              muted
+            />
+            <DetailRow
+              label={`Seg. Social (${(det.taxaSS * 100).toFixed(0)}%)`}
+              value={`-€${det.ss.toFixed(2)}`}
+              muted
+            />
+            <div className="flex justify-between items-center py-2 border-t mt-1 pt-2">
+              <span className="font-semibold text-base">Valor Líquido</span>
+              <span className="font-bold text-base text-green-600 dark:text-green-400 tabular-nums">
+                €{det.liquido.toFixed(2)}
+              </span>
+            </div>
+          </DetailSection>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          Configure o seu vencimento base e taxa de IRS no{' '}
+          <Link href="/perfil" className="underline">Perfil</Link> para ver o cálculo detalhado.
+        </p>
+      )}
     </div>
   )
 }
