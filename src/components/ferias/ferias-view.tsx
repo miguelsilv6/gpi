@@ -172,8 +172,8 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   }
 
   const meContent = (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <div className="space-y-4">
+    <div className="grid gap-4 xl:grid-cols-2 min-w-0 overflow-x-hidden">
+      <div className="space-y-4 min-w-0">
         <div className="grid grid-cols-2 gap-4">
           <CounterCard
             icon={<Plane className="h-4 w-4 text-blue-500" />}
