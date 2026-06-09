@@ -77,6 +77,17 @@ export async function POST(req: NextRequest) {
     const dataRealizacaoDate = dataRealizacao ? new Date(dataRealizacao) : new Date()
     const { ip, userAgent } = getRequestInfo(req)
 
+    // Validate that the activity type supports controlos before entering the tx.
+    if (controlo) {
+      const padrao = await prisma.atividadePadrao.findUnique({
+        where: { nome: descricao },
+        select: { temControlo: true },
+      })
+      if (!padrao || !padrao.temControlo) {
+        return apiError('Este tipo de atividade não suporta controlos', 422)
+      }
+    }
+
     // Wrap creation + audit + potential state transition in a single
     // transaction so they remain consistent.
     const { atividade, transicao } = await prisma.$transaction(async (tx) => {

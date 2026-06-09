@@ -90,9 +90,18 @@ export async function PUT(req: NextRequest) {
     const { smtpPassword, smtpHost, smtpUser, ...rest } = parsed.data
     const data: Record<string, unknown> = { ...rest }
     // Normalizar strings vazias para null (volta ao fallback de env).
-    if (smtpHost !== undefined) data.smtpHost = smtpHost.trim() || null
-    if (smtpUser !== undefined) data.smtpUser = smtpUser.trim() || null
-    if (smtpPassword !== undefined) {
+    // Clearing smtpHost also wipes user/port/password — no dangling credentials.
+    if (smtpHost !== undefined) {
+      data.smtpHost = smtpHost.trim() || null
+      if (!data.smtpHost) {
+        data.smtpUser = null
+        data.smtpPort = null
+        data.smtpPasswordEnc = null
+      }
+    }
+    const hostCleared = smtpHost !== undefined && !data.smtpHost
+    if (smtpUser !== undefined && !hostCleared) data.smtpUser = smtpUser.trim() || null
+    if (smtpPassword !== undefined && !hostCleared) {
       data.smtpPasswordEnc = smtpPassword === '' ? null : encryptSecret(smtpPassword)
     }
 

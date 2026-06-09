@@ -420,14 +420,18 @@ async function runDeadlineCheck() {
   }
 
   // ── Controlos: alert before each upcoming realizacao ──────────────────────
-  const controloThreshold = new Date()
-  controloThreshold.setDate(controloThreshold.getDate() + alertDays)
+  // No global threshold here — each controlo carries its own alertaDias, so
+  // we load all unalerted pending realizacoes and filter in-process.
+  // Cap the DB query at 90 days (max allowed alertaDias) so the result set
+  // stays bounded even with many future recurring realizacoes.
+  const maxThreshold = new Date()
+  maxThreshold.setDate(maxThreshold.getDate() + 90)
 
   const pendingRealizacoes = await prisma.controloRealizacao.findMany({
     where: {
       dataRealizacao: null,
       alertaEnviado: false,
-      dataEsperada: { lte: controloThreshold },
+      dataEsperada: { lte: maxThreshold },
       controlo: {
         concluidoEm: null,
         // Skip alerts for controlos linked to deleted or terminal inquiries
@@ -447,8 +451,18 @@ async function runDeadlineCheck() {
     },
   })
 
+  const today = new Date()
+  let controlosAlertas = 0
   for (const realizacao of pendingRealizacoes) {
     const { controlo } = realizacao
+    // Use per-controlo alertaDias — each controlo can have a different lead time.
+    const threshold = new Date(today)
+    threshold.setDate(threshold.getDate() + controlo.alertaDias)
+    const dataEsperada = realizacao.dataEsperada instanceof Date
+      ? realizacao.dataEsperada
+      : new Date(realizacao.dataEsperada as string)
+    if (dataEsperada > threshold) continue
+    controlosAlertas++
     const nuipcLabel = controlo.inquerito ? ` — ${controlo.inquerito.nuipc}` : ''
     jobs.push(
       createNotification({
@@ -473,7 +487,7 @@ async function runDeadlineCheck() {
       approaching: approaching.length,
       overdue: overdue.length,
       urgent: urgentCount,
-      controlos: pendingRealizacoes.length,
+      controlos: controlosAlertas,
     },
     'Deadline check completed',
   )

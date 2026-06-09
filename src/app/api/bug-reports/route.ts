@@ -55,13 +55,18 @@ export async function GET(req: NextRequest) {
       return Response.json({ items, nextCursor })
     }
 
-    // Reports do próprio utilizador (mais recentes primeiro).
-    const items = await prisma.bugReport.findMany({
+    // Reports do próprio utilizador (mais recentes primeiro), com paginação.
+    const mineCursor = searchParams.get('cursor') ?? undefined
+    const mineRows = await prisma.bugReport.findMany({
       where: { criadoPorId: session.user.id },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: PAGE_SIZE + 1,
+      ...(mineCursor && { cursor: { id: mineCursor }, skip: 1 }),
     })
-    return Response.json({ items, nextCursor: null })
+    const mineHasMore = mineRows.length > PAGE_SIZE
+    const items = mineHasMore ? mineRows.slice(0, PAGE_SIZE) : mineRows
+    const nextCursor = mineHasMore ? items[items.length - 1].id : null
+    return Response.json({ items, nextCursor })
   } catch (error) {
     return handleApiError(error)
   }
