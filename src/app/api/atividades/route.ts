@@ -12,6 +12,15 @@ import type { Role } from '@/generated/prisma/enums'
 
 const ALERT_OPTIONS = [1, 2, 5, 7, 15, 30]
 
+const controloSchema = z.object({
+  dataInicio: z.string().optional().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: 'Data de início inválida' },
+  ),
+  periodoDias: z.number().int().min(1).max(365).optional().nullable(),
+  alertaDias: z.number().int().min(1).max(90).default(3),
+})
+
 const schema = z.object({
   inqueritoid: z.string().min(1),
   descricao: z.string().min(1, 'Selecione uma atividade'),
@@ -21,6 +30,7 @@ const schema = z.object({
   dataPrazo: z.string().optional().nullable(),
   alertaDias1: z.number().int().refine((v) => ALERT_OPTIONS.includes(v)).optional().nullable(),
   alertaDias2: z.number().int().refine((v) => ALERT_OPTIONS.includes(v)).optional().nullable(),
+  controlo: controloSchema.optional().nullable(),
 })
 
 export async function POST(req: NextRequest) {
@@ -36,7 +46,7 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { inqueritoid, descricao, observacoes, dataRealizacao, quantidade, dataPrazo, alertaDias1, alertaDias2 } = parsed.data
+    const { inqueritoid, descricao, observacoes, dataRealizacao, quantidade, dataPrazo, alertaDias1, alertaDias2, controlo } = parsed.data
 
     // Find inquiry and check access
     const inquerito = await prisma.inquerito.findUnique({
@@ -103,6 +113,31 @@ export async function POST(req: NextRequest) {
           } as never,
         },
       })
+
+      // Optionally create a Controlo linked to this atividade
+      if (controlo) {
+        const dataInicioControlo = controlo.dataInicio
+          ? new Date(controlo.dataInicio)
+          : dataRealizacaoDate
+        const ctrl = await tx.controlo.create({
+          data: {
+            descricao,
+            dataInicio: dataInicioControlo,
+            periodoDias: controlo.periodoDias ?? null,
+            alertaDias: controlo.alertaDias,
+            inqueritoid,
+            atividadeId: created.id,
+            criadorId: session.user.id,
+          },
+        })
+        await tx.controloRealizacao.create({
+          data: {
+            controloId: ctrl.id,
+            numero: 1,
+            dataEsperada: dataInicioControlo,
+          },
+        })
+      }
 
       const transicao = await applyAtividadeTransicao({
         tx,
