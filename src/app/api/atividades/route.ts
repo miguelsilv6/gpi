@@ -13,7 +13,10 @@ import type { Role } from '@/generated/prisma/enums'
 const ALERT_OPTIONS = [1, 2, 5, 7, 15, 30]
 
 const controloSchema = z.object({
-  dataInicio: z.string().optional(),
+  dataInicio: z.string().optional().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: 'Data de início inválida' },
+  ),
   periodoDias: z.number().int().min(1).max(365).optional().nullable(),
   alertaDias: z.number().int().min(1).max(90).default(3),
 })

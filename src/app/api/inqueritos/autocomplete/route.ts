@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         AND: [
           scopeWhere,
           { deletedAt: null },
-          { nuipc: { contains: q.toUpperCase(), mode: 'insensitive' } },
+          { nuipc: { startsWith: q.toUpperCase() } },
         ],
       },
       orderBy: { nuipc: 'asc' },

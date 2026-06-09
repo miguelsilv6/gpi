@@ -57,7 +57,10 @@ const schema = z.object({
     periodico: z.boolean().optional(),
     periodoDias: z.number().int().min(1).max(365).optional(),
     alertaDias: z.number().int().min(1).max(90).optional(),
-  }).optional(),
+  }).optional().refine(
+    (data) => !data || !data.periodico || (data.periodoDias !== undefined && data.periodoDias !== null),
+    { message: 'O período é obrigatório para controlos periódicos', path: ['periodoDias'] },
+  ),
 })
 
 type FormData = z.infer<typeof schema>
@@ -454,7 +457,7 @@ export default function AddAtividadePage() {
                         max={365}
                         placeholder="15"
                         className="max-w-[120px]"
-                        {...register('controlo.periodoDias', { valueAsNumber: true })}
+                        {...register('controlo.periodoDias', { setValueAs: (v) => (v === '' || v == null) ? undefined : parseInt(v, 10) || undefined })}
                       />
                     </div>
                   )}

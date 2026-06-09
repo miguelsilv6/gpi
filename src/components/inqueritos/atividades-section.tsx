@@ -80,21 +80,26 @@ function ConfirmarControloButton({
 
   async function submit() {
     setLoading(true)
-    const res = await fetch(`/api/controlos/${controloId}/realizacoes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ realizacaoId: realizacao.id, observacoes: obs.trim() || null }),
-    })
-    setLoading(false)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      toast.error(err.error ?? 'Erro ao confirmar controlo')
-      return
+    try {
+      const res = await fetch(`/api/controlos/${controloId}/realizacoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ realizacaoId: realizacao.id, observacoes: obs.trim() || null }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao confirmar controlo')
+        return
+      }
+      toast.success(`${ordinalControlo(realizacao.numero)} confirmado`)
+      setObs('')
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede ao confirmar controlo')
+    } finally {
+      setLoading(false)
     }
-    toast.success(`${ordinalControlo(realizacao.numero)} confirmado`)
-    setObs('')
-    setOpen(false)
-    router.refresh()
   }
 
   return (
@@ -107,7 +112,7 @@ function ConfirmarControloButton({
         <ClipboardCheck className="h-3 w-3" />
         {ordinalControlo(realizacao.numero)}
       </button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(val) => { if (!loading) setOpen(val) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Confirmar {ordinalControlo(realizacao.numero)}</DialogTitle>

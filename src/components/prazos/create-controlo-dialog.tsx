@@ -37,23 +37,32 @@ function NuipcCombobox({
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    let active = true
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (query.trim().length < 2) {
       setOptions([])
       setOpen(false)
-      return
+      return () => { active = false }
     }
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
         const res = await fetch(`/api/inqueritos/autocomplete?q=${encodeURIComponent(query)}`)
         const data = await res.json()
-        setOptions(Array.isArray(data) ? data : [])
-        setOpen(true)
+        if (active) {
+          setOptions(Array.isArray(data) ? data : [])
+          setOpen(true)
+        }
+      } catch {
+        // network error — silently ignore, dropdown stays closed
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }, 250)
+    return () => {
+      active = false
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
   }, [query])
 
   // Close dropdown when clicking outside
@@ -87,8 +96,9 @@ function NuipcCombobox({
         <Input
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value.toUpperCase())
-            onChange('')
+            const val = e.target.value.toUpperCase()
+            setQuery(val)
+            onChange(val)
           }}
           placeholder="Ex: 123/25.4GBCBR"
           className="pl-8 pr-8"
