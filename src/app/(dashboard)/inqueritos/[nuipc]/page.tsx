@@ -86,7 +86,22 @@ export default async function InqueritoDetailPage({
     orderBy: { createdAt: 'desc' },
     skip: (ativPageNum - 1) * ATIVIDADES_PAGE_SIZE,
     take: ATIVIDADES_PAGE_SIZE,
-    include: { realizadaPor: { select: { id: true, nome: true } } },
+    include: {
+      realizadaPor: { select: { id: true, nome: true } },
+      controlo: {
+        select: {
+          id: true,
+          periodoDias: true,
+          concluidoEm: true,
+          realizacoes: {
+            where: { dataRealizacao: null },
+            orderBy: { numero: 'asc' as const },
+            take: 1,
+            select: { id: true, numero: true, dataEsperada: true },
+          },
+        },
+      },
+    },
   })
 
   // Aggregated summary by type (uses ALL activities, not just the page).
@@ -167,6 +182,20 @@ export default async function InqueritoDetailPage({
       canMutate,
       canConclude,
       isOverdue: atv.dataPrazo ? isOverdue(atv.dataPrazo) && atv.concluidaEm == null : false,
+      controlo: atv.controlo
+        ? {
+            id: atv.controlo.id,
+            periodoDias: atv.controlo.periodoDias,
+            concluidoEm: atv.controlo.concluidoEm?.toISOString() ?? null,
+            nextRealizacao: atv.controlo.realizacoes[0]
+              ? {
+                  id: atv.controlo.realizacoes[0].id,
+                  numero: atv.controlo.realizacoes[0].numero,
+                  dataEsperada: atv.controlo.realizacoes[0].dataEsperada.toISOString(),
+                }
+              : null,
+          }
+        : null,
     }
   })
 

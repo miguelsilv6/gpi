@@ -309,6 +309,8 @@ model Atividade {
   realizadaPor Utilizador @relation(fields: [utilizadorId], references: [id])
   utilizadorId String
 
+  controlo Controlo?
+
   @@index([inqueritoid])
   @@index([utilizadorId])
   @@index([inqueritoid, dataRealizacao])
@@ -330,6 +332,9 @@ model Controlo {
 
   inqueritoid String?
   inquerito   Inquerito?  @relation(fields: [inqueritoid], references: [id], onDelete: SetNull)
+
+  atividadeId String?   @unique
+  atividade   Atividade? @relation(fields: [atividadeId], references: [id], onDelete: SetNull)
 
   criadorId   String
   criador     Utilizador  @relation("ControloCriador", fields: [criadorId], references: [id])

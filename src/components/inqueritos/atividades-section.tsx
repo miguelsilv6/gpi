@@ -2,12 +2,35 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Lock, LockOpen, Check, Bell } from 'lucide-react'
+import { Lock, LockOpen, Check, Bell, ClipboardCheck, Loader2, RotateCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { AtividadeActions, type ConclusaoMode } from './atividade-actions'
 import { formatDate, formatDateTimeWithSeconds, cn } from '@/lib/utils'
+import { ordinalControlo } from '@/lib/controlos'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+
+export interface AtividadeControlo {
+  id: string
+  periodoDias: number | null
+  concluidoEm: string | null
+  nextRealizacao: {
+    id: string
+    numero: number
+    dataEsperada: string
+  } | null
+}
 
 export interface AtividadeItem {
   id: string
@@ -25,6 +48,7 @@ export interface AtividadeItem {
    *  canMutate — inspectors can conclude activities they didn't create. */
   canConclude: boolean
   isOverdue: boolean
+  controlo: AtividadeControlo | null
 }
 
 interface Props {
@@ -40,6 +64,79 @@ interface Props {
    * explicitamente, evitando edições acidentais.
    */
   editLocked: boolean
+}
+
+function ConfirmarControloButton({
+  controloId,
+  realizacao,
+}: {
+  controloId: string
+  realizacao: { id: string; numero: number; dataEsperada: string }
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [obs, setObs] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function submit() {
+    setLoading(true)
+    const res = await fetch(`/api/controlos/${controloId}/realizacoes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ realizacaoId: realizacao.id, observacoes: obs.trim() || null }),
+    })
+    setLoading(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro ao confirmar controlo')
+      return
+    }
+    toast.success(`${ordinalControlo(realizacao.numero)} confirmado`)
+    setObs('')
+    setOpen(false)
+    router.refresh()
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800 transition-colors"
+      >
+        <ClipboardCheck className="h-3 w-3" />
+        {ordinalControlo(realizacao.numero)}
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar {ordinalControlo(realizacao.numero)}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Previsto para <strong>{formatDate(realizacao.dataEsperada)}</strong>
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="obs-ctrl-atv">Observações (opcional)</Label>
+            <Textarea
+              id="obs-ctrl-atv"
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              placeholder="Observações sobre a realização..."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
+            <Button onClick={submit} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }
 
 export function AtividadesSection({
@@ -163,6 +260,27 @@ export function AtividadesSection({
                             )
                           )}
                         </div>
+                        {atv.controlo && !atv.controlo.concluidoEm && (
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            {atv.controlo.nextRealizacao ? (
+                              <ConfirmarControloButton
+                                controloId={atv.controlo.id}
+                                realizacao={atv.controlo.nextRealizacao}
+                              />
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+                                <Check className="h-3 w-3" />
+                                Controlos em dia
+                              </span>
+                            )}
+                            {atv.controlo.periodoDias && (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <RotateCcw className="h-3 w-3" />
+                                A cada {atv.controlo.periodoDias} dias
+                              </span>
+                            )}
+                          </div>
+                        )}
                         {atv.observacoes && (
                           <p className="text-sm mt-1.5 text-muted-foreground whitespace-pre-wrap">
                             {atv.observacoes}

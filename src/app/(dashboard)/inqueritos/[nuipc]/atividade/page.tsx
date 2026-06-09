@@ -15,6 +15,7 @@ import { ChevronLeft, Loader2, Settings, Bell, Info } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { slugToNuipc, nuipcToSlug, cn } from '@/lib/utils'
+import { ClipboardCheck, RotateCcw } from 'lucide-react'
 
 interface AtividadePadrao {
   id: string
@@ -51,6 +52,12 @@ const schema = z.object({
   dataPrazo: z.string().optional(),
   alertaDias1: z.number().int().optional(),
   alertaDias2: z.number().int().optional(),
+  controlo: z.object({
+    dataInicio: z.string().optional(),
+    periodico: z.boolean().optional(),
+    periodoDias: z.number().int().min(1).max(365).optional(),
+    alertaDias: z.number().int().min(1).max(90).optional(),
+  }).optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -65,6 +72,7 @@ export default function AddAtividadePage() {
   const [estados, setEstados] = useState<EstadoOption[]>([])
   const [loadingPadrao, setLoadingPadrao] = useState(true)
   const [showAlerta2, setShowAlerta2] = useState(false)
+  const [temControlo, setTemControlo] = useState(false)
 
   useEffect(() => {
     fetch(`/api/inqueritos/${slug}`)
@@ -120,6 +128,13 @@ export default function AddAtividadePage() {
       dataPrazo: selectedPadrao?.temPrazo ? (data.dataPrazo || null) : null,
       alertaDias1: selectedPadrao?.temPrazo ? (data.alertaDias1 ?? null) : null,
       alertaDias2: (selectedPadrao?.temPrazo && showAlerta2) ? (data.alertaDias2 ?? null) : null,
+      controlo: temControlo && data.controlo
+        ? {
+            dataInicio: data.controlo.dataInicio || data.dataRealizacao || undefined,
+            periodoDias: data.controlo.periodico ? (data.controlo.periodoDias ?? null) : null,
+            alertaDias: data.controlo.alertaDias ?? 3,
+          }
+        : null,
     }
 
     const res = await fetch('/api/atividades', {
@@ -376,6 +391,89 @@ export default function AddAtividadePage() {
                 )}
               </div>
             )}
+
+            {/* Controlo (optional) */}
+            <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <input
+                  id="tem-controlo"
+                  type="checkbox"
+                  checked={temControlo}
+                  onChange={(e) => setTemControlo(e.target.checked)}
+                  className="h-4 w-4 rounded border-border"
+                />
+                <label htmlFor="tem-controlo" className="flex items-center gap-1.5 text-sm font-medium cursor-pointer">
+                  <ClipboardCheck className="h-4 w-4 text-blue-500" />
+                  Tem controlo
+                </label>
+              </div>
+
+              {temControlo && (
+                <div className="space-y-3 pl-6">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="controlo-data-inicio">Data de início do controlo</Label>
+                    <Input
+                      id="controlo-data-inicio"
+                      type="date"
+                      {...register('controlo.dataInicio')}
+                      defaultValue={defaultDate}
+                    />
+                    <p className="text-xs text-muted-foreground">Por omissão usa a data de realização da atividade.</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Controller
+                      name="controlo.periodico"
+                      control={control}
+                      defaultValue={false}
+                      render={({ field }) => (
+                        <>
+                          <input
+                            id="controlo-periodico"
+                            type="checkbox"
+                            checked={field.value ?? false}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            className="h-4 w-4 rounded border-border"
+                          />
+                          <label htmlFor="controlo-periodico" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                            Periódico (recorrente)
+                          </label>
+                        </>
+                      )}
+                    />
+                  </div>
+
+                  {watch('controlo.periodico') && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="controlo-periodo">Período (dias)</Label>
+                      <Input
+                        id="controlo-periodo"
+                        type="number"
+                        min={1}
+                        max={365}
+                        placeholder="15"
+                        className="max-w-[120px]"
+                        {...register('controlo.periodoDias', { valueAsNumber: true })}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="controlo-alerta">Alertar com antecedência (dias)</Label>
+                    <Input
+                      id="controlo-alerta"
+                      type="number"
+                      min={1}
+                      max={90}
+                      defaultValue={3}
+                      className="max-w-[120px]"
+                      {...register('controlo.alertaDias', { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Observations */}
             <div className="space-y-1.5">

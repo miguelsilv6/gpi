@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,8 +13,127 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+
+interface InqueritoOption {
+  id: string
+  nuipc: string
+}
+
+function NuipcCombobox({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (nuipc: string) => void
+}) {
+  const [query, setQuery] = useState(value)
+  const [options, setOptions] = useState<InqueritoOption[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (query.trim().length < 2) {
+      setOptions([])
+      setOpen(false)
+      return
+    }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/inqueritos/autocomplete?q=${encodeURIComponent(query)}`)
+        const data = await res.json()
+        setOptions(Array.isArray(data) ? data : [])
+        setOpen(true)
+      } finally {
+        setLoading(false)
+      }
+    }, 250)
+  }, [query])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function select(opt: InqueritoOption) {
+    setQuery(opt.nuipc)
+    onChange(opt.nuipc)
+    setOpen(false)
+  }
+
+  function clear() {
+    setQuery('')
+    onChange('')
+    setOptions([])
+    setOpen(false)
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+        <Input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value.toUpperCase())
+            onChange('')
+          }}
+          placeholder="Ex: 123/25.4GBCBR"
+          className="pl-8 pr-8"
+          maxLength={50}
+          autoComplete="off"
+        />
+        {(query || loading) && (
+          <button
+            type="button"
+            onClick={clear}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            {loading
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <X className="h-3.5 w-3.5" />
+            }
+          </button>
+        )}
+      </div>
+      {open && options.length > 0 && (
+        <ul className="absolute z-50 w-full mt-1 rounded-lg border bg-popover shadow-md overflow-hidden text-sm">
+          {options.map((opt) => (
+            <li key={opt.id}>
+              <button
+                type="button"
+                onMouseDown={() => select(opt)}
+                className={cn(
+                  'w-full text-left px-3 py-2 font-mono hover:bg-accent transition-colors',
+                  query === opt.nuipc && 'bg-accent',
+                )}
+              >
+                {opt.nuipc}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {open && options.length === 0 && !loading && query.length >= 2 && (
+        <div className="absolute z-50 w-full mt-1 rounded-lg border bg-popover shadow-md px-3 py-2 text-sm text-muted-foreground">
+          Sem resultados
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function CreateControloDialog() {
   const router = useRouter()
@@ -39,7 +158,10 @@ export function CreateControloDialog() {
     setDescricao('')
     setObservacoes('')
     setNuipc('')
-    setDataInicio(new Date().toISOString().slice(0, 10))
+    const now = new Date()
+    setDataInicio(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+    )
     setPeriodico(false)
     setPeriodoDias('15')
     setAlertaDias('3')
@@ -124,15 +246,9 @@ export function CreateControloDialog() {
 
             <div className="space-y-1.5">
               <Label htmlFor="cc-nuipc">NUIPC (opcional)</Label>
-              <Input
-                id="cc-nuipc"
-                value={nuipc}
-                onChange={(e) => setNuipc(e.target.value.toUpperCase())}
-                placeholder="Ex: 123/25.4GBCBR"
-                maxLength={50}
-              />
+              <NuipcCombobox value={nuipc} onChange={setNuipc} />
               <p className="text-xs text-muted-foreground">
-                Deixe vazio para um controlo independente de inquérito.
+                Pesquisa os seus inquéritos à medida que escreve. Deixe vazio para um controlo independente.
               </p>
             </div>
 
