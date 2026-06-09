@@ -232,6 +232,199 @@ export function splitHours(start: Date, end: Date, holidays: Set<string>): Hours
   return result
 }
 
+export interface LinhaDetalhes {
+  semanaDia: number
+  semanaNoite: number
+  fdsDia: number
+  fdsNoite: number
+  taxaSemanaDia: number
+  taxaSemanaNoite: number
+  taxaFdsDia: number
+  taxaFdsNoite: number
+  totalSemanaDiaBruto: number
+  totalSemanaNoiteBruto: number
+  totalFdsDiaBruto: number
+  totalFdsNoiteBruto: number
+  totalHorasExtraSemana: number
+  totalHorasExtraFds: number
+  totalHorasExtra: number
+  piqueteSemana: number
+  piqueteFds: number
+  taxaPiqueteSemana: number
+  taxaPiqueteFds: number
+  totalPiquete: number
+  prevencaoSemana: number
+  prevencaoFds: number
+  taxaPrevencaoSemana: number
+  taxaPrevencaoFds: number
+  totalPrevencao: number
+  ajudaCustoAlmoco: number
+  ajudaCustoJantar: number
+  ajudaCustoCeia: number
+  taxaAjudaAlmoco: number
+  taxaAjudaJantar: number
+  taxaAjudaCeia: number
+  totalAjudasCusto: number
+  baseImponivel: number
+  taxaIRS: number
+  taxaSS: number
+  irs: number
+  ss: number
+  totalBruto: number
+  liquido: number
+}
+
+/**
+ * Calculates a full detailed breakdown (including IRS/SS) for a single entry.
+ * taxaIRS must be the user's personal rate (from AjudasTotais.taxaIRS).
+ */
+export function calcLinhaDetalhes(
+  linha: LinhaWithData,
+  config: ConfigData,
+  vencimentoBase: number,
+  taxaIRS: number,
+  ano: number,
+  mes: number,
+): LinhaDetalhes {
+  const years = new Set([linha.dataInicio.getUTCFullYear(), linha.dataFim.getUTCFullYear()])
+  const holidays = new Set<string>()
+  for (const y of years) for (const h of getPortugueseHolidays(y)) holidays.add(h)
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const fmtDate = (d: Date) =>
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+
+  function isFdsDay(d: Date): boolean {
+    const dow = d.getUTCDay()
+    return dow === 0 || dow === 6 || holidays.has(fmtDate(d))
+  }
+
+  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaNoite = taxaSemanaDia * 2
+  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsNoite = taxaFdsDia * 2
+  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
+  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
+  const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
+  const taxaPrevencaoFds = taxaPiqueteFds * config.percentPrevencaoPassiva
+
+  const inicio = linha.dataInicio
+  const fim = linha.dataFim
+
+  let semanaDia = 0, semanaNoite = 0, fdsDia = 0, fdsNoite = 0
+  let totalHorasExtraSemana = 0, totalHorasExtraFds = 0
+  let piqueteSemana = 0, piqueteFds = 0
+  let prevencaoSemana = 0, prevencaoFds = 0
+
+  if (!linha.prevencaoOnly) {
+    const dayMap = new Map<string, HoursSplit>()
+    const iterDay = new Date(inicio)
+    iterDay.setUTCHours(0, 0, 0, 0)
+    while (iterDay.getTime() < fim.getTime()) {
+      const nextDay = new Date(iterDay)
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+      const segStart = inicio.getTime() > iterDay.getTime() ? inicio : iterDay
+      const segEnd = fim.getTime() < nextDay.getTime() ? fim : nextDay
+      if (
+        segStart.getTime() < segEnd.getTime() &&
+        iterDay.getUTCFullYear() === ano &&
+        iterDay.getUTCMonth() + 1 === mes
+      ) {
+        const dateKey = fmtDate(iterDay)
+        const split = splitHours(segStart, segEnd, holidays)
+        const existing = dayMap.get(dateKey)
+        if (existing) {
+          existing.semanaDia += split.semanaDia
+          existing.semanaNoite += split.semanaNoite
+          existing.fdsDia += split.fdsDia
+          existing.fdsNoite += split.fdsNoite
+        } else {
+          dayMap.set(dateKey, { ...split })
+        }
+      }
+      iterDay.setUTCDate(iterDay.getUTCDate() + 1)
+    }
+    for (const [, split] of dayMap) {
+      semanaDia += split.semanaDia
+      semanaNoite += split.semanaNoite
+      fdsDia += split.fdsDia
+      fdsNoite += split.fdsNoite
+      const rawSemana = split.semanaDia * taxaSemanaDia + split.semanaNoite * taxaSemanaNoite
+      const rawFds = split.fdsDia * taxaFdsDia + split.fdsNoite * taxaFdsNoite
+      if (rawSemana > 0) totalHorasExtraSemana += Math.min(rawSemana, taxaPiqueteSemana)
+      if (rawFds > 0) totalHorasExtraFds += Math.min(rawFds, taxaPiqueteFds)
+    }
+  }
+
+  if (linha.prevencao === 'PIQUETE') {
+    if (inicio.getUTCFullYear() === ano && inicio.getUTCMonth() + 1 === mes) {
+      if (isFdsDay(inicio)) piqueteFds = 1
+      else piqueteSemana = 1
+    }
+  } else if (linha.prevencao === 'PREVENCAO_PASSIVA') {
+    const cur = new Date(inicio)
+    cur.setUTCHours(0, 0, 0, 0)
+    const last = new Date(fim)
+    last.setUTCHours(0, 0, 0, 0)
+    let daysCount = 0
+    while (cur.getTime() <= last.getTime() && daysCount < 90) {
+      if (cur.getUTCFullYear() === ano && cur.getUTCMonth() + 1 === mes) {
+        if (isFdsDay(cur)) prevencaoFds += 1
+        else prevencaoSemana += 1
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1)
+      daysCount++
+    }
+  }
+
+  const totalHorasExtra = totalHorasExtraSemana + totalHorasExtraFds
+  const totalPiquete = piqueteSemana * taxaPiqueteSemana + piqueteFds * taxaPiqueteFds
+  const totalPrevencao = prevencaoSemana * taxaPrevencaoSemana + prevencaoFds * taxaPrevencaoFds
+
+  let ajudaCustoAlmoco = 0, ajudaCustoJantar = 0, ajudaCustoCeia = 0
+  if (
+    linha.km >= config.distanciaMinKmAjudas &&
+    inicio.getUTCFullYear() === ano &&
+    inicio.getUTCMonth() + 1 === mes
+  ) {
+    ajudaCustoAlmoco = linha.ajudaCustoAlmoco
+    ajudaCustoJantar = linha.ajudaCustoJantar
+    ajudaCustoCeia = linha.ajudaCustoCeia
+  }
+
+  const totalAjudasCusto =
+    ajudaCustoAlmoco * config.senhaAlmoco +
+    ajudaCustoJantar * config.senhaJantar +
+    ajudaCustoCeia * config.senhaCeia
+
+  const baseImponivel = totalHorasExtra + totalPiquete + totalPrevencao
+  const irs = baseImponivel * taxaIRS
+  const ss = baseImponivel * config.taxaSS
+  const totalBruto = baseImponivel + totalAjudasCusto
+  const liquido = totalBruto - irs - ss
+
+  return {
+    semanaDia, semanaNoite, fdsDia, fdsNoite,
+    taxaSemanaDia, taxaSemanaNoite, taxaFdsDia, taxaFdsNoite,
+    totalSemanaDiaBruto: semanaDia * taxaSemanaDia,
+    totalSemanaNoiteBruto: semanaNoite * taxaSemanaNoite,
+    totalFdsDiaBruto: fdsDia * taxaFdsDia,
+    totalFdsNoiteBruto: fdsNoite * taxaFdsNoite,
+    totalHorasExtraSemana, totalHorasExtraFds, totalHorasExtra,
+    piqueteSemana, piqueteFds, taxaPiqueteSemana, taxaPiqueteFds,
+    totalPiquete,
+    prevencaoSemana, prevencaoFds, taxaPrevencaoSemana, taxaPrevencaoFds,
+    totalPrevencao,
+    ajudaCustoAlmoco, ajudaCustoJantar, ajudaCustoCeia,
+    taxaAjudaAlmoco: config.senhaAlmoco,
+    taxaAjudaJantar: config.senhaJantar,
+    taxaAjudaCeia: config.senhaCeia,
+    totalAjudasCusto,
+    baseImponivel, taxaIRS, taxaSS: config.taxaSS, irs, ss,
+    totalBruto, liquido,
+  }
+}
+
 /**
  * Calculates the gross value (before IRS/SS deductions) for a single entry,
  * attributing only days/hours that fall within the target month.
