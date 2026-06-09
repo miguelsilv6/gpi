@@ -55,6 +55,7 @@ export function BugReportForm() {
       const params = new URLSearchParams({ mine: '1' })
       if (cursor) params.set('cursor', cursor)
       const res = await fetch(`/api/bug-reports?${params}`)
+      if (!res.ok) throw new Error('Erro ao carregar reports')
       const data = await res.json()
       const items: MyBugReport[] = data.items ?? []
       setMine((prev) => (isInitial ? items : [...prev, ...items]))

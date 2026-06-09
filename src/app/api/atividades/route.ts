@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         where: { nome: descricao },
         select: { temControlo: true },
       })
-      if (padrao && !padrao.temControlo) {
+      if (!padrao || !padrao.temControlo) {
         return apiError('Este tipo de atividade não suporta controlos', 422)
       }
     }

@@ -422,10 +422,16 @@ async function runDeadlineCheck() {
   // ── Controlos: alert before each upcoming realizacao ──────────────────────
   // No global threshold here — each controlo carries its own alertaDias, so
   // we load all unalerted pending realizacoes and filter in-process.
+  // Cap the DB query at 90 days (max allowed alertaDias) so the result set
+  // stays bounded even with many future recurring realizacoes.
+  const maxThreshold = new Date()
+  maxThreshold.setDate(maxThreshold.getDate() + 90)
+
   const pendingRealizacoes = await prisma.controloRealizacao.findMany({
     where: {
       dataRealizacao: null,
       alertaEnviado: false,
+      dataEsperada: { lte: maxThreshold },
       controlo: {
         concluidoEm: null,
         // Skip alerts for controlos linked to deleted or terminal inquiries

@@ -49,7 +49,7 @@ export async function PATCH(
       const newEstado = data.estado as EstadoBug
       if (newEstado !== existing.estado) {
         const allowed = VALID_TRANSITIONS[existing.estado]
-        if (!allowed.includes(newEstado)) {
+        if (!allowed || !allowed.includes(newEstado)) {
           return apiError(
             `Transição de estado inválida: ${existing.estado} → ${newEstado}`,
             422,
