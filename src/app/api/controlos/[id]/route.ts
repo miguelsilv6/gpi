@@ -25,6 +25,7 @@ async function getControloAndCheckAccess(
       id: true,
       criadorId: true,
       inquerito: { select: { brigadaId: true } },
+      criador: { select: { brigadaId: true } },
     },
   })
   if (!controlo) return null
@@ -34,7 +35,7 @@ async function getControloAndCheckAccess(
   if (
     hasPermission(role, 'controlo:read:brigade') &&
     brigadaId &&
-    controlo.inquerito?.brigadaId === brigadaId
+    (controlo.inquerito?.brigadaId === brigadaId || controlo.criador.brigadaId === brigadaId)
   ) {
     return controlo
   }

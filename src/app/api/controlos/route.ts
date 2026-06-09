@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession, handleApiError, apiError, buildControloWhere } from '@/lib/auth-helpers'
+import { getSession, handleApiError, apiError, buildControloWhere, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { CONTROLO_SELECT } from '@/lib/controlos'
 import { z } from 'zod'
@@ -76,13 +76,21 @@ export async function POST(req: NextRequest) {
     const { descricao, observacoes, dataInicio, periodoDias, alertaDias, nuipc } = parsed.data
 
     // Resolve NUIPC → inquérito id (optional)
+    // Uses buildInqueritoWhere to prevent IDOR: only inquiries the user can
+    // legitimately access may be linked to a new controlo.
     let inqueritoid: string | null = null
     if (nuipc?.trim()) {
-      const inq = await prisma.inquerito.findUnique({
-        where: { nuipc: nuipc.trim().toUpperCase() },
-        select: { id: true, deletedAt: true },
+      const inq = await prisma.inquerito.findFirst({
+        where: {
+          AND: [
+            { nuipc: nuipc.trim().toUpperCase() },
+            { deletedAt: null },
+            buildInqueritoWhere(role, session.user.id, session.user.brigadaId ?? null),
+          ],
+        },
+        select: { id: true },
       })
-      if (!inq || inq.deletedAt) return apiError('Inquérito não encontrado', 404)
+      if (!inq) return apiError('Inquérito não encontrado ou sem permissão de acesso', 404)
       inqueritoid = inq.id
     }
 

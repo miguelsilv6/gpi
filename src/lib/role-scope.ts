@@ -57,6 +57,7 @@ export function buildControloWhere(
       OR: [
         { criadorId: userId },
         { inquerito: { brigadaId } },
+        { criador: { brigadaId } },
       ],
     }
   }

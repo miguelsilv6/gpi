@@ -24,7 +24,13 @@ export function CreateControloDialog() {
   const [descricao, setDescricao] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [nuipc, setNuipc] = useState('')
-  const [dataInicio, setDataInicio] = useState(() => new Date().toISOString().slice(0, 10))
+  const [dataInicio, setDataInicio] = useState(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })
   const [periodico, setPeriodico] = useState(false)
   const [periodoDias, setPeriodoDias] = useState('15')
   const [alertaDias, setAlertaDias] = useState('3')

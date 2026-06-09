@@ -428,7 +428,14 @@ async function runDeadlineCheck() {
       dataRealizacao: null,
       alertaEnviado: false,
       dataEsperada: { lte: controloThreshold },
-      controlo: { concluidoEm: null },
+      controlo: {
+        concluidoEm: null,
+        // Skip alerts for controlos linked to deleted or terminal inquiries
+        OR: [
+          { inqueritoid: null },
+          { inquerito: { deletedAt: null, estado: { terminal: false } } },
+        ],
+      },
     },
     include: {
       controlo: {
@@ -448,7 +455,7 @@ async function runDeadlineCheck() {
         utilizadorId: controlo.criadorId,
         tipo: 'CONTROLO_APROXIMANDO',
         titulo: `${realizacao.numero}.º Controlo a aproximar${nuipcLabel}`,
-        mensagem: `${controlo.descricao}: ${realizacao.numero}.º controlo previsto para ${new Date(realizacao.dataEsperada).toLocaleDateString('pt-PT')}.`,
+        mensagem: `${controlo.descricao}: ${realizacao.numero}.º controlo previsto para ${new Date(realizacao.dataEsperada).toLocaleDateString('pt-PT', { timeZone: 'UTC' })}.`,
         sendEmail: true,
         emailAddress: controlo.criador.email,
       }).then(() =>
