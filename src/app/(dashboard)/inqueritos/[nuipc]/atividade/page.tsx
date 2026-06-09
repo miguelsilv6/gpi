@@ -11,11 +11,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ChevronLeft, Loader2, Settings, Bell, Info } from 'lucide-react'
+import { ChevronLeft, Loader2, Settings, Bell, Info, ClipboardCheck, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { slugToNuipc, nuipcToSlug, cn } from '@/lib/utils'
-import { ClipboardCheck, RotateCcw } from 'lucide-react'
 
 interface AtividadePadrao {
   id: string
@@ -24,6 +23,7 @@ interface AtividadePadrao {
   ativa: boolean
   temPrazo: boolean
   temQuantidade: boolean
+  temControlo: boolean
   transicaoEstadoId: string | null
 }
 
@@ -75,7 +75,6 @@ export default function AddAtividadePage() {
   const [estados, setEstados] = useState<EstadoOption[]>([])
   const [loadingPadrao, setLoadingPadrao] = useState(true)
   const [showAlerta2, setShowAlerta2] = useState(false)
-  const [temControlo, setTemControlo] = useState(false)
 
   useEffect(() => {
     fetch(`/api/inqueritos/${slug}`)
@@ -131,7 +130,7 @@ export default function AddAtividadePage() {
       dataPrazo: selectedPadrao?.temPrazo ? (data.dataPrazo || null) : null,
       alertaDias1: selectedPadrao?.temPrazo ? (data.alertaDias1 ?? null) : null,
       alertaDias2: (selectedPadrao?.temPrazo && showAlerta2) ? (data.alertaDias2 ?? null) : null,
-      controlo: temControlo && data.controlo
+      controlo: selectedPadrao?.temControlo && data.controlo
         ? {
             dataInicio: data.controlo.dataInicio || data.dataRealizacao || undefined,
             periodoDias: data.controlo.periodico ? (data.controlo.periodoDias ?? null) : null,
@@ -245,20 +244,21 @@ export default function AddAtividadePage() {
                         setValue('dataPrazo', undefined)
                         setValue('alertaDias1', undefined)
                         setValue('alertaDias2', undefined)
+                        setValue('controlo', undefined)
                         setShowAlerta2(false)
                       }}
                       value={field.value ?? ''}
                     >
-                      <SelectTrigger className={errors.descricao ? 'border-red-500' : ''}>
+                      <SelectTrigger className={cn('w-full', errors.descricao && 'border-red-500')}>
                         <SelectValue placeholder="Selecionar tipo de atividade..." />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="w-[--radix-select-trigger-width]">
                         {atividadesPadrao.map((a) => (
                           <SelectItem key={a.id} value={a.nome}>
                             <span>{a.nome}</span>
-                            {(a.temPrazo || a.temQuantidade) && (
+                            {(a.temPrazo || a.temQuantidade || a.temControlo) && (
                               <span className="ml-2 text-xs text-muted-foreground">
-                                {[a.temPrazo && 'Prazo', a.temQuantidade && 'Qtd'].filter(Boolean).join(' · ')}
+                                {[a.temPrazo && 'Prazo', a.temQuantidade && 'Qtd', a.temControlo && 'Controlo'].filter(Boolean).join(' · ')}
                               </span>
                             )}
                           </SelectItem>
@@ -395,88 +395,81 @@ export default function AddAtividadePage() {
               </div>
             )}
 
-            {/* Controlo (optional) */}
-            <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
-              <div className="flex items-center gap-2">
-                <input
-                  id="tem-controlo"
-                  type="checkbox"
-                  checked={temControlo}
-                  onChange={(e) => setTemControlo(e.target.checked)}
-                  className="h-4 w-4 rounded border-border"
-                />
-                <label htmlFor="tem-controlo" className="flex items-center gap-1.5 text-sm font-medium cursor-pointer">
+            {/* Controlo — shown automatically when the selected activity type
+                has temControlo enabled (configured by admin). */}
+            {selectedPadrao?.temControlo && (
+              <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+                <div className="flex items-center gap-1.5 text-sm font-medium">
                   <ClipboardCheck className="h-4 w-4 text-blue-500" />
-                  Tem controlo
-                </label>
-              </div>
+                  Controlo
+                </div>
 
-              {temControlo && (
-                <div className="space-y-3 pl-6">
+                <div className="space-y-1.5">
+                  <Label htmlFor="controlo-data-inicio">Data de início</Label>
+                  <Input
+                    id="controlo-data-inicio"
+                    type="date"
+                    {...register('controlo.dataInicio')}
+                    defaultValue={defaultDate}
+                  />
+                  <p className="text-xs text-muted-foreground">Por omissão usa a data de realização da atividade.</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Controller
+                    name="controlo.periodico"
+                    control={control}
+                    defaultValue={false}
+                    render={({ field }) => (
+                      <>
+                        <input
+                          id="controlo-periodico"
+                          type="checkbox"
+                          checked={field.value ?? false}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <label htmlFor="controlo-periodico" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                          <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                          Periódico (recorrente)
+                        </label>
+                      </>
+                    )}
+                  />
+                </div>
+
+                {watch('controlo.periodico') && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="controlo-data-inicio">Data de início do controlo</Label>
+                    <Label htmlFor="controlo-periodo">Período (dias)</Label>
                     <Input
-                      id="controlo-data-inicio"
-                      type="date"
-                      {...register('controlo.dataInicio')}
-                      defaultValue={defaultDate}
-                    />
-                    <p className="text-xs text-muted-foreground">Por omissão usa a data de realização da atividade.</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Controller
-                      name="controlo.periodico"
-                      control={control}
-                      defaultValue={false}
-                      render={({ field }) => (
-                        <>
-                          <input
-                            id="controlo-periodico"
-                            type="checkbox"
-                            checked={field.value ?? false}
-                            onChange={(e) => field.onChange(e.target.checked)}
-                            className="h-4 w-4 rounded border-border"
-                          />
-                          <label htmlFor="controlo-periodico" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-                            Periódico (recorrente)
-                          </label>
-                        </>
-                      )}
-                    />
-                  </div>
-
-                  {watch('controlo.periodico') && (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="controlo-periodo">Período (dias)</Label>
-                      <Input
-                        id="controlo-periodo"
-                        type="number"
-                        min={1}
-                        max={365}
-                        placeholder="15"
-                        className="max-w-[120px]"
-                        {...register('controlo.periodoDias', { setValueAs: (v) => (v === '' || v == null) ? undefined : parseInt(v, 10) || undefined })}
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="controlo-alerta">Alertar com antecedência (dias)</Label>
-                    <Input
-                      id="controlo-alerta"
+                      id="controlo-periodo"
                       type="number"
                       min={1}
-                      max={90}
-                      defaultValue={3}
+                      max={365}
+                      placeholder="15"
                       className="max-w-[120px]"
-                      {...register('controlo.alertaDias', { valueAsNumber: true })}
+                      {...register('controlo.periodoDias', { setValueAs: (v) => (v === '' || v == null) ? undefined : parseInt(v, 10) || undefined })}
                     />
+                    {errors.controlo?.periodoDias && (
+                      <p className="text-xs text-red-600">{errors.controlo.periodoDias.message}</p>
+                    )}
                   </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="controlo-alerta">Alertar com antecedência (dias)</Label>
+                  <Input
+                    id="controlo-alerta"
+                    type="number"
+                    min={1}
+                    max={90}
+                    defaultValue={3}
+                    className="max-w-[120px]"
+                    {...register('controlo.alertaDias', { valueAsNumber: true })}
+                  />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Observations */}
             <div className="space-y-1.5">

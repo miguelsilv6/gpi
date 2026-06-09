@@ -530,6 +530,7 @@ model AtividadePadrao {
   ordem                 Int      @default(0)
   temPrazo              Boolean  @default(false)
   temQuantidade         Boolean  @default(false)
+  temControlo           Boolean  @default(false)
   // When false, activities of this type are excluded from analytical
   // aggregations (e.g. "Resumo por tipo" in the inquérito detail). The total
   // count of activities is unaffected.

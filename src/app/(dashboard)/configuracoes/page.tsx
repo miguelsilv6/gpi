@@ -69,6 +69,7 @@ interface AtividadePadrao {
   ordem: number
   temPrazo: boolean
   temQuantidade: boolean
+  temControlo: boolean
   contaParaEstatistica: boolean
   transicaoEstadoId: string | null
   categoriaDashboard: CategoriaDashboard
@@ -90,6 +91,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [newDescricao, setNewDescricao] = useState('')
   const [newTemPrazo, setNewTemPrazo] = useState(false)
   const [newTemQuantidade, setNewTemQuantidade] = useState(false)
+  const [newTemControlo, setNewTemControlo] = useState(false)
   const [newContaParaEstatistica, setNewContaParaEstatistica] = useState(true)
   const [newTransicaoEstadoId, setNewTransicaoEstadoId] = useState<string>('')
   const [newCategoriaDashboard, setNewCategoriaDashboard] = useState<CategoriaDashboard>(null)
@@ -99,6 +101,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [editDescricao, setEditDescricao] = useState('')
   const [editTemPrazo, setEditTemPrazo] = useState(false)
   const [editTemQuantidade, setEditTemQuantidade] = useState(false)
+  const [editTemControlo, setEditTemControlo] = useState(false)
   const [editContaParaEstatistica, setEditContaParaEstatistica] = useState(true)
   const [editTransicaoEstadoId, setEditTransicaoEstadoId] = useState<string>('')
   const [editCategoriaDashboard, setEditCategoriaDashboard] = useState<CategoriaDashboard>(null)
@@ -129,6 +132,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
         descricao: newDescricao.trim() || null,
         temPrazo: newTemPrazo,
         temQuantidade: newTemQuantidade,
+        temControlo: newTemControlo,
         contaParaEstatistica: newContaParaEstatistica,
         transicaoEstadoId: newTransicaoEstadoId || null,
         categoriaDashboard: newCategoriaDashboard,
@@ -145,6 +149,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
     setNewDescricao('')
     setNewTemPrazo(false)
     setNewTemQuantidade(false)
+    setNewTemControlo(false)
     setNewContaParaEstatistica(true)
     setNewTransicaoEstadoId('')
     setNewCategoriaDashboard(null)
@@ -154,7 +159,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
   async function handleToggleField(
     a: AtividadePadrao,
-    field: 'ativa' | 'temPrazo' | 'temQuantidade' | 'contaParaEstatistica',
+    field: 'ativa' | 'temPrazo' | 'temQuantidade' | 'temControlo' | 'contaParaEstatistica',
   ) {
     const res = await fetch(`/api/atividades-padrao/${a.id}`, {
       method: 'PUT',
@@ -232,6 +237,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
     setEditDescricao(a.descricao ?? '')
     setEditTemPrazo(a.temPrazo)
     setEditTemQuantidade(a.temQuantidade)
+    setEditTemControlo(a.temControlo)
     setEditContaParaEstatistica(a.contaParaEstatistica)
     setEditTransicaoEstadoId(a.transicaoEstadoId ?? '')
     setEditCategoriaDashboard(a.categoriaDashboard)
@@ -247,6 +253,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
         descricao: editDescricao.trim() || null,
         temPrazo: editTemPrazo,
         temQuantidade: editTemQuantidade,
+        temControlo: editTemControlo,
         contaParaEstatistica: editContaParaEstatistica,
         transicaoEstadoId: editTransicaoEstadoId || null,
         categoriaDashboard: editCategoriaDashboard,
@@ -329,6 +336,16 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input
                   type="checkbox"
+                  checked={newTemControlo}
+                  onChange={(e) => setNewTemControlo(e.target.checked)}
+                  className="h-4 w-4 rounded border"
+                />
+                <span>Tem controlo</span>
+                <span className="text-xs text-muted-foreground">(pede data, período e alerta ao registar)</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
                   checked={newContaParaEstatistica}
                   onChange={(e) => setNewContaParaEstatistica(e.target.checked)}
                   className="h-4 w-4 rounded border"
@@ -399,7 +416,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
               </Button>
               <Button size="sm" variant="ghost" onClick={() => {
                 setAdding(false); setNewNome(''); setNewDescricao('')
-                setNewTemPrazo(false); setNewTemQuantidade(false)
+                setNewTemPrazo(false); setNewTemQuantidade(false); setNewTemControlo(false)
                 setNewCategoriaDashboard(null)
               }}>
                 Cancelar
@@ -464,6 +481,15 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                         className="h-4 w-4 rounded border"
                       />
                       <span>Tem quantidade</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={editTemControlo}
+                        onChange={(e) => setEditTemControlo(e.target.checked)}
+                        className="h-4 w-4 rounded border"
+                      />
+                      <span>Tem controlo</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
@@ -585,6 +611,19 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                       )}
                     >
                       Qtd
+                    </button>
+                    {/* Controlo toggle */}
+                    <button
+                      onClick={() => handleToggleField(a, 'temControlo')}
+                      title="Clique para ativar/desativar controlo periódico"
+                      className={cn(
+                        'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
+                        a.temControlo
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          : 'bg-muted text-muted-foreground/60',
+                      )}
+                    >
+                      Controlo
                     </button>
                     {/* Estatística toggle */}
                     <button
