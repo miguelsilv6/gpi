@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
       startAddress: data.startAddress ?? null,
       endAddress: data.endAddress ?? null,
       country: data.country ?? null,
+      fonte: 'rdap.org (redireciona para o registry oficial — RDAP, sucessor do WHOIS)',
     })
   } catch (error) {
     return handleApiError(error)

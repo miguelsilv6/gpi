@@ -30,7 +30,7 @@ export default async function ToolboxPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Toolbox</h1>
         <p className="text-muted-foreground text-sm">
-          Ferramentas de apoio à investigação: análise de IPs, emails, DNS e utilitários.
+          Ferramentas OSINT de apoio à investigação: IPs, DNS, domínios e o seu histórico — com a fonte consultada sempre identificada.
         </p>
       </div>
       <ToolboxView />

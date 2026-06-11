@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       if (ptr === null) {
         return apiError('Reverse DNS falhou — IP inválido ou sem registo PTR', 422)
       }
-      return Response.json({ tipo: 'reverse', query, ptr })
+      return Response.json({ tipo: 'reverse', query, ptr, fonte: 'Resolver DNS do servidor da aplicação (node:dns)' })
     }
 
     if (!DOMAIN_RE.test(query)) {
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
       ns: ns ?? [],
       txt: (txt ?? []).map((parts) => parts.join('')),
       cname: cname ?? [],
+      fonte: 'Resolver DNS do servidor da aplicação (node:dns)',
     })
   } catch (error) {
     return handleApiError(error)

@@ -4,29 +4,28 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Search, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
-import { ResultRow, CopyButton, postTool } from './toolbox-shared'
+import { ResultRow, CopyButton, FonteNote, postTool } from './toolbox-shared'
 
 interface IpLookupResult {
   query: string
+  tipo: string
   country: string
   countryCode: string
+  continent: string
   regionName: string
   city: string
   zip: string
-  lat: number
-  lon: number
+  lat: number | null
+  lon: number | null
   timezone: string
   isp: string
   org: string
-  as: string
-  asname: string
+  asn: string
+  asDomain: string
   reverse: string
-  mobile: boolean
-  proxy: boolean
-  hosting: boolean
+  fonte: string
 }
 
 export function IpLookupTool() {
@@ -64,55 +63,23 @@ export function IpLookupTool() {
       </div>
 
       {result && (
-        <div className="rounded-lg border p-4 space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Flag active={result.proxy} activeLabel="Proxy/VPN detetado" inactiveLabel="Sem proxy/VPN" danger />
-            <Flag active={result.hosting} activeLabel="Datacenter/Hosting" inactiveLabel="Não é datacenter" danger />
-            <Flag active={result.mobile} activeLabel="Rede móvel" inactiveLabel="Rede fixa" />
-          </div>
-          <div>
-            <ResultRow label="IP" value={<>{result.query} <CopyButton text={result.query} /></>} />
-            <ResultRow label="País" value={`${result.country} (${result.countryCode})`} />
-            <ResultRow label="Região / Cidade" value={`${result.regionName} / ${result.city}${result.zip ? ` (${result.zip})` : ''}`} />
-            <ResultRow label="Coordenadas" value={`${result.lat}, ${result.lon}`} />
-            <ResultRow label="Fuso horário" value={result.timezone} />
-            <ResultRow label="ISP" value={result.isp} />
-            <ResultRow label="Organização" value={result.org || '—'} />
-            <ResultRow label="ASN" value={result.as} />
-            <ResultRow label="Reverse DNS" value={result.reverse || '—'} />
-          </div>
+        <div className="rounded-lg border p-4">
+          <ResultRow label="IP" value={<>{result.query} <CopyButton text={result.query} /></>} />
+          <ResultRow label="País" value={`${result.country} (${result.countryCode})${result.continent ? ` — ${result.continent}` : ''}`} />
+          <ResultRow label="Região / Cidade" value={`${result.regionName} / ${result.city}${result.zip ? ` (${result.zip})` : ''}`} />
+          <ResultRow
+            label="Coordenadas"
+            value={result.lat !== null && result.lon !== null ? `${result.lat}, ${result.lon}` : '—'}
+          />
+          <ResultRow label="Fuso horário" value={result.timezone || '—'} />
+          <ResultRow label="ISP" value={result.isp || '—'} />
+          <ResultRow label="Organização" value={result.org || '—'} />
+          <ResultRow label="ASN" value={`${result.asn}${result.asDomain ? ` (${result.asDomain})` : ''}` || '—'} />
+          <ResultRow label="Reverse DNS" value={result.reverse || '—'} />
+          <FonteNote fonte={result.fonte} />
         </div>
       )}
     </div>
-  )
-}
-
-function Flag({
-  active,
-  activeLabel,
-  inactiveLabel,
-  danger = false,
-}: {
-  active: boolean
-  activeLabel: string
-  inactiveLabel: string
-  danger?: boolean
-}) {
-  const Icon = active && danger ? AlertTriangle : ShieldCheck
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border',
-        active && danger
-          ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-900'
-          : active
-            ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900'
-            : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
-      )}
-    >
-      <Icon className="h-3 w-3" />
-      {active ? activeLabel : inactiveLabel}
-    </span>
   )
 }
 
@@ -126,6 +93,7 @@ interface DnsResult {
   ns?: string[]
   txt?: string[]
   cname?: string[]
+  fonte: string
 }
 
 export function DnsTool() {
@@ -165,6 +133,7 @@ export function DnsTool() {
       {result?.tipo === 'reverse' && (
         <div className="rounded-lg border p-4">
           <ResultRow label="PTR" value={(result.ptr ?? []).join(', ') || '—'} />
+          <FonteNote fonte={result.fonte} />
         </div>
       )}
       {result?.tipo === 'forward' && (
@@ -187,6 +156,7 @@ export function DnsTool() {
               </ul>
             </div>
           )}
+          <FonteNote fonte={result.fonte} />
         </div>
       )}
     </div>
@@ -207,6 +177,7 @@ interface WhoisResult {
   startAddress: string | null
   endAddress: string | null
   country: string | null
+  fonte: string
 }
 
 function fmtRdapDate(iso: string | null): string {
@@ -266,6 +237,7 @@ export function WhoisTool() {
               <ResultRow label="País" value={result.country ?? '—'} />
             </>
           )}
+          <FonteNote fonte={result.fonte} />
         </div>
       )}
       <p className="text-xs text-muted-foreground">

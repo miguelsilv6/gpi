@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Loader2, ScanSearch, AlertTriangle, CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { ResultRow, CopyButton, postTool } from './toolbox-shared'
+import { ResultRow, CopyButton, FonteNote, postTool } from './toolbox-shared'
 import type { EmailHeaderAnalysis } from '@/lib/toolbox/email-headers'
 
 function AuthBadge({ label, result }: { label: string; result: string | null }) {
@@ -126,6 +126,7 @@ export function EmailHeadersTool() {
               </ol>
             </div>
           )}
+          <FonteNote fonte="Análise local no servidor da aplicação — o cabeçalho não é enviado para serviços externos" />
         </div>
       )}
     </div>
