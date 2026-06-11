@@ -2,7 +2,17 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, BookOpenCheck } from 'lucide-react'
+
+/** Indica a fonte consultada — obrigatório em todas as ferramentas OSINT. */
+export function FonteNote({ fonte }: { fonte: string }) {
+  return (
+    <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-2 border-t mt-2">
+      <BookOpenCheck className="h-3 w-3 shrink-0" />
+      <span>Fonte: {fonte}</span>
+    </p>
+  )
+}
 
 /** Linha label→valor monoespaçado usada nos resultados das ferramentas. */
 export function ResultRow({ label, value }: { label: string; value: React.ReactNode }) {

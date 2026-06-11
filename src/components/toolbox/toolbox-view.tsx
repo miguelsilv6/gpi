@@ -7,15 +7,16 @@ import {
   MailSearch,
   Network,
   FileSearch,
-  Hash,
-  Binary,
+  FileKey2,
+  History,
   ShieldOff,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IpLookupTool, DnsTool, WhoisTool } from './tools-network'
 import { EmailHeadersTool } from './tools-email'
-import { HashTool, EncoderTool, DefangTool } from './tools-utils'
+import { CertHistoryTool, WebHistoryTool } from './tools-osint'
+import { DefangTool } from './tools-utils'
 
 interface Tool {
   id: string
@@ -29,16 +30,9 @@ const TOOLS: Tool[] = [
   {
     id: 'ip',
     label: 'IP Lookup',
-    descricao: 'Geolocalização, ISP/ASN e deteção de proxy/VPN ou datacenter.',
+    descricao: 'Geolocalização, ISP/ASN e reverse DNS de um endereço IP.',
     icon: Globe,
     component: IpLookupTool,
-  },
-  {
-    id: 'email',
-    label: 'Cabeçalhos de Email',
-    descricao: 'Cadeia de entrega, IP de origem, SPF/DKIM/DMARC e sinais de spoofing.',
-    icon: MailSearch,
-    component: EmailHeadersTool,
   },
   {
     id: 'dns',
@@ -55,18 +49,25 @@ const TOOLS: Tool[] = [
     component: WhoisTool,
   },
   {
-    id: 'hash',
-    label: 'Hashes',
-    descricao: 'MD5, SHA-1, SHA-256 e SHA-512 de texto — comparação de IOCs.',
-    icon: Hash,
-    component: HashTool,
+    id: 'certs',
+    label: 'Certificados (CT)',
+    descricao: 'Histórico de certificados TLS e subdomínios via Certificate Transparency.',
+    icon: FileKey2,
+    component: CertHistoryTool,
   },
   {
-    id: 'encoder',
-    label: 'Codificador',
-    descricao: 'Base64, URL-encoding e hexadecimal — codificar e descodificar.',
-    icon: Binary,
-    component: EncoderTool,
+    id: 'wayback',
+    label: 'Histórico Web',
+    descricao: 'Capturas históricas de sites na Wayback Machine (Internet Archive).',
+    icon: History,
+    component: WebHistoryTool,
+  },
+  {
+    id: 'email',
+    label: 'Cabeçalhos de Email',
+    descricao: 'Cadeia de entrega, IP de origem, SPF/DKIM/DMARC e sinais de spoofing.',
+    icon: MailSearch,
+    component: EmailHeadersTool,
   },
   {
     id: 'defang',
