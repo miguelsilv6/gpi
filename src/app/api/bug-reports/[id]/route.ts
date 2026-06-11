@@ -3,16 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit, diff } from '@/lib/audit'
-import { SEVERIDADE_VALUES, ESTADO_VALUES } from '@/lib/bugreport-labels'
+import { SEVERIDADE_VALUES, ESTADO_VALUES, isTransicaoEstadoValida } from '@/lib/bugreport-labels'
 import { z } from 'zod'
 import type { Role, EstadoBug, SeveridadeBug } from '@/generated/prisma/enums'
-
-const VALID_TRANSITIONS: Record<EstadoBug, EstadoBug[]> = {
-  ABERTO:     ['EM_ANALISE', 'REJEITADO'],
-  EM_ANALISE: ['ABERTO', 'RESOLVIDO', 'REJEITADO'],
-  RESOLVIDO:  ['ABERTO', 'EM_ANALISE'],
-  REJEITADO:  ['ABERTO', 'EM_ANALISE'],
-}
 
 const updateSchema = z.object({
   estado: z.enum(ESTADO_VALUES as [string, ...string[]]).optional(),
@@ -45,17 +38,11 @@ export async function PATCH(
 
     const data = parsed.data
 
-    if (data.estado !== undefined) {
-      const newEstado = data.estado as EstadoBug
-      if (newEstado !== existing.estado) {
-        const allowed = VALID_TRANSITIONS[existing.estado]
-        if (!allowed || !allowed.includes(newEstado)) {
-          return apiError(
-            `Transição de estado inválida: ${existing.estado} → ${newEstado}`,
-            422,
-          )
-        }
-      }
+    if (data.estado !== undefined && !isTransicaoEstadoValida(existing.estado, data.estado as EstadoBug)) {
+      return apiError(
+        `Transição de estado inválida: ${existing.estado} → ${data.estado}`,
+        422,
+      )
     }
 
     const updated = await prisma.bugReport.update({
