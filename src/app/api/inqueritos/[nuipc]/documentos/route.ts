@@ -113,34 +113,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
     await fs.mkdir(DOCUMENTOS_DIR, { recursive: true })
     await fs.writeFile(path.join(DOCUMENTOS_DIR, storedName), buffer, { mode: 0o644 })
 
-    try {
-      const documento = await prisma.documento.create({
-        data: {
-          filename,
-          storedName,
-          mimeType: file.type,
-          tamanho: buffer.length,
-          inqueritoid: inquerito.id,
-          uploadedById: session.user.id,
-        },
-        select: DOCUMENTO_SELECT,
-      })
+    // Separar o rollback de disco do audit: se o DB falhar → apagar o ficheiro;
+    // se o audit falhar → o upload já está persistido, não desfazer.
+    const documento = await (async () => {
+      try {
+        return await prisma.documento.create({
+          data: {
+            filename,
+            storedName,
+            mimeType: file.type,
+            tamanho: buffer.length,
+            inqueritoid: inquerito.id,
+            uploadedById: session.user.id,
+          },
+          select: DOCUMENTO_SELECT,
+        })
+      } catch (error) {
+        await fs.unlink(path.join(DOCUMENTOS_DIR, storedName)).catch(() => {})
+        throw error
+      }
+    })()
 
-      await writeAudit({
-        req,
-        acao: 'UPLOAD_DOCUMENTO',
-        entidade: 'Documento',
-        entidadeId: documento.id,
-        utilizadorId: session.user.id,
-        detalhes: { filename, tamanho: buffer.length, nuipc: inquerito.nuipc },
-      })
+    await writeAudit({
+      req,
+      acao: 'UPLOAD_DOCUMENTO',
+      entidade: 'Documento',
+      entidadeId: documento.id,
+      utilizadorId: session.user.id,
+      detalhes: { filename, tamanho: buffer.length, nuipc: inquerito.nuipc },
+    }).catch(() => {})
 
-      return Response.json(documento, { status: 201 })
-    } catch (error) {
-      // A linha na BD falhou — não deixar o ficheiro órfão em disco.
-      await fs.unlink(path.join(DOCUMENTOS_DIR, storedName)).catch(() => {})
-      throw error
-    }
+    return Response.json(documento, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }

@@ -16,11 +16,16 @@ set -e
 # user `nextjs`. Sem isto, o pg_dump do backup agendado falhava com
 # "Permission denied". Corrigimos sempre, e depois dropamos privilégios.
 if [ "$(id -u)" = "0" ]; then
-  for dir in /app/backups /app/control /app/branding /app/documentos; do
+  for dir in /app/backups /app/control /app/branding; do
     if [ -d "$dir" ]; then
       chown -R nextjs:nodejs "$dir" 2>/dev/null || true
     fi
   done
+  # documentos: só corrigir o diretório raiz (não recursivo) — os ficheiros
+  # dentro são escritos pelo próprio nextjs e já têm o owner correto.
+  if [ -d /app/documentos ]; then
+    chown nextjs:nodejs /app/documentos 2>/dev/null || true
+  fi
   exec su-exec nextjs:nodejs "$0" "$@"
 fi
 
