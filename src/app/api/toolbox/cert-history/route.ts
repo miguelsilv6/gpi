@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
     // Agregar por nome: primeiro/último avistamento e emissor mais recente.
     const porNome = new Map<string, { primeiraVez: string; ultimaVez: string; emissor: string }>()
     for (const e of entries) {
+      if (!e || typeof e !== 'object') continue
       const nomes = (e.name_value ?? '').split('\n')
       for (const raw of nomes) {
         const nome = raw.trim().toLowerCase()

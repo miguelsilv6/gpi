@@ -58,13 +58,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Primeira linha é o cabeçalho dos campos; sem mais linhas = sem capturas.
-    const capturas = (Array.isArray(rows) ? rows.slice(1) : []).map((r) => ({
-      timestamp: r[0],
-      original: r[1],
-      statuscode: r[2],
-      mimetype: r[3],
-      url: `https://web.archive.org/web/${r[0]}/${r[1]}`,
-    }))
+    const capturas = (Array.isArray(rows) ? rows.slice(1) : [])
+      .filter((r) => Array.isArray(r) && r.length >= 4)
+      .map((r) => ({
+        timestamp: r[0],
+        original: r[1],
+        statuscode: r[2],
+        mimetype: r[3],
+        url: `https://web.archive.org/web/${r[0]}/${r[1]}`,
+      }))
 
     await writeAudit({
       req,

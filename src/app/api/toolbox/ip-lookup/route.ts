@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       timezone: data.timezone?.id ?? '',
       isp: data.connection?.isp ?? '',
       org: data.connection?.org ?? '',
-      asn: data.connection?.asn ? `AS${data.connection.asn}` : '',
+      asn: data.connection?.asn ? `AS${data.connection?.asn}` : '',
       asDomain: data.connection?.domain ?? '',
       reverse,
       fonte: 'ipwho.is (geolocalização) + resolver do servidor (reverse DNS)',
