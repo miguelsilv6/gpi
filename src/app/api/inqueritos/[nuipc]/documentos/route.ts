@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
+import { slugToNuipc } from '@/lib/utils'
 import {
   DOCUMENTOS_DIR,
   DOCUMENTO_MAX_BYTES,
@@ -23,12 +24,18 @@ const DOCUMENTO_SELECT = {
   uploadedBy: { select: { id: true, nome: true } },
 } as const
 
+const ALLOWED_EXTENSIONS = new Set([
+  '.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic',
+  '.txt', '.csv', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.zip', '.7z', '.eml', '.msg',
+])
+
 /** Carrega o inquérito se o utilizador tiver acesso de leitura (scope RBAC). */
-async function findInqueritoWithAccess(id: string, role: Role, userId: string, brigadaId: string | null) {
+async function findInqueritoWithAccess(nuipc: string, role: Role, userId: string, brigadaId: string | null) {
   return prisma.inquerito.findFirst({
     where: {
       AND: [
-        { id },
+        { nuipc },
         { deletedAt: null },
         buildInqueritoWhere(role, userId, brigadaId),
       ],
@@ -37,17 +44,18 @@ async function findInqueritoWithAccess(id: string, role: Role, userId: string, b
   })
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ nuipc: string }> }) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
-    const { id } = await params
+    const { nuipc: slug } = await params
+    const nuipc = slugToNuipc(slug)
 
-    const inquerito = await findInqueritoWithAccess(id, role, session.user.id, session.user.brigadaId ?? null)
+    const inquerito = await findInqueritoWithAccess(nuipc, role, session.user.id, session.user.brigadaId ?? null)
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
 
     const documentos = await prisma.documento.findMany({
-      where: { inqueritoid: id },
+      where: { inqueritoid: inquerito.id },
       orderBy: { createdAt: 'desc' },
       select: DOCUMENTO_SELECT,
     })
@@ -57,13 +65,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ nuipc: string }> }) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
-    const { id } = await params
+    const { nuipc: slug } = await params
+    const nuipc = slugToNuipc(slug)
 
-    const inquerito = await findInqueritoWithAccess(id, role, session.user.id, session.user.brigadaId ?? null)
+    const inquerito = await findInqueritoWithAccess(nuipc, role, session.user.id, session.user.brigadaId ?? null)
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
 
     // Upload segue a mesma regra de "quem pode adicionar atividades":
@@ -95,11 +104,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const filename = sanitizeFilename(file.name)
     const ext = path.extname(filename).toLowerCase()
-    const ALLOWED_EXTENSIONS = new Set([
-      '.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic',
-      '.txt', '.csv', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-      '.zip', '.7z', '.eml', '.msg',
-    ])
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return apiError('Extensão de ficheiro não permitida', 415)
     }
@@ -109,34 +113,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await fs.mkdir(DOCUMENTOS_DIR, { recursive: true })
     await fs.writeFile(path.join(DOCUMENTOS_DIR, storedName), buffer, { mode: 0o644 })
 
-    try {
-      const documento = await prisma.documento.create({
-        data: {
-          filename,
-          storedName,
-          mimeType: file.type,
-          tamanho: buffer.length,
-          inqueritoid: id,
-          uploadedById: session.user.id,
-        },
-        select: DOCUMENTO_SELECT,
-      })
+    // Separar o rollback de disco do audit: se o DB falhar → apagar o ficheiro;
+    // se o audit falhar → o upload já está persistido, não desfazer.
+    const documento = await (async () => {
+      try {
+        return await prisma.documento.create({
+          data: {
+            filename,
+            storedName,
+            mimeType: file.type,
+            tamanho: buffer.length,
+            inqueritoid: inquerito.id,
+            uploadedById: session.user.id,
+          },
+          select: DOCUMENTO_SELECT,
+        })
+      } catch (error) {
+        await fs.unlink(path.join(DOCUMENTOS_DIR, storedName)).catch(() => {})
+        throw error
+      }
+    })()
 
-      await writeAudit({
-        req,
-        acao: 'UPLOAD_DOCUMENTO',
-        entidade: 'Documento',
-        entidadeId: documento.id,
-        utilizadorId: session.user.id,
-        detalhes: { filename, tamanho: buffer.length, nuipc: inquerito.nuipc },
-      })
+    await writeAudit({
+      req,
+      acao: 'UPLOAD_DOCUMENTO',
+      entidade: 'Documento',
+      entidadeId: documento.id,
+      utilizadorId: session.user.id,
+      detalhes: { filename, tamanho: buffer.length, nuipc: inquerito.nuipc },
+    }).catch(() => {})
 
-      return Response.json(documento, { status: 201 })
-    } catch (error) {
-      // A linha na BD falhou — não deixar o ficheiro órfão em disco.
-      await fs.unlink(path.join(DOCUMENTOS_DIR, storedName)).catch(() => {})
-      throw error
-    }
+    return Response.json(documento, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }

@@ -21,6 +21,11 @@ if [ "$(id -u)" = "0" ]; then
       chown -R nextjs:nodejs "$dir" 2>/dev/null || true
     fi
   done
+  # documentos: só corrigir o diretório raiz (não recursivo) — os ficheiros
+  # dentro são escritos pelo próprio nextjs e já têm o owner correto.
+  if [ -d /app/documentos ]; then
+    chown nextjs:nodejs /app/documentos 2>/dev/null || true
+  fi
   exec su-exec nextjs:nodejs "$0" "$@"
 fi
 

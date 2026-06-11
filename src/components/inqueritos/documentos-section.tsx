@@ -31,7 +31,7 @@ export interface DocumentoItem {
 }
 
 interface Props {
-  inqueritoid: string
+  nuipcSlug: string
   documentos: DocumentoItem[]
   canUpload: boolean
   currentUserId: string
@@ -46,7 +46,7 @@ function mimeIcon(mimeType: string) {
   return File
 }
 
-export function DocumentosSection({ inqueritoid, documentos, canUpload, currentUserId, isAdmin }: Props) {
+export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUserId, isAdmin }: Props) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -58,7 +58,7 @@ export function DocumentosSection({ inqueritoid, documentos, canUpload, currentU
     try {
       const form = new FormData()
       form.append('file', file)
-      const res = await fetch(`/api/inqueritos/${inqueritoid}/documentos`, {
+      const res = await fetch(`/api/inqueritos/${nuipcSlug}/documentos`, {
         method: 'POST',
         body: form,
       })
