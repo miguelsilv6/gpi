@@ -605,7 +605,7 @@ export default async function InqueritoDetailPage({
       />
 
       <DocumentosSection
-        inqueritoid={inquerito.id}
+        nuipcSlug={inqSlug}
         documentos={documentos.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() }))}
         canUpload={canEdit && role !== 'ESTATISTICA'}
         currentUserId={session.user.id}
