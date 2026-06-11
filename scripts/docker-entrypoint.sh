@@ -16,7 +16,7 @@ set -e
 # user `nextjs`. Sem isto, o pg_dump do backup agendado falhava com
 # "Permission denied". Corrigimos sempre, e depois dropamos privilégios.
 if [ "$(id -u)" = "0" ]; then
-  for dir in /app/backups /app/control /app/branding; do
+  for dir in /app/backups /app/control /app/branding /app/documentos; do
     if [ -d "$dir" ]; then
       chown -R nextjs:nodejs "$dir" 2>/dev/null || true
     fi

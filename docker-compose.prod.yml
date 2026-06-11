@@ -52,6 +52,8 @@ services:
       # Branding: logos e favicon enviados pelo admin via /configurações.
       # Persiste através de updates da app — não é necessário no worker.
       - ./branding:/app/branding
+      # Anexos de inquéritos (documentos) — persiste entre updates.
+      - ./documentos:/app/documentos
     restart: unless-stopped
 
   worker:
