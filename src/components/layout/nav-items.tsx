@@ -15,6 +15,7 @@ import {
   BarChart2,
   Banknote,
   Bug,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -84,6 +85,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Férias',
     href: '/ferias',
     icon: CalendarDays,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Toolbox',
+    href: '/toolbox',
+    icon: Wrench,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {

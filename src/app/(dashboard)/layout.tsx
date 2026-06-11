@@ -28,6 +28,8 @@ export default async function DashboardLayout({
       moduloFeriasRoles: true,
       moduloBugReportsAtivo: true,
       moduloBugReportsRoles: true,
+      moduloToolboxAtivo: true,
+      moduloToolboxRoles: true,
       sessaoTimeoutMinutos: true,
     },
   })
@@ -60,12 +62,13 @@ export default async function DashboardLayout({
   const moduloAjudasAtivo = checkModuloAcesso(sysConfig?.moduloAjudasAtivo, sysConfig?.moduloAjudasRoles)
   const moduloFeriasAtivo = checkModuloAcesso(sysConfig?.moduloFeriasAtivo, sysConfig?.moduloFeriasRoles)
   const moduloBugReportsAtivo = checkModuloAcesso(sysConfig?.moduloBugReportsAtivo, sysConfig?.moduloBugReportsRoles)
+  const moduloToolboxAtivo = checkModuloAcesso(sysConfig?.moduloToolboxAtivo, sysConfig?.moduloToolboxRoles)
 
   return (
     <div className="flex h-screen bg-muted/30">
       {/* Sidebar — desktop only */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-background shrink-0">
-        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} />
+        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} />
       </aside>
 
       {/* Main content */}
@@ -79,6 +82,7 @@ export default async function DashboardLayout({
           moduloAjudasAtivo={moduloAjudasAtivo}
           moduloFeriasAtivo={moduloFeriasAtivo}
           moduloBugReportsAtivo={moduloBugReportsAtivo}
+          moduloToolboxAtivo={moduloToolboxAtivo}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
@@ -87,7 +91,7 @@ export default async function DashboardLayout({
       </div>
 
       {/* Bottom nav — mobile only */}
-      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} />
+      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} />
 
       <IdleTimeoutGuard timeoutMinutes={sysConfig?.sessaoTimeoutMinutos ?? 0} />
     </div>
