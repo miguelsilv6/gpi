@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     let data: Record<string, unknown>
     try {
       const res = await fetch(
-        `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=${FIELDS}&lang=pt`,
+        `https://ip-api.com/json/${encodeURIComponent(ip)}?fields=${FIELDS}&lang=pt`,
         { signal: AbortSignal.timeout(10_000), cache: 'no-store' },
       )
       if (!res.ok) return apiError('Serviço de lookup indisponível', 502)

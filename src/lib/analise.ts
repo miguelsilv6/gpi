@@ -41,8 +41,8 @@ const BUCKETS: { label: string; max: number }[] = [
 export async function computeAnalise(brigadaId: string | null): Promise<AnaliseResult> {
   const hoje = new Date()
   const inicio12m = new Date(hoje)
-  inicio12m.setMonth(inicio12m.getMonth() - 11)
   inicio12m.setDate(1)
+  inicio12m.setMonth(inicio12m.getMonth() - 11)
   inicio12m.setHours(0, 0, 0, 0)
 
   const scope = brigadaId ? { brigadaId } : {}

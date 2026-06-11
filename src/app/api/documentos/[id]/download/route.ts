@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server'
+import { createReadStream } from 'node:fs'
 import { promises as fs } from 'node:fs'
+import { Readable } from 'node:stream'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { documentoPath } from '@/lib/documentos'
@@ -23,9 +25,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     })
     if (!documento) return apiError('Documento não encontrado', 404)
 
-    let buffer: Buffer
+    const filePath = documentoPath(documento.storedName)
     try {
-      buffer = await fs.readFile(documentoPath(documento.storedName))
+      await fs.access(filePath)
     } catch {
       return apiError('Ficheiro não encontrado em disco', 410)
     }
@@ -34,10 +36,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const asciiName = documento.filename.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, "'")
     const utf8Name = encodeURIComponent(documento.filename)
 
-    return new Response(new Uint8Array(buffer), {
+    const fileStream = createReadStream(filePath)
+
+    return new Response(Readable.toWeb(fileStream) as ReadableStream, {
       headers: {
         'Content-Type': documento.mimeType,
-        'Content-Length': String(buffer.length),
+        'Content-Length': String(documento.tamanho),
         'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${utf8Name}`,
         'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'private, no-store',

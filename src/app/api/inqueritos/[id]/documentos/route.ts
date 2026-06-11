@@ -94,8 +94,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const filename = sanitizeFilename(file.name)
-    const ext = path.extname(filename).slice(0, 12)
-    const storedName = `${randomUUID()}${ext}`
+    const ext = path.extname(filename).toLowerCase()
+    const ALLOWED_EXTENSIONS = new Set([
+      '.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic',
+      '.txt', '.csv', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+      '.zip', '.7z', '.eml', '.msg',
+    ])
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return apiError('Extensão de ficheiro não permitida', 415)
+    }
+    const storedName = `${randomUUID()}${ext.slice(0, 12)}`
 
     const buffer = Buffer.from(await file.arrayBuffer())
     await fs.mkdir(DOCUMENTOS_DIR, { recursive: true })

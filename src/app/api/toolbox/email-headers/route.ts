@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { isModuloToolboxAtivo } from '@/lib/toolbox-module'
 import { analyzeEmailHeaders } from '@/lib/toolbox/email-headers'
+import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -20,6 +21,13 @@ export async function POST(req: NextRequest) {
     if (!(await isModuloToolboxAtivo(role))) {
       return apiError('O módulo Toolbox está desativado', 503)
     }
+
+    const limited = enforceRateLimit({
+      key: `toolbox:email-headers:${clientFingerprint(req)}:${session.user.id}`,
+      max: 10,
+      windowMs: 60_000,
+    })
+    if (limited) return limited
 
     const body = await req.json()
     const parsed = schema.safeParse(body)
