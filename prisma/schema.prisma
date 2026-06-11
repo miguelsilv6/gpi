@@ -102,6 +102,7 @@ model Utilizador {
   bugReports           BugReport[]
   controlosCriados     Controlo[]   @relation("ControloCriador")
   controloRealizacoes  ControloRealizacao[] @relation("ControloRealizacaoPor")
+  documentosCarregados Documento[]  @relation("DocumentoUploader")
 
   @@index([brigadaId])
   @@index([role])
@@ -170,6 +171,7 @@ model Inquerito {
   atividades   Atividade[]
   controlos    Controlo[]
   notificacoes Notificacao[]
+  documentos   Documento[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -184,6 +186,27 @@ model Inquerito {
   @@index([deletedAt])
   @@index([tribunalId])
   @@index([seccaoId])
+}
+
+// Documentos/anexos de um inquérito (provas, relatórios, ofícios…).
+// O ficheiro vive em disco (DOCUMENTOS_DIR) com um nome aleatório (storedName);
+// `filename` guarda o nome original apresentado ao utilizador.
+model Documento {
+  id         String   @id @default(cuid())
+  filename   String
+  storedName String   @unique
+  mimeType   String
+  tamanho    Int
+  createdAt  DateTime @default(now())
+
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String
+
+  uploadedBy   Utilizador @relation("DocumentoUploader", fields: [uploadedById], references: [id])
+  uploadedById String
+
+  @@index([inqueritoid])
+  @@index([uploadedById])
 }
 
 model EstadoInquerito {
@@ -445,6 +468,12 @@ model ConfiguracaoSistema {
   // Comma-separated list of Role values allowed to submit bug reports when the
   // module is active. ADMINISTRACAO always has access and is never stored here.
   moduloBugReportsRoles           String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // When false, the Toolbox module (investigator utilities: IP lookup, email
+  // header analysis, DNS, etc.) is hidden and its API routes return 503.
+  moduloToolboxAtivo              Boolean  @default(true)
+  // Comma-separated list of Role values allowed to use the Toolbox when the
+  // module is active. ADMINISTRACAO always has access and is never stored here.
+  moduloToolboxRoles              String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Idle timeout in minutes. 0 disables the feature.
   sessaoTimeoutMinutos            Int      @default(0)
   prazoAlertaDias                 Int      @default(7)

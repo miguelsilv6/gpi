@@ -51,6 +51,8 @@ services:
       - '3000:3000'
     volumes:
       - ./backups:/app/backups
+      # Anexos dos inquéritos (provas, relatórios, ofícios).
+      - ./documentos:/app/documentos
       # Canal de controlo partilhado com o worker (e com o host daemon em prod).
       # O API escreve update.request.json; o worker lê update.status.json.
       - ./control:/app/control
