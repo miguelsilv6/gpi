@@ -47,6 +47,7 @@ services:
       CRON_SECRET: ${CRON_SECRET}
       GITHUB_REPO: ${GITHUB_REPO:-miguelsilv6/gestao-projetos}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
     ports:
       - '3000:3000'
     volumes:
@@ -81,6 +82,15 @@ services:
     volumes:
       - ./backups:/app/backups
       - ./control:/app/control
+
+  # LLM local para as explicações por IA da Toolbox (ver docker-compose.prod.yml).
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gpi_ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: 5m
+    volumes:
+      - ./ollama:/root/.ollama
 
 volumes:
   postgres_data:

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Copy, Check, BookOpenCheck } from 'lucide-react'
+import { Copy, Check, BookOpenCheck, Sparkles, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 /** Indica a fonte consultada — obrigatório em todas as ferramentas OSINT. */
 export function FonteNote({ fonte }: { fonte: string }) {
@@ -44,6 +45,54 @@ export function CopyButton({ text }: { text: string }) {
     >
       {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
     </Button>
+  )
+}
+
+/** Ativação das explicações por IA — fornecido pelo ToolboxView a partir da config. */
+export const ToolboxIaContext = createContext(false)
+
+interface ExplicacaoIa {
+  explicacao: string
+  modelo: string
+  fonte: string
+}
+
+/**
+ * Botão "Explicar (IA)" + caixa de explicação. Envia o resultado da
+ * ferramenta ao LLM local e mostra a leitura em linguagem acessível.
+ * Não renderiza nada quando as explicações por IA estão desativadas.
+ */
+export function ExplainButton({ ferramenta, resultado }: { ferramenta: string; resultado: unknown }) {
+  const iaAtiva = useContext(ToolboxIaContext)
+  const [loading, setLoading] = useState(false)
+  const [resposta, setResposta] = useState<ExplicacaoIa | null>(null)
+
+  if (!iaAtiva) return null
+
+  async function run() {
+    setLoading(true)
+    setResposta(null)
+    const data = await postTool<ExplicacaoIa>('/api/toolbox/explicar', { ferramenta, resultado }, toast.error)
+    if (data) setResposta(data)
+    setLoading(false)
+  }
+
+  return (
+    <div className="pt-2 space-y-2">
+      <Button onClick={run} disabled={loading} size="sm" variant="outline" className="gap-1.5">
+        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+        {loading ? 'A analisar (pode demorar até 1 min)…' : 'Explicar (IA)'}
+      </Button>
+      {resposta && (
+        <div className="rounded-lg border border-violet-200 bg-violet-50 dark:border-violet-900 dark:bg-violet-900/20 p-3 space-y-2">
+          <p className="text-sm whitespace-pre-wrap">{resposta.explicacao}</p>
+          <p className="text-[11px] text-violet-700 dark:text-violet-300 font-medium">
+            ⚠ Gerado por IA local — verifique a informação antes de a usar em relatórios ou peças do inquérito.
+          </p>
+          <FonteNote fonte={resposta.fonte} />
+        </div>
+      )}
+    </div>
   )
 }
 

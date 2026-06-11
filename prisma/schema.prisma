@@ -474,6 +474,10 @@ model ConfiguracaoSistema {
   // Comma-separated list of Role values allowed to use the Toolbox when the
   // module is active. ADMINISTRACAO always has access and is never stored here.
   moduloToolboxRoles              String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // Explicações por IA na Toolbox (LLM local via Ollama). Opt-in: o admin só
+  // deve ativar depois de descarregar o modelo no container Ollama.
+  toolboxIaAtivo                  Boolean  @default(false)
+  toolboxIaModelo                 String   @default("qwen3:4b")
   // Idle timeout in minutes. 0 disables the feature.
   sessaoTimeoutMinutos            Int      @default(0)
   prazoAlertaDias                 Int      @default(7)
