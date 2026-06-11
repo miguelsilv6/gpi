@@ -1,8 +1,9 @@
-import { FileText, Users, Building2 } from 'lucide-react'
+import { FileText, Users, Building2, Hourglass } from 'lucide-react'
 import type { RelatorioDefinition } from './types'
 import { queryInqueritos } from './inqueritos'
 import { queryBrigadas } from './brigadas'
 import { queryInspetores } from './inspetores'
+import { queryInatividade } from './inatividade'
 
 /**
  * Registry de relatórios. Cada entrada produz um `RelatorioResult` canónico
@@ -35,6 +36,14 @@ export const RELATORIOS: Record<string, RelatorioDefinition> = {
       'Atribuídos / concluídos / ativos por inspetor + atividades realizadas no período.',
     icon: Users,
     handler: queryInspetores,
+  },
+  inatividade: {
+    id: 'inatividade',
+    titulo: 'Inquéritos parados',
+    descricao:
+      'Inquéritos ativos sem qualquer atividade registada há mais de N dias — candidatos a follow-up.',
+    icon: Hourglass,
+    handler: queryInatividade,
   },
 }
 

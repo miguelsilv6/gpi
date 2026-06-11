@@ -279,3 +279,33 @@ export function InspetoresFilters({ filters, setFilter, catalogo, lockedBrigadaI
     </div>
   )
 }
+
+export function InatividadeFilters({ filters, setFilter, catalogo, lockedBrigadaId }: FiltersProps) {
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <Field label="Dias sem atividade">
+        <Input
+          type="number"
+          min={1}
+          max={365}
+          value={filters.dias ?? '30'}
+          onChange={(e) => setFilter('dias', e.target.value)}
+        />
+      </Field>
+      <Field label="Brigada">
+        <NativeSelect
+          value={filters.brigadaId ?? lockedBrigadaId ?? ''}
+          onChange={(v) => setFilter('brigadaId', v)}
+          disabled={!!lockedBrigadaId}
+        >
+          <option value="">Todas</option>
+          {catalogo.brigadas.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.nome}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+    </div>
+  )
+}
