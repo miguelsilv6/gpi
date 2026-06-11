@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ToolboxIaContext } from './toolbox-shared'
 import { IpLookupTool, DnsTool, WhoisTool } from './tools-network'
 import { EmailHeadersTool } from './tools-email'
 import { CertHistoryTool, WebHistoryTool } from './tools-osint'
@@ -78,12 +79,13 @@ const TOOLS: Tool[] = [
   },
 ]
 
-export function ToolboxView() {
+export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
   const [activeId, setActiveId] = useState<string>(TOOLS[0].id)
   const active = TOOLS.find((t) => t.id === activeId) ?? TOOLS[0]
   const ActiveComponent = active.component
 
   return (
+    <ToolboxIaContext.Provider value={iaAtiva}>
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
       {/* Selector de ferramentas */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
@@ -119,5 +121,6 @@ export function ToolboxView() {
         </CardContent>
       </Card>
     </div>
+    </ToolboxIaContext.Provider>
   )
 }

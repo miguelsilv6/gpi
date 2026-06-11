@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Search, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
-import { FonteNote, CopyButton, postTool } from './toolbox-shared'
+import { FonteNote, CopyButton, ExplainButton, postTool } from './toolbox-shared'
 
 function fmtData(iso: string): string {
   if (!iso) return '—'
@@ -93,6 +93,7 @@ export function CertHistoryTool() {
             </div>
           )}
           <FonteNote fonte={result.fonte} />
+          <ExplainButton ferramenta="certs" resultado={result} />
         </div>
       )}
       <p className="text-xs text-muted-foreground">
@@ -195,6 +196,7 @@ export function WebHistoryTool() {
             </>
           )}
           <FonteNote fonte={result.fonte} />
+          <ExplainButton ferramenta="wayback" resultado={result} />
         </div>
       )}
       <p className="text-xs text-muted-foreground">

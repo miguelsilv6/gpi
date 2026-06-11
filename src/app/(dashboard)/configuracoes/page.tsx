@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug, Wrench } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug, Wrench, Sparkles, Download, RefreshCw } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
@@ -761,6 +761,13 @@ export default function ConfiguracoesPage() {
   const [savingModuloFerias, setSavingModuloFerias] = useState(false)
   const [savingModuloBugReports, setSavingModuloBugReports] = useState(false)
   const [savingModuloToolbox, setSavingModuloToolbox] = useState(false)
+  // Explicações por IA na Toolbox (LLM local via Ollama).
+  const [toolboxIaAtivo, setToolboxIaAtivo] = useState(false)
+  const [toolboxIaModelo, setToolboxIaModelo] = useState('qwen3:4b')
+  const [savingToolboxIa, setSavingToolboxIa] = useState(false)
+  const [iaStatus, setIaStatus] = useState<{ online: boolean; modeloDisponivel: boolean } | null>(null)
+  const [checkingIaStatus, setCheckingIaStatus] = useState(false)
+  const [pullingModelo, setPullingModelo] = useState(false)
   const [savingRoles, setSavingRoles] = useState(false)
   // Limiar urgente — gerido fora do RHF para lidar com o valor opcional (vazio = null).
   const [prazoUrgente, setPrazoUrgente] = useState('')
@@ -808,6 +815,8 @@ export default function ConfiguracoesPage() {
         setModuloBugReportsRoles((d.moduloBugReportsRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloToolboxAtivo(d.moduloToolboxAtivo ?? true)
         setModuloToolboxRoles((d.moduloToolboxRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setToolboxIaAtivo(d.toolboxIaAtivo ?? false)
+        setToolboxIaModelo(d.toolboxIaModelo ?? 'qwen3:4b')
         setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
         setEstados(Array.isArray(e) ? e : [])
         setLoading(false)
@@ -1010,6 +1019,92 @@ export default function ConfiguracoesPage() {
       toast.error('Erro de rede ao guardar')
     } finally {
       setSavingModuloToolbox(false)
+    }
+  }
+
+  async function toggleToolboxIa() {
+    const next = !toolboxIaAtivo
+    setSavingToolboxIa(true)
+    setToolboxIaAtivo(next)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toolboxIaAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setToolboxIaAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Explicações por IA ativadas' : 'Explicações por IA desativadas')
+    } catch {
+      setToolboxIaAtivo(!next)
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingToolboxIa(false)
+    }
+  }
+
+  async function saveToolboxIaModelo() {
+    const modelo = toolboxIaModelo.trim()
+    if (!modelo) {
+      toast.error('Indique o nome do modelo (ex: qwen3:4b)')
+      return
+    }
+    setSavingToolboxIa(true)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toolboxIaModelo: modelo }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success('Modelo guardado')
+      setIaStatus(null)
+    } catch {
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingToolboxIa(false)
+    }
+  }
+
+  async function refreshIaStatus() {
+    setCheckingIaStatus(true)
+    try {
+      const res = await fetch('/api/toolbox/ia-status')
+      if (!res.ok) {
+        toast.error('Erro ao consultar o estado do serviço de IA')
+        return
+      }
+      setIaStatus(await res.json())
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setCheckingIaStatus(false)
+    }
+  }
+
+  async function pullModelo() {
+    setPullingModelo(true)
+    try {
+      const res = await fetch('/api/toolbox/ia-status', { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao descarregar o modelo')
+        return
+      }
+      toast.success('Modelo descarregado com sucesso')
+      await refreshIaStatus()
+    } catch {
+      toast.error('Erro de rede ao descarregar o modelo')
+    } finally {
+      setPullingModelo(false)
     }
   }
 
@@ -1513,6 +1608,84 @@ export default function ConfiguracoesPage() {
                   disabled={savingRoles}
                   onToggle={(r) => toggleModuloRole('toolbox', r)}
                 />
+              )}
+              {moduloToolboxAtivo && (
+                <div className="ml-12 mt-2 rounded-lg border p-3 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-violet-600" />
+                      <div>
+                        <p className="text-sm font-medium">Explicações por IA</p>
+                        <p className="text-xs text-muted-foreground">
+                          LLM local (Ollama) explica os resultados das ferramentas — os dados não saem do servidor
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleToolboxIa}
+                      disabled={savingToolboxIa}
+                      aria-label={toolboxIaAtivo ? 'Desativar explicações por IA' : 'Ativar explicações por IA'}
+                      className={cn(
+                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                        toolboxIaAtivo ? 'bg-green-600' : 'bg-input',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                          toolboxIaAtivo ? 'translate-x-5' : 'translate-x-0',
+                        )}
+                      />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="cfg-ia-modelo" className="text-xs">Modelo Ollama</Label>
+                      <Input
+                        id="cfg-ia-modelo"
+                        value={toolboxIaModelo}
+                        onChange={(e) => setToolboxIaModelo(e.target.value)}
+                        placeholder="qwen3:4b"
+                        className="h-8 w-44 font-mono text-xs"
+                      />
+                    </div>
+                    <Button size="sm" variant="outline" onClick={saveToolboxIaModelo} disabled={savingToolboxIa}>
+                      Guardar modelo
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={refreshIaStatus} disabled={checkingIaStatus} className="gap-1.5">
+                      {checkingIaStatus ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                      Verificar estado
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={pullModelo} disabled={pullingModelo} className="gap-1.5">
+                      {pullingModelo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                      {pullingModelo ? 'A descarregar (vários minutos)…' : 'Descarregar modelo'}
+                    </Button>
+                  </div>
+                  {iaStatus && (
+                    <p className="text-xs">
+                      {iaStatus.online ? (
+                        <>
+                          <span className="text-green-700 dark:text-green-400 font-medium">Ollama online</span>
+                          {' · '}
+                          {iaStatus.modeloDisponivel ? (
+                            <span className="text-green-700 dark:text-green-400">modelo disponível</span>
+                          ) : (
+                            <span className="text-amber-700 dark:text-amber-400">modelo não descarregado — use &quot;Descarregar modelo&quot;</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-red-700 dark:text-red-400 font-medium">
+                          Ollama offline — verifique o container gpi_ollama
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Requer ≈ 4 GB de RAM livres com o modelo recomendado (qwen3:4b). A primeira resposta após
+                    inatividade é mais lenta (carregamento do modelo).
+                  </p>
+                </div>
               )}
             </div>
 

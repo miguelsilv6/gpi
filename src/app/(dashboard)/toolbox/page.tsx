@@ -1,5 +1,6 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
 import { isModuloToolboxAtivo } from '@/lib/toolbox-module'
 import { ToolboxView } from '@/components/toolbox/toolbox-view'
 import { Wrench } from 'lucide-react'
@@ -25,6 +26,11 @@ export default async function ToolboxPage() {
     )
   }
 
+  const config = await prisma.configuracaoSistema.findUnique({
+    where: { id: 'singleton' },
+    select: { toolboxIaAtivo: true },
+  })
+
   return (
     <div className="space-y-4">
       <div>
@@ -33,7 +39,7 @@ export default async function ToolboxPage() {
           Ferramentas OSINT de apoio à investigação: IPs, DNS, domínios e o seu histórico — com a fonte consultada sempre identificada.
         </p>
       </div>
-      <ToolboxView />
+      <ToolboxView iaAtiva={config?.toolboxIaAtivo ?? false} />
     </div>
   )
 }

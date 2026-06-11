@@ -42,6 +42,7 @@ services:
       CRON_SECRET: ${CRON_SECRET}
       GITHUB_REPO: ${GITHUB_REPO:-miguelsilv6/gestao-projetos}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
     ports:
       - '0.0.0.0:${HOST_PORT:-3000}:3000'
     volumes:
@@ -82,6 +83,19 @@ services:
     volumes:
       - ./backups:/app/backups
       - ./control:/app/control
+    restart: unless-stopped
+
+  # LLM local (explicações por IA na Toolbox). CPU-only; o modelo é
+  # descarregado pelo admin via /configurações → Toolbox → "Descarregar modelo"
+  # e persiste em ./ollama entre updates. Sem ports: só a rede interna.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gpi_ollama
+    environment:
+      # Liberta a RAM do modelo após 5 min sem pedidos.
+      OLLAMA_KEEP_ALIVE: 5m
+    volumes:
+      - ./ollama:/root/.ollama
     restart: unless-stopped
 
 volumes:
