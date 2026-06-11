@@ -42,22 +42,20 @@ export async function POST(req: NextRequest) {
     })
     const modelo = config?.toolboxIaModelo ?? 'qwen3:4b'
 
-    let res: Response
-    try {
-      res = await fetch(`${OLLAMA_URL}/api/pull`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: modelo, stream: false }),
-        // Download de vários GB — timeout generoso.
-        signal: AbortSignal.timeout(15 * 60_000),
-        cache: 'no-store',
-      })
-    } catch {
+    const status = await ollamaStatus(modelo)
+    if (!status.online) {
       return apiError('Serviço de IA indisponível — verifique se o container Ollama está a correr', 503)
     }
-    if (!res.ok) {
-      return apiError(`Falha ao descarregar o modelo "${modelo}" — confirme o nome e o acesso à internet`, 502)
-    }
+
+    // Fire-and-forget — o download pode demorar vários minutos; não bloquear o pedido HTTP.
+    fetch(`${OLLAMA_URL}/api/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelo, stream: false }),
+      cache: 'no-store',
+    }).catch((err: unknown) => {
+      console.error('[Ollama] Erro ao descarregar o modelo ' + modelo + ':', err)
+    })
 
     await writeAudit({
       req,
@@ -68,7 +66,7 @@ export async function POST(req: NextRequest) {
       detalhes: { modelo },
     })
 
-    return Response.json({ ok: true, modelo })
+    return Response.json({ ok: true, modelo, emSegundoPlano: true })
   } catch (error) {
     return handleApiError(error)
   }

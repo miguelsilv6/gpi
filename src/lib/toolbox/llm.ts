@@ -76,7 +76,10 @@ export async function ollamaGenerate(prompt: string, modelo: string): Promise<st
       signal: AbortSignal.timeout(90_000),
       cache: 'no-store',
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.message.includes('timeout'))) {
+      throw new Error('O serviço de IA demorou demasiado tempo a responder — a inferência em CPU pode estar sobrecarregada', { cause: 504 })
+    }
     throw new Error('Serviço de IA indisponível — verifique se o container Ollama está a correr', { cause: 503 })
   }
 

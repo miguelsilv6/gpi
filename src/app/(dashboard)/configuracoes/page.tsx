@@ -1099,7 +1099,12 @@ export default function ConfiguracoesPage() {
         toast.error(err.error ?? 'Erro ao descarregar o modelo')
         return
       }
-      toast.success('Modelo descarregado com sucesso')
+      const data = await res.json().catch(() => ({}))
+      if ((data as { emSegundoPlano?: boolean }).emSegundoPlano) {
+        toast.success('O download do modelo foi iniciado em segundo plano. Use "Verificar estado" para acompanhar.')
+      } else {
+        toast.success('Modelo descarregado com sucesso')
+      }
       await refreshIaStatus()
     } catch {
       toast.error('Erro de rede ao descarregar o modelo')

@@ -89,7 +89,7 @@ services:
   # descarregado pelo admin via /configurações → Toolbox → "Descarregar modelo"
   # e persiste em ./ollama entre updates. Sem ports: só a rede interna.
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.5.4
     container_name: gpi_ollama
     environment:
       # Liberta a RAM do modelo após 5 min sem pedidos.
