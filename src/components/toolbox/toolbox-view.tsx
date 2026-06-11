@@ -1,0 +1,122 @@
+'use client'
+
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Globe,
+  MailSearch,
+  Network,
+  FileSearch,
+  Hash,
+  Binary,
+  ShieldOff,
+  type LucideIcon,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { IpLookupTool, DnsTool, WhoisTool } from './tools-network'
+import { EmailHeadersTool } from './tools-email'
+import { HashTool, EncoderTool, DefangTool } from './tools-utils'
+
+interface Tool {
+  id: string
+  label: string
+  descricao: string
+  icon: LucideIcon
+  component: React.ComponentType
+}
+
+const TOOLS: Tool[] = [
+  {
+    id: 'ip',
+    label: 'IP Lookup',
+    descricao: 'Geolocalização, ISP/ASN e deteção de proxy/VPN ou datacenter.',
+    icon: Globe,
+    component: IpLookupTool,
+  },
+  {
+    id: 'email',
+    label: 'Cabeçalhos de Email',
+    descricao: 'Cadeia de entrega, IP de origem, SPF/DKIM/DMARC e sinais de spoofing.',
+    icon: MailSearch,
+    component: EmailHeadersTool,
+  },
+  {
+    id: 'dns',
+    label: 'DNS',
+    descricao: 'Registos A/AAAA/MX/NS/TXT/CNAME e reverse DNS de IPs.',
+    icon: Network,
+    component: DnsTool,
+  },
+  {
+    id: 'whois',
+    label: 'WHOIS / RDAP',
+    descricao: 'Registo de domínios e blocos IP: registrar, datas, nameservers.',
+    icon: FileSearch,
+    component: WhoisTool,
+  },
+  {
+    id: 'hash',
+    label: 'Hashes',
+    descricao: 'MD5, SHA-1, SHA-256 e SHA-512 de texto — comparação de IOCs.',
+    icon: Hash,
+    component: HashTool,
+  },
+  {
+    id: 'encoder',
+    label: 'Codificador',
+    descricao: 'Base64, URL-encoding e hexadecimal — codificar e descodificar.',
+    icon: Binary,
+    component: EncoderTool,
+  },
+  {
+    id: 'defang',
+    label: 'Defang IOCs',
+    descricao: 'Neutralizar/reativar URLs e domínios maliciosos para partilha segura.',
+    icon: ShieldOff,
+    component: DefangTool,
+  },
+]
+
+export function ToolboxView() {
+  const [activeId, setActiveId] = useState<string>(TOOLS[0].id)
+  const active = TOOLS.find((t) => t.id === activeId) ?? TOOLS[0]
+  const ActiveComponent = active.component
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
+      {/* Selector de ferramentas */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+        {TOOLS.map((tool) => (
+          <button
+            key={tool.id}
+            type="button"
+            onClick={() => setActiveId(tool.id)}
+            className={cn(
+              'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors',
+              activeId === tool.id
+                ? 'border-primary bg-primary/5 text-foreground'
+                : 'border-border bg-card hover:bg-accent/50 text-muted-foreground',
+            )}
+          >
+            <tool.icon className={cn('h-4 w-4 shrink-0', activeId === tool.id && 'text-primary')} />
+            <span className="text-sm font-medium truncate">{tool.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Ferramenta ativa */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <active.icon className="h-4 w-4" />
+            {active.label}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">{active.descricao}</p>
+        </CardHeader>
+        <CardContent>
+          <ActiveComponent />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

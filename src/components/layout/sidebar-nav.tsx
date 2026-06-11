@@ -16,16 +16,18 @@ interface SidebarNavProps {
   moduloAjudasAtivo?: boolean
   moduloFeriasAtivo?: boolean
   moduloBugReportsAtivo?: boolean
+  moduloToolboxAtivo?: boolean
   onNavigate?: () => void
 }
 
-export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
   const items = NAV_ITEMS.filter((item) => {
     if (!item.roles.includes(role)) return false
     if (item.href === '/ajudas-mensais' && !moduloAjudasAtivo && role !== 'ADMINISTRACAO') return false
     if (item.href === '/ferias' && !moduloFeriasAtivo && role !== 'ADMINISTRACAO') return false
     if (item.href === '/reportar-bug' && !moduloBugReportsAtivo && role !== 'ADMINISTRACAO') return false
+    if (item.href === '/toolbox' && !moduloToolboxAtivo && role !== 'ADMINISTRACAO') return false
     return true
   })
   const brand = useBrand()

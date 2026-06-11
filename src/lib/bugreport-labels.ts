@@ -30,3 +30,19 @@ export const ESTADO_COLORS: Record<EstadoBug, string> = {
 
 export const SEVERIDADE_VALUES: SeveridadeBug[] = ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA']
 export const ESTADO_VALUES: EstadoBug[] = ['ABERTO', 'EM_ANALISE', 'RESOLVIDO', 'REJEITADO']
+
+/**
+ * Máquina de estados dos bug reports. ABERTO tem de passar por EM_ANALISE
+ * antes de RESOLVIDO; estados terminais só reabrem para ABERTO/EM_ANALISE.
+ */
+export const ESTADO_TRANSICOES: Record<EstadoBug, EstadoBug[]> = {
+  ABERTO:     ['EM_ANALISE', 'REJEITADO'],
+  EM_ANALISE: ['ABERTO', 'RESOLVIDO', 'REJEITADO'],
+  RESOLVIDO:  ['ABERTO', 'EM_ANALISE'],
+  REJEITADO:  ['ABERTO', 'EM_ANALISE'],
+}
+
+export function isTransicaoEstadoValida(from: EstadoBug, to: EstadoBug): boolean {
+  if (from === to) return true
+  return ESTADO_TRANSICOES[from]?.includes(to) ?? false
+}

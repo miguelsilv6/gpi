@@ -12,6 +12,7 @@ import {
   InqueritosFilters,
   BrigadasFilters,
   InspetoresFilters,
+  InatividadeFilters,
 } from './relatorio-filters'
 
 interface ApiRelatorioResult {
@@ -131,6 +132,14 @@ export function RelatorioView({
           )}
           {id === 'inspetores' && (
             <InspetoresFilters
+              filters={filters}
+              setFilter={setFilter}
+              catalogo={catalogo}
+              lockedBrigadaId={lockedBrigadaId}
+            />
+          )}
+          {id === 'inatividade' && (
+            <InatividadeFilters
               filters={filters}
               setFilter={setFilter}
               catalogo={catalogo}

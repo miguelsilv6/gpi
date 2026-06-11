@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug, Wrench } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
@@ -753,11 +753,14 @@ export default function ConfiguracoesPage() {
   const [moduloFeriasRoles, setModuloFeriasRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloBugReportsAtivo, setModuloBugReportsAtivo] = useState(true)
   const [moduloBugReportsRoles, setModuloBugReportsRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [moduloToolboxAtivo, setModuloToolboxAtivo] = useState(true)
+  const [moduloToolboxRoles, setModuloToolboxRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [emailNotificacoesAtivo, setEmailNotificacoesAtivo] = useState(true)
   const [savingEmailNotificacoes, setSavingEmailNotificacoes] = useState(false)
   const [savingModulo, setSavingModulo] = useState(false)
   const [savingModuloFerias, setSavingModuloFerias] = useState(false)
   const [savingModuloBugReports, setSavingModuloBugReports] = useState(false)
+  const [savingModuloToolbox, setSavingModuloToolbox] = useState(false)
   const [savingRoles, setSavingRoles] = useState(false)
   // Limiar urgente — gerido fora do RHF para lidar com o valor opcional (vazio = null).
   const [prazoUrgente, setPrazoUrgente] = useState('')
@@ -803,6 +806,8 @@ export default function ConfiguracoesPage() {
         setModuloFeriasRoles((d.moduloFeriasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloBugReportsAtivo(d.moduloBugReportsAtivo ?? true)
         setModuloBugReportsRoles((d.moduloBugReportsRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setModuloToolboxAtivo(d.moduloToolboxAtivo ?? true)
+        setModuloToolboxRoles((d.moduloToolboxRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
         setEstados(Array.isArray(e) ? e : [])
         setLoading(false)
@@ -983,6 +988,31 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function toggleModuloToolbox() {
+    const next = !moduloToolboxAtivo
+    setSavingModuloToolbox(true)
+    setModuloToolboxAtivo(next)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduloToolboxAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setModuloToolboxAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Módulo Toolbox ativado' : 'Módulo Toolbox desativado')
+    } catch {
+      setModuloToolboxAtivo(!next)
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingModuloToolbox(false)
+    }
+  }
+
   async function toggleEmailNotificacoes() {
     const next = !emailNotificacoesAtivo
     setSavingEmailNotificacoes(true)
@@ -1008,13 +1038,13 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports', role: string) {
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox', role: string) {
     const current =
-      modulo === 'ajudas' ? moduloAjudasRoles : modulo === 'ferias' ? moduloFeriasRoles : moduloBugReportsRoles
+      modulo === 'ajudas' ? moduloAjudasRoles : modulo === 'ferias' ? moduloFeriasRoles : modulo === 'toolbox' ? moduloToolboxRoles : moduloBugReportsRoles
     const setter =
-      modulo === 'ajudas' ? setModuloAjudasRoles : modulo === 'ferias' ? setModuloFeriasRoles : setModuloBugReportsRoles
+      modulo === 'ajudas' ? setModuloAjudasRoles : modulo === 'ferias' ? setModuloFeriasRoles : modulo === 'toolbox' ? setModuloToolboxRoles : setModuloBugReportsRoles
     const key =
-      modulo === 'ajudas' ? 'moduloAjudasRoles' : modulo === 'ferias' ? 'moduloFeriasRoles' : 'moduloBugReportsRoles'
+      modulo === 'ajudas' ? 'moduloAjudasRoles' : modulo === 'ferias' ? 'moduloFeriasRoles' : modulo === 'toolbox' ? 'moduloToolboxRoles' : 'moduloBugReportsRoles'
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
     setter(next)
     setSavingRoles(true)
@@ -1439,6 +1469,49 @@ export default function ConfiguracoesPage() {
                   roles={moduloBugReportsRoles}
                   disabled={savingRoles}
                   onToggle={(r) => toggleModuloRole('bugreports', r)}
+                />
+              )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloToolboxAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <Wrench className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Toolbox</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ferramentas de investigação: IP lookup, análise de emails, DNS, WHOIS
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleModuloToolbox}
+                  disabled={savingModuloToolbox}
+                  aria-label={moduloToolboxAtivo ? 'Desativar módulo Toolbox' : 'Ativar módulo Toolbox'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloToolboxAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloToolboxAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloToolboxAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloToolboxRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('toolbox', r)}
                 />
               )}
             </div>

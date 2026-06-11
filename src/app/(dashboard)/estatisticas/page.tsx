@@ -4,6 +4,10 @@ import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/rbac'
 import { EstatisticasDashboard } from '@/components/estatisticas/estatisticas-dashboard'
 import { AccessDenied } from '@/components/access-denied'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 
 export default async function EstatisticasPage() {
@@ -40,11 +44,20 @@ export default async function EstatisticasPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Estatísticas</h1>
-        <p className="text-muted-foreground text-sm">
-          {lockedToBrigada ? 'Análise da sua brigada' : 'Análise de inquéritos'}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Estatísticas</h1>
+          <p className="text-muted-foreground text-sm">
+            {lockedToBrigada ? 'Análise da sua brigada' : 'Análise de inquéritos'}
+          </p>
+        </div>
+        <Link
+          href="/estatisticas/analise"
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+        >
+          <TrendingUp className="h-4 w-4 mr-1" />
+          Análise de desempenho
+        </Link>
       </div>
       <EstatisticasDashboard
         brigadas={brigadas}

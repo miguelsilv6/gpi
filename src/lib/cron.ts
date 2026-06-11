@@ -345,7 +345,9 @@ async function runUpdateReconciler(): Promise<void> {
   }
 }
 
-async function runDeadlineCheck() {
+// Exportada para os testes de integração poderem exercitar o deadline-check
+// diretamente (sem agendar o worker).
+export async function runDeadlineCheck() {
   const config = await prisma.configuracaoSistema.findUnique({ where: { id: 'singleton' } })
   const alertDays = config?.prazoAlertaDias ?? 7
 
