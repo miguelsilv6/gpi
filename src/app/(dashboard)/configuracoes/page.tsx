@@ -1169,12 +1169,14 @@ export default function ConfiguracoesPage() {
   }
 
   async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos', role: string) {
-    const current =
-      modulo === 'ajudas' ? moduloAjudasRoles : modulo === 'ferias' ? moduloFeriasRoles : modulo === 'toolbox' ? moduloToolboxRoles : modulo === 'anexos' ? moduloAnexosRoles : moduloBugReportsRoles
-    const setter =
-      modulo === 'ajudas' ? setModuloAjudasRoles : modulo === 'ferias' ? setModuloFeriasRoles : modulo === 'toolbox' ? setModuloToolboxRoles : modulo === 'anexos' ? setModuloAnexosRoles : setModuloBugReportsRoles
-    const key =
-      modulo === 'ajudas' ? 'moduloAjudasRoles' : modulo === 'ferias' ? 'moduloFeriasRoles' : modulo === 'toolbox' ? 'moduloToolboxRoles' : modulo === 'anexos' ? 'moduloAnexosRoles' : 'moduloBugReportsRoles'
+    const configMap = {
+      ajudas:     { roles: moduloAjudasRoles,     setter: setModuloAjudasRoles,     key: 'moduloAjudasRoles' },
+      ferias:     { roles: moduloFeriasRoles,     setter: setModuloFeriasRoles,     key: 'moduloFeriasRoles' },
+      bugreports: { roles: moduloBugReportsRoles, setter: setModuloBugReportsRoles, key: 'moduloBugReportsRoles' },
+      toolbox:    { roles: moduloToolboxRoles,    setter: setModuloToolboxRoles,    key: 'moduloToolboxRoles' },
+      anexos:     { roles: moduloAnexosRoles,     setter: setModuloAnexosRoles,     key: 'moduloAnexosRoles' },
+    } as const
+    const { roles: current, setter, key } = configMap[modulo]
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
     setter(next)
     setSavingRoles(true)

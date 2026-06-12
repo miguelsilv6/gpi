@@ -596,7 +596,7 @@ function HistoryButton({
 
   async function handleOpen() {
     setOpen(true)
-    if (entries.length > 0 || loading) return
+    if (loading) return
     setLoading(true)
     setError(null)
     try {
