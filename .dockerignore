@@ -37,3 +37,6 @@ Thumbs.db
 
 # Claude-specific
 .claude
+
+# Modelos Ollama — persistem em volume; nunca devem ir para o contexto de build
+ollama
