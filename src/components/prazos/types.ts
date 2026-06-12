@@ -4,6 +4,7 @@ export interface PrazoItem {
   descricao: string
   quantidade: number | null
   dataPrazo: Date | string
+  concluidaEm: Date | string | null
   alertaDias1: number | null
   alertaDias2: number | null
   alerta1Enviado: boolean

@@ -103,36 +103,36 @@ describe('hasPermission', () => {
     })
   })
 
-  describe('permissions de férias', () => {
-    test('INSPETOR só marca as suas (ferias:own), sem visão de brigada/todos', () => {
-      expect(hasPermission('INSPETOR', 'ferias:own')).toBe(true)
-      expect(hasPermission('INSPETOR', 'ferias:read:brigade')).toBe(false)
-      expect(hasPermission('INSPETOR', 'ferias:read:all')).toBe(false)
-      expect(hasPermission('INSPETOR', 'ferias:config')).toBe(false)
+  describe('permissions de ausências', () => {
+    test('INSPETOR só marca as suas (ausencias:own), sem visão de brigada/todos', () => {
+      expect(hasPermission('INSPETOR', 'ausencias:own')).toBe(true)
+      expect(hasPermission('INSPETOR', 'ausencias:read:brigade')).toBe(false)
+      expect(hasPermission('INSPETOR', 'ausencias:read:all')).toBe(false)
+      expect(hasPermission('INSPETOR', 'ausencias:config')).toBe(false)
     })
 
     test('INSPETOR_CHEFE vê a sua brigada mas não todos nem config', () => {
-      expect(hasPermission('INSPETOR_CHEFE', 'ferias:own')).toBe(true)
-      expect(hasPermission('INSPETOR_CHEFE', 'ferias:read:brigade')).toBe(true)
-      expect(hasPermission('INSPETOR_CHEFE', 'ferias:read:all')).toBe(false)
-      expect(hasPermission('INSPETOR_CHEFE', 'ferias:config')).toBe(false)
+      expect(hasPermission('INSPETOR_CHEFE', 'ausencias:own')).toBe(true)
+      expect(hasPermission('INSPETOR_CHEFE', 'ausencias:read:brigade')).toBe(true)
+      expect(hasPermission('INSPETOR_CHEFE', 'ausencias:read:all')).toBe(false)
+      expect(hasPermission('INSPETOR_CHEFE', 'ausencias:config')).toBe(false)
     })
 
     test('COORDENADOR vê todos mas não tem config', () => {
-      expect(hasPermission('COORDENADOR', 'ferias:read:all')).toBe(true)
-      expect(hasPermission('COORDENADOR', 'ferias:config')).toBe(false)
+      expect(hasPermission('COORDENADOR', 'ausencias:read:all')).toBe(true)
+      expect(hasPermission('COORDENADOR', 'ausencias:config')).toBe(false)
     })
 
-    test('ESTATISTICA não tem qualquer permissão de férias', () => {
-      expect(hasPermission('ESTATISTICA', 'ferias:own')).toBe(false)
-      expect(hasPermission('ESTATISTICA', 'ferias:read:all')).toBe(false)
+    test('ESTATISTICA não tem qualquer permissão de ausências', () => {
+      expect(hasPermission('ESTATISTICA', 'ausencias:own')).toBe(false)
+      expect(hasPermission('ESTATISTICA', 'ausencias:read:all')).toBe(false)
     })
 
-    test('ADMINISTRACAO tem todas as permissões de férias', () => {
-      expect(hasPermission('ADMINISTRACAO', 'ferias:own')).toBe(true)
-      expect(hasPermission('ADMINISTRACAO', 'ferias:read:brigade')).toBe(true)
-      expect(hasPermission('ADMINISTRACAO', 'ferias:read:all')).toBe(true)
-      expect(hasPermission('ADMINISTRACAO', 'ferias:config')).toBe(true)
+    test('ADMINISTRACAO tem todas as permissões de ausências', () => {
+      expect(hasPermission('ADMINISTRACAO', 'ausencias:own')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'ausencias:read:brigade')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'ausencias:read:all')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'ausencias:config')).toBe(true)
     })
   })
 

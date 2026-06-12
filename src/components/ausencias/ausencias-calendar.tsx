@@ -33,8 +33,6 @@ function fromKey(s: string): Date {
 
 /** Enumerate each calendar day in the inclusive ISO range. */
 function enumerateDays(inicioISO: string, fimISO: string): Date[] {
-  // ISO strings from the server are UTC — read the calendar day in UTC, then
-  // build local dates for react-day-picker (which matches in local time).
   const start = new Date(inicioISO)
   const end = new Date(fimISO)
   const days: Date[] = []
@@ -47,7 +45,7 @@ function enumerateDays(inicioISO: string, fimISO: string): Date[] {
   return days
 }
 
-export function FeriasCalendar({ ausencias, month, onMonthChange, onCreate, busy }: Props) {
+export function AusenciasCalendar({ ausencias, month, onMonthChange, onCreate, busy }: Props) {
   const [range, setRange] = useState<DateRange | undefined>()
   const [tipo, setTipo] = useState<TipoAusencia>('FERIAS')
   const [nota, setNota] = useState('')
@@ -69,8 +67,6 @@ export function FeriasCalendar({ ausencias, month, onMonthChange, onCreate, busy
     return { feriadoDays: feriado, feriasDays: ferias, folgaDays: folga }
   }, [ausencias, month])
 
-  // react-day-picker gives local-midnight dates; countWorkingDays reads UTC fields.
-  // Convert to UTC midnight to avoid off-by-one in UTC+1 (Portugal summer).
   const selectedCount =
     range?.from && range?.to
       ? countWorkingDays(
@@ -146,9 +142,9 @@ export function FeriasCalendar({ ausencias, month, onMonthChange, onCreate, busy
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="ferias-nota" className="text-xs text-muted-foreground">Nota (opcional)</Label>
+            <Label htmlFor="ausencias-nota" className="text-xs text-muted-foreground">Nota (opcional)</Label>
             <Textarea
-              id="ferias-nota"
+              id="ausencias-nota"
               rows={2}
               value={nota}
               onChange={(e) => setNota(e.target.value)}

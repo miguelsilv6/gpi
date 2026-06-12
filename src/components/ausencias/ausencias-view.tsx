@@ -13,8 +13,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { FeriasCalendar } from './ferias-calendar'
-import { FeriasBrigadaOverview } from './ferias-brigada-overview'
+import { AusenciasCalendar } from './ausencias-calendar'
+import { AusenciasBrigadaOverview } from './ausencias-brigada-overview'
 import { countWorkingDays } from '@/lib/ferias'
 import type { Ausencia, MembroFerias, Totais, TipoAusencia, GanttScale } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
@@ -26,7 +26,7 @@ interface Props {
   brigadas?: { id: string; nome: string }[]
 }
 
-export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, brigadas = [] }: Props) {
+export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaId, brigadas = [] }: Props) {
   const [month, setMonth] = useState(() => {
     const n = new Date()
     return new Date(n.getFullYear(), n.getMonth(), 1)
@@ -40,8 +40,6 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
-  // For canViewAll roles (COORDENADOR/ADMINISTRACAO) without their own brigade,
-  // default to the first available brigade so the overview loads immediately.
   const [selectedBrigadaId, setSelectedBrigadaId] = useState<string | null>(
     userBrigadaId ?? brigadas[0]?.id ?? null,
   )
@@ -54,7 +52,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   const fetchSelf = useCallback(async (y: number, signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/ferias?ano=${y}`, { signal })
+      const res = await fetch(`/api/ausencias?ano=${y}`, { signal })
       if (res.ok) {
         const data = await res.json()
         setAusencias(data.ausencias)
@@ -64,7 +62,6 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
       }
       setLoading(false)
     } catch (e) {
-      // A superseded request was aborted — a newer fetch is already in flight.
       if ((e as Error).name === 'AbortError') return
       toast.error('Erro ao carregar marcações')
       setLoading(false)
@@ -75,7 +72,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
     if (!brigadaId) return
     const params = new URLSearchParams({ ano: String(y), scope: 'brigade', brigadaId })
     try {
-      const res = await fetch(`/api/ferias?${params}`, { signal })
+      const res = await fetch(`/api/ausencias?${params}`, { signal })
       if (res.ok) {
         const data = await res.json()
         setMembros(data.membros)
@@ -88,9 +85,6 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
     }
   }, [])
 
-  // Refetch whenever the year or selected brigade changes. The AbortController
-  // cancels superseded requests so a slow earlier response can't overwrite the
-  // data for a newer year/brigade selection.
   useEffect(() => {
     const controller = new AbortController()
     fetchSelf(ano, controller.signal)
@@ -108,7 +102,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   }): Promise<boolean> {
     setBusy(true)
     try {
-      const res = await fetch('/api/ferias', {
+      const res = await fetch('/api/ausencias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -130,7 +124,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
     if (!editing) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/ferias/${editing.id}`, {
+      const res = await fetch(`/api/ausencias/${editing.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,7 +151,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
     if (!deleting) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/ferias/${deleting.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/ausencias/${deleting.id}`, { method: 'DELETE' })
       if (!res.ok && res.status !== 204) {
         const err = await res.json().catch(() => ({}))
         toast.error(err.error ?? 'Erro ao apagar')
@@ -240,7 +234,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
           <CardTitle className="text-sm font-medium text-muted-foreground">Marcar período</CardTitle>
         </CardHeader>
         <CardContent>
-          <FeriasCalendar
+          <AusenciasCalendar
             ausencias={ausencias}
             month={month}
             onMonthChange={setMonth}
@@ -255,7 +249,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Férias</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Ausências</h1>
         <p className="text-muted-foreground text-sm">Marca os teus períodos de férias e folgas.</p>
       </div>
 
@@ -291,7 +285,7 @@ export function FeriasView({ canViewBrigade, canViewAll = false, userBrigadaId, 
                 </Select>
               </div>
             )}
-            <FeriasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} scale={ganttScale} onScaleChange={setGanttScale} />
+            <AusenciasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} scale={ganttScale} onScaleChange={setGanttScale} />
           </TabsContent>
         </Tabs>
       ) : (

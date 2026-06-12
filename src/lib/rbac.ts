@@ -23,10 +23,10 @@ export type Permission =
   | 'ajudas:read:brigade'
   | 'ajudas:read:all'
   | 'ajudas:config'
-  | 'ferias:own'
-  | 'ferias:read:brigade'
-  | 'ferias:read:all'
-  | 'ferias:config'
+  | 'ausencias:own'
+  | 'ausencias:read:brigade'
+  | 'ausencias:read:all'
+  | 'ausencias:config'
   | 'bugreport:create'
   | 'bugreport:manage'
   | 'comarca:manage'
@@ -61,7 +61,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'controlo:read:own',
     'estatistica:own',
     'ajudas:own',
-    'ferias:own',
+    'ausencias:own',
     'bugreport:create',
   ],
   INSPETOR_CHEFE: [
@@ -86,8 +86,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'relatorio:read',
     'ajudas:own',
     'ajudas:read:brigade',
-    'ferias:own',
-    'ferias:read:brigade',
+    'ausencias:own',
+    'ausencias:read:brigade',
     'bugreport:create',
   ],
   COORDENADOR: [
@@ -120,8 +120,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'relatorio:read',
     'ajudas:own',
     'ajudas:read:all',
-    'ferias:own',
-    'ferias:read:all',
+    'ausencias:own',
+    'ausencias:read:all',
     'bugreport:create',
   ],
   ESTATISTICA: [
@@ -173,10 +173,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'ajudas:read:brigade',
     'ajudas:read:all',
     'ajudas:config',
-    'ferias:own',
-    'ferias:read:brigade',
-    'ferias:read:all',
-    'ferias:config',
+    'ausencias:own',
+    'ausencias:read:brigade',
+    'ausencias:read:all',
+    'ausencias:config',
     'bugreport:create',
     'bugreport:manage',
   ],

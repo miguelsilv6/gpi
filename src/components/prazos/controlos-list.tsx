@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { CalendarCheck, Loader2, AlertTriangle, Bell, Clock, CheckCircle2, Pencil, Trash2 } from 'lucide-react'
+import { CalendarCheck, Loader2, AlertTriangle, Bell, Clock, CheckCircle2, Pencil, Trash2, Flag, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn, nuipcToSlug, formatDate } from '@/lib/utils'
 import Link from 'next/link'
@@ -136,6 +136,9 @@ export function ControlosList({
                       {next && !c.concluidoEm && (
                         <ConfirmButton controloId={c.id} realizacao={next} />
                       )}
+                      {!c.concluidoEm && (
+                        <ConcluirButton controloId={c.id} descricao={c.descricao} />
+                      )}
                       <EditButton controlo={c} />
                       <DeleteButton controloId={c.id} descricao={c.descricao} />
                     </div>
@@ -196,6 +199,9 @@ export function ControlosList({
                   <div className="flex items-center gap-1 shrink-0">
                     {next && !c.concluidoEm && (
                       <ConfirmButton controloId={c.id} realizacao={next} compact />
+                    )}
+                    {!c.concluidoEm && (
+                      <ConcluirButton controloId={c.id} descricao={c.descricao} compact />
                     )}
                     <EditButton controlo={c} compact />
                     <DeleteButton controloId={c.id} descricao={c.descricao} compact />
@@ -308,6 +314,29 @@ function EditButton({
     }
   }
 
+  async function reativar() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/controlos/${controlo.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concluidoEm: null }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao reativar controlo')
+        return
+      }
+      toast.success('Controlo reativado')
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <>
       <Button
@@ -358,11 +387,28 @@ function EditButton({
               />
             </div>
           </div>
+          {controlo.concluidoEm && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3 space-y-2">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Concluído em {formatDate(controlo.concluidoEm)}. Se foi por lapso, pode reativar.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={reativar}
+                disabled={loading}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reativar controlo
+              </Button>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancelar
             </Button>
-            <Button onClick={submit} disabled={loading}>
+            <Button onClick={submit} disabled={loading || !!controlo.concluidoEm}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar
             </Button>
@@ -437,6 +483,81 @@ function DeleteButton({
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function ConcluirButton({
+  controloId,
+  descricao,
+  compact = false,
+}: {
+  controloId: string
+  descricao: string
+  compact?: boolean
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function confirm() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/controlos/${controloId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concluidoEm: new Date().toISOString() }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao concluir controlo')
+        return
+      }
+      toast.success('Controlo marcado como concluído')
+      setOpen(false)
+      router.refresh()
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className={cn('gap-1 text-green-700 hover:text-green-700 dark:text-green-500', compact ? 'h-7 w-7 p-0' : 'h-8 px-2')}
+        onClick={() => setOpen(true)}
+        title="Marcar como concluído"
+      >
+        <Flag className="h-3.5 w-3.5" />
+        {!compact && <span className="sr-only">Concluir</span>}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Concluir controlo?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Vai marcar o controlo <strong>{descricao}</strong> como concluído. Pode reativar mais tarde através da edição.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={confirm}
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Concluir
             </Button>
           </DialogFooter>
         </DialogContent>
