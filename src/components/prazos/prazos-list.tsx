@@ -119,8 +119,16 @@ export function PrazosList({
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1">
-                    <EditPrazoButton prazo={p} />
-                    <ConcluirPrazoButton prazo={p} />
+                    {!p.concluidaEm ? (
+                      <>
+                        <EditPrazoButton prazo={p} />
+                        <ConcluirPrazoButton prazo={p} />
+                      </>
+                    ) : (
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium inline-flex items-center gap-1">
+                        <Check className="h-3.5 w-3.5" /> Concluído
+                      </span>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -175,8 +183,16 @@ export function PrazosList({
                   />
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <EditPrazoButton prazo={p} compact />
-                  <ConcluirPrazoButton prazo={p} compact />
+                  {!p.concluidaEm ? (
+                    <>
+                      <EditPrazoButton prazo={p} compact />
+                      <ConcluirPrazoButton prazo={p} compact />
+                    </>
+                  ) : (
+                    <span className="text-xs text-green-600 dark:text-green-400 font-medium inline-flex items-center gap-1">
+                      <Check className="h-3.5 w-3.5" /> Concluído
+                    </span>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -225,18 +241,20 @@ function AlertasIndicator({
   )
 }
 
+function toUtcDateString(val: Date | string): string {
+  if (typeof val === 'string') return val.slice(0, 10)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return val.getUTCFullYear() + '-' + pad(val.getUTCMonth() + 1) + '-' + pad(val.getUTCDate())
+}
+
 function EditPrazoButton({ prazo, compact = false }: { prazo: PrazoItem; compact?: boolean }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [dataPrazo, setDataPrazo] = useState(() => {
-    const d = typeof prazo.dataPrazo === 'string' ? new Date(prazo.dataPrazo) : prazo.dataPrazo
-    return d.toISOString().slice(0, 10)
-  })
+  const [dataPrazo, setDataPrazo] = useState(() => toUtcDateString(prazo.dataPrazo))
 
   function handleOpen() {
-    const d = typeof prazo.dataPrazo === 'string' ? new Date(prazo.dataPrazo) : prazo.dataPrazo
-    setDataPrazo(d.toISOString().slice(0, 10))
+    setDataPrazo(toUtcDateString(prazo.dataPrazo))
     setOpen(true)
   }
 

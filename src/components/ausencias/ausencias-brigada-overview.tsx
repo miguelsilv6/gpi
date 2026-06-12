@@ -41,7 +41,7 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
   const ano = month.getFullYear()
   const mIdx = month.getMonth()
 
-  const { rangeStart, rangeEnd, startMonthIdx, endMonthIdx } = useMemo(() => {
+  const { rangeStart, rangeEnd, startMonthIdx } = useMemo(() => {
     if (scale === 'month') {
       return {
         rangeStart: new Date(ano, mIdx, 1),
@@ -150,9 +150,6 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
       : scale === 'quarter'
         ? `${Math.floor(startMonthIdx / 3) + 1}.º trimestre ${ano}`
         : String(ano)
-
-  // Suppress unused variable warning — endMonthIdx is used in the quarter label calc above
-  void endMonthIdx
 
   return (
     <div className="space-y-4">
