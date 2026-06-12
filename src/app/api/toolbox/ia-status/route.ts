@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({ model: modelo, stream: true }),
           cache: 'no-store',
         })
+        if (!pullRes.ok) {
+          const errorText = await pullRes.text().catch(() => 'Erro desconhecido')
+          throw new Error(`Ollama respondeu com status ${pullRes.status}: ${errorText}`)
+        }
         if (pullRes.body) {
           const reader = pullRes.body.getReader()
           while (true) {
