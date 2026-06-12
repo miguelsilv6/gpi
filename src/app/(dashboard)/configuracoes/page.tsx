@@ -969,7 +969,7 @@ export default function ConfiguracoesPage() {
       toast.error(err.error ?? 'Erro ao guardar')
       return
     }
-    toast.success(next ? 'Módulo Férias ativado' : 'Módulo Férias desativado')
+    toast.success(next ? 'Módulo Ausências ativado' : 'Módulo Ausências desativado')
   }
 
   async function toggleModuloBugReports() {
@@ -1497,9 +1497,9 @@ export default function ConfiguracoesPage() {
                     <CalendarDays className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Férias</p>
+                    <p className="text-sm font-medium">Ausências</p>
                     <p className="text-xs text-muted-foreground">
-                      Marcação de férias e folgas por inspetor
+                      Marcação de ausências e folgas por inspetor
                     </p>
                   </div>
                 </div>
@@ -1507,7 +1507,7 @@ export default function ConfiguracoesPage() {
                   type="button"
                   onClick={toggleModuloFerias}
                   disabled={savingModuloFerias}
-                  aria-label={moduloFeriasAtivo ? 'Desativar módulo Férias' : 'Ativar módulo Férias'}
+                  aria-label={moduloFeriasAtivo ? 'Desativar módulo Ausências' : 'Ativar módulo Ausências'}
                   className={cn(
                     'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
                     moduloFeriasAtivo ? 'bg-green-600' : 'bg-input',

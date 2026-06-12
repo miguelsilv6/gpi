@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
-import { isModuloFeriasAtivo } from '@/lib/ferias-module'
+import { isModuloAusenciasAtivo } from '@/lib/ferias-module'
 import { ausenciaUpdateSchema } from '@/lib/validations/ferias'
 import { writeAudit } from '@/lib/audit'
 import type { Role } from '@/generated/prisma/enums'
@@ -33,9 +33,7 @@ async function checkAusenciaAccess(
 
   const role = session.user.role as Role
   if (ausencia.inspetorId !== session.user.id) {
-    // Read-only scopes (ferias:read:brigade / read:all) must NOT mutate other
-    // users' records — only ferias:config (admin) may.
-    if (!hasPermission(role, 'ferias:config')) {
+    if (!hasPermission(role, 'ausencias:config')) {
       return apiError('Sem permissão para modificar esta marcação', 403)
     }
   }
@@ -47,8 +45,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
-    if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
+    if (!(await isModuloAusenciasAtivo(role))) return apiError('Módulo Ausências está desativado', 503)
+    if (!hasPermission(role, 'ausencias:own')) return apiError('Sem permissão', 403)
 
     const { id } = await params
     const access = await checkAusenciaAccess(id, session)
@@ -66,7 +64,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return apiError('A data de fim não pode ser anterior à data de início', 400)
     }
 
-    // Re-run the overlap guard against OTHER same-tipo ranges of the owner.
     const overlap = await prisma.ausencia.findFirst({
       where: {
         inspetorId: ausencia.inspetorId,
@@ -113,14 +110,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
-    if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
+    if (!(await isModuloAusenciasAtivo(role))) return apiError('Módulo Ausências está desativado', 503)
+    if (!hasPermission(role, 'ausencias:own')) return apiError('Sem permissão', 403)
 
     const { id } = await params
     const access = await checkAusenciaAccess(id, session)
     if (access instanceof Response) return access
 
-    // Soft-delete — consistent with the project convention.
     await prisma.ausencia.update({ where: { id }, data: { deletedAt: new Date() } })
 
     await writeAudit({

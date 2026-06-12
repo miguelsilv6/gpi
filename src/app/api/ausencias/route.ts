@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
-import { isModuloFeriasAtivo } from '@/lib/ferias-module'
+import { isModuloAusenciasAtivo } from '@/lib/ferias-module'
 import { countByTipo } from '@/lib/ferias'
 import { ausenciaCreateSchema } from '@/lib/validations/ferias'
 import { writeAudit } from '@/lib/audit'
@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
-    if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
+    if (!(await isModuloAusenciasAtivo(role))) return apiError('Módulo Ausências está desativado', 503)
+    if (!hasPermission(role, 'ausencias:own')) return apiError('Sem permissão', 403)
 
     const { searchParams } = new URL(req.url)
     const anoParam = searchParams.get('ano')
@@ -36,14 +36,12 @@ export async function GET(req: NextRequest) {
 
     // ── Brigade overview (chefe / coordenador / admin) ──────────────────────
     if (scope === 'brigade') {
-      const canViewAll = hasPermission(role, 'ferias:read:all')
-      const canViewBrigade = hasPermission(role, 'ferias:read:brigade')
+      const canViewAll = hasPermission(role, 'ausencias:read:all')
+      const canViewBrigade = hasPermission(role, 'ausencias:read:brigade')
       if (!canViewAll && !canViewBrigade) {
         return apiError('Sem permissão para ver a visão de brigada', 403)
       }
 
-      // read:brigade is locked to the requester's own brigade. read:all may
-      // request a specific brigada, otherwise defaults to its own (if any).
       const brigadaIdParam = searchParams.get('brigadaId')
       let brigadaId: string | null
       if (canViewAll) {
@@ -81,8 +79,8 @@ export async function GET(req: NextRequest) {
     // ── Self (or another user's) list ───────────────────────────────────────
     let targetUserId = session.user.id
     if (utilizadorIdParam && utilizadorIdParam !== session.user.id) {
-      const canViewAll = hasPermission(role, 'ferias:read:all')
-      const canViewBrigade = hasPermission(role, 'ferias:read:brigade')
+      const canViewAll = hasPermission(role, 'ausencias:read:all')
+      const canViewBrigade = hasPermission(role, 'ausencias:read:brigade')
       if (!canViewAll && !canViewBrigade) {
         return apiError('Sem permissão para ver registos de outros utilizadores', 403)
       }
@@ -126,8 +124,8 @@ export async function POST(req: NextRequest) {
     const session = await getSession()
     const role = session.user.role as Role
 
-    if (!(await isModuloFeriasAtivo(role))) return apiError('Módulo Férias está desativado', 503)
-    if (!hasPermission(role, 'ferias:own')) return apiError('Sem permissão', 403)
+    if (!(await isModuloAusenciasAtivo(role))) return apiError('Módulo Ausências está desativado', 503)
+    if (!hasPermission(role, 'ausencias:own')) return apiError('Sem permissão', 403)
 
     const body = await req.json()
     const parsed = ausenciaCreateSchema.safeParse(body)
@@ -137,8 +135,6 @@ export async function POST(req: NextRequest) {
     const dataInicio = parseDateOnly(parsed.data.dataInicio)
     const dataFim = parseDateOnly(parsed.data.dataFim)
 
-    // Overlap guard: reject a same-tipo range that overlaps an existing one so
-    // day counts never double-count. A different tipo on the same days is allowed.
     const overlap = await prisma.ausencia.findFirst({
       where: {
         inspetorId: session.user.id,
@@ -156,7 +152,7 @@ export async function POST(req: NextRequest) {
     const ausencia = await prisma.ausencia.create({
       data: {
         inspetorId: session.user.id,
-        brigadaId: session.user.brigadaId, // snapshot
+        brigadaId: session.user.brigadaId,
         tipo,
         dataInicio,
         dataFim,

@@ -26,9 +26,6 @@ const MONTHS_PT = [
   'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
 ]
 
-// Dates arrive from the API as UTC instants — read the calendar day in UTC so
-// bars/positions don't shift by ±1 day across client timezones, then build a
-// local-midnight Date for rendering/comparison.
 function startOfDay(d: Date): Date {
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }
@@ -37,17 +34,14 @@ function dayKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }
 
-// Per-day pixel width by scale — drives the scrollable timeline minWidth.
 const PER_DAY_PX: Record<Scale, number> = { month: 30, quarter: 12, year: 5 }
 
-export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, onScaleChange }: Props) {
+export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale, onScaleChange }: Props) {
 
   const ano = month.getFullYear()
   const mIdx = month.getMonth()
 
-  // Visible range [rangeStart, rangeEnd] (local midnight) per scale. All scales
-  // stay within a single calendar year, so the per-year fetch upstream covers it.
-  const { rangeStart, rangeEnd, startMonthIdx, endMonthIdx } = useMemo(() => {
+  const { rangeStart, rangeEnd, startMonthIdx } = useMemo(() => {
     if (scale === 'month') {
       return {
         rangeStart: new Date(ano, mIdx, 1),
@@ -73,8 +67,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
     }
   }, [scale, ano, mIdx])
 
-  // Enumerate every day in range with metadata + an index map keyed by day. The
-  // index map makes bar positioning robust against DST (no day-diff arithmetic).
   const { dayList, indexByKey } = useMemo(() => {
     const list: { date: Date; key: string; day: number; monthIdx: number; nonWorking: boolean }[] = []
     const map = new Map<string, number>()
@@ -98,8 +90,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
 
   const total = dayList.length
 
-  // Per-day count of how many members are absent (any tipo). Pre-parse each
-  // member's ranges once instead of re-allocating Dates inside the day loop.
   const absentPerDay = useMemo(() => {
     const counts = new Array(total).fill(0)
     const parsed = membros.map((m) =>
@@ -117,7 +107,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
     return counts
   }, [membros, dayList, total])
 
-  // Month band labels (sit above the day cells); each spans its days in the range.
   const monthBands = useMemo(() => {
     const bands: { monthIdx: number; count: number }[] = []
     for (const d of dayList) {
@@ -137,8 +126,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
     const startIdx = indexByKey.get(dayKey(clampStart))
     const endIdx = indexByKey.get(dayKey(clampEnd))
     if (startIdx == null || endIdx == null) return null
-    // Tooltip shows days in the VISIBLE (clamped) range, not the full absence span.
-    // clampStart/clampEnd are local-midnight; convert to UTC midnight for countWorkingDays.
     const toUtcDay = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
     const dias = countWorkingDays(toUtcDay(clampStart), toUtcDay(clampEnd))
     return {
@@ -151,7 +138,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
   const minWidth = Math.max(total * PER_DAY_PX[scale], 320)
   const showDayNumbers = scale === 'month'
 
-  // Navigation jumps by the current scale's span.
   function shift(dir: -1 | 1) {
     if (scale === 'month') onMonthChange(new Date(ano, mIdx + dir, 1))
     else if (scale === 'quarter') onMonthChange(new Date(ano, startMonthIdx + dir * 3, 1))
@@ -214,7 +200,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
             {rangeLabel}
           </CardTitle>
           <div className="flex items-center gap-2">
-            {/* Scale selector */}
             <div className="flex rounded-md border p-0.5">
               {(['month', 'quarter', 'year'] as Scale[]).map((s) => (
                 <button
@@ -245,9 +230,7 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
             <p className="py-4 text-center text-sm text-muted-foreground">Sem dados para apresentar.</p>
           ) : (
             <div className="flex overflow-hidden">
-              {/* Sticky names column */}
               <div className="w-32 shrink-0">
-                {/* Spacer matching the month-band + day-tick header height */}
                 <div className={showDayNumbers ? 'h-12 border-b' : 'h-9 border-b'} />
                 {membros.map((m) => (
                   <div
@@ -260,10 +243,8 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
                 ))}
               </div>
 
-              {/* Scrollable timeline */}
               <div className="flex-1 overflow-x-auto">
                 <div style={{ minWidth }}>
-                  {/* Month band labels */}
                   <div className="flex h-5 border-b">
                     {monthBands.map((b, i) => (
                       <div
@@ -276,7 +257,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
                     ))}
                   </div>
 
-                  {/* Day ticks: numbers only at month scale; shading + multi cue always */}
                   <div
                     className={(showDayNumbers ? 'h-7' : 'h-4') + ' grid border-b'}
                     style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }}
@@ -302,10 +282,8 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
                     })}
                   </div>
 
-                  {/* One row per member */}
                   {membros.map((m) => (
                     <div key={m.id} className="relative h-8 border-b">
-                      {/* Background day cells (weekend/holiday shading) */}
                       <div
                         className="absolute inset-0 grid"
                         style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }}
@@ -317,7 +295,6 @@ export function FeriasBrigadaOverview({ membros, month, onMonthChange, scale, on
                           />
                         ))}
                       </div>
-                      {/* Absence bars */}
                       <TooltipProvider>
                         {m.ausencias.map((a) => {
                           const bar = barFor(a)

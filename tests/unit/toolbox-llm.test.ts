@@ -69,6 +69,20 @@ describe('ollamaGenerate', () => {
     ))
     await expect(ollamaGenerate('prompt', 'qwen3:4b')).rejects.toMatchObject({ cause: 502 })
   })
+
+  test('remove blocos <think> do qwen3 e devolve só o texto final', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ response: '<think>raciocínio interno longo</think>\nExplicação limpa.' }), { status: 200 }),
+    ))
+    await expect(ollamaGenerate('prompt', 'qwen3:4b')).resolves.toBe('Explicação limpa.')
+  })
+
+  test('resposta só com bloco <think> → erro 502', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ response: '<think>só thinking sem resposta</think>' }), { status: 200 }),
+    ))
+    await expect(ollamaGenerate('prompt', 'qwen3:4b')).rejects.toMatchObject({ cause: 502 })
+  })
 })
 
 describe('ollamaStatus', () => {

@@ -82,8 +82,8 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
-    label: 'Férias',
-    href: '/ferias',
+    label: 'Ausências',
+    href: '/ausencias',
     icon: CalendarDays,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
