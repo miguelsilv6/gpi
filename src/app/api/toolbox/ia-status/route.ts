@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Inicia o download em background — stream: true para o Ollama enviar progresso
-    // progressivamente; o body é drenado para manter o socket aberto até ao fim.
+    // progressivamente; cada linha NDJSON é inspecionada para detectar erros embebidos
+    // (com stream:true, o Ollama retorna 200 mesmo em erro, o campo "error" aparece no body).
     ;(async () => {
       try {
         const pullRes = await fetch(`${OLLAMA_URL}/api/pull`, {
@@ -63,9 +64,26 @@ export async function POST(req: NextRequest) {
         }
         if (pullRes.body) {
           const reader = pullRes.body.getReader()
+          const decoder = new TextDecoder()
+          let buf = ''
           while (true) {
-            const { done } = await reader.read()
+            const { done, value } = await reader.read()
             if (done) break
+            buf += decoder.decode(value, { stream: true })
+            const lines = buf.split('\n')
+            buf = lines.pop() ?? ''
+            for (const line of lines) {
+              if (!line.trim()) continue
+              try {
+                const parsed = JSON.parse(line) as { error?: string }
+                if (parsed.error) {
+                  throw new Error(`Erro ao descarregar "${modelo}": ${parsed.error}`)
+                }
+              } catch (e) {
+                if (e instanceof Error && e.message.startsWith('Erro ao descarregar')) throw e
+                // linha não é JSON válido — ignorar
+              }
+            }
           }
         }
       } catch (err) {
