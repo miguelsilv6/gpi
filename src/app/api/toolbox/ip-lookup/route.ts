@@ -63,11 +63,21 @@ export async function POST(req: NextRequest) {
       const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, {
         signal: AbortSignal.timeout(10_000),
         cache: 'no-store',
+        headers: { 'User-Agent': 'GPI-Toolbox/1.0' },
       })
-      if (!res.ok) return apiError('Serviço de lookup indisponível', 502)
+      if (!res.ok) {
+        return apiError(
+          `Serviço de geolocalização indisponível (HTTP ${res.status}) — o container pode não ter acesso à internet`,
+          502,
+        )
+      }
       data = await res.json()
-    } catch {
-      return apiError('Não foi possível contactar o serviço de lookup (sem acesso à internet?)', 502)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return apiError(
+        `Não foi possível contactar o serviço de lookup: ${msg}. Verifique se o container tem acesso à internet.`,
+        502,
+      )
     }
 
     if (!data.success) {
