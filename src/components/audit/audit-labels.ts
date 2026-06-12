@@ -40,6 +40,15 @@ export const ACAO_LABELS: Record<string, string> = {
   CREATE_BUG_REPORT: 'Bug reportado',
   UPDATE_BUG_REPORT: 'Bug report alterado',
   DELETE_BUG_REPORT: 'Bug report eliminado',
+  LOGIN: 'Início de sessão',
+  CREATE_CONTROLO: 'Controlo criado',
+  UPDATE_CONTROLO: 'Controlo alterado',
+  DELETE_CONTROLO: 'Controlo eliminado',
+  CONFIRM_CONTROLO_REALIZACAO: 'Realização de controlo confirmada',
+  UPLOAD_DOCUMENTO: 'Documento anexado',
+  DELETE_DOCUMENTO: 'Documento eliminado',
+  CREATE_CONFIG_SISTEMA: 'Configurações do sistema criadas',
+  UPDATE_CONFIG_SISTEMA: 'Configurações do sistema alteradas',
 }
 
 /** Cor categórica para os badges de acao em listas. */
@@ -98,7 +107,14 @@ export const FIELD_LABELS: Record<string, string> = {
   observacoes: 'Observações',
   alertaDias1: '1.º aviso (dias)',
   alertaDias2: '2.º aviso (dias)',
+  alertaDias: 'Antecedência de alerta (dias)',
+  periodoDias: 'Período (dias)',
   concluidaEm: 'Concluída em',
+  concluidoEm: 'Concluído em',
+  dataEsperada: 'Data esperada',
+  numero: 'Número',
+  controloId: 'Controlo id',
+  tamanho: 'Tamanho',
   descricao: 'Atividade',
   atividadeId: 'Atividade id',
   source: 'Origem',
@@ -138,6 +154,8 @@ export const FIELD_LABELS: Record<string, string> = {
   notaAdmin: 'Nota do admin',
   moduloBugReportsAtivo: 'Módulo Reportar Bug',
   moduloBugReportsRoles: 'Perfis com acesso (Reportar Bug)',
+  moduloAnexosAtivo: 'Módulo Anexos',
+  moduloAnexosRoles: 'Perfis com acesso (Anexos)',
   // Bulk markers
   __bulk__: '(lote)',
   __bulk_export__: '(exportação)',
@@ -149,7 +167,7 @@ export const DATE_FIELDS = new Set([
   'dataConclusao',
   'dataRealizacao',
 ])
-export const DATETIME_FIELDS = new Set(['concluidaEm', 'createdAt'])
+export const DATETIME_FIELDS = new Set(['concluidaEm', 'concluidoEm', 'createdAt'])
 
 export function labelFor(field: string): string {
   return FIELD_LABELS[field] ?? field

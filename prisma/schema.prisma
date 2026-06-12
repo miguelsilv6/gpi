@@ -474,6 +474,13 @@ model ConfiguracaoSistema {
   // Comma-separated list of Role values allowed to use the Toolbox when the
   // module is active. ADMINISTRACAO always has access and is never stored here.
   moduloToolboxRoles              String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // When false, the Anexos feature (documentos anexados a inquéritos) is hidden
+  // on the inquiry detail page and its API routes return 503. Only ADMINISTRACAO
+  // can toggle this in Configurações → Sistema.
+  moduloAnexosAtivo               Boolean  @default(true)
+  // Comma-separated list of Role values allowed to see/manage attachments when
+  // the module is active. ADMINISTRACAO always has access and is never stored here.
+  moduloAnexosRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Explicações por IA na Toolbox (LLM local via Ollama). Opt-in: o admin só
   // deve ativar depois de descarregar o modelo no container Ollama.
   toolboxIaAtivo                  Boolean  @default(false)

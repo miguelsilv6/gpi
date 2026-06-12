@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug, Wrench, Sparkles, Download, RefreshCw } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
@@ -755,6 +755,9 @@ export default function ConfiguracoesPage() {
   const [moduloBugReportsRoles, setModuloBugReportsRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloToolboxAtivo, setModuloToolboxAtivo] = useState(true)
   const [moduloToolboxRoles, setModuloToolboxRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [moduloAnexosAtivo, setModuloAnexosAtivo] = useState(true)
+  const [moduloAnexosRoles, setModuloAnexosRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [savingModuloAnexos, setSavingModuloAnexos] = useState(false)
   const [emailNotificacoesAtivo, setEmailNotificacoesAtivo] = useState(true)
   const [savingEmailNotificacoes, setSavingEmailNotificacoes] = useState(false)
   const [savingModulo, setSavingModulo] = useState(false)
@@ -815,6 +818,8 @@ export default function ConfiguracoesPage() {
         setModuloBugReportsRoles((d.moduloBugReportsRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloToolboxAtivo(d.moduloToolboxAtivo ?? true)
         setModuloToolboxRoles((d.moduloToolboxRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setModuloAnexosAtivo(d.moduloAnexosAtivo ?? true)
+        setModuloAnexosRoles((d.moduloAnexosRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setToolboxIaAtivo(d.toolboxIaAtivo ?? false)
         setToolboxIaModelo(d.toolboxIaModelo ?? 'qwen3:4b')
         setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
@@ -1113,6 +1118,31 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function toggleModuloAnexos() {
+    const next = !moduloAnexosAtivo
+    setSavingModuloAnexos(true)
+    setModuloAnexosAtivo(next)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduloAnexosAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setModuloAnexosAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Módulo Anexos ativado' : 'Módulo Anexos desativado')
+    } catch {
+      setModuloAnexosAtivo(!next)
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingModuloAnexos(false)
+    }
+  }
+
   async function toggleEmailNotificacoes() {
     const next = !emailNotificacoesAtivo
     setSavingEmailNotificacoes(true)
@@ -1138,13 +1168,15 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox', role: string) {
-    const current =
-      modulo === 'ajudas' ? moduloAjudasRoles : modulo === 'ferias' ? moduloFeriasRoles : modulo === 'toolbox' ? moduloToolboxRoles : moduloBugReportsRoles
-    const setter =
-      modulo === 'ajudas' ? setModuloAjudasRoles : modulo === 'ferias' ? setModuloFeriasRoles : modulo === 'toolbox' ? setModuloToolboxRoles : setModuloBugReportsRoles
-    const key =
-      modulo === 'ajudas' ? 'moduloAjudasRoles' : modulo === 'ferias' ? 'moduloFeriasRoles' : modulo === 'toolbox' ? 'moduloToolboxRoles' : 'moduloBugReportsRoles'
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos', role: string) {
+    const configMap = {
+      ajudas:     { roles: moduloAjudasRoles,     setter: setModuloAjudasRoles,     key: 'moduloAjudasRoles' },
+      ferias:     { roles: moduloFeriasRoles,     setter: setModuloFeriasRoles,     key: 'moduloFeriasRoles' },
+      bugreports: { roles: moduloBugReportsRoles, setter: setModuloBugReportsRoles, key: 'moduloBugReportsRoles' },
+      toolbox:    { roles: moduloToolboxRoles,    setter: setModuloToolboxRoles,    key: 'moduloToolboxRoles' },
+      anexos:     { roles: moduloAnexosRoles,     setter: setModuloAnexosRoles,     key: 'moduloAnexosRoles' },
+    } as const
+    const { roles: current, setter, key } = configMap[modulo]
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
     setter(next)
     setSavingRoles(true)
@@ -1691,6 +1723,49 @@ export default function ConfiguracoesPage() {
                     inatividade é mais lenta (carregamento do modelo).
                   </p>
                 </div>
+              )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloAnexosAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <Paperclip className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Anexos</p>
+                    <p className="text-xs text-muted-foreground">
+                      Documentos anexados a inquéritos (provas, relatórios, ofícios)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleModuloAnexos}
+                  disabled={savingModuloAnexos}
+                  aria-label={moduloAnexosAtivo ? 'Desativar módulo Anexos' : 'Ativar módulo Anexos'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloAnexosAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloAnexosAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloAnexosAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloAnexosRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('anexos', r)}
+                />
               )}
             </div>
 

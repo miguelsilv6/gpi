@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs'
 import { Readable } from 'node:stream'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { isModuloAnexosAtivo } from '@/lib/anexos-module'
 import { documentoPath } from '@/lib/documentos'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const session = await getSession()
     const role = session.user.role as Role
+    if (!(await isModuloAnexosAtivo(role))) return apiError('Módulo de anexos desativado', 503)
     const { id } = await params
 
     const documento = await prisma.documento.findFirst({

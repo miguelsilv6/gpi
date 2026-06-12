@@ -14,9 +14,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { CalendarCheck, Loader2, AlertTriangle, Bell, Clock, CheckCircle2, Pencil, Trash2, Flag, RotateCcw } from 'lucide-react'
+import { CalendarCheck, Loader2, AlertTriangle, Bell, Clock, CheckCircle2, Pencil, Trash2, Flag, RotateCcw, History } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn, nuipcToSlug, formatDate } from '@/lib/utils'
+import { cn, nuipcToSlug, formatDate, formatDateTime } from '@/lib/utils'
+import { acaoLabel } from '@/components/audit/audit-labels'
+import { DiffRenderer } from '@/components/audit/diff-renderer'
 import Link from 'next/link'
 import type { ControloItem, ControloRealizacaoItem } from '@/lib/controlos'
 import {
@@ -139,6 +141,7 @@ export function ControlosList({
                       {!c.concluidoEm && (
                         <ConcluirButton controloId={c.id} descricao={c.descricao} />
                       )}
+                      <HistoryButton controloId={c.id} descricao={c.descricao} />
                       <EditButton controlo={c} />
                       <DeleteButton controloId={c.id} descricao={c.descricao} />
                     </div>
@@ -203,6 +206,7 @@ export function ControlosList({
                     {!c.concluidoEm && (
                       <ConcluirButton controloId={c.id} descricao={c.descricao} compact />
                     )}
+                    <HistoryButton controloId={c.id} descricao={c.descricao} compact />
                     <EditButton controlo={c} compact />
                     <DeleteButton controloId={c.id} descricao={c.descricao} compact />
                   </div>
@@ -558,6 +562,139 @@ function ConcluirButton({
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Concluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+interface ControloAuditEntry {
+  id: string
+  acao: string
+  utilizadorNome: string | null
+  detalhes: Record<string, unknown> | null
+  ip: string | null
+  createdAt: string
+}
+
+function HistoryButton({
+  controloId,
+  descricao,
+  compact = false,
+}: {
+  controloId: string
+  descricao: string
+  compact?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [entries, setEntries] = useState<ControloAuditEntry[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  async function handleOpen() {
+    setOpen(true)
+    if (loading) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/controlos/${controloId}/audit`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error ?? 'Erro a carregar histórico')
+      }
+      const d = await res.json()
+      setEntries(d.data ?? [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro a carregar histórico')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className={cn('gap-1', compact ? 'h-7 w-7 p-0' : 'h-8 px-2')}
+        onClick={handleOpen}
+        title="Ver histórico"
+      >
+        <History className="h-3.5 w-3.5" />
+        {!compact && <span className="sr-only">Histórico</span>}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Histórico do controlo</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground line-clamp-2">{descricao}</p>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : error ? (
+              <p className="text-sm text-red-600 py-2">{error}</p>
+            ) : entries.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Sem entradas de histórico.
+              </p>
+            ) : (
+              <ol className="space-y-3">
+                {entries.map((e) => {
+                  const isExpanded = expanded.has(e.id)
+                  const hasDetails = e.detalhes && Object.keys(e.detalhes).length > 0
+                  return (
+                    <li key={e.id} className="border-l-2 border-muted pl-3 text-sm">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <span className="font-medium">{acaoLabel(e.acao)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateTime(new Date(e.createdAt))}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        por{' '}
+                        <span className="font-medium text-foreground">
+                          {e.utilizadorNome ?? '—'}
+                        </span>
+                        {e.ip && <span className="ml-2 font-mono">({e.ip})</span>}
+                      </div>
+                      {hasDetails && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(e.id)}
+                          className="text-xs text-muted-foreground hover:text-foreground mt-1 underline underline-offset-2"
+                        >
+                          {isExpanded ? 'Esconder detalhes' : 'Ver detalhes'}
+                        </button>
+                      )}
+                      {isExpanded && hasDetails && (
+                        <div className="mt-2 rounded-md bg-muted/40 p-2.5">
+                          <DiffRenderer detalhes={e.detalhes} />
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -37,6 +37,32 @@ async function recordAttempt(
   }
 }
 
+/**
+ * Regista o início de sessão bem-sucedido no audit log (visível em /auditlog e
+ * no histórico do utilizador). A `LoginAttempt` guarda o detalhe de segurança
+ * (tentativas falhadas, bloqueios); o audit guarda o evento de negócio.
+ */
+async function recordLoginAudit(
+  utilizadorId: string,
+  ip: string | null,
+  userAgent: string | null,
+) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        acao: 'LOGIN',
+        entidade: 'Utilizador',
+        entidadeId: utilizadorId,
+        utilizadorId,
+        ip,
+        userAgent,
+      },
+    })
+  } catch {
+    // audit failure should never block auth
+  }
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   callbacks: {
@@ -151,6 +177,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           },
         })
         await recordAttempt(email, true, null, ip, userAgent)
+        await recordLoginAudit(utilizador.id, ip, userAgent)
 
         return {
           id: utilizador.id,
