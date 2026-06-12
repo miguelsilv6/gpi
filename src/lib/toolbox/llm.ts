@@ -70,6 +70,9 @@ export async function ollamaGenerate(prompt: string, modelo: string): Promise<st
         model: modelo,
         prompt,
         stream: false,
+        // qwen3 e modelos similares têm "thinking mode" activo por omissão;
+        // desativa-o para respostas directas sem overhead de raciocínio em CPU.
+        think: false,
         options: { temperature: 0.2 },
       }),
       // Inferência em CPU é lenta — dar folga real.
@@ -91,7 +94,9 @@ export async function ollamaGenerate(prompt: string, modelo: string): Promise<st
   }
 
   const data = (await res.json()) as { response?: string }
-  const texto = (data.response ?? '').trim()
+  // Alguns modelos (ex: qwen3) emitem blocos <think>…</think> mesmo com
+  // think:false — removê-los garante que só o texto final chega ao cliente.
+  const texto = (data.response ?? '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
   if (!texto) {
     throw new Error('O modelo não devolveu resposta — tente novamente', { cause: 502 })
   }
