@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
               try {
                 const parsed = JSON.parse(line) as { error?: string }
                 if (parsed.error) {
+                  await reader.cancel().catch(() => {})
                   throw new Error(`Erro ao descarregar "${modelo}": ${parsed.error}`)
                 }
               } catch (e) {

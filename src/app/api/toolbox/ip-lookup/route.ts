@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
         )
       }
       data = await res.json()
+      if (!data || typeof data !== 'object') {
+        throw new Error('Resposta inválida do serviço de geolocalização (não é um objeto)')
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       return apiError(
