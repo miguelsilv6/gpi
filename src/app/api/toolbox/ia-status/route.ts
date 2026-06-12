@@ -47,15 +47,31 @@ export async function POST(req: NextRequest) {
       return apiError('Serviço de IA indisponível — verifique se o container Ollama está a correr', 503)
     }
 
-    // Fire-and-forget — o download pode demorar vários minutos; não bloquear o pedido HTTP.
-    fetch(`${OLLAMA_URL}/api/pull`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: modelo, stream: false }),
-      cache: 'no-store',
-    }).catch((err: unknown) => {
-      console.error('[Ollama] Erro ao descarregar o modelo ' + modelo + ':', err)
-    })
+    // Inicia o download em background — stream: true para o Ollama enviar progresso
+    // progressivamente; o body é drenado para manter o socket aberto até ao fim.
+    ;(async () => {
+      try {
+        const pullRes = await fetch(`${OLLAMA_URL}/api/pull`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: modelo, stream: true }),
+          cache: 'no-store',
+        })
+        if (!pullRes.ok) {
+          const errorText = await pullRes.text().catch(() => 'Erro desconhecido')
+          throw new Error(`Ollama respondeu com status ${pullRes.status}: ${errorText}`)
+        }
+        if (pullRes.body) {
+          const reader = pullRes.body.getReader()
+          while (true) {
+            const { done } = await reader.read()
+            if (done) break
+          }
+        }
+      } catch (err) {
+        console.error('[Ollama] Erro ao descarregar o modelo ' + modelo + ':', err)
+      }
+    })()
 
     await writeAudit({
       req,
