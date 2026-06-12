@@ -19,6 +19,7 @@ import { PrazosCalendar } from '@/components/prazos/prazos-calendar'
 import { ControlosList } from '@/components/prazos/controlos-list'
 import { CreateControloDialog } from '@/components/prazos/create-controlo-dialog'
 import { PanelTabs } from '@/components/prazos/panel-tabs'
+import { HistoricoToggle } from '@/components/prazos/historico-toggle'
 import type { PrazoItem } from '@/components/prazos/types'
 import type { ControloItem } from '@/lib/controlos'
 import Link from 'next/link'
@@ -32,6 +33,7 @@ interface SearchParams {
   month?: string
   day?: string
   panel?: string
+  historico?: string
 }
 
 const PAGE_SIZE = 50
@@ -67,6 +69,8 @@ export default async function PrazosPage({
   // Panel: 'prazos' (default) | 'controlos'
   const hasControloAccess = hasPermission(role, 'controlo:read:own')
   const panel = sp.panel === 'controlos' && hasControloAccess ? 'controlos' : 'prazos'
+  // Histórico: mostra itens já concluídos em vez dos pendentes.
+  const historico = sp.historico === '1'
 
   const view: 'list' | 'calendar' = sp.view === 'calendar' ? 'calendar' : 'list'
   const status = sp.status === 'vencidos' || sp.status === 'proximos' ? sp.status : 'todos'
@@ -119,11 +123,21 @@ export default async function PrazosPage({
       ? { dataPrazo: { gte: monthDate, lt: monthEnd } }
       : {}
 
+  // No histórico mostram-se atividades já concluídas; relaxa-se o filtro de
+  // estado terminal (um inquérito arquivado pode ter prazos concluídos a consultar).
+  const concluidaWhere = historico ? { concluidaEm: { not: null } } : { concluidaEm: null }
+  const inqueritoWhere = historico
+    ? { inquerito: { deletedAt: null } }
+    : { inquerito: { deletedAt: null, estado: { terminal: false } } }
+  const prazosOrderBy = historico
+    ? { concluidaEm: 'desc' as const }
+    : { dataPrazo: 'asc' as const }
+
   const prazosWhere = {
     AND: [
       { dataPrazo: { not: null } },
-      { concluidaEm: null },
-      { inquerito: { deletedAt: null, estado: { terminal: false } } },
+      concluidaWhere,
+      inqueritoWhere,
       scopeWhere,
       statusWhere,
       inspetorWhere,
@@ -165,7 +179,7 @@ export default async function PrazosPage({
       const [data, count] = await Promise.all([
         prisma.atividade.findMany({
           where: prazosWhere,
-          orderBy: { dataPrazo: 'asc' },
+          orderBy: prazosOrderBy,
           skip: (page - 1) * PAGE_SIZE,
           take: PAGE_SIZE,
           select: ATIVIDADE_PRAZO_SELECT,
@@ -186,16 +200,21 @@ export default async function PrazosPage({
     session.user.brigadaId ?? null,
   )
 
+  const controloConcluidoWhere = historico ? { concluidoEm: { not: null } } : { concluidoEm: null }
+  const controlosOrderBy = historico
+    ? { concluidoEm: 'desc' as const }
+    : { dataInicio: 'asc' as const }
+
   const [controlosData, controlosTotal] = hasControloAccess && panel === 'controlos'
     ? await prisma.$transaction([
         prisma.controlo.findMany({
-          where: { AND: [controloScopeWhere, { concluidoEm: null }] },
-          orderBy: { dataInicio: 'asc' },
+          where: { AND: [controloScopeWhere, controloConcluidoWhere] },
+          orderBy: controlosOrderBy,
           take: PAGE_SIZE,
           select: CONTROLO_SELECT,
         }),
         prisma.controlo.count({
-          where: { AND: [controloScopeWhere, { concluidoEm: null }] },
+          where: { AND: [controloScopeWhere, controloConcluidoWhere] },
         }),
       ])
     : [[], 0]
@@ -219,17 +238,18 @@ export default async function PrazosPage({
           <h1 className="text-2xl font-bold tracking-tight">Prazos e Controlos</h1>
           <p className="text-muted-foreground text-sm">
             {panel === 'controlos'
-              ? `${controlosTotal} controlo${controlosTotal !== 1 ? 's' : ''} pendente${controlosTotal !== 1 ? 's' : ''}`
+              ? `${controlosTotal} controlo${controlosTotal !== 1 ? 's' : ''} ${historico ? 'concluído' : 'pendente'}${controlosTotal !== 1 ? 's' : ''}`
               : isCalendar
                 ? `Mês de ${monthDate?.toLocaleDateString('pt-PT', {
                     month: 'long',
                     year: 'numeric',
                   })}`
-                : `${total} prazo${total !== 1 ? 's' : ''}`}
+                : `${total} prazo${total !== 1 ? 's' : ''}${historico ? ' concluído' + (total !== 1 ? 's' : '') : ''}`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {panel === 'controlos' && hasControloAccess && (
+        <div className="flex flex-wrap items-center gap-2">
+          <HistoricoToggle historico={historico} />
+          {panel === 'controlos' && hasControloAccess && !historico && (
             <CreateControloDialog />
           )}
           {panel === 'prazos' && (
@@ -268,7 +288,7 @@ export default async function PrazosPage({
                 showInspetor={showInspetor}
                 showBrigada={showBrigada}
                 alertaDias={alertaDias}
-                emptyMessage="Sem prazos por cumprir."
+                emptyMessage={historico ? 'Sem prazos concluídos.' : 'Sem prazos por cumprir.'}
               />
               {totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm">
@@ -304,7 +324,7 @@ export default async function PrazosPage({
           total={controlosTotal}
           showCriador={showCriador}
           showBrigada={showBrigadaControlos}
-          emptyMessage="Sem controlos pendentes."
+          emptyMessage={historico ? 'Sem controlos concluídos.' : 'Sem controlos pendentes.'}
         />
       )}
     </div>

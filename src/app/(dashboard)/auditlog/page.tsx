@@ -24,6 +24,8 @@ const ENTIDADES = [
   'Brigada',
   'Configuracao',
   'Atividade',
+  'Controlo',
+  'Documento',
   'NotificationPolicy',
   'Relatorio',
   'Backup',

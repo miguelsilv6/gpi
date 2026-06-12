@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
+import { isModuloAnexosAtivo } from '@/lib/anexos-module'
 import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { AuditHistory } from '@/components/inqueritos/audit-history'
 import { AccessDenied } from '@/components/access-denied'
@@ -145,19 +146,23 @@ export default async function InqueritoDetailPage({
   // Linha do tempo de estados reconstruída a partir do AuditLog.
   const estadoTimeline = await getEstadoTimeline(inquerito.id)
 
-  // Documentos anexados (provas, relatórios, ofícios).
-  const documentos = await prisma.documento.findMany({
-    where: { inqueritoid: inquerito.id },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      filename: true,
-      mimeType: true,
-      tamanho: true,
-      createdAt: true,
-      uploadedBy: { select: { id: true, nome: true } },
-    },
-  })
+  // Documentos anexados (provas, relatórios, ofícios) — só quando o módulo Anexos
+  // está ativo para o role do utilizador.
+  const anexosAtivo = await isModuloAnexosAtivo(role)
+  const documentos = anexosAtivo
+    ? await prisma.documento.findMany({
+        where: { inqueritoid: inquerito.id },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          filename: true,
+          mimeType: true,
+          tamanho: true,
+          createdAt: true,
+          uploadedBy: { select: { id: true, nome: true } },
+        },
+      })
+    : []
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
   const terminal = isTerminal(inquerito.estado)
@@ -604,13 +609,15 @@ export default async function InqueritoDetailPage({
         editLocked={editLocked}
       />
 
-      <DocumentosSection
-        nuipcSlug={inqSlug}
-        documentos={documentos.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() }))}
-        canUpload={canEdit && role !== 'ESTATISTICA'}
-        currentUserId={session.user.id}
-        isAdmin={hasPermission(role, 'inquerito:edit:all')}
-      />
+      {anexosAtivo && (
+        <DocumentosSection
+          nuipcSlug={inqSlug}
+          documentos={documentos.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() }))}
+          canUpload={canEdit && role !== 'ESTATISTICA'}
+          currentUserId={session.user.id}
+          isAdmin={hasPermission(role, 'inquerito:edit:all')}
+        />
+      )}
 
       {canSeeAudit && <AuditHistory slug={inqSlug} />}
     </div>

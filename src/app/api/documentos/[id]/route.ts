@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { isModuloAnexosAtivo } from '@/lib/anexos-module'
 import { writeAudit } from '@/lib/audit'
 import { documentoPath } from '@/lib/documentos'
 import type { Role } from '@/generated/prisma/enums'
@@ -33,6 +34,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const session = await getSession()
     const role = session.user.role as Role
+    if (!(await isModuloAnexosAtivo(role))) return apiError('Módulo de anexos desativado', 503)
     const { id } = await params
 
     const documento = await findDocumentoWithAccess(id, role, session.user.id, session.user.brigadaId ?? null)

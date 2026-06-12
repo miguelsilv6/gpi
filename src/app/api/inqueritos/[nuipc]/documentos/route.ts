@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { isModuloAnexosAtivo } from '@/lib/anexos-module'
 import { writeAudit } from '@/lib/audit'
 import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
 import { slugToNuipc } from '@/lib/utils'
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nuip
   try {
     const session = await getSession()
     const role = session.user.role as Role
+    if (!(await isModuloAnexosAtivo(role))) return apiError('Módulo de anexos desativado', 503)
     const { nuipc: slug } = await params
     const nuipc = slugToNuipc(slug)
 
@@ -69,6 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
   try {
     const session = await getSession()
     const role = session.user.role as Role
+    if (!(await isModuloAnexosAtivo(role))) return apiError('Módulo de anexos desativado', 503)
     const { nuipc: slug } = await params
     const nuipc = slugToNuipc(slug)
 

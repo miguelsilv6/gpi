@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { writeAudit, diff } from '@/lib/audit'
 import { CONTROLO_SELECT } from '@/lib/controlos'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
@@ -96,11 +97,46 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       data.concluidoEm = parsed.data.concluidoEm ? new Date(parsed.data.concluidoEm) : null
     }
 
+    // Estado anterior para o diff de auditoria (consulta no histórico do controlo).
+    const before = await prisma.controlo.findUnique({
+      where: { id },
+      select: { descricao: true, observacoes: true, alertaDias: true, concluidoEm: true },
+    })
+
     const updated = await prisma.controlo.update({
       where: { id },
       data,
       select: CONTROLO_SELECT,
     })
+
+    const changes = before
+      ? diff(
+          {
+            descricao: before.descricao,
+            observacoes: before.observacoes,
+            alertaDias: before.alertaDias,
+            concluidoEm: before.concluidoEm,
+          },
+          {
+            descricao: updated.descricao,
+            observacoes: updated.observacoes,
+            alertaDias: updated.alertaDias,
+            concluidoEm: updated.concluidoEm,
+          },
+          ['descricao', 'observacoes', 'alertaDias', 'concluidoEm'],
+        )
+      : null
+
+    if (changes) {
+      await writeAudit({
+        req,
+        acao: 'UPDATE_CONTROLO',
+        entidade: 'Controlo',
+        entidadeId: id,
+        utilizadorId: session.user.id,
+        detalhes: changes as never,
+      }).catch(() => {})
+    }
 
     return Response.json(updated)
   } catch (error) {
@@ -125,7 +161,19 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return apiError('Sem permissão para eliminar este controlo', 403)
     }
 
+    const full = await prisma.controlo.findUnique({
+      where: { id },
+      select: { descricao: true, inquerito: { select: { nuipc: true } } },
+    })
     await prisma.controlo.delete({ where: { id } })
+    await writeAudit({
+      req,
+      acao: 'DELETE_CONTROLO',
+      entidade: 'Controlo',
+      entidadeId: id,
+      utilizadorId: session.user.id,
+      detalhes: { descricao: full?.descricao ?? null, nuipc: full?.inquerito?.nuipc ?? null },
+    }).catch(() => {})
     return new Response(null, { status: 204 })
   } catch (error) {
     return handleApiError(error)
