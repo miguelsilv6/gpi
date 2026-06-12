@@ -14,28 +14,39 @@ const schema = z.object({
   ),
 })
 
-interface IpwhoisResponse {
-  success: boolean
-  message?: string
+interface IpapiCoResponse {
   ip?: string
-  type?: string
-  continent?: string
-  country?: string
-  country_code?: string
-  region?: string
+  version?: string
   city?: string
+  region?: string
+  country_name?: string
+  country_code?: string
+  continent_code?: string
   postal?: string
   latitude?: number
   longitude?: number
-  connection?: { asn?: number; org?: string; isp?: string; domain?: string }
-  timezone?: { id?: string }
+  timezone?: string
+  asn?: string
+  org?: string
+  /** Campos de erro */
+  error?: boolean
+  reason?: string
+}
+
+const CONTINENT_NAMES: Record<string, string> = {
+  AF: 'África',
+  AN: 'Antárctida',
+  AS: 'Ásia',
+  EU: 'Europa',
+  NA: 'América do Norte',
+  OC: 'Oceânia',
+  SA: 'América do Sul',
 }
 
 /**
  * Lookup de um IP: geolocalização, ASN/ISP e reverse DNS.
- * Geolocalização via ipwho.is (HTTPS, gratuito, sem chave — o ip-api.com
- * gratuito só responde por HTTP, inaceitável para OPSEC). Reverse DNS é
- * resolvido localmente pelo servidor (node:dns).
+ * Geolocalização via ipapi.co (HTTPS, gratuito sem chave, 1000 req/dia).
+ * Reverse DNS resolvido localmente (node:dns).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -58,16 +69,16 @@ export async function POST(req: NextRequest) {
 
     const ip = parsed.data.ip.trim()
 
-    let data: IpwhoisResponse
+    let data: IpapiCoResponse
     try {
-      const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, {
+      const res = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/json/`, {
         signal: AbortSignal.timeout(10_000),
         cache: 'no-store',
         headers: { 'User-Agent': 'GPI-Toolbox/1.0' },
       })
       if (!res.ok) {
         return apiError(
-          `Serviço de geolocalização indisponível (HTTP ${res.status}) — o container pode não ter acesso à internet`,
+          `Serviço de geolocalização indisponível (HTTP ${res.status})`,
           502,
         )
       }
@@ -75,13 +86,13 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       return apiError(
-        `Não foi possível contactar o serviço de lookup: ${msg}. Verifique se o container tem acesso à internet.`,
+        `Não foi possível contactar o serviço de lookup: ${msg}`,
         502,
       )
     }
 
-    if (!data.success) {
-      return apiError(`Lookup falhou: ${data.message ?? 'IP inválido ou reservado'}`, 422)
+    if (data.error) {
+      return apiError(`Lookup falhou: ${data.reason ?? 'IP inválido ou reservado'}`, 422)
     }
 
     // Reverse DNS local — sem dependência de serviço externo.
@@ -104,22 +115,22 @@ export async function POST(req: NextRequest) {
 
     return Response.json({
       query: data.ip ?? ip,
-      tipo: data.type ?? '',
-      country: data.country ?? '',
+      tipo: data.version ?? '',
+      country: data.country_name ?? '',
       countryCode: data.country_code ?? '',
-      continent: data.continent ?? '',
+      continent: CONTINENT_NAMES[data.continent_code ?? ''] ?? data.continent_code ?? '',
       regionName: data.region ?? '',
       city: data.city ?? '',
       zip: data.postal ?? '',
       lat: data.latitude ?? null,
       lon: data.longitude ?? null,
-      timezone: data.timezone?.id ?? '',
-      isp: data.connection?.isp ?? '',
-      org: data.connection?.org ?? '',
-      asn: data.connection?.asn ? `AS${data.connection?.asn}` : '',
-      asDomain: data.connection?.domain ?? '',
+      timezone: data.timezone ?? '',
+      isp: data.org ?? '',
+      org: data.org ?? '',
+      asn: data.asn ?? '',
+      asDomain: '',
       reverse,
-      fonte: 'ipwho.is (geolocalização) + resolver do servidor (reverse DNS)',
+      fonte: 'ipapi.co (geolocalização) + resolver do servidor (reverse DNS)',
     })
   } catch (error) {
     return handleApiError(error)
