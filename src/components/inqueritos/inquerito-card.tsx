@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { EstadoBadge } from './estado-badge'
 import { EtiquetaList } from './etiqueta-badge'
 import { formatDate, isOverdue, nuipcToSlug } from '@/lib/utils'
-import { AlertTriangle, Calendar, Check, User, Scale } from 'lucide-react'
+import { AlertTriangle, Calendar, Check, User, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface EstadoLike {
@@ -188,7 +188,7 @@ export function InqueritoCard({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-sm font-semibold">{nuipc}</span>
               {cartaPrecatoria && (
-                <Scale className="h-3.5 w-3.5 text-orange-500 shrink-0" aria-label="Carta Precatória" />
+                <Mail className="h-3.5 w-3.5 text-orange-500 shrink-0" aria-label="Carta Precatória" />
               )}
               {overdue && (
                 <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />

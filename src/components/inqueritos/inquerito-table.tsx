@@ -7,7 +7,7 @@ import { InqueritoCard } from './inquerito-card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from './etiqueta-badge'
 import { formatDate, isOverdue, cn, nuipcToSlug } from '@/lib/utils'
-import { AlertTriangle, CheckSquare, X, Scale } from 'lucide-react'
+import { AlertTriangle, CheckSquare, X, Mail } from 'lucide-react'
 import Link from 'next/link'
 
 interface EstadoLike {
@@ -87,11 +87,11 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, showDenunciante, isSe
           href={`/inqueritos/${nuipcToSlug(inq.nuipc)}`}
           className="font-mono font-medium hover:text-blue-600 hover:underline flex items-center gap-1.5"
         >
-          {inq.cartaPrecatoria && (
-            <Scale className="h-3.5 w-3.5 text-orange-500 shrink-0" aria-label="Carta Precatória" />
-          )}
           {overdue && <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
           {inq.nuipc}
+          {inq.cartaPrecatoria && (
+            <Mail className="h-3.5 w-3.5 text-orange-500 shrink-0" aria-label="Carta Precatória" />
+          )}
         </Link>
         {inq.nai && (
           <p className="text-xs text-muted-foreground font-mono mt-0.5">

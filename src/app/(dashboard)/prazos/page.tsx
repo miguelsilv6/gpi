@@ -254,12 +254,12 @@ export default async function PrazosPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <HistoricoToggle historico={historico} />
           {panel === 'controlos' && hasControloAccess && !historico && (
             <div className="hidden sm:block">
               <CreateControloDialog />
             </div>
           )}
+          <HistoricoToggle historico={historico} />
           <PrazosViewToggle view={view} />
         </div>
       </div>
