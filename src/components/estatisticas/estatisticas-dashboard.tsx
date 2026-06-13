@@ -22,7 +22,7 @@ import {
   TribunalBarChart,
   TipoInqueritoChart,
 } from './charts'
-import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity, Scale } from 'lucide-react'
+import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity, Mail } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
@@ -342,7 +342,7 @@ export function EstatisticasDashboard({
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
-                  <Scale className="h-4 w-4 text-orange-500" />
+                  <Mail className="h-4 w-4 text-orange-500" />
                   <span className="text-sm text-muted-foreground">C. Precatórias</span>
                 </div>
                 <p className="text-3xl font-bold mt-1 text-orange-600 dark:text-orange-400">{stats.cartaPrecatoriaCount}</p>
