@@ -180,7 +180,7 @@ export function TipoInqueritoChart({
             <Cell key={i} fill={entry.fill} />
           ))}
         </Pie>
-        <Tooltip formatter={(v) => [v, 'Inquéritos']} />
+        <Tooltip formatter={(v, name) => [v, name]} />
         <Legend />
       </PieChart>
     </ResponsiveContainer>

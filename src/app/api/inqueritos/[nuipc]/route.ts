@@ -225,7 +225,7 @@ export async function PUT(
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,
         notas: data.notas ?? null,
-        cartaPrecatoria: data.cartaPrecatoria ?? false,
+        cartaPrecatoria: data.cartaPrecatoria ?? existing.cartaPrecatoria,
         inspetorId,
         tribunalId: data.tribunalId || null,
         seccaoId: data.seccaoId || null,

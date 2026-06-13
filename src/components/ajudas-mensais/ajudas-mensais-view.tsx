@@ -1049,6 +1049,7 @@ tr:nth-child(even) td{background:#f6f6f6}
       toast.error('O browser bloqueou a abertura de uma nova janela. Permita pop-ups para este site.')
       return
     }
+    win.opener = null
     win.document.write(html)
     win.document.close()
   }

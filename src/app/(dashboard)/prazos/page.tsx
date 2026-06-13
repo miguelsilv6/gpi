@@ -289,7 +289,7 @@ export default async function PrazosPage({
             <PrazosCalendar
               items={items}
               month={monthDate!}
-              day={sp.day ? new Date(`${sp.day}T00:00:00`) : null}
+              day={sp.day && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? new Date(`${sp.day}T00:00:00`) : null}
               showInspetor={showInspetor}
               showBrigada={showBrigada}
               alertaDias={alertaDias}
@@ -335,7 +335,7 @@ export default async function PrazosPage({
         <ControlosCalendar
           items={controlosData as unknown as ControloItem[]}
           month={monthDate!}
-          day={sp.day ? new Date(`${sp.day}T00:00:00`) : null}
+          day={sp.day && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? new Date(`${sp.day}T00:00:00`) : null}
           showCriador={showCriador}
           showBrigada={showBrigadaControlos}
         />
