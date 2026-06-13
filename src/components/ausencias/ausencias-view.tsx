@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -16,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AusenciasCalendar } from './ausencias-calendar'
 import { AusenciasBrigadaOverview } from './ausencias-brigada-overview'
 import { countWorkingDays } from '@/lib/ferias'
+import { cn } from '@/lib/utils'
 import type { Ausencia, MembroFerias, Totais, TipoAusencia, GanttScale } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
 
@@ -256,38 +256,61 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
       {loading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">A carregar…</div>
       ) : canViewBrigade ? (
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'me' | 'brigade')}>
-          <TabsList>
-            <TabsTrigger value="me">As minhas marcações</TabsTrigger>
-            <TabsTrigger value="brigade">Brigada</TabsTrigger>
-          </TabsList>
-          <TabsContent value="me" className="mt-4">{meContent}</TabsContent>
-          <TabsContent value="brigade" className="mt-4">
-            {canViewAll && brigadas.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <Label className="text-sm text-muted-foreground shrink-0">Brigada:</Label>
-                <Select
-                  value={selectedBrigadaId ?? ''}
-                  onValueChange={(v) => setSelectedBrigadaId(v || null)}
-                >
-                  <SelectTrigger className="w-full sm:w-56">
-                    <span className="flex-1 truncate text-left">
-                      {selectedBrigadaId
-                        ? brigadas.find((b) => b.id === selectedBrigadaId)?.nome ?? ''
-                        : <span className="text-muted-foreground">Selecionar brigada…</span>}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brigadas.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <AusenciasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} scale={ganttScale} onScaleChange={setGanttScale} />
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-4">
+          <div className="inline-flex rounded-lg border bg-card p-0.5" role="group">
+            <button
+              type="button"
+              onClick={() => setTab('me')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors',
+                tab === 'me'
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              As minhas marcações
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('brigade')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors',
+                tab === 'brigade'
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Brigada
+            </button>
+          </div>
+          {tab === 'me' ? meContent : (
+            <div className="space-y-4">
+              {canViewAll && brigadas.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Label className="text-sm text-muted-foreground shrink-0">Brigada:</Label>
+                  <Select
+                    value={selectedBrigadaId ?? ''}
+                    onValueChange={(v) => setSelectedBrigadaId(v || null)}
+                  >
+                    <SelectTrigger className="w-full sm:w-56">
+                      <span className="flex-1 truncate text-left">
+                        {selectedBrigadaId
+                          ? brigadas.find((b) => b.id === selectedBrigadaId)?.nome ?? ''
+                          : <span className="text-muted-foreground">Selecionar brigada…</span>}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {brigadas.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <AusenciasBrigadaOverview membros={membros} month={month} onMonthChange={setMonth} scale={ganttScale} onScaleChange={setGanttScale} />
+            </div>
+          )}
+        </div>
       ) : (
         meContent
       )}
