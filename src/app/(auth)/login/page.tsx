@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,6 +14,22 @@ import { Shield, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { useBrand, useBrandAssetUrl } from '@/components/brand-provider'
+import { LOGIN_CAPTCHA_REQUIRED_AFTER } from '@/lib/constants'
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render(container: HTMLElement, opts: {
+        sitekey: string
+        theme?: 'light' | 'dark' | 'auto'
+        callback(token: string): void
+        'expired-callback'?(): void
+        'error-callback'?(): void
+      }): string
+      reset(widgetId: string): void
+    }
+  }
+}
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -22,8 +38,9 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
+const CF_SITE_KEY = process.env.NEXT_PUBLIC_CF_TURNSTILE_SITE_KEY ?? ''
+
 export default function LoginPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const brand = useBrand()
@@ -35,29 +52,76 @@ export default function LoginPage() {
   useEffect(() => setMounted(true), [])
   const logo = mounted && resolvedTheme === 'dark' && darkLogo ? darkLogo : lightLogo
 
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<HTMLDivElement>(null)
+  const widgetIdRef = useRef<string | null>(null)
+
+  const showCaptcha = failedAttempts >= LOGIN_CAPTCHA_REQUIRED_AFTER && !!CF_SITE_KEY
+
+  // Carrega e renderiza o widget Turnstile quando o threshold é atingido
+  useEffect(() => {
+    if (!showCaptcha || !captchaRef.current) return
+
+    function render() {
+      if (!captchaRef.current || !window.turnstile) return
+      if (widgetIdRef.current) return
+      widgetIdRef.current = window.turnstile.render(captchaRef.current, {
+        sitekey: CF_SITE_KEY,
+        theme: 'auto',
+        callback: (token) => setCaptchaToken(token),
+        'expired-callback': () => setCaptchaToken(null),
+        'error-callback': () => setCaptchaToken(null),
+      })
+    }
+
+    if (window.turnstile) {
+      render()
+    } else if (!document.getElementById('cf-turnstile-js')) {
+      const s = document.createElement('script')
+      s.id = 'cf-turnstile-js'
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      s.async = true
+      s.onload = render
+      document.head.appendChild(s)
+    }
+  }, [showCaptcha])
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  // Só permite paths relativos para evitar open redirect
+  const rawCallbackUrl = searchParams.get('callbackUrl') ?? ''
+  const callbackUrl =
+    rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//')
+      ? rawCallbackUrl
+      : '/dashboard'
 
   async function onSubmit(data: FormData) {
     setError(null)
     const result = await signIn('credentials', {
       email: data.email,
       password: data.password,
+      captchaToken: captchaToken ?? '',
       redirect: false,
     })
 
     if (result?.error) {
       setError('Email ou password incorretos.')
+      setFailedAttempts((n) => n + 1)
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.reset(widgetIdRef.current)
+        setCaptchaToken(null)
+      }
       return
     }
 
-    router.push(callbackUrl)
-    router.refresh()
+    // Full page navigation garante que o cookie de sessão é enviado
+    // na primeira request ao middleware (router.push pode criar race condition).
+    window.location.href = callbackUrl
   }
 
   return (
@@ -112,7 +176,22 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {showCaptcha && (
+              <div className="space-y-1">
+                <div ref={captchaRef} className="flex justify-center" />
+                {!captchaToken && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Conclua a verificação acima para continuar.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting || (showCaptcha && !captchaToken)}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
