@@ -33,7 +33,6 @@ import {
   Loader2,
   Pencil,
   Plus,
-  Printer,
   Trash2,
   Bell,
 } from 'lucide-react'
@@ -647,14 +646,6 @@ export function AjudasMensaisView({
   const [deleteCandidate, setDeleteCandidate] = useState<AjudasLinha | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  // PDF preview — useEffect revoga o Blob URL automaticamente ao desmontar
-  // o componente ou ao fechar o dialog (evita memory leak na navegação)
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  useEffect(() => {
-    return () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl) }
-  }, [pdfUrl])
-  function closePdfDialog() { setPdfUrl(null) }
-
   const fetchData = useCallback(async (a: number, m: number) => {
     const seq = ++fetchSeqRef.current
     setLoading(true)
@@ -1053,9 +1044,13 @@ tr:nth-child(even) td{background:#f6f6f6}
 </body>
 </html>`
 
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    setPdfUrl(url)
+    const win = window.open('', '_blank', 'width=1000,height=900')
+    if (!win) {
+      toast.error('O browser bloqueou a abertura de uma nova janela. Permita pop-ups para este site.')
+      return
+    }
+    win.document.write(html)
+    win.document.close()
   }
 
   const distanciaMin = data?.config.distanciaMinKmAjudas ?? 35
@@ -1427,42 +1422,6 @@ tr:nth-child(even) td{background:#f6f6f6}
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Eliminar
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* PDF preview dialog */}
-      <Dialog open={!!pdfUrl} onOpenChange={(open) => { if (!open) closePdfDialog() }}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col gap-0 p-0">
-          <DialogHeader className="px-6 pt-5 pb-3 shrink-0">
-            <DialogTitle>Pré-visualização — {MONTH_NAMES[mes - 1]} {ano}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden px-6">
-            {pdfUrl && (
-              <iframe
-                src={pdfUrl}
-                className="w-full h-full rounded border"
-                title="PDF Ajudas Mensais"
-                sandbox="allow-same-origin"
-              />
-            )}
-          </div>
-          <DialogFooter className="px-6 py-4 shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (!pdfUrl) return
-                const w = window.open(pdfUrl, '_blank')
-                if (w) {
-                  w.addEventListener('load', () => w.print())
-                  if (w.document.readyState === 'complete') w.print()
-                }
-              }}
-            >
-              <Printer className="h-4 w-4 mr-1.5" />
-              Imprimir
-            </Button>
-            <Button variant="ghost" onClick={closePdfDialog}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

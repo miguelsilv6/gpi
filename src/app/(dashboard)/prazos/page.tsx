@@ -17,6 +17,7 @@ import { PrazosFilters } from '@/components/prazos/prazos-filters'
 import { PrazosList } from '@/components/prazos/prazos-list'
 import { PrazosCalendar } from '@/components/prazos/prazos-calendar'
 import { ControlosList } from '@/components/prazos/controlos-list'
+import { ControlosCalendar } from '@/components/prazos/controlos-calendar'
 import { CreateControloDialog } from '@/components/prazos/create-controlo-dialog'
 import { PanelTabs } from '@/components/prazos/panel-tabs'
 import { HistoricoToggle } from '@/components/prazos/historico-toggle'
@@ -205,16 +206,24 @@ export default async function PrazosPage({
     ? { concluidoEm: 'desc' as const }
     : { dataInicio: 'asc' as const }
 
+  // In calendar mode filter by the month of the next pending (or last completed) realizacao.
+  const controlosCalendarWhere =
+    isCalendar && monthDate && monthEnd
+      ? historico
+        ? { realizacoes: { some: { dataRealizacao: { not: null }, dataEsperada: { gte: monthDate, lt: monthEnd } } } }
+        : { realizacoes: { some: { dataRealizacao: null, dataEsperada: { gte: monthDate, lt: monthEnd } } } }
+      : {}
+
   const [controlosData, controlosTotal] = hasControloAccess && panel === 'controlos'
     ? await prisma.$transaction([
         prisma.controlo.findMany({
-          where: { AND: [controloScopeWhere, controloConcluidoWhere] },
+          where: { AND: [controloScopeWhere, controloConcluidoWhere, controlosCalendarWhere] },
           orderBy: controlosOrderBy,
-          take: PAGE_SIZE,
+          take: isCalendar ? CALENDAR_MAX : PAGE_SIZE,
           select: CONTROLO_SELECT,
         }),
         prisma.controlo.count({
-          where: { AND: [controloScopeWhere, controloConcluidoWhere] },
+          where: { AND: [controloScopeWhere, controloConcluidoWhere, controlosCalendarWhere] },
         }),
       ])
     : [[], 0]
@@ -237,13 +246,10 @@ export default async function PrazosPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Prazos e Controlos</h1>
           <p className="text-muted-foreground text-sm">
-            {panel === 'controlos'
-              ? `${controlosTotal} controlo${controlosTotal !== 1 ? 's' : ''} ${historico ? 'concluído' : 'pendente'}${controlosTotal !== 1 ? 's' : ''}`
-              : isCalendar
-                ? `Mês de ${monthDate?.toLocaleDateString('pt-PT', {
-                    month: 'long',
-                    year: 'numeric',
-                  })}`
+            {isCalendar
+              ? `Mês de ${monthDate?.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}`
+              : panel === 'controlos'
+                ? `${controlosTotal} controlo${controlosTotal !== 1 ? 's' : ''} ${historico ? 'concluído' : 'pendente'}${controlosTotal !== 1 ? 's' : ''}`
                 : `${total} prazo${total !== 1 ? 's' : ''}${historico ? ' concluído' + (total !== 1 ? 's' : '') : ''}`}
           </p>
         </div>
@@ -254,9 +260,7 @@ export default async function PrazosPage({
               <CreateControloDialog />
             </div>
           )}
-          {panel === 'prazos' && (
-            <PrazosViewToggle view={view} />
-          )}
+          <PrazosViewToggle view={view} />
         </div>
       </div>
 
@@ -327,6 +331,14 @@ export default async function PrazosPage({
             </>
           )}
         </>
+      ) : isCalendar ? (
+        <ControlosCalendar
+          items={controlosData as unknown as ControloItem[]}
+          month={monthDate!}
+          day={sp.day ? new Date(`${sp.day}T00:00:00`) : null}
+          showCriador={showCriador}
+          showBrigada={showBrigadaControlos}
+        />
       ) : (
         <ControlosList
           items={controlosData as unknown as ControloItem[]}
