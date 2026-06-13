@@ -100,6 +100,7 @@ export async function GET(req: NextRequest) {
       arquivados,
       anoRaw,
       porTribunalRaw,
+      cartaPrecatoriaCount,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
       prisma.inquerito.groupBy({
@@ -181,6 +182,7 @@ export async function GET(req: NextRequest) {
         select: { dataAbertura: true, nuipc: true },
       }),
       prisma.inquerito.groupBy({ by: ['tribunalId'], where, _count: true, orderBy: { _count: { tribunalId: 'desc' } } }),
+      prisma.inquerito.count({ where: { ...where, cartaPrecatoria: true } }),
     ])
 
     // Atividade breakdown for the selected inspetor (only when filtered).
@@ -316,6 +318,7 @@ export async function GET(req: NextRequest) {
 
     return Response.json({
       total,
+      cartaPrecatoriaCount,
       ativos,
       vencidos,
       semInspetor,

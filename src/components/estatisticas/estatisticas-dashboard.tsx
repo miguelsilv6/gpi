@@ -20,14 +20,16 @@ import {
   AnoBarChart,
   ComarcaBarChart,
   TribunalBarChart,
+  TipoInqueritoChart,
 } from './charts'
-import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity } from 'lucide-react'
+import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity, Scale } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
 
 interface Stats {
   total: number
+  cartaPrecatoriaCount: number
   ativos: number
   vencidos: number
   semInspetor: number
@@ -327,7 +329,7 @@ export function EstatisticasDashboard({
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -335,6 +337,15 @@ export function EstatisticasDashboard({
                   <span className="text-sm text-muted-foreground">Total</span>
                 </div>
                 <p className="text-3xl font-bold mt-1">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Scale className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm text-muted-foreground">C. Precatórias</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-orange-600 dark:text-orange-400">{stats.cartaPrecatoriaCount}</p>
               </CardContent>
             </Card>
             <Card>
@@ -414,6 +425,18 @@ export function EstatisticasDashboard({
               </Card>
             )}
           </div>
+
+          {/* Tipo de Inquérito: Inquéritos vs Cartas Precatórias */}
+          {stats.cartaPrecatoriaCount > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Inquéritos vs Cartas Precatórias</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TipoInqueritoChart total={stats.total} cartaPrecatoria={stats.cartaPrecatoriaCount} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Charts row 2 */}
           <div className="grid gap-4 md:grid-cols-2">

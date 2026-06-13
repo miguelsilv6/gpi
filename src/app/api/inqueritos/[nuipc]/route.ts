@@ -225,6 +225,7 @@ export async function PUT(
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,
         notas: data.notas ?? null,
+        cartaPrecatoria: data.cartaPrecatoria ?? false,
         inspetorId,
         tribunalId: data.tribunalId || null,
         seccaoId: data.seccaoId || null,
@@ -286,6 +287,7 @@ export async function PUT(
       denuncianteEmail: existing.denuncianteEmail,
       denuncianteResponsavel: existing.denuncianteResponsavel,
       denuncianteNotas: existing.denuncianteNotas,
+      cartaPrecatoria: existing.cartaPrecatoria,
     }
     const after = {
       nuipc: updated.nuipc,
@@ -312,6 +314,7 @@ export async function PUT(
       denuncianteEmail: updated.denuncianteEmail,
       denuncianteResponsavel: updated.denuncianteResponsavel,
       denuncianteNotas: updated.denuncianteNotas,
+      cartaPrecatoria: updated.cartaPrecatoria,
     }
     const changes = diff(before, after, [
       'nuipc',

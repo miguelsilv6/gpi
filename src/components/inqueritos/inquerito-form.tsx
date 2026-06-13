@@ -350,6 +350,18 @@ export function InqueritoForm({
             </div>
           </div>
 
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              id="cartaPrecatoria"
+              type="checkbox"
+              {...register('cartaPrecatoria')}
+              className="h-4 w-4 rounded border-border cursor-pointer"
+            />
+            <Label htmlFor="cartaPrecatoria" className="cursor-pointer font-normal">
+              Carta Precatória
+            </Label>
+          </div>
+
           <div className="space-y-1.5">
             <Label>Crime *</Label>
             <Select
