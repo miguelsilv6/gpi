@@ -22,6 +22,7 @@ export const inqueritoSchema = z
     dataPrazo: z.string().optional().nullable(),
     dataConclusao: z.string().optional().nullable(),
     notas: z.string().optional().nullable(),
+    cartaPrecatoria: z.boolean().optional(),
     brigadaId: z.string().min(1, 'Brigada obrigatória'),
     inspetorId: z.string().optional().nullable(),
     // Etiquetas (tags) atribuídas — array de ids do catálogo Etiqueta.

@@ -3,6 +3,7 @@
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie, Legend,
 } from 'recharts'
 
 // Maps a state codigo to a hex color, falling back to the `cor` field on the
@@ -144,6 +145,44 @@ export function ComarcaBarChart({ data }: { data: PorComarca[] }) {
         <Tooltip />
         <Bar dataKey="count" name="Inquéritos" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
       </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+export function TipoInqueritoChart({
+  total,
+  cartaPrecatoria,
+}: {
+  total: number
+  cartaPrecatoria: number
+}) {
+  const inqueritos = total - cartaPrecatoria
+  const data = [
+    { name: 'Inquéritos', value: inqueritos, fill: '#3b82f6' },
+    { name: 'Cartas Precatórias', value: cartaPrecatoria, fill: '#f97316' },
+  ]
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={80}
+          label={({ name, value, percent }) =>
+            value > 0 ? `${name}: ${value} (${((percent ?? 0) * 100).toFixed(0)}%)` : ''
+          }
+          labelLine={false}
+        >
+          {data.map((entry, i) => (
+            <Cell key={i} fill={entry.fill} />
+          ))}
+        </Pie>
+        <Tooltip formatter={(v, name) => [v, name]} />
+        <Legend />
+      </PieChart>
     </ResponsiveContainer>
   )
 }

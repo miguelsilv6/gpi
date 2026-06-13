@@ -15,6 +15,7 @@ const EXPORT_FILTER_KEYS = [
   'search',
   'dataAberturaFrom',
   'dataAberturaTo',
+  'cartaPrecatoria',
 ] as const
 
 export function ExportButton() {

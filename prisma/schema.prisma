@@ -121,6 +121,7 @@ model Inquerito {
   dataPrazo      DateTime?
   dataConclusao  DateTime?
   notas          String?
+  cartaPrecatoria Boolean @default(false)
   // Tribunal / Ministério Público — all optional.
   procurador     String?
   oficialJustica String?
@@ -186,6 +187,7 @@ model Inquerito {
   @@index([deletedAt])
   @@index([tribunalId])
   @@index([seccaoId])
+  @@index([cartaPrecatoria])
 }
 
 // Documentos/anexos de um inquérito (provas, relatórios, ofícios…).

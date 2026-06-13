@@ -169,6 +169,26 @@ export function InqueritoFilters({
           </Select>
         )}
 
+        <Select
+          value={searchParams.get('cartaPrecatoria') || 'all'}
+          onValueChange={(v) => update({ cartaPrecatoria: !v || v === 'all' ? null : v })}
+        >
+          <SelectTrigger className="w-full sm:w-52">
+            <SelectValue placeholder="Tipo">
+              {(v: string) => {
+                if (!v || v === 'all') return 'Todos os tipos'
+                if (v === '1') return 'Cartas Precatórias'
+                return 'Inquéritos'
+              }}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectItem value="0">Inquéritos</SelectItem>
+            <SelectItem value="1">Cartas Precatórias</SelectItem>
+          </SelectContent>
+        </Select>
+
         {inspetoresFilter.length > 0 && (
           <Select
             value={searchParams.get('inspetorId') || 'all'}

@@ -6,7 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider } from '@/components/theme-provider'
 import { BrandProvider } from '@/components/brand-provider'
-import { getBrand } from '@/lib/brand'
+import { getBrand, brandAssetUrl } from '@/lib/brand'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -16,10 +16,19 @@ const inter = Inter({
 
 export async function generateMetadata(): Promise<Metadata> {
   const b = await getBrand()
+  // When a custom favicon is stored, point the <link rel="icon"> at the
+  // cache-busted /branding/<file>?v=<ts> URL so the browser picks up the
+  // new icon immediately after the admin uploads one. Without this, the
+  // auto-discovered icon.tsx serves /icon with no version query, and
+  // browsers cache it indefinitely.
+  const faviconUrl = b.faviconFilename
+    ? brandAssetUrl(b.faviconFilename, b.brandUpdatedAt)
+    : null
   return {
     title: { default: `${b.appName} — ${b.appDescription}`, template: `%s · ${b.appName}` },
     description: b.manifestDescription,
     manifest: '/manifest.webmanifest',
+    ...(faviconUrl && { icons: { icon: faviconUrl } }),
     appleWebApp: {
       capable: true,
       statusBarStyle: 'default',

@@ -7,7 +7,7 @@ import { InqueritoCard } from './inquerito-card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from './etiqueta-badge'
 import { formatDate, isOverdue, cn, nuipcToSlug } from '@/lib/utils'
-import { AlertTriangle, CheckSquare, X } from 'lucide-react'
+import { AlertTriangle, CheckSquare, X, Scale } from 'lucide-react'
 import Link from 'next/link'
 
 interface EstadoLike {
@@ -27,6 +27,7 @@ interface Inquerito {
   nai: string | null
   natureza: string
   denuncianteNome: string | null
+  cartaPrecatoria: boolean
   crime: { id: string; nome: string } | null
   estado: EstadoLike
   etiquetas?: EtiquetaLike[]
@@ -86,6 +87,9 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, showDenunciante, isSe
           href={`/inqueritos/${nuipcToSlug(inq.nuipc)}`}
           className="font-mono font-medium hover:text-blue-600 hover:underline flex items-center gap-1.5"
         >
+          {inq.cartaPrecatoria && (
+            <Scale className="h-3.5 w-3.5 text-orange-500 shrink-0" aria-label="Carta Precatória" />
+          )}
           {overdue && <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
           {inq.nuipc}
         </Link>
@@ -271,6 +275,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               key={inq.id}
               nuipc={inq.nuipc}
               nai={inq.nai}
+              cartaPrecatoria={inq.cartaPrecatoria}
               natureza={inq.crime?.nome ?? inq.natureza}
               estado={inq.estado}
               etiquetas={inq.etiquetas}

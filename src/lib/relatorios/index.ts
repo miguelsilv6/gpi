@@ -1,9 +1,10 @@
-import { FileText, Users, Building2, Hourglass } from 'lucide-react'
+import { FileText, Users, Building2, Hourglass, Scale } from 'lucide-react'
 import type { RelatorioDefinition } from './types'
 import { queryInqueritos } from './inqueritos'
 import { queryBrigadas } from './brigadas'
 import { queryInspetores } from './inspetores'
 import { queryInatividade } from './inatividade'
+import { queryCartasPrecatorias } from './cartas-precatorias'
 
 /**
  * Registry de relatórios. Cada entrada produz um `RelatorioResult` canónico
@@ -44,6 +45,14 @@ export const RELATORIOS: Record<string, RelatorioDefinition> = {
       'Inquéritos ativos sem qualquer atividade registada há mais de N dias — candidatos a follow-up.',
     icon: Hourglass,
     handler: queryInatividade,
+  },
+  cartasPrecatorias: {
+    id: 'cartasPrecatorias',
+    titulo: 'Cartas Precatórias',
+    descricao:
+      'Lista de todos os inquéritos marcados como Carta Precatória, com tribunal e secção, filtrável por período e estado.',
+    icon: Scale,
+    handler: queryCartasPrecatorias,
   },
 }
 
