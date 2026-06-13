@@ -647,12 +647,13 @@ export function AjudasMensaisView({
   const [deleteCandidate, setDeleteCandidate] = useState<AjudasLinha | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  // PDF preview
+  // PDF preview — useEffect revoga o Blob URL automaticamente ao desmontar
+  // o componente ou ao fechar o dialog (evita memory leak na navegação)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  function closePdfDialog() {
-    if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-    setPdfUrl(null)
-  }
+  useEffect(() => {
+    return () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl) }
+  }, [pdfUrl])
+  function closePdfDialog() { setPdfUrl(null) }
 
   const fetchData = useCallback(async (a: number, m: number) => {
     const seq = ++fetchSeqRef.current
@@ -1442,6 +1443,7 @@ tr:nth-child(even) td{background:#f6f6f6}
                 src={pdfUrl}
                 className="w-full h-full rounded border"
                 title="PDF Ajudas Mensais"
+                sandbox="allow-same-origin"
               />
             )}
           </div>
@@ -1451,7 +1453,10 @@ tr:nth-child(even) td{background:#f6f6f6}
               onClick={() => {
                 if (!pdfUrl) return
                 const w = window.open(pdfUrl, '_blank')
-                if (w) setTimeout(() => w.print(), 400)
+                if (w) {
+                  w.addEventListener('load', () => w.print())
+                  if (w.document.readyState === 'complete') w.print()
+                }
               }}
             >
               <Printer className="h-4 w-4 mr-1.5" />
