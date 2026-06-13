@@ -17,11 +17,12 @@ import {
   NaturezaBarChart,
   AnoBarChart,
 } from './charts'
-import { FileText, MonitorCog, Send, Archive, CheckCircle2, X } from 'lucide-react'
+import { FileText, MonitorCog, Send, Archive, CheckCircle2, X, Mail } from 'lucide-react'
 
 interface Stats {
   total: number
   vencidos: number
+  cartasPrecatorias: number
   aguardaExames: number
   enviados: number
   arquivados: number
@@ -191,7 +192,7 @@ export function EstatisticaInspetorDashboard() {
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -235,6 +236,15 @@ export function EstatisticaInspetorDashboard() {
                   <span className="text-sm text-muted-foreground">Arquivados</span>
                 </div>
                 <p className="text-3xl font-bold mt-1 text-gray-600">{stats.arquivados}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm text-muted-foreground">C. Precatórias</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-orange-600">{stats.cartasPrecatorias}</p>
               </CardContent>
             </Card>
           </div>

@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
       porNatureza,
       total,
       vencidos,
+      cartasPrecatorias,
       aguardaExames,
       enviados,
       arquivados,
@@ -83,6 +84,7 @@ export async function GET(req: NextRequest) {
       prisma.inquerito.count({
         where: { ...where, dataPrazo: { lt: new Date() }, estado: { terminal: false } },
       }),
+      prisma.inquerito.count({ where: { ...where, cartaPrecatoria: true } }),
       nomesAguardaExames.length === 0
         ? Promise.resolve(0)
         : prisma.inquerito.count({
@@ -175,6 +177,7 @@ export async function GET(req: NextRequest) {
     return Response.json({
       total,
       vencidos,
+      cartasPrecatorias,
       aguardaExames,
       enviados,
       arquivados,
