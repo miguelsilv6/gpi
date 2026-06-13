@@ -33,6 +33,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  Printer,
   Trash2,
   Bell,
 } from 'lucide-react'
@@ -646,6 +647,13 @@ export function AjudasMensaisView({
   const [deleteCandidate, setDeleteCandidate] = useState<AjudasLinha | null>(null)
   const [deleting, setDeleting] = useState(false)
 
+  // PDF preview
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  function closePdfDialog() {
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+    setPdfUrl(null)
+  }
+
   const fetchData = useCallback(async (a: number, m: number) => {
     const seq = ++fetchSeqRef.current
     setLoading(true)
@@ -926,12 +934,6 @@ export function AjudasMensaisView({
     const { registo, config, totais } = data
     const vencimentoBase = totais.limiteBase
 
-    const win = window.open('', '_blank', 'width=900,height=900')
-    if (!win) {
-      toast.error('O bloqueador de popups impediu a abertura do PDF. Por favor, permita popups para este site.')
-      return
-    }
-
     const monthName = MONTH_NAMES[mes - 1]
     const title = `Ajudas Mensais — ${monthName} ${ano}`
     const today = new Date()
@@ -1047,12 +1049,12 @@ tr:nth-child(even) td{background:#f6f6f6}
   </div>
 </div>
 <p class="footer">Ajudas Mensais &bull; ${todayStr}</p>
-<script>window.print()</script>
 </body>
 </html>`
 
-    win.document.write(html)
-    win.document.close()
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    setPdfUrl(url)
   }
 
   const distanciaMin = data?.config.distanciaMinKmAjudas ?? 35
@@ -1424,6 +1426,38 @@ tr:nth-child(even) td{background:#f6f6f6}
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Eliminar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF preview dialog */}
+      <Dialog open={!!pdfUrl} onOpenChange={(open) => { if (!open) closePdfDialog() }}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col gap-0 p-0">
+          <DialogHeader className="px-6 pt-5 pb-3 shrink-0">
+            <DialogTitle>Pré-visualização — {MONTH_NAMES[mes - 1]} {ano}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden px-6">
+            {pdfUrl && (
+              <iframe
+                src={pdfUrl}
+                className="w-full h-full rounded border"
+                title="PDF Ajudas Mensais"
+              />
+            )}
+          </div>
+          <DialogFooter className="px-6 py-4 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!pdfUrl) return
+                const w = window.open(pdfUrl, '_blank')
+                if (w) setTimeout(() => w.print(), 400)
+              }}
+            >
+              <Printer className="h-4 w-4 mr-1.5" />
+              Imprimir
+            </Button>
+            <Button variant="ghost" onClick={closePdfDialog}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
