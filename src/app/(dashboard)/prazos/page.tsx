@@ -250,7 +250,9 @@ export default async function PrazosPage({
         <div className="flex flex-wrap items-center gap-2">
           <HistoricoToggle historico={historico} />
           {panel === 'controlos' && hasControloAccess && !historico && (
-            <CreateControloDialog />
+            <div className="hidden sm:block">
+              <CreateControloDialog />
+            </div>
           )}
           {panel === 'prazos' && (
             <PrazosViewToggle view={view} />
@@ -260,6 +262,13 @@ export default async function PrazosPage({
 
       {hasControloAccess && (
         <PanelTabs panel={panel} />
+      )}
+
+      {/* Mobile: "Novo Controlo" fica por baixo do selector de painel */}
+      {panel === 'controlos' && hasControloAccess && !historico && (
+        <div className="sm:hidden">
+          <CreateControloDialog />
+        </div>
       )}
 
       {panel === 'prazos' ? (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useId, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -147,6 +147,7 @@ function NuipcCombobox({
 
 export function CreateControloDialog() {
   const router = useRouter()
+  const uid = useId()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -247,9 +248,9 @@ export function CreateControloDialog() {
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="cc-descricao">Descrição *</Label>
+              <Label htmlFor="{`${uid}-descricao`}">Descrição *</Label>
               <Input
-                id="cc-descricao"
+                id="{`${uid}-descricao`}"
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
                 placeholder="Ex: Entrega de relatório intercalar"
@@ -258,7 +259,7 @@ export function CreateControloDialog() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cc-nuipc">NUIPC (opcional)</Label>
+              <Label htmlFor="{`${uid}-nuipc`}">NUIPC (opcional)</Label>
               <NuipcCombobox value={nuipc} onChange={setNuipc} />
               <p className="text-xs text-muted-foreground">
                 Pesquisa os seus inquéritos à medida que escreve. Deixe vazio para um controlo independente.
@@ -266,9 +267,9 @@ export function CreateControloDialog() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cc-data">Data de início *</Label>
+              <Label htmlFor="{`${uid}-data`}">Data de início *</Label>
               <Input
-                id="cc-data"
+                id="{`${uid}-data`}"
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
@@ -278,21 +279,21 @@ export function CreateControloDialog() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <input
-                  id="cc-periodico"
+                  id="{`${uid}-periodico`}"
                   type="checkbox"
                   checked={periodico}
                   onChange={(e) => setPeriodico(e.target.checked)}
                   className="h-4 w-4 rounded border-border"
                 />
-                <Label htmlFor="cc-periodico" className="cursor-pointer">
+                <Label htmlFor="{`${uid}-periodico`}" className="cursor-pointer">
                   Controlo periódico (recorrente)
                 </Label>
               </div>
               {periodico && (
                 <div className="pl-6 space-y-1.5">
-                  <Label htmlFor="cc-periodo">Período (dias)</Label>
+                  <Label htmlFor="{`${uid}-periodo`}">Período (dias)</Label>
                   <Input
-                    id="cc-periodo"
+                    id="{`${uid}-periodo`}"
                     type="number"
                     min={1}
                     max={365}
@@ -308,9 +309,9 @@ export function CreateControloDialog() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cc-alerta">Alertar com antecedência (dias)</Label>
+              <Label htmlFor="{`${uid}-alerta`}">Alertar com antecedência (dias)</Label>
               <Input
-                id="cc-alerta"
+                id="{`${uid}-alerta`}"
                 type="number"
                 min={1}
                 max={90}
@@ -321,9 +322,9 @@ export function CreateControloDialog() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cc-obs">Observações (opcional)</Label>
+              <Label htmlFor="{`${uid}-obs`}">Observações (opcional)</Label>
               <Textarea
-                id="cc-obs"
+                id="{`${uid}-obs`}"
                 value={observacoes}
                 onChange={(e) => setObservacoes(e.target.value)}
                 rows={3}
