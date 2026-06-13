@@ -1450,6 +1450,152 @@ tr:nth-child(even) td{background:#f6f6f6}
   )
 }
 
+// ─── Gantt bar for line detail ─────────────────────────────────────────────────
+
+const GANTT_COLORS: Record<string, string> = {
+  semanaDia: 'bg-blue-400 dark:bg-blue-500',
+  semanaNoite: 'bg-indigo-500 dark:bg-indigo-600',
+  fdsDia: 'bg-orange-400 dark:bg-orange-500',
+  fdsNoite: 'bg-purple-500 dark:bg-purple-600',
+  normal: 'bg-muted',
+}
+
+const GANTT_LABELS: Record<string, string> = {
+  semanaDia: 'Sem. 08-24h',
+  semanaNoite: 'Sem. 00-08h',
+  fdsDia: 'FdS 08-24h',
+  fdsNoite: 'FdS 00-08h',
+  normal: 'Horário normal',
+}
+
+interface GanttSegment { startMin: number; endMin: number; type: string }
+
+function buildDayGanttSegments(
+  dayStart: Date,
+  entryStart: Date,
+  entryEnd: Date,
+  holidays: Set<string>,
+): GanttSegment[] {
+  const dayEnd = new Date(dayStart.getTime() + 86_400_000)
+  const segStart = entryStart > dayStart ? entryStart : dayStart
+  const segEnd = entryEnd < dayEnd ? entryEnd : dayEnd
+  if (segStart >= segEnd) return []
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dateStr = `${dayStart.getUTCFullYear()}-${pad(dayStart.getUTCMonth() + 1)}-${pad(dayStart.getUTCDate())}`
+  const dow = dayStart.getUTCDay()
+  const isFds = dow === 0 || dow === 6 || holidays.has(dateStr)
+
+  const startMin = (segStart.getTime() - dayStart.getTime()) / 60000
+  const endMin = (segEnd.getTime() - dayStart.getTime()) / 60000
+
+  const breaks = [8 * 60, 9 * 60, 17 * 60 + 30].filter(m => m > startMin && m < endMin)
+  const points = [startMin, ...breaks, endMin].sort((a, b) => a - b)
+
+  return points.slice(0, -1).map((s, i) => {
+    const e = points[i + 1]!
+    const mid = (s + e) / 2
+    const isNight = mid < 8 * 60
+    const isWork = !isFds && mid >= 9 * 60 && mid < 17 * 60 + 30
+    const type = isWork ? 'normal' : isFds
+      ? (isNight ? 'fdsNoite' : 'fdsDia')
+      : (isNight ? 'semanaNoite' : 'semanaDia')
+    return { startMin: s, endMin: e, type }
+  })
+}
+
+const PT_WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const GANTT_TICKS = [0, 8 * 60, 9 * 60, 17 * 60 + 30, 24 * 60]
+const GANTT_TICK_LABELS: Record<number, string> = {
+  0: '00h',
+  [8 * 60]: '08h',
+  [9 * 60]: '09h',
+  [17 * 60 + 30]: '17h30',
+  [24 * 60]: '24h',
+}
+
+function LinhaGanttBar({ linha, holidays }: { linha: AjudasLinha; holidays: Set<string> }) {
+  if (linha.prevencaoOnly) return null
+
+  const entryStart = new Date(linha.dataInicio)
+  const entryEnd = new Date(linha.dataFim)
+
+  const days: Date[] = []
+  const iter = new Date(entryStart)
+  iter.setUTCHours(0, 0, 0, 0)
+  while (iter < entryEnd && days.length < 14) {
+    days.push(new Date(iter))
+    iter.setUTCDate(iter.getUTCDate() + 1)
+  }
+
+  const typesUsed = new Set<string>()
+  for (const day of days) {
+    for (const seg of buildDayGanttSegments(day, entryStart, entryEnd, holidays)) {
+      if (seg.type !== 'normal') typesUsed.add(seg.type)
+    }
+  }
+  const legend = ['semanaDia', 'semanaNoite', 'fdsDia', 'fdsNoite'].filter(t => typesUsed.has(t))
+
+  return (
+    <div className="space-y-2 pt-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Visualização de Horas</p>
+      <div className="space-y-1">
+        {days.map((day) => {
+          const segs = buildDayGanttSegments(day, entryStart, entryEnd, holidays)
+          if (segs.length === 0) return null
+          const pad = (n: number) => String(n).padStart(2, '0')
+          const label = `${PT_WEEKDAYS[day.getUTCDay()]} ${pad(day.getUTCDate())}/${pad(day.getUTCMonth() + 1)}`
+          return (
+            <div key={day.toISOString()} className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground w-16 shrink-0 text-right tabular-nums">{label}</span>
+              <div className="relative flex-1 h-5 bg-muted/30 rounded overflow-hidden">
+                {segs.map((seg, i) => (
+                  <div
+                    key={i}
+                    className={cn('absolute inset-y-0', GANTT_COLORS[seg.type] ?? 'bg-muted')}
+                    style={{
+                      left: `${(seg.startMin / 1440) * 100}%`,
+                      width: `${((seg.endMin - seg.startMin) / 1440) * 100}%`,
+                    }}
+                    title={GANTT_LABELS[seg.type]}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        <div className="flex items-center gap-2">
+          <span className="w-16 shrink-0" />
+          <div className="relative flex-1 h-4 select-none">
+            {GANTT_TICKS.map((tick) => (
+              <span
+                key={tick}
+                className={cn(
+                  'absolute text-[10px] text-muted-foreground -translate-x-1/2 leading-none',
+                  tick === 9 * 60 && 'hidden sm:inline',
+                )}
+                style={{ left: `${(tick / 1440) * 100}%` }}
+              >
+                {GANTT_TICK_LABELS[tick]}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      {legend.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          {legend.map((type) => (
+            <div key={type} className="flex items-center gap-1.5">
+              <div className={cn('h-3 w-3 rounded-sm shrink-0', GANTT_COLORS[type])} />
+              <span className="text-[11px] text-muted-foreground">{GANTT_LABELS[type]}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Detail dialog body ────────────────────────────────────────────────────────
 
 function DetailRow({ label, value, muted, bold, sep }: {
@@ -1492,6 +1638,14 @@ function LinhaDetailBody({
   ano: number
   mes: number
 }) {
+  const holidays = useMemo(() => {
+    const s = new Set<string>()
+    for (const y of [ano - 1, ano, ano + 1]) {
+      for (const h of getPortugueseHolidays(y)) s.add(h)
+    }
+    return s
+  }, [ano])
+
   const det: LinhaDetalhes | null = data?.totais
     ? calcLinhaDetalhes(
         {
@@ -1680,6 +1834,10 @@ function LinhaDetailBody({
           Configure o seu vencimento base e taxa de IRS no{' '}
           <Link href="/perfil" className="underline">Perfil</Link> para ver o cálculo detalhado.
         </p>
+      )}
+
+      {!linha.prevencaoOnly && (
+        <LinhaGanttBar linha={linha} holidays={holidays} />
       )}
     </div>
   )
