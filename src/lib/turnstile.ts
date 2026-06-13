@@ -19,7 +19,8 @@ export async function verifyCaptcha(token: string, ip: string | null): Promise<b
     })
     const data = (await res.json()) as { success: boolean }
     return data.success === true
-  } catch {
+  } catch (error) {
+    console.error('Erro ao verificar CAPTCHA Turnstile:', error)
     return false
   }
 }

@@ -59,12 +59,17 @@ export default function LoginPage() {
 
   const showCaptcha = failedAttempts >= LOGIN_CAPTCHA_REQUIRED_AFTER && !!CF_SITE_KEY
 
-  // Carrega e renderiza o widget Turnstile quando o threshold é atingido
+  // Carrega e renderiza o widget Turnstile quando o threshold é atingido.
+  // Usa flag `active` + cleanup para evitar race condition se o componente
+  // for desmontado enquanto o script ainda está a carregar.
   useEffect(() => {
     if (!showCaptcha || !captchaRef.current) return
 
+    let active = true
+    let scriptElement: HTMLScriptElement | null = null
+
     function render() {
-      if (!captchaRef.current || !window.turnstile) return
+      if (!active || !captchaRef.current || !window.turnstile) return
       if (widgetIdRef.current) return
       widgetIdRef.current = window.turnstile.render(captchaRef.current, {
         sitekey: CF_SITE_KEY,
@@ -75,15 +80,31 @@ export default function LoginPage() {
       })
     }
 
+    const existingScript = document.getElementById('cf-turnstile-js') as HTMLScriptElement | null
+
     if (window.turnstile) {
       render()
-    } else if (!document.getElementById('cf-turnstile-js')) {
+    } else if (existingScript) {
+      // Script já no DOM mas ainda a carregar — regista listener
+      scriptElement = existingScript
+      scriptElement.addEventListener('load', render)
+    } else {
       const s = document.createElement('script')
       s.id = 'cf-turnstile-js'
       s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
       s.async = true
       s.onload = render
       document.head.appendChild(s)
+      scriptElement = s
+    }
+
+    return () => {
+      active = false
+      if (scriptElement) {
+        scriptElement.removeEventListener('load', render)
+        if (scriptElement.onload === render) scriptElement.onload = null
+      }
+      widgetIdRef.current = null
     }
   }, [showCaptcha])
 
@@ -93,12 +114,9 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  // Só permite paths relativos para evitar open redirect
+  // Só permite paths relativos — regex bloqueia //, /\ e \/ usados em bypasses
   const rawCallbackUrl = searchParams.get('callbackUrl') ?? ''
-  const callbackUrl =
-    rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//')
-      ? rawCallbackUrl
-      : '/dashboard'
+  const callbackUrl = /^\/(?!\/|\\)/.test(rawCallbackUrl) ? rawCallbackUrl : '/dashboard'
 
   async function onSubmit(data: FormData) {
     setError(null)

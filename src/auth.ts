@@ -144,8 +144,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null
         }
 
-        // CAPTCHA obrigatório após N falhas acumuladas (se configurado)
-        if (process.env.CF_TURNSTILE_SECRET_KEY && utilizador.failedLoginCount >= LOGIN_CAPTCHA_REQUIRED_AFTER) {
+        // CAPTCHA obrigatório após N falhas acumuladas (só quando AMBAS as chaves
+        // estão definidas — evita bloquear utilizadores se apenas uma chave estiver
+        // configurada e o frontend não exibir o widget)
+        if (
+          process.env.CF_TURNSTILE_SECRET_KEY &&
+          process.env.NEXT_PUBLIC_CF_TURNSTILE_SITE_KEY &&
+          utilizador.failedLoginCount >= LOGIN_CAPTCHA_REQUIRED_AFTER
+        ) {
           const token = typeof credentials?.captchaToken === 'string' ? credentials.captchaToken : ''
           if (!token || !(await verifyCaptcha(token, ip))) {
             await recordAttempt(email, false, 'captcha_failed', ip, userAgent)
