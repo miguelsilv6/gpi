@@ -257,9 +257,11 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
         <div className="py-12 text-center text-sm text-muted-foreground">A carregar…</div>
       ) : canViewBrigade ? (
         <div className="space-y-4">
-          <div className="inline-flex rounded-lg border bg-card p-0.5" role="group">
+          <div className="inline-flex rounded-lg border bg-card p-0.5" role="tablist" aria-label="Vista de ausências">
             <button
               type="button"
+              role="tab"
+              aria-selected={tab === 'me'}
               onClick={() => setTab('me')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors',
@@ -272,6 +274,8 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={tab === 'brigade'}
               onClick={() => setTab('brigade')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors',
