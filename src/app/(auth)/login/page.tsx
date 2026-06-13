@@ -14,6 +14,7 @@ import { Shield, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { useBrand, useBrandAssetUrl } from '@/components/brand-provider'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { LOGIN_CAPTCHA_REQUIRED_AFTER } from '@/lib/constants'
 
 declare global {
@@ -144,6 +145,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-700 p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-1 text-center pb-6">
           <div className="flex justify-center mb-4">
