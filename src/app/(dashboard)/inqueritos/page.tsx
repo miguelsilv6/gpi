@@ -102,7 +102,7 @@ export default async function InqueritosPage({
     ...((sp.dataAberturaFrom || sp.dataAberturaTo) && {
       dataAbertura: {
         ...(sp.dataAberturaFrom && { gte: new Date(sp.dataAberturaFrom) }),
-        ...(sp.dataAberturaTo && { lte: new Date(sp.dataAberturaTo) }),
+        ...(sp.dataAberturaTo && { lte: new Date(sp.dataAberturaTo.match(/^\d{4}-\d{2}-\d{2}$/) ? sp.dataAberturaTo + 'T23:59:59.999Z' : sp.dataAberturaTo) }),
       },
     }),
     ...(sp.cartaPrecatoria === '1' && { cartaPrecatoria: true }),

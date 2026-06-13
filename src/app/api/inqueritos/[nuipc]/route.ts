@@ -341,6 +341,7 @@ export async function PUT(
       'denuncianteEmail',
       'denuncianteResponsavel',
       'denuncianteNotas',
+      'cartaPrecatoria',
     ])
 
     const crimesAssociadosBefore = existing.crimesAssociados.map((c) => c.nome)
