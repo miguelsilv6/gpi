@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { EstadoBadge } from './estado-badge'
 import { EtiquetaList } from './etiqueta-badge'
 import { formatDate, isOverdue, nuipcToSlug } from '@/lib/utils'
-import { AlertTriangle, Calendar, Check, User } from 'lucide-react'
+import { AlertTriangle, Calendar, Check, User, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface EstadoLike {
@@ -47,6 +47,7 @@ interface InqueritoCardProps {
    * da lista.
    */
   onLongPress?: () => void
+  cartaPrecatoria?: boolean
 }
 
 const LONG_PRESS_MS = 500
@@ -131,6 +132,7 @@ export function InqueritoCard({
   isSelected = false,
   onToggle,
   onLongPress,
+  cartaPrecatoria = false,
 }: InqueritoCardProps) {
   const overdue = isOverdue(dataPrazo) && !estado.terminal
 
@@ -185,6 +187,9 @@ export function InqueritoCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-sm font-semibold">{nuipc}</span>
+              {cartaPrecatoria && (
+                <Scale className="h-3.5 w-3.5 text-orange-500 shrink-0" aria-label="Carta Precatória" />
+              )}
               {overdue && (
                 <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
               )}

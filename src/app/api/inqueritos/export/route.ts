@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') ?? ''
     const dataAberturaFrom = searchParams.get('dataAberturaFrom') ?? ''
     const dataAberturaTo = searchParams.get('dataAberturaTo') ?? ''
+    const cartaPrecatoriaParam = searchParams.get('cartaPrecatoria')
 
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
 
@@ -72,6 +73,8 @@ export async function GET(req: NextRequest) {
           ...(isValidDate(dataAberturaTo) && { lte: endOfDay(dataAberturaTo) }),
         },
       }),
+      ...(cartaPrecatoriaParam === '1' && { cartaPrecatoria: true }),
+      ...(cartaPrecatoriaParam === '0' && { cartaPrecatoria: false }),
       // roleWhere LAST: garante que INSPETOR_CHEFE/INSPETOR não escapam ao
       // scope via injecção de ?brigadaId/?inspetorId na URL.
       ...roleWhere,
@@ -92,6 +95,7 @@ export async function GET(req: NextRequest) {
       select: {
         nuipc: true,
         natureza: true,
+        cartaPrecatoria: true,
         crime: { select: { nome: true } },
         crimesAssociados: { select: { nome: true }, orderBy: { nome: 'asc' } },
         estado: { select: { codigo: true, nome: true } },
@@ -111,13 +115,14 @@ export async function GET(req: NextRequest) {
       entidadeId: '__bulk_export__',
       utilizadorId: session.user.id,
       detalhes: {
-        filtros: { estadoCodigo, crimeId, brigadaId, inspetorId, etiquetaId, overdue, semInspetor, search, dataAberturaFrom, dataAberturaTo },
+        filtros: { estadoCodigo, crimeId, brigadaId, inspetorId, etiquetaId, overdue, semInspetor, search, dataAberturaFrom, dataAberturaTo, cartaPrecatoria: cartaPrecatoriaParam },
         quantidade: inqueritos.length,
       },
     })
 
     const headers = [
       'NUIPC',
+      'Tipo',
       'Crime Principal',
       'Crimes Associados',
       'Estado',
@@ -129,6 +134,7 @@ export async function GET(req: NextRequest) {
     ]
     const rows = inqueritos.map((i) => [
       i.nuipc,
+      i.cartaPrecatoria ? 'Carta Precatória' : 'Inquérito',
       i.crime?.nome ?? i.natureza,
       i.crimesAssociados.map((c) => c.nome).join('; '),
       i.estado.nome,
