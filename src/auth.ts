@@ -7,7 +7,9 @@ import { authConfig } from '@/auth.config'
 import {
   LOGIN_MAX_FAILED_ATTEMPTS,
   LOGIN_LOCKOUT_MINUTES,
+  LOGIN_CAPTCHA_REQUIRED_AFTER,
 } from '@/lib/constants'
+import { verifyCaptcha } from '@/lib/turnstile'
 
 async function getClientHints() {
   try {
@@ -105,6 +107,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        captchaToken: { label: 'Captcha', type: 'text' },
       },
       async authorize(credentials) {
         const rawEmail =
@@ -139,6 +142,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (utilizador.lockedUntil && utilizador.lockedUntil > new Date()) {
           await recordAttempt(email, false, 'locked', ip, userAgent)
           return null
+        }
+
+        // CAPTCHA obrigatório após N falhas acumuladas (só quando AMBAS as chaves
+        // estão definidas — evita bloquear utilizadores se apenas uma chave estiver
+        // configurada e o frontend não exibir o widget)
+        if (
+          process.env.CF_TURNSTILE_SECRET_KEY &&
+          process.env.NEXT_PUBLIC_CF_TURNSTILE_SITE_KEY &&
+          utilizador.failedLoginCount >= LOGIN_CAPTCHA_REQUIRED_AFTER
+        ) {
+          const token = typeof credentials?.captchaToken === 'string' ? credentials.captchaToken : ''
+          if (!token || !(await verifyCaptcha(token, ip))) {
+            await recordAttempt(email, false, 'captcha_failed', ip, userAgent)
+            return null
+          }
         }
 
         const valid = await bcrypt.compare(rawPassword, utilizador.passwordHash)

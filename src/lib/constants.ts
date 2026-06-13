@@ -61,6 +61,8 @@ export const ESTADOS_FINAIS_CODIGOS: readonly string[] = ['CONCLUIDO', 'ARQUIVAD
 export const LOGIN_MAX_FAILED_ATTEMPTS = 5
 export const LOGIN_LOCKOUT_MINUTES = 15
 export const LOGIN_ATTEMPT_WINDOW_MINUTES = 30
+// Número de falhas acumuladas a partir do qual o CAPTCHA passa a ser obrigatório
+export const LOGIN_CAPTCHA_REQUIRED_AFTER = 3
 
 // Rate-limit defaults — usados em src/lib/rate-limit.ts. Mudar aqui propaga
 // para todos os call-sites; cada endpoint pode override-ar quando justificado.
