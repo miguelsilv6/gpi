@@ -1465,6 +1465,7 @@ const GANTT_LABELS: Record<string, string> = {
   semanaNoite: 'Sem. 00-08h',
   fdsDia: 'FdS 08-24h',
   fdsNoite: 'FdS 00-08h',
+  normal: 'Horário normal',
 }
 
 interface GanttSegment { startMin: number; endMin: number; type: string }
@@ -1569,7 +1570,10 @@ function LinhaGanttBar({ linha, holidays }: { linha: AjudasLinha; holidays: Set<
             {GANTT_TICKS.map((tick) => (
               <span
                 key={tick}
-                className="absolute text-[10px] text-muted-foreground -translate-x-1/2 leading-none"
+                className={cn(
+                  'absolute text-[10px] text-muted-foreground -translate-x-1/2 leading-none',
+                  tick === 9 * 60 && 'hidden sm:inline',
+                )}
                 style={{ left: `${(tick / 1440) * 100}%` }}
               >
                 {GANTT_TICK_LABELS[tick]}
