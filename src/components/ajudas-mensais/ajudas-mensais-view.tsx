@@ -1063,13 +1063,13 @@ tr:nth-child(even) td{background:#f6f6f6}
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Ajudas Mensais</h1>
-            <p className="text-muted-foreground text-sm">
-              Registo de horas extra e ajudas de custo mensais
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Ajudas Mensais</h1>
+          <p className="text-muted-foreground text-sm">
+            Registo de horas extra e ajudas de custo mensais
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <HelpButton title="Ajuda — Ajudas Mensais">
             <HelpSection title="Tipos de entrada">
               <ul className="list-disc pl-4 space-y-1">
@@ -1098,10 +1098,6 @@ tr:nth-child(even) td{background:#f6f6f6}
               <p>Para que os cálculos apareçam, configure o seu <strong>Vencimento Base</strong> e <strong>Taxa de IRS</strong> em <strong>Perfil → Ajudas Mensais</strong>.</p>
             </HelpSection>
           </HelpButton>
-        </div>
-
-        {/* Month selector */}
-        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="icon"

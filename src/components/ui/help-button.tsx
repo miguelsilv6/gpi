@@ -31,7 +31,7 @@ export function HelpButton({ title, children, variant = 'ghost', className }: He
         onClick={() => setOpen(true)}
       >
         <HelpCircle className="h-3.5 w-3.5" />
-        <span>Ajuda</span>
+        <span className="hidden sm:inline">Ajuda</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

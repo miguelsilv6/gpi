@@ -250,11 +250,11 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Ausências</h1>
           <p className="text-muted-foreground text-sm">Marca os teus períodos de férias e folgas.</p>
         </div>
-        <HelpButton title="Ajuda — Ausências">
+        <HelpButton title="Ajuda — Ausências" className="shrink-0">
           <HelpSection title="Como marcar uma ausência">
             <p>No calendário, clique no dia de início e depois no dia de fim para selecionar um intervalo. Escolha o tipo:</p>
             <ul className="list-disc pl-4 space-y-1 mt-1">

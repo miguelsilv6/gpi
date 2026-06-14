@@ -89,9 +89,8 @@ export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
     <ToolboxIaContext.Provider value={iaAtiva}>
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
       {/* Selector de ferramentas */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
-        <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-          <HelpButton title="Ajuda — Toolbox OSINT" variant="outline" className="w-full justify-start">
+      <div className="space-y-2">
+        <HelpButton title="Ajuda — Toolbox OSINT" variant="outline" className="w-full justify-start">
             <HelpSection title="Ferramentas disponíveis">
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong>IP Lookup</strong> — geolocalização, ISP/ASN e DNS reverso de um endereço IP.</li>
@@ -110,23 +109,24 @@ export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
               <p>Cada ferramenta tem um limite de pedidos por minuto por utilizador para evitar abusos. Se receber um erro de limite, aguarde um momento e tente novamente.</p>
             </HelpSection>
           </HelpButton>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+          {TOOLS.map((tool) => (
+            <button
+              key={tool.id}
+              type="button"
+              onClick={() => setActiveId(tool.id)}
+              className={cn(
+                'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                activeId === tool.id
+                  ? 'border-primary bg-primary/5 text-foreground'
+                  : 'border-border bg-card hover:bg-accent/50 text-muted-foreground',
+              )}
+            >
+              <tool.icon className={cn('h-4 w-4 shrink-0', activeId === tool.id && 'text-primary')} />
+              <span className="text-sm font-medium truncate">{tool.label}</span>
+            </button>
+          ))}
         </div>
-        {TOOLS.map((tool) => (
-          <button
-            key={tool.id}
-            type="button"
-            onClick={() => setActiveId(tool.id)}
-            className={cn(
-              'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors',
-              activeId === tool.id
-                ? 'border-primary bg-primary/5 text-foreground'
-                : 'border-border bg-card hover:bg-accent/50 text-muted-foreground',
-            )}
-          >
-            <tool.icon className={cn('h-4 w-4 shrink-0', activeId === tool.id && 'text-primary')} />
-            <span className="text-sm font-medium truncate">{tool.label}</span>
-          </button>
-        ))}
       </div>
 
       {/* Ferramenta ativa */}

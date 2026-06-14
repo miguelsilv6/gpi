@@ -184,7 +184,7 @@ export default async function InqueritosPage({
           <h1 className="text-2xl font-bold tracking-tight">Inquéritos</h1>
           <p className="text-muted-foreground text-sm">{total} resultado{total !== 1 ? 's' : ''}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <HelpButton title="Ajuda — Inquéritos">
             <HelpSection title="Filtros disponíveis">
               <p>Use a barra de filtros para limitar a lista. Pode combinar vários filtros em simultâneo:</p>

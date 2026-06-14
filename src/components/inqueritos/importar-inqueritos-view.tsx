@@ -124,11 +124,11 @@ export function ImportarInqueritosView() {
   return (
     <div className="space-y-4 max-w-5xl">
       <div className="flex items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Importar Inquéritos</h1>
           <p className="text-muted-foreground text-sm">Carregue inquéritos em lote a partir de um ficheiro CSV.</p>
         </div>
-        <HelpButton title="Ajuda — Importação de Inquéritos">
+        <HelpButton title="Ajuda — Importação de Inquéritos" className="shrink-0">
           <HelpSection title="Formato do ficheiro">
             <p>O ficheiro deve ser um <strong>CSV</strong> com as colunas separadas por vírgula ou ponto-e-vírgula. Descarregue o <strong>modelo CSV</strong> para ver a estrutura exata.</p>
           </HelpSection>
