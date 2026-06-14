@@ -20,7 +20,8 @@ export default async function TarefasPage() {
     hasPermission(role, 'inquerito:read:own') ||
     hasPermission(role, 'inquerito:read:brigade') ||
     hasPermission(role, 'inquerito:read:all')
-  if (!canRead) {
+  // ESTATISTICA não cria tarefas, pelo que a página ficaria sempre vazia.
+  if (!canRead || role === 'ESTATISTICA') {
     return <AccessDenied message="Não dispões de privilégios para ver as tarefas." />
   }
 

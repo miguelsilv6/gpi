@@ -70,6 +70,7 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
   const [toDelete, setToDelete] = useState<TarefaItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [showConcluidas, setShowConcluidas] = useState(false)
 
   function resetCompose() {
     setComposing(false)
@@ -180,6 +181,8 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
 
   const pendentes = tarefas.filter((t) => !t.concluida)
   const concluidas = tarefas.filter((t) => t.concluida)
+  // Abre as concluídas automaticamente quando não há pendentes.
+  const effectiveShowConcluidas = showConcluidas || pendentes.length === 0
 
   return (
     <Card>
@@ -250,7 +253,11 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
         )}
 
         {concluidas.length > 0 && (
-          <details className="group" open={pendentes.length === 0}>
+          <details
+            className="group"
+            open={effectiveShowConcluidas}
+            onToggle={(e) => setShowConcluidas((e.target as HTMLDetailsElement).open)}
+          >
             <summary className="cursor-pointer select-none text-xs text-muted-foreground py-1 list-none flex items-center gap-1">
               <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-0 -rotate-90" />
               {concluidas.length} concluída{concluidas.length !== 1 ? 's' : ''}
