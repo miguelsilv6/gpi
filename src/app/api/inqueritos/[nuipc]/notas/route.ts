@@ -9,9 +9,12 @@ import type { Role } from '@/generated/prisma/enums'
 
 const NOTA_SELECT = {
   id: true,
+  titulo: true,
   conteudo: true,
   createdAt: true,
+  updatedAt: true,
   autor: { select: { id: true, nome: true } },
+  editadoPor: { select: { id: true, nome: true } },
 } as const
 
 /** Carrega o inquérito se o utilizador tiver acesso de leitura (scope RBAC). */
@@ -83,6 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
 
     const nota = await prisma.notaInquerito.create({
       data: {
+        titulo: parsed.data.titulo ?? null,
         conteudo: parsed.data.conteudo,
         inqueritoId: inquerito.id,
         autorId: session.user.id,

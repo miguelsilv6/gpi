@@ -171,9 +171,12 @@ export default async function InqueritoDetailPage({
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
+      titulo: true,
       conteudo: true,
       createdAt: true,
+      updatedAt: true,
       autor: { select: { id: true, nome: true } },
+      editadoPor: { select: { id: true, nome: true } },
     },
   })
 
@@ -634,7 +637,11 @@ export default async function InqueritoDetailPage({
 
       <NotasSection
         nuipcSlug={inqSlug}
-        notas={notas.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() }))}
+        notas={notas.map((n) => ({
+          ...n,
+          createdAt: n.createdAt.toISOString(),
+          updatedAt: n.updatedAt.toISOString(),
+        }))}
         canAdd={canEdit && role !== 'ESTATISTICA'}
         currentUserId={session.user.id}
         isAdmin={hasPermission(role, 'inquerito:edit:all')}

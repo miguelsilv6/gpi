@@ -104,6 +104,7 @@ model Utilizador {
   controloRealizacoes  ControloRealizacao[] @relation("ControloRealizacaoPor")
   documentosCarregados Documento[]  @relation("DocumentoUploader")
   notasInquerito       NotaInquerito[] @relation("NotaInqueritoAutor")
+  notasEditadas        NotaInquerito[] @relation("NotaInqueritoEditor")
 
   @@index([brigadaId])
   @@index([role])
@@ -218,8 +219,10 @@ model Documento {
 // de notas do inquérito. A eliminação (autor ou admin) é registada na auditoria.
 model NotaInquerito {
   id        String   @id @default(cuid())
+  titulo    String?
   conteudo  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   inquerito   Inquerito @relation(fields: [inqueritoId], references: [id], onDelete: Cascade)
   inqueritoId String
@@ -227,9 +230,14 @@ model NotaInquerito {
   autor   Utilizador @relation("NotaInqueritoAutor", fields: [autorId], references: [id])
   autorId String
 
+  // Quem fez a última edição (pode diferir do autor original).
+  editadoPor   Utilizador? @relation("NotaInqueritoEditor", fields: [editadoPorId], references: [id])
+  editadoPorId String?
+
   @@index([inqueritoId])
   @@index([autorId])
   @@index([inqueritoId, createdAt])
+  @@index([updatedAt])
 }
 
 model EstadoInquerito {

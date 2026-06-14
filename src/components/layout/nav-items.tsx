@@ -16,6 +16,7 @@ import {
   Banknote,
   Bug,
   Wrench,
+  NotebookPen,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -38,6 +39,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/inqueritos',
     icon: FolderOpen,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Notas',
+    href: '/notas',
+    icon: NotebookPen,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
     label: 'Prazos e Controlos',
