@@ -22,8 +22,9 @@ export const notaInqueritoUpdateSchema = z.object({
     .string()
     .trim()
     .max(NOTA_TITULO_MAX, `O título não pode exceder ${NOTA_TITULO_MAX} caracteres`)
+    .nullable()
     .optional()
-    .transform((v) => (v === '' ? undefined : v)),
+    .transform((v) => (v === '' ? null : v)),
   conteudo: z
     .string()
     .trim()

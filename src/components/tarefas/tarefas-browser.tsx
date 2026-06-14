@@ -54,26 +54,28 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
   )
   const [, startTransition] = useTransition()
 
-  async function handleToggle(t: TarefaBrowserItem) {
+  function handleToggle(t: TarefaBrowserItem) {
     setToggling(t.id)
-    startTransition(() => addOptimistic(t.id))
-    try {
-      const res = await fetch(`/api/tarefas/${t.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ concluida: !t.concluida }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        toast.error(err.error ?? 'Erro ao atualizar a tarefa')
-      } else {
-        router.refresh()
+    startTransition(async () => {
+      addOptimistic(t.id)
+      try {
+        const res = await fetch(`/api/tarefas/${t.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concluida: !t.concluida }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          toast.error(err.error ?? 'Erro ao atualizar a tarefa')
+        } else {
+          router.refresh()
+        }
+      } catch {
+        toast.error('Erro de rede ao atualizar a tarefa')
+      } finally {
+        setToggling(null)
       }
-    } catch {
-      toast.error('Erro de rede ao atualizar a tarefa')
-    } finally {
-      setToggling(null)
-    }
+    })
   }
 
   const filtered = useMemo(() => {

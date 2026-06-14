@@ -67,8 +67,7 @@ function parseInline(text: string, keyPrefix = 'i'): ReactNode[] {
   // Encontra a regra cuja ocorrência aparece mais cedo no texto.
   let best: { rule: InlineRule; match: RegExpExecArray } | null = null
   for (const rule of INLINE_RULES) {
-    const re = new RegExp(rule.re.source, 'g')
-    const match = re.exec(text)
+    const match = rule.re.exec(text)
     if (match && (!best || match.index < best.match.index)) {
       best = { rule, match }
     }
