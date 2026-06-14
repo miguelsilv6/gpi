@@ -19,6 +19,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { HelpButton, HelpSection } from '@/components/ui/help-button'
 
 interface ReportRow {
   line: number
@@ -122,6 +123,40 @@ export function ImportarInqueritosView() {
 
   return (
     <div className="space-y-4 max-w-5xl">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Importar Inquéritos</h1>
+          <p className="text-muted-foreground text-sm">Carregue inquéritos em lote a partir de um ficheiro CSV.</p>
+        </div>
+        <HelpButton title="Ajuda — Importação de Inquéritos">
+          <HelpSection title="Formato do ficheiro">
+            <p>O ficheiro deve ser um <strong>CSV</strong> com as colunas separadas por vírgula ou ponto-e-vírgula. Descarregue o <strong>modelo CSV</strong> para ver a estrutura exata.</p>
+          </HelpSection>
+          <HelpSection title="Colunas obrigatórias">
+            <ul className="list-disc pl-4 space-y-0.5">
+              <li><code>NUIPC</code> — número único do inquérito.</li>
+              <li><code>NAI</code> — número de autos interno.</li>
+            </ul>
+          </HelpSection>
+          <HelpSection title="Colunas opcionais (principais)">
+            <ul className="list-disc pl-4 space-y-0.5">
+              <li><code>Crime</code> — tem de existir no catálogo (pesquisa sem distinção de maiúsculas).</li>
+              <li><code>Estado</code> — usa o primeiro estado ativo se omitido.</li>
+              <li><code>Data Abertura</code> — formato <code>AAAA-MM-DD</code> ou <code>DD/MM/AAAA</code>.</li>
+              <li><code>Brigada</code> / <code>Inspetor (email)</code> — têm de existir previamente.</li>
+              <li><code>Prazo</code> / <code>Data Conclusão</code> — datas no mesmo formato.</li>
+            </ul>
+          </HelpSection>
+          <HelpSection title="Processo de importação">
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>Selecione o ficheiro CSV — é validado automaticamente.</li>
+              <li>Reveja o relatório de validação: linhas com erros são assinaladas a vermelho.</li>
+              <li>Se não houver erros críticos, clique <strong>Confirmar importação</strong> para gravar os inquéritos.</li>
+            </ol>
+            <p className="mt-1">Linhas com erros são ignoradas na importação; as restantes são importadas.</p>
+          </HelpSection>
+        </HelpButton>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Ficheiro</CardTitle>

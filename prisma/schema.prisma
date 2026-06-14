@@ -103,6 +103,7 @@ model Utilizador {
   controlosCriados     Controlo[]   @relation("ControloCriador")
   controloRealizacoes  ControloRealizacao[] @relation("ControloRealizacaoPor")
   documentosCarregados Documento[]  @relation("DocumentoUploader")
+  notasInquerito       NotaInquerito[] @relation("NotaInqueritoAutor")
 
   @@index([brigadaId])
   @@index([role])
@@ -173,6 +174,7 @@ model Inquerito {
   controlos    Controlo[]
   notificacoes Notificacao[]
   documentos   Documento[]
+  notasRegisto NotaInquerito[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -209,6 +211,25 @@ model Documento {
 
   @@index([inqueritoid])
   @@index([uploadedById])
+}
+
+// Notas de investigação por inquérito. Cada nota é uma entrada imutável,
+// datada e atribuída ao seu autor — em conjunto formam o registo cronológico
+// de notas do inquérito. A eliminação (autor ou admin) é registada na auditoria.
+model NotaInquerito {
+  id        String   @id @default(cuid())
+  conteudo  String
+  createdAt DateTime @default(now())
+
+  inquerito   Inquerito @relation(fields: [inqueritoId], references: [id], onDelete: Cascade)
+  inqueritoId String
+
+  autor   Utilizador @relation("NotaInqueritoAutor", fields: [autorId], references: [id])
+  autorId String
+
+  @@index([inqueritoId])
+  @@index([autorId])
+  @@index([inqueritoId, createdAt])
 }
 
 model EstadoInquerito {

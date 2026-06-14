@@ -18,6 +18,7 @@ import { IpLookupTool, DnsTool, WhoisTool } from './tools-network'
 import { EmailHeadersTool } from './tools-email'
 import { CertHistoryTool, WebHistoryTool } from './tools-osint'
 import { DefangTool } from './tools-utils'
+import { HelpButton, HelpSection } from '@/components/ui/help-button'
 
 interface Tool {
   id: string
@@ -89,6 +90,27 @@ export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
       {/* Selector de ferramentas */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+        <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+          <HelpButton title="Ajuda — Toolbox OSINT" variant="outline" className="w-full justify-start">
+            <HelpSection title="Ferramentas disponíveis">
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>IP Lookup</strong> — geolocalização, ISP/ASN e DNS reverso de um endereço IP.</li>
+                <li><strong>DNS</strong> — registos A/AAAA/MX/NS/TXT/CNAME de um domínio e DNS reverso de IPs.</li>
+                <li><strong>WHOIS / RDAP</strong> — registar, datas de criação/expiração e nameservers de domínios e blocos IP.</li>
+                <li><strong>Certificados (CT)</strong> — histórico de certificados TLS e subdomínios expostos via Certificate Transparency.</li>
+                <li><strong>Histórico Web</strong> — capturas históricas de sites na Wayback Machine (Internet Archive).</li>
+                <li><strong>Cabeçalhos de Email</strong> — análise da cadeia de entrega, IP de origem e autenticação SPF/DKIM/DMARC.</li>
+                <li><strong>Defang IOCs</strong> — neutraliza ou reverte URLs e domínios maliciosos para partilha segura em relatórios.</li>
+              </ul>
+            </HelpSection>
+            <HelpSection title="Privacidade">
+              <p>Todas as pesquisas são feitas a partir do servidor — os dados inseridos <strong>não</strong> passam pelo browser do utilizador para serviços externos. Os resultados ficam registados no audit log do sistema.</p>
+            </HelpSection>
+            <HelpSection title="Limites de utilização">
+              <p>Cada ferramenta tem um limite de pedidos por minuto por utilizador para evitar abusos. Se receber um erro de limite, aguarde um momento e tente novamente.</p>
+            </HelpSection>
+          </HelpButton>
+        </div>
         {TOOLS.map((tool) => (
           <button
             key={tool.id}

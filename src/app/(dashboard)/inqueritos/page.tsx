@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { InqueritoFilters } from '@/components/inqueritos/inquerito-filters'
 import { InqueritoTable } from '@/components/inqueritos/inquerito-table'
 import { ExportButton } from '@/components/inqueritos/export-button'
+import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { listEstados } from '@/lib/estados'
@@ -184,6 +185,31 @@ export default async function InqueritosPage({
           <p className="text-muted-foreground text-sm">{total} resultado{total !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex items-center gap-2">
+          <HelpButton title="Ajuda — Inquéritos">
+            <HelpSection title="Filtros disponíveis">
+              <p>Use a barra de filtros para limitar a lista. Pode combinar vários filtros em simultâneo:</p>
+              <ul className="list-disc pl-4 space-y-1 mt-1">
+                <li><strong>Pesquisa</strong> — procura por NUIPC, NAI, denunciante ou crime.</li>
+                <li><strong>Estado</strong> — filtra por um ou mais estados do inquérito.</li>
+                <li><strong>Prazo vencido</strong> — mostra apenas inquéritos com prazo ultrapassado.</li>
+                <li><strong>Sem inspetor</strong> — mostra inquéritos por atribuir.</li>
+                <li><strong>Carta Precatória</strong> — filtra por tipo (inquérito normal ou carta precatória).</li>
+                <li><strong>Data de abertura</strong> — intervalo de datas de início.</li>
+              </ul>
+            </HelpSection>
+            <HelpSection title="Ordenação">
+              <p>Clique nos cabeçalhos da tabela ou use o seletor de ordenação para alterar a ordem (última alteração, data de abertura, prazo, NUIPC).</p>
+            </HelpSection>
+            <HelpSection title="Exportar">
+              <p>O botão <strong>Exportar</strong> gera um ficheiro CSV com os inquéritos visíveis (com os filtros ativos). Útil para tratamento em folha de cálculo.</p>
+            </HelpSection>
+            <HelpSection title="Importar">
+              <p>O botão <strong>Importar</strong> permite carregar inquéritos em lote a partir de um CSV. Descarregue o template na página de importação para ver o formato esperado.</p>
+            </HelpSection>
+            <HelpSection title="Novo inquérito">
+              <p>Clique em <strong>Novo</strong> para criar um inquérito manualmente. Pode criar brigadas, tribunais e secções diretamente no formulário se ainda não existirem.</p>
+            </HelpSection>
+          </HelpButton>
           <Suspense fallback={null}>
             <ExportButton />
           </Suspense>

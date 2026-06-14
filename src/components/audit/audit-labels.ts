@@ -47,6 +47,8 @@ export const ACAO_LABELS: Record<string, string> = {
   CONFIRM_CONTROLO_REALIZACAO: 'Realização de controlo confirmada',
   UPLOAD_DOCUMENTO: 'Documento anexado',
   DELETE_DOCUMENTO: 'Documento eliminado',
+  CREATE_NOTA_INQUERITO: 'Nota de inquérito adicionada',
+  DELETE_NOTA_INQUERITO: 'Nota de inquérito eliminada',
   CREATE_CONFIG_SISTEMA: 'Configurações do sistema criadas',
   UPDATE_CONFIG_SISTEMA: 'Configurações do sistema alteradas',
 }
