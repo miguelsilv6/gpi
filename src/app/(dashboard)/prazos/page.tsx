@@ -243,8 +243,8 @@ export default async function PrazosPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Prazos e Controlos</h1>
           <p className="text-muted-foreground text-sm">
             {isCalendar
@@ -254,46 +254,37 @@ export default async function PrazosPage({
                 : `${total} prazo${total !== 1 ? 's' : ''}${historico ? ' concluído' + (total !== 1 ? 's' : '') : ''}`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <HelpButton title="Ajuda — Prazos e Controlos">
-            <HelpSection title="Painéis: Prazos e Controlos">
-              <ul className="list-disc pl-4 space-y-1">
-                <li><strong>Prazos</strong> — atividades com uma data-limite definida. Aparece o ícone <span className="text-red-500 font-medium">⚠</span> quando a data já passou.</li>
-                <li><strong>Controlos</strong> — atividades periódicas (ex.: controlo mensal). Cada realização é registada individualmente.</li>
-              </ul>
-            </HelpSection>
-            <HelpSection title="Pendentes / Concluídos">
-              <p>O toggle <strong>Pendentes / Concluídos</strong> alterna entre prazos por cumprir e o histórico de prazos já concluídos.</p>
-            </HelpSection>
-            <HelpSection title="Vistas: Lista e Calendário">
-              <p>Use os botões <strong>Lista</strong> e <strong>Calendário</strong> para alternar entre a vista em lista e a vista mensal de calendário.</p>
-            </HelpSection>
-            <HelpSection title="Filtros">
-              <p>Pode filtrar por inspetor (se tiver permissão de brigada) e por estado: <em>Todos</em>, <em>Vencidos</em> ou <em>Próximos</em> (dentro do período de alerta configurado).</p>
-            </HelpSection>
-            <HelpSection title="Novo Controlo">
-              <p>O botão <strong>Novo Controlo</strong> cria um controlo periódico numa atividade. Defina a atividade, o período em dias e o número de alertas antecipados.</p>
-            </HelpSection>
-          </HelpButton>
-          {panel === 'controlos' && hasControloAccess && !historico && (
-            <div className="hidden sm:block">
-              <CreateControloDialog />
-            </div>
-          )}
-          <HistoricoToggle historico={historico} />
-          <PrazosViewToggle view={view} />
-        </div>
+        <HelpButton title="Ajuda — Prazos e Controlos" className="shrink-0">
+          <HelpSection title="Painéis: Prazos e Controlos">
+            <ul className="list-disc pl-4 space-y-1">
+              <li><strong>Prazos</strong> — atividades com uma data-limite definida. Aparece o ícone <span className="text-red-500 font-medium">⚠</span> quando a data já passou.</li>
+              <li><strong>Controlos</strong> — atividades periódicas (ex.: controlo mensal). Cada realização é registada individualmente.</li>
+            </ul>
+          </HelpSection>
+          <HelpSection title="Pendentes / Concluídos">
+            <p>O toggle <strong>Pendentes / Concluídos</strong> alterna entre prazos por cumprir e o histórico de prazos já concluídos.</p>
+          </HelpSection>
+          <HelpSection title="Vistas: Lista e Calendário">
+            <p>Use os botões <strong>Lista</strong> e <strong>Calendário</strong> para alternar entre a vista em lista e a vista mensal de calendário.</p>
+          </HelpSection>
+          <HelpSection title="Filtros">
+            <p>Pode filtrar por inspetor (se tiver permissão de brigada) e por estado: <em>Todos</em>, <em>Vencidos</em> ou <em>Próximos</em> (dentro do período de alerta configurado).</p>
+          </HelpSection>
+          <HelpSection title="Novo Controlo">
+            <p>O botão <strong>Novo Controlo</strong> cria um controlo periódico numa atividade. Defina a atividade, o período em dias e o número de alertas antecipados.</p>
+          </HelpSection>
+        </HelpButton>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <HistoricoToggle historico={historico} />
+        <PrazosViewToggle view={view} />
+        {panel === 'controlos' && hasControloAccess && !historico && (
+          <CreateControloDialog />
+        )}
       </div>
 
       {hasControloAccess && (
         <PanelTabs panel={panel} />
-      )}
-
-      {/* Mobile: "Novo Controlo" fica por baixo do selector de painel */}
-      {panel === 'controlos' && hasControloAccess && !historico && (
-        <div className="sm:hidden">
-          <CreateControloDialog />
-        </div>
       )}
 
       {panel === 'prazos' ? (
