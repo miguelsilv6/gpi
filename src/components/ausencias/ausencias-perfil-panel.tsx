@@ -1,13 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import type { ReactNode } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   CalendarDays,
   Plus,
-  HelpCircle,
   ChevronLeft,
   ChevronRight,
   Trash2,
@@ -21,9 +19,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { isWorkingDay, countWorkingDays } from '@/lib/ferias'
 import { AusenciasCalendar } from './ausencias-calendar'
 import type { Ausencia, TipoAusencia, Totais, GanttScale } from './types'
@@ -243,17 +241,6 @@ function PersonalGantt({ ausencias, month, onMonthChange, scale, onScaleChange }
   )
 }
 
-// ─── Help dialog section ───────────────────────────────────────────────────────
-
-function HelpSection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <p className="font-semibold text-sm">{title}</p>
-      <div className="text-sm text-muted-foreground space-y-1">{children}</div>
-    </div>
-  )
-}
-
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 export function AusenciasPerfilPanel() {
@@ -268,15 +255,14 @@ export function AusenciasPerfilPanel() {
   const [calMonth, setCalMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
 
   const [addOpen, setAddOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
   const [busyAdd, setBusyAdd] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const ano = ganttMonth.getFullYear()
 
-  const fetchAusencias = useCallback(async (year: number) => {
+  const fetchAusencias = useCallback(async (year: number, signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/ausencias?ano=${year}`)
+      const res = await fetch(`/api/ausencias?ano=${year}`, { signal })
       if (res.status === 503 || res.status === 403 || res.status === 401) {
         setVisible(false)
         setLoading(false)
@@ -287,7 +273,8 @@ export function AusenciasPerfilPanel() {
       setAusencias(d.ausencias ?? [])
       setTotais(d.totais ?? null)
       setVisible(true)
-    } catch {
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
       // silently ignore — module may not be available
     } finally {
       setLoading(false)
@@ -295,7 +282,9 @@ export function AusenciasPerfilPanel() {
   }, [])
 
   useEffect(() => {
-    fetchAusencias(ano)
+    const controller = new AbortController()
+    fetchAusencias(ano, controller.signal)
+    return () => controller.abort()
   }, [ano, fetchAusencias])
 
   async function handleCreate(payload: {
@@ -361,15 +350,65 @@ export function AusenciasPerfilPanel() {
               Ausências — {ano}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs gap-1"
-                onClick={() => setHelpOpen(true)}
-              >
-                <HelpCircle className="h-3.5 w-3.5" />
-                Ajuda
-              </Button>
+              <HelpButton title="Ajuda — Ausências" className="h-7 text-xs">
+                <HelpSection title="Como registar uma ausência">
+                  <p>
+                    Clique em <strong>Nova ausência</strong>, selecione no calendário o
+                    intervalo de datas (clique no dia de início e depois no dia de fim) e
+                    escolha o tipo:
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1 mt-1">
+                    <li>
+                      <strong className="text-blue-600 dark:text-blue-400">Férias</strong>{' '}
+                      — dias de férias anuais.
+                    </li>
+                    <li>
+                      <strong className="text-amber-600 dark:text-amber-400">Folga</strong>{' '}
+                      — folgas pontuais ou compensatórias.
+                    </li>
+                  </ul>
+                  <p className="mt-1">
+                    Pode adicionar uma nota opcional. Clique em{' '}
+                    <strong>Marcar</strong> para guardar.
+                  </p>
+                </HelpSection>
+
+                <HelpSection title="Contagem de dias úteis">
+                  <p>
+                    A contagem exclui automaticamente fins-de-semana e feriados nacionais
+                    portugueses (incluindo feriados móveis calculados a partir da data da
+                    Páscoa). O número de dias úteis é mostrado ao selecionar um intervalo.
+                  </p>
+                </HelpSection>
+
+                <HelpSection title="Eliminar uma ausência">
+                  <p>
+                    Na lista de ausências abaixo do gráfico, clique no ícone{' '}
+                    <Trash2 className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />{' '}
+                    à direita de cada entrada para a remover.
+                  </p>
+                </HelpSection>
+
+                <HelpSection title="Gráfico de Gantt">
+                  <p>
+                    O gráfico mostra as suas ausências numa linha temporal. Use os botões{' '}
+                    <strong>Mês / Trimestre / Ano</strong> para ajustar a escala e as setas
+                    para navegar no tempo. Passe o cursor sobre uma barra para ver os
+                    detalhes.
+                  </p>
+                  <p className="mt-1">
+                    Os dias a cinzento correspondem a fins-de-semana ou feriados.
+                  </p>
+                </HelpSection>
+
+                <HelpSection title="Página de Ausências">
+                  <p>
+                    Para uma visão completa com calendário interativo e a visão da brigada
+                    (outros inspetores), aceda à página{' '}
+                    <strong>Ausências</strong> no menu lateral.
+                  </p>
+                </HelpSection>
+              </HelpButton>
               <Button size="sm" className="h-7 text-xs gap-1" onClick={() => setAddOpen(true)}>
                 <Plus className="h-3.5 w-3.5" />
                 Nova ausência
@@ -460,77 +499,6 @@ export function AusenciasPerfilPanel() {
             onCreate={handleCreate}
             busy={busyAdd}
           />
-        </DialogContent>
-      </Dialog>
-
-      {/* Help dialog */}
-      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Ajuda — Ausências</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 text-sm">
-            <HelpSection title="Como registar uma ausência">
-              <p>
-                Clique em <strong>Nova ausência</strong>, selecione no calendário o
-                intervalo de datas (clique no dia de início e depois no dia de fim) e
-                escolha o tipo:
-              </p>
-              <ul className="list-disc pl-4 space-y-1 mt-1">
-                <li>
-                  <strong className="text-blue-600 dark:text-blue-400">Férias</strong>{' '}
-                  — dias de férias anuais.
-                </li>
-                <li>
-                  <strong className="text-amber-600 dark:text-amber-400">Folga</strong>{' '}
-                  — folgas pontuais ou compensatórias.
-                </li>
-              </ul>
-              <p className="mt-1">
-                Pode adicionar uma nota opcional. Clique em{' '}
-                <strong>Marcar</strong> para guardar.
-              </p>
-            </HelpSection>
-
-            <HelpSection title="Contagem de dias úteis">
-              <p>
-                A contagem exclui automaticamente fins-de-semana e feriados nacionais
-                portugueses (incluindo feriados móveis calculados a partir da data da
-                Páscoa). O número de dias úteis é mostrado ao selecionar um intervalo.
-              </p>
-            </HelpSection>
-
-            <HelpSection title="Eliminar uma ausência">
-              <p>
-                Na lista de ausências abaixo do gráfico, clique no ícone{' '}
-                <Trash2 className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" />{' '}
-                à direita de cada entrada para a remover.
-              </p>
-            </HelpSection>
-
-            <HelpSection title="Gráfico de Gantt">
-              <p>
-                O gráfico mostra as suas ausências numa linha temporal. Use os botões{' '}
-                <strong>Mês / Trimestre / Ano</strong> para ajustar a escala e as setas
-                para navegar no tempo. Passe o cursor sobre uma barra para ver os
-                detalhes.
-              </p>
-              <p className="mt-1">
-                Os dias a cinzento correspondem a fins-de-semana ou feriados.
-              </p>
-            </HelpSection>
-
-            <HelpSection title="Página de Ausências">
-              <p>
-                Para uma visão completa com calendário interativo e a visão da brigada
-                (outros inspetores), aceda à página{' '}
-                <strong>Ausências</strong> no menu lateral.
-              </p>
-            </HelpSection>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setHelpOpen(false)}>Fechar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

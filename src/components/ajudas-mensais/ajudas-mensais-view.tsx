@@ -1086,7 +1086,7 @@ tr:nth-child(even) td{background:#f6f6f6}
               </ul>
             </HelpSection>
             <HelpSection title="Ajudas de custo">
-              <p>Se a viatura fizer ≥ {'{distância mínima configurada}'} km, pode registar refeições (almoço, jantar, ceia). O valor é calculado com base nas taxas configuradas globalmente.</p>
+              <p>Se a viatura fizer ≥ {distanciaMin} km, pode registar refeições (almoço, jantar, ceia). O valor é calculado com base nas taxas configuradas globalmente.</p>
             </HelpSection>
             <HelpSection title="Limite mensal">
               <p>O total de horas extra está sujeito a um limite mensal (vencimento base ÷ 3). O progresso é mostrado na secção de resumo.</p>
