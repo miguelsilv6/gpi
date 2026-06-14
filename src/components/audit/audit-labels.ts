@@ -50,6 +50,10 @@ export const ACAO_LABELS: Record<string, string> = {
   CREATE_NOTA_INQUERITO: 'Nota de inquérito adicionada',
   UPDATE_NOTA_INQUERITO: 'Nota de inquérito alterada',
   DELETE_NOTA_INQUERITO: 'Nota de inquérito eliminada',
+  CREATE_TAREFA_INQUERITO: 'Tarefa criada',
+  COMPLETE_TAREFA_INQUERITO: 'Tarefa concluída',
+  REOPEN_TAREFA_INQUERITO: 'Tarefa reaberta',
+  DELETE_TAREFA_INQUERITO: 'Tarefa eliminada',
   CREATE_CONFIG_SISTEMA: 'Configurações do sistema criadas',
   UPDATE_CONFIG_SISTEMA: 'Configurações do sistema alteradas',
 }

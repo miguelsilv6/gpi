@@ -17,6 +17,7 @@ import {
   Bug,
   Wrench,
   NotebookPen,
+  ListTodo,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -44,6 +45,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Notas',
     href: '/notas',
     icon: NotebookPen,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Tarefas',
+    href: '/tarefas',
+    icon: ListTodo,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {

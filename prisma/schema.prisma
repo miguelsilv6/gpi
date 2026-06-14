@@ -105,6 +105,7 @@ model Utilizador {
   documentosCarregados Documento[]  @relation("DocumentoUploader")
   notasInquerito       NotaInquerito[] @relation("NotaInqueritoAutor")
   notasEditadas        NotaInquerito[] @relation("NotaInqueritoEditor")
+  tarefasInquerito     TarefaInquerito[]
 
   @@index([brigadaId])
   @@index([role])
@@ -176,6 +177,7 @@ model Inquerito {
   notificacoes Notificacao[]
   documentos   Documento[]
   notasRegisto NotaInquerito[]
+  tarefas      TarefaInquerito[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -828,4 +830,32 @@ model BugReport {
   @@index([estado, createdAt])
   @@index([criadoPorId])
   @@index([createdAt])
+}
+
+enum PrioridadeTarefa {
+  BAIXA
+  NORMAL
+  ALTA
+}
+
+model TarefaInquerito {
+  id          String          @id @default(cuid())
+  titulo      String
+  descricao   String?
+  prioridade  PrioridadeTarefa @default(NORMAL)
+  concluida   Boolean         @default(false)
+  concluidaEm DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
+
+  inquerito   Inquerito @relation(fields: [inqueritoId], references: [id], onDelete: Cascade)
+  inqueritoId String
+
+  autor   Utilizador @relation(fields: [autorId], references: [id])
+  autorId String
+
+  @@index([autorId])
+  @@index([inqueritoId])
+  @@index([autorId, concluida])
+  @@index([autorId, prioridade])
 }

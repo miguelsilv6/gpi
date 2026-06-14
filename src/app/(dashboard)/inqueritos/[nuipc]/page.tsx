@@ -13,6 +13,7 @@ import { DeleteInqueritoButton } from '@/components/inqueritos/delete-inquerito-
 import { AtividadesSection } from '@/components/inqueritos/atividades-section'
 import { DocumentosSection } from '@/components/inqueritos/documentos-section'
 import { NotasSection } from '@/components/inqueritos/notas-section'
+import { TarefasSection, type TarefaItem } from '@/components/inqueritos/tarefas-section'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -179,6 +180,23 @@ export default async function InqueritoDetailPage({
       editadoPor: { select: { id: true, nome: true } },
     },
   })
+
+  // Tarefas pessoais — só as do utilizador actual.
+  const tarefasRaw = role !== 'ESTATISTICA'
+    ? await prisma.tarefaInquerito.findMany({
+        where: { inqueritoId: inquerito.id, autorId: session.user.id },
+        orderBy: [{ concluida: 'asc' }, { prioridade: 'desc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          titulo: true,
+          descricao: true,
+          prioridade: true,
+          concluida: true,
+          concluidaEm: true,
+          createdAt: true,
+        },
+      })
+    : []
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
   const terminal = isTerminal(inquerito.estado)
@@ -632,6 +650,22 @@ export default async function InqueritoDetailPage({
           canUpload={canEdit && role !== 'ESTATISTICA'}
           currentUserId={session.user.id}
           isAdmin={hasPermission(role, 'inquerito:edit:all')}
+        />
+      )}
+
+      {role !== 'ESTATISTICA' && (
+        <TarefasSection
+          nuipcSlug={inqSlug}
+          tarefas={tarefasRaw.map((t) => ({
+            id: t.id,
+            titulo: t.titulo,
+            descricao: t.descricao,
+            prioridade: t.prioridade,
+            concluida: t.concluida,
+            concluidaEm: t.concluidaEm ? t.concluidaEm.toISOString() : null,
+            createdAt: t.createdAt.toISOString(),
+          }))}
+          canAdd={true}
         />
       )}
 
