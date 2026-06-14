@@ -21,6 +21,7 @@ import { ControlosCalendar } from '@/components/prazos/controlos-calendar'
 import { CreateControloDialog } from '@/components/prazos/create-controlo-dialog'
 import { PanelTabs } from '@/components/prazos/panel-tabs'
 import { HistoricoToggle } from '@/components/prazos/historico-toggle'
+import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import type { PrazoItem } from '@/components/prazos/types'
 import type { ControloItem } from '@/lib/controlos'
 import Link from 'next/link'
@@ -254,6 +255,26 @@ export default async function PrazosPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <HelpButton title="Ajuda — Prazos e Controlos">
+            <HelpSection title="Painéis: Prazos e Controlos">
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>Prazos</strong> — atividades com uma data-limite definida. Aparece o ícone <span className="text-red-500 font-medium">⚠</span> quando a data já passou.</li>
+                <li><strong>Controlos</strong> — atividades periódicas (ex.: controlo mensal). Cada realização é registada individualmente.</li>
+              </ul>
+            </HelpSection>
+            <HelpSection title="Pendentes / Concluídos">
+              <p>O toggle <strong>Pendentes / Concluídos</strong> alterna entre prazos por cumprir e o histórico de prazos já concluídos.</p>
+            </HelpSection>
+            <HelpSection title="Vistas: Lista e Calendário">
+              <p>Use os botões <strong>Lista</strong> e <strong>Calendário</strong> para alternar entre a vista em lista e a vista mensal de calendário.</p>
+            </HelpSection>
+            <HelpSection title="Filtros">
+              <p>Pode filtrar por inspetor (se tiver permissão de brigada) e por estado: <em>Todos</em>, <em>Vencidos</em> ou <em>Próximos</em> (dentro do período de alerta configurado).</p>
+            </HelpSection>
+            <HelpSection title="Novo Controlo">
+              <p>O botão <strong>Novo Controlo</strong> cria um controlo periódico numa atividade. Defina a atividade, o período em dias e o número de alertas antecipados.</p>
+            </HelpSection>
+          </HelpButton>
           {panel === 'controlos' && hasControloAccess && !historico && (
             <div className="hidden sm:block">
               <CreateControloDialog />

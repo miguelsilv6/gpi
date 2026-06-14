@@ -40,6 +40,7 @@ import type { AjudasTotais, ConfigData, LinhaDetalhes } from '@/lib/ajudas-calc'
 import { getPortugueseHolidays, splitHours, calcLinhaValor, calcLinhaDetalhes } from '@/lib/ajudas-calc'
 import { MATRICULA_REGEX } from '@/lib/constants'
 import type { Role } from '@/generated/prisma/enums'
+import { HelpButton, HelpSection } from '@/components/ui/help-button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1062,11 +1063,41 @@ tr:nth-child(even) td{background:#f6f6f6}
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Ajudas Mensais</h1>
-          <p className="text-muted-foreground text-sm">
-            Registo de horas extra e ajudas de custo mensais
-          </p>
+        <div className="flex items-start gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Ajudas Mensais</h1>
+            <p className="text-muted-foreground text-sm">
+              Registo de horas extra e ajudas de custo mensais
+            </p>
+          </div>
+          <HelpButton title="Ajuda — Ajudas Mensais">
+            <HelpSection title="Tipos de entrada">
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>Horas Extra</strong> — serviço fora do horário normal. Defina data/hora de início e fim; as horas são automaticamente classificadas por tipo (semana/FdS, dia/noite).</li>
+                <li><strong>Piquete</strong> — dia de serviço de piquete. Selecione o dia; o valor é fixo por tipo de dia (semana ou FdS/feriado).</li>
+                <li><strong>Prevenção Passiva</strong> — período de prevenção passiva. Defina início e fim (máx. 31 dias); são contados os dias de semana e os FdS separadamente.</li>
+              </ul>
+            </HelpSection>
+            <HelpSection title="Classificação de horas">
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>Semana 08-24h</strong> — horas em dia útil fora do horário normal (exceto 09h-17h30).</li>
+                <li><strong>Semana 00-08h</strong> — horas noturnas em dia útil.</li>
+                <li><strong>FdS 08-24h / 00-08h</strong> — horas ao fim-de-semana ou feriado (todas contam, sem exclusão de horário normal).</li>
+              </ul>
+            </HelpSection>
+            <HelpSection title="Ajudas de custo">
+              <p>Se a viatura fizer ≥ {'{distância mínima configurada}'} km, pode registar refeições (almoço, jantar, ceia). O valor é calculado com base nas taxas configuradas globalmente.</p>
+            </HelpSection>
+            <HelpSection title="Limite mensal">
+              <p>O total de horas extra está sujeito a um limite mensal (vencimento base ÷ 3). O progresso é mostrado na secção de resumo.</p>
+            </HelpSection>
+            <HelpSection title="Exportar PDF">
+              <p>O botão <strong>Exportar PDF</strong> abre uma janela para impressão com o resumo completo do mês, incluindo todas as entradas e o cálculo final.</p>
+            </HelpSection>
+            <HelpSection title="Configuração necessária">
+              <p>Para que os cálculos apareçam, configure o seu <strong>Vencimento Base</strong> e <strong>Taxa de IRS</strong> em <strong>Perfil → Ajudas Mensais</strong>.</p>
+            </HelpSection>
+          </HelpButton>
         </div>
 
         {/* Month selector */}

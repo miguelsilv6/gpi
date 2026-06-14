@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Plane, Coffee, Trash2, Pencil } from 'lucide-react'
+import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -248,9 +249,33 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Ausências</h1>
-        <p className="text-muted-foreground text-sm">Marca os teus períodos de férias e folgas.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Ausências</h1>
+          <p className="text-muted-foreground text-sm">Marca os teus períodos de férias e folgas.</p>
+        </div>
+        <HelpButton title="Ajuda — Ausências">
+          <HelpSection title="Como marcar uma ausência">
+            <p>No calendário, clique no dia de início e depois no dia de fim para selecionar um intervalo. Escolha o tipo:</p>
+            <ul className="list-disc pl-4 space-y-1 mt-1">
+              <li><strong className="text-blue-600 dark:text-blue-400">Férias</strong> — dias de férias anuais.</li>
+              <li><strong className="text-amber-600 dark:text-amber-400">Folga</strong> — folgas pontuais ou compensatórias.</li>
+            </ul>
+            <p className="mt-1">Pode adicionar uma nota opcional. Clique em <strong>Marcar</strong> para guardar.</p>
+          </HelpSection>
+          <HelpSection title="Contagem de dias úteis">
+            <p>A contagem exclui fins-de-semana e feriados nacionais portugueses (incluindo feriados móveis). O número de dias úteis é calculado automaticamente ao selecionar o intervalo.</p>
+          </HelpSection>
+          <HelpSection title="Editar ou eliminar">
+            <p>Na lista de marcações (à direita do calendário), use os ícones de lápis e lixo para editar ou apagar uma ausência existente.</p>
+          </HelpSection>
+          <HelpSection title="Vista da brigada">
+            <p>Se tiver permissões de chefe ou coordenador, o separador <strong>Brigada</strong> mostra o Gantt de ausências de todos os membros da brigada — útil para detetar conflitos ou sobreposições.</p>
+          </HelpSection>
+          <HelpSection title="Gráfico de Gantt">
+            <p>Use os botões <strong>Mês / Trimestre / Ano</strong> para ajustar a escala temporal do Gantt. Passe o cursor sobre uma barra para ver os detalhes. O fundo a cinzento indica fins-de-semana ou feriados.</p>
+          </HelpSection>
+        </HelpButton>
       </div>
 
       {loading ? (
