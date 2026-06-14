@@ -12,6 +12,7 @@ import { ReopenDialog } from '@/components/inqueritos/reopen-dialog'
 import { DeleteInqueritoButton } from '@/components/inqueritos/delete-inquerito-button'
 import { AtividadesSection } from '@/components/inqueritos/atividades-section'
 import { DocumentosSection } from '@/components/inqueritos/documentos-section'
+import { NotasSection } from '@/components/inqueritos/notas-section'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -163,6 +164,18 @@ export default async function InqueritoDetailPage({
         },
       })
     : []
+
+  // Notas de investigação — registo cronológico de notas por inquérito.
+  const notas = await prisma.notaInquerito.findMany({
+    where: { inqueritoId: inquerito.id },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      conteudo: true,
+      createdAt: true,
+      autor: { select: { id: true, nome: true } },
+    },
+  })
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
   const terminal = isTerminal(inquerito.estado)
@@ -618,6 +631,14 @@ export default async function InqueritoDetailPage({
           isAdmin={hasPermission(role, 'inquerito:edit:all')}
         />
       )}
+
+      <NotasSection
+        nuipcSlug={inqSlug}
+        notas={notas.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() }))}
+        canAdd={canEdit && role !== 'ESTATISTICA'}
+        currentUserId={session.user.id}
+        isAdmin={hasPermission(role, 'inquerito:edit:all')}
+      />
 
       {canSeeAudit && <AuditHistory slug={inqSlug} />}
     </div>
