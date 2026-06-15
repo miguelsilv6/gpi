@@ -124,7 +124,7 @@ function FeriasYearBar({ ferias, ano }: { ferias: FeriasPeriod[]; ano: number })
     }]
   })
 
-  if (ferias.length === 0) {
+  if (ferias.length === 0 || bars.length === 0) {
     return <p className="text-xs text-muted-foreground py-2">Sem férias registadas para {ano}.</p>
   }
 

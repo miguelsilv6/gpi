@@ -79,6 +79,22 @@ export const inqueritoSchema = z
       })
     }
 
+    const distribuicao = parseDate(data.dataDistribuicao)
+    if (data.dataDistribuicao && !distribuicao) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['dataDistribuicao'],
+        message: 'Data de distribuição inválida',
+      })
+    }
+    if (distribuicao && distribuicao < abertura) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['dataDistribuicao'],
+        message: 'Data de distribuição não pode ser anterior à abertura',
+      })
+    }
+
     const prazo = parseDate(data.dataPrazo)
     if (data.dataPrazo && !prazo) {
       ctx.addIssue({
