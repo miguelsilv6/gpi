@@ -52,7 +52,7 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
     (state, id: string) =>
       state.map((t) => t.id === id ? { ...t, concluida: !t.concluida } : t),
   )
-  const [, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
 
   function handleToggle(t: TarefaBrowserItem) {
     setToggling(t.id)
@@ -175,7 +175,7 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
                         className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
                         title={t.concluida ? 'Reabrir tarefa' : 'Marcar como concluída'}
                         onClick={() => handleToggle(t)}
-                        disabled={toggling === t.id}
+                        disabled={toggling === t.id || isPending}
                       >
                         {toggling === t.id
                           ? <Loader2 className="h-4 w-4 animate-spin" />
