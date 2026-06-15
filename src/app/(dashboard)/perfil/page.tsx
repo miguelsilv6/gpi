@@ -15,9 +15,6 @@ import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Pl
 import { ROLE_LABELS } from '@/lib/rbac'
 import { NOTIFICATION_TIPO_LABELS, NOTIFICATION_TIPO_DESCRIPTIONS } from '@/lib/notification-labels'
 import type { Role } from '@/generated/prisma/enums'
-import { AusenciasPerfilPanel } from '@/components/ausencias/ausencias-perfil-panel'
-
-// ─── Viaturas sub-component ───────────────────────────────────────────────────
 
 interface ViaturaItem { id: string; nome: string; matricula: string | null }
 
@@ -474,9 +471,6 @@ export default function PerfilPage() {
 
       {/* Viaturas */}
       <ViaturasList />
-
-      {/* Ausências — only renders when module is active for this user */}
-      <AusenciasPerfilPanel />
 
       {/* Notification email preferences */}
       <NotificacoesPreferencias />
