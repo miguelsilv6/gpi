@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Plane, Coffee, Trash2, Pencil } from 'lucide-react'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
@@ -19,6 +19,79 @@ import { countWorkingDays } from '@/lib/ferias'
 import { cn } from '@/lib/utils'
 import type { Ausencia, MembroFerias, Totais, TipoAusencia, GanttScale } from './types'
 import { TIPO_LABEL, TIPO_COR } from './types'
+
+// ─── Férias Gantt ─────────────────────────────────────────────────────────────
+
+const MONTHS_PT_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'] as const
+
+function parseISODate(s: string): Date {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number)
+  return new Date(y!, m! - 1, d!)
+}
+
+function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
+  const startOfYear = new Date(ano, 0, 1)
+  const endOfYear = new Date(ano, 11, 31)
+  const totalDays = Math.round((endOfYear.getTime() - startOfYear.getTime()) / 86400000) + 1
+
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const offset = Math.round((new Date(ano, i, 1).getTime() - startOfYear.getTime()) / 86400000)
+    return { label: MONTHS_PT_ABBR[i]!, pct: (offset / totalDays) * 100 }
+  })
+
+  const bars = ferias.flatMap((f) => {
+    const s = parseISODate(f.dataInicio)
+    const e = parseISODate(f.dataFim)
+    const cs = s < startOfYear ? startOfYear : s
+    const ce = e > endOfYear ? endOfYear : e
+    if (ce < cs) return []
+    const so = Math.round((cs.getTime() - startOfYear.getTime()) / 86400000)
+    const eo = Math.round((ce.getTime() - startOfYear.getTime()) / 86400000)
+    return [{
+      left: (so / totalDays) * 100,
+      width: ((eo - so + 1) / totalDays) * 100,
+      label: `${f.dataInicio.slice(0, 10)} → ${f.dataFim.slice(0, 10)}${f.nota ? ' — ' + f.nota : ''}`,
+    }]
+  })
+
+  if (ferias.length === 0 || bars.length === 0) {
+    return <p className="text-xs text-muted-foreground py-2">Sem férias registadas para {ano}.</p>
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="relative h-4">
+        {months.map((m) => (
+          <span key={m.label} className="absolute text-[10px] text-muted-foreground" style={{ left: `${m.pct}%` }}>
+            {m.label}
+          </span>
+        ))}
+      </div>
+      <div className="relative h-7 overflow-hidden rounded-md bg-muted/30">
+        {months.slice(1).map((m) => (
+          <div key={m.label} className="absolute inset-y-0 w-px bg-border/50" style={{ left: `${m.pct}%` }} />
+        ))}
+        {bars.map((b, i) => (
+          <div
+            key={i}
+            className="absolute inset-y-1 rounded-sm bg-blue-500/80 hover:bg-blue-600 transition-colors cursor-default"
+            style={{ left: `${b.left}%`, width: `${b.width}%` }}
+            title={b.label}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+        {ferias.map((f, i) => (
+          <span key={i} className="whitespace-nowrap">
+            <span className="inline-block h-2 w-2 rounded-sm bg-blue-500/80 mr-1 align-middle" />
+            {f.dataInicio.slice(0, 10)} → {f.dataFim.slice(0, 10)}
+            {f.nota && <span className="ml-1 opacity-70">({f.nota})</span>}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface Props {
   canViewBrigade: boolean
@@ -46,6 +119,8 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
   )
 
   const [ganttScale, setGanttScale] = useState<GanttScale>('month')
+
+  const feriasByYear = useMemo(() => ausencias.filter((a) => a.tipo === 'FERIAS'), [ausencias])
 
   const [editing, setEditing] = useState<Ausencia | null>(null)
   const [deleting, setDeleting] = useState<Ausencia | null>(null)
@@ -186,6 +261,15 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
         <p className="text-xs text-muted-foreground">
           Dias úteis marcados em {ano} (exclui fins de semana e feriados).
         </p>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Férias {ano}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeriasYearBar ferias={feriasByYear} ano={ano} />
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="pb-2">
