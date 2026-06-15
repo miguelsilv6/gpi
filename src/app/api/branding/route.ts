@@ -27,6 +27,8 @@ const updateSchema = z.object({
   manifestDescription: z.string().min(1).max(200).nullable().optional(),
   pdfFooterText: z.string().min(1).max(120).nullable().optional(),
   appAuthor: z.string().max(120).nullable().optional(),
+  logoHorizontalEscala: z.number().int().min(10).max(200).optional(),
+  logoHorizontalAlinhamento: z.enum(['left', 'center', 'right']).optional(),
 })
 
 const TEXT_FIELDS = [
@@ -60,11 +62,17 @@ export async function PUT(req: NextRequest) {
 
     const before = await getBrand()
 
-    const updateData: Record<string, string | Date | null> = {}
+    const updateData: Record<string, string | number | Date | null> = {}
     for (const field of TEXT_FIELDS) {
       if (field in parsed.data) {
         updateData[field] = parsed.data[field] ?? null
       }
+    }
+    if (parsed.data.logoHorizontalEscala !== undefined) {
+      updateData.logoHorizontalEscala = parsed.data.logoHorizontalEscala
+    }
+    if (parsed.data.logoHorizontalAlinhamento !== undefined) {
+      updateData.logoHorizontalAlinhamento = parsed.data.logoHorizontalAlinhamento
     }
     updateData.brandUpdatedAt = new Date()
 

@@ -32,12 +32,14 @@ export function useBrand(): Brand {
  * Devolve a URL pública para um asset com query string de cache-busting
  * (`?v=<brandUpdatedAt>`). Null = caller deve usar o default.
  */
-export function useBrandAssetUrl(variant: 'light' | 'dark' | 'favicon'): string | null {
+export function useBrandAssetUrl(variant: 'light' | 'dark' | 'favicon' | 'horizontal-light' | 'horizontal-dark'): string | null {
   const b = useBrand()
   const name =
     variant === 'light' ? b.logoLightFilename
       : variant === 'dark' ? b.logoDarkFilename
-        : b.faviconFilename
+        : variant === 'horizontal-light' ? b.logoHorizontalLightFilename
+          : variant === 'horizontal-dark' ? b.logoHorizontalDarkFilename
+            : b.faviconFilename
   if (!name) return null
   const v = b.brandUpdatedAt ? new Date(b.brandUpdatedAt).getTime() : 0
   return `/branding/${encodeURIComponent(name)}?v=${v}`

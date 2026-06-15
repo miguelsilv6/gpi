@@ -26,6 +26,10 @@ export const getBrand = cache(async (): Promise<Brand> => {
     logoLightFilename: string | null
     logoDarkFilename: string | null
     faviconFilename: string | null
+    logoHorizontalLightFilename: string | null
+    logoHorizontalDarkFilename: string | null
+    logoHorizontalEscala: number
+    logoHorizontalAlinhamento: string
     brandUpdatedAt: Date | null
   } | null
   try {
@@ -41,6 +45,10 @@ export const getBrand = cache(async (): Promise<Brand> => {
         logoLightFilename: true,
         logoDarkFilename: true,
         faviconFilename: true,
+        logoHorizontalLightFilename: true,
+        logoHorizontalDarkFilename: true,
+        logoHorizontalEscala: true,
+        logoHorizontalAlinhamento: true,
         brandUpdatedAt: true,
       },
     })
@@ -61,6 +69,10 @@ export const getBrand = cache(async (): Promise<Brand> => {
     logoLightFilename: row.logoLightFilename,
     logoDarkFilename: row.logoDarkFilename,
     faviconFilename: row.faviconFilename,
+    logoHorizontalLightFilename: row.logoHorizontalLightFilename,
+    logoHorizontalDarkFilename: row.logoHorizontalDarkFilename,
+    logoHorizontalEscala: row.logoHorizontalEscala,
+    logoHorizontalAlinhamento: row.logoHorizontalAlinhamento,
     brandUpdatedAt: row.brandUpdatedAt,
   }
 })

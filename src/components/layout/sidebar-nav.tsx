@@ -33,6 +33,8 @@ export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo =
   const brand = useBrand()
   const lightLogo = useBrandAssetUrl('light')
   const darkLogo = useBrandAssetUrl('dark')
+  const horizontalLightLogo = useBrandAssetUrl('horizontal-light')
+  const horizontalDarkLogo = useBrandAssetUrl('horizontal-dark')
   const { resolvedTheme } = useTheme()
   // Evita hydration mismatch: o resolvedTheme só está disponível após o
   // primeiro paint do cliente. Antes disso usamos sempre a variante light
@@ -40,24 +42,44 @@ export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo =
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   const logo = mounted && resolvedTheme === 'dark' && darkLogo ? darkLogo : lightLogo
+  const horizontalLogo = mounted && resolvedTheme === 'dark' && horizontalDarkLogo ? horizontalDarkLogo : horizontalLightLogo
+
+  const alignClass = brand.logoHorizontalAlinhamento === 'left'
+    ? 'justify-start'
+    : brand.logoHorizontalAlinhamento === 'right'
+      ? 'justify-end'
+      : 'justify-center'
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-4 py-5 border-b">
-        {logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt="" className="h-8 w-8 rounded-md object-contain" />
-        ) : (
-          <div className="bg-blue-600 p-1.5 rounded-md">
-            <Shield className="h-5 w-5 text-white" />
+      <div className={`px-4 pt-5 border-b ${horizontalLogo ? 'pb-3' : 'pb-5'}`}>
+        <div className="flex items-center gap-2">
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="" className="h-8 w-8 rounded-md object-contain" />
+          ) : (
+            <div className="bg-blue-600 p-1.5 rounded-md">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+          )}
+          <div>
+            <p className="font-bold text-sm leading-none">{brand.appShortName}</p>
+            <p className="text-xs text-muted-foreground leading-none mt-0.5">
+              {brand.appDescription}
+            </p>
+          </div>
+        </div>
+        {horizontalLogo && (
+          <div className={`flex mt-3 ${alignClass}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={horizontalLogo}
+              alt=""
+              className="object-contain max-h-12"
+              style={{ width: `${brand.logoHorizontalEscala}%` }}
+            />
           </div>
         )}
-        <div>
-          <p className="font-bold text-sm leading-none">{brand.appShortName}</p>
-          <p className="text-xs text-muted-foreground leading-none mt-0.5">
-            {brand.appDescription}
-          </p>
-        </div>
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

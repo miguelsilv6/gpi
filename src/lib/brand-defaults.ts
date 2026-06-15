@@ -18,6 +18,10 @@ export const BRAND_DEFAULTS = {
   logoLightFilename: null as string | null,
   logoDarkFilename: null as string | null,
   faviconFilename: null as string | null,
+  logoHorizontalLightFilename: null as string | null,
+  logoHorizontalDarkFilename: null as string | null,
+  logoHorizontalEscala: 100 as number,
+  logoHorizontalAlinhamento: 'center' as string,
   brandUpdatedAt: null as Date | null,
 } as const
 
@@ -31,5 +35,9 @@ export type Brand = {
   logoLightFilename: string | null
   logoDarkFilename: string | null
   faviconFilename: string | null
+  logoHorizontalLightFilename: string | null
+  logoHorizontalDarkFilename: string | null
+  logoHorizontalEscala: number
+  logoHorizontalAlinhamento: string
   brandUpdatedAt: Date | null
 }
