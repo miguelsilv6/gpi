@@ -401,6 +401,12 @@ export default async function InqueritoDetailPage({
                 )}
               </span>
             </div>
+            {inquerito.dataDistribuicao && (
+              <div className="flex justify-between pt-1 border-t">
+                <span className="text-muted-foreground">Distribuição</span>
+                <span className="font-medium">{formatDate(inquerito.dataDistribuicao)}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -556,7 +562,7 @@ export default async function InqueritoDetailPage({
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
               <FileText className="h-4 w-4" />
-              Notas
+              Notas do inquérito
             </CardTitle>
           </CardHeader>
           <CardContent>

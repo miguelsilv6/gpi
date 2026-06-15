@@ -222,6 +222,7 @@ export async function PUT(
         crimeId: targetCrime.id,
         estadoId: finalEstadoId,
         dataAbertura: new Date(data.dataAbertura),
+        dataDistribuicao: data.dataDistribuicao ? new Date(data.dataDistribuicao) : null,
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,
         notas: data.notas ?? null,

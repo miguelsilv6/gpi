@@ -531,6 +531,13 @@ export function InqueritoForm({
               )}
             </div>
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dataDistribuicao">Data de distribuição</Label>
+            <Input id="dataDistribuicao" type="date" {...register('dataDistribuicao')} />
+            {errors.dataDistribuicao && (
+              <p className="text-xs text-red-600">{errors.dataDistribuicao.message as string}</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -842,7 +849,7 @@ export function InqueritoForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Notas</CardTitle>
+          <CardTitle className="text-base">Notas do inquérito</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea

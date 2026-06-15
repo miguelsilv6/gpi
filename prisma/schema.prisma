@@ -120,9 +120,10 @@ model Inquerito {
   // populated for every row (via scripts/migrate-natureza-to-crime.ts) and
   // the UI no longer reads from this field, a future migration drops it.
   natureza       String
-  dataAbertura   DateTime
-  dataPrazo      DateTime?
-  dataConclusao  DateTime?
+  dataAbertura     DateTime
+  dataDistribuicao DateTime?
+  dataPrazo        DateTime?
+  dataConclusao    DateTime?
   notas          String?
   cartaPrecatoria Boolean @default(false)
   // Tribunal / Ministério Público — all optional.

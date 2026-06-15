@@ -19,6 +19,7 @@ export const inqueritoSchema = z
     crimeId: z.string().min(1, 'Crime obrigatório'),
     estadoId: z.string().min(1, 'Estado obrigatório'),
     dataAbertura: z.string().min(1, 'Data de abertura obrigatória'),
+    dataDistribuicao: z.string().optional().nullable(),
     dataPrazo: z.string().optional().nullable(),
     dataConclusao: z.string().optional().nullable(),
     notas: z.string().optional().nullable(),
