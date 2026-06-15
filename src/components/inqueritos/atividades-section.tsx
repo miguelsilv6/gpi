@@ -166,28 +166,6 @@ export function AtividadesSection({
             Atividades ({totalAtividades})
           </CardTitle>
           <div className="flex items-center gap-2">
-            <HelpButton title="Ajuda — Atividades">
-              <HelpSection title="O que é uma atividade">
-                <p>Uma atividade representa uma diligência ou tarefa associada ao inquérito (ex.: inquirição, busca, perícia). Pode ter um prazo, uma quantidade e observações.</p>
-              </HelpSection>
-              <HelpSection title="Concluir uma atividade">
-                <p>Clique no botão de conclusão e escolha o modo:</p>
-                <ul className="list-disc pl-4 space-y-0.5 mt-1">
-                  <li><strong>Devolução</strong> — a atividade foi devolvida ao MP/tribunal.</li>
-                  <li><strong>Exame</strong> — a atividade resultou numa diligência de exame.</li>
-                  <li><strong>Prazo</strong> — o prazo foi cumprido/entregue.</li>
-                </ul>
-              </HelpSection>
-              <HelpSection title="Controlos periódicos">
-                <p>Uma atividade pode ter um controlo periódico associado (ex.: controlo mensal). Quando a data de realização se aproxima, o sistema apresenta um alerta. Clique em <strong>Confirmar</strong> para registar cada realização.</p>
-              </HelpSection>
-              <HelpSection title="Alertas">
-                <p>O ícone <Bell className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" /> indica que a atividade tem um alerta de prazo configurado. O ícone <ClipboardCheck className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" /> aparece nos controlos.</p>
-              </HelpSection>
-              <HelpSection title="Edição bloqueada">
-                <p>Quando visualiza um inquérito de outro inspetor, a edição fica bloqueada por defeito para evitar alterações acidentais. Clique em <strong>Editar</strong> para desbloquear.</p>
-              </HelpSection>
-            </HelpButton>
             {editLocked && (
               <Button
                 size="sm"
@@ -211,6 +189,28 @@ export function AtividadesSection({
                 </Link>
               </Button>
             )}
+            <HelpButton title="Ajuda — Atividades">
+              <HelpSection title="O que é uma atividade">
+                <p>Uma atividade representa uma diligência ou tarefa associada ao inquérito (ex.: inquirição, busca, perícia). Pode ter um prazo, uma quantidade e observações.</p>
+              </HelpSection>
+              <HelpSection title="Concluir uma atividade">
+                <p>Clique no botão de conclusão e escolha o modo:</p>
+                <ul className="list-disc pl-4 space-y-0.5 mt-1">
+                  <li><strong>Devolução</strong> — a atividade foi devolvida ao MP/tribunal.</li>
+                  <li><strong>Exame</strong> — a atividade resultou numa diligência de exame.</li>
+                  <li><strong>Prazo</strong> — o prazo foi cumprido/entregue.</li>
+                </ul>
+              </HelpSection>
+              <HelpSection title="Controlos periódicos">
+                <p>Uma atividade pode ter um controlo periódico associado (ex.: controlo mensal). Quando a data de realização se aproxima, o sistema apresenta um alerta. Clique em <strong>Confirmar</strong> para registar cada realização.</p>
+              </HelpSection>
+              <HelpSection title="Alertas">
+                <p>O ícone <Bell className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" /> indica que a atividade tem um alerta de prazo configurado. O ícone <ClipboardCheck className="inline h-3.5 w-3.5 mx-0.5 align-text-bottom" /> aparece nos controlos.</p>
+              </HelpSection>
+              <HelpSection title="Edição bloqueada">
+                <p>Quando visualiza um inquérito de outro inspetor, a edição fica bloqueada por defeito para evitar alterações acidentais. Clique em <strong>Editar</strong> para desbloquear.</p>
+              </HelpSection>
+            </HelpButton>
           </div>
         </div>
       </CardHeader>

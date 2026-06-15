@@ -25,14 +25,14 @@ export const ALLOWED_MIME_FAVICON = [
   'image/vnd.microsoft.icon',
 ] as const
 
-export type LogoVariant = 'light' | 'dark'
+export type LogoVariant = 'light' | 'dark' | 'horizontal-light' | 'horizontal-dark'
 
 /**
  * Regex estrita: prefixo conhecido + extensão. Bloqueia tudo o resto
  * para que um pedido com filename arbitrário não consiga escapar do
  * BRANDING_DIR nem servir ficheiros inesperados.
  */
-const FILENAME_REGEX = /^(logo-light|logo-dark|favicon)\.(png|jpg|jpeg|svg|webp|ico)$/
+const FILENAME_REGEX = /^(logo-light|logo-dark|logo-horizontal-light|logo-horizontal-dark|favicon)\.(png|jpg|jpeg|svg|webp|ico)$/
 
 export function resolveBrandingPath(filename: string): string | null {
   if (typeof filename !== 'string' || filename.length === 0) return null
@@ -82,7 +82,7 @@ export function mimeFromExtension(ext: string): string {
  * Único ponto que conhece a convenção `logo-light.{ext}` etc.
  */
 export function brandingFilename(
-  kind: 'logo-light' | 'logo-dark' | 'favicon',
+  kind: 'logo-light' | 'logo-dark' | 'logo-horizontal-light' | 'logo-horizontal-dark' | 'favicon',
   ext: string,
 ): string {
   return `${kind}.${ext}`

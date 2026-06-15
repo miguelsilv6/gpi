@@ -563,6 +563,11 @@ model ConfiguracaoSistema {
   logoLightFilename               String?
   logoDarkFilename                String?
   faviconFilename                 String?
+  logoHorizontalLightFilename     String?
+  logoHorizontalDarkFilename      String?
+  // Escala em % (10–200) e alinhamento (left|center|right) do logo horizontal na sidebar.
+  logoHorizontalEscala            Int      @default(100)
+  logoHorizontalAlinhamento       String   @default("center")
   brandUpdatedAt                  DateTime?
   updatedAt                       DateTime @updatedAt
 }

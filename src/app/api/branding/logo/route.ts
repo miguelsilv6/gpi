@@ -24,11 +24,27 @@ export const dynamic = 'force-dynamic'
 
 function parseVariant(req: NextRequest): LogoVariant | null {
   const v = new URL(req.url).searchParams.get('variant')
-  return v === 'light' || v === 'dark' ? v : null
+  return v === 'light' || v === 'dark' || v === 'horizontal-light' || v === 'horizontal-dark'
+    ? (v as LogoVariant)
+    : null
 }
 
+const SLOT_MAP = {
+  'light': 'logo-light',
+  'dark': 'logo-dark',
+  'horizontal-light': 'logo-horizontal-light',
+  'horizontal-dark': 'logo-horizontal-dark',
+} as const
+
+const FIELD_MAP = {
+  'light': 'logoLightFilename',
+  'dark': 'logoDarkFilename',
+  'horizontal-light': 'logoHorizontalLightFilename',
+  'horizontal-dark': 'logoHorizontalDarkFilename',
+} as const
+
 /**
- * Upload de logo (variant=light|dark). Validações:
+ * Upload de logo (variant=light|dark|horizontal-light|horizontal-dark). Validações:
  *   - admin + rate limit HEAVY_OPERATIONS
  *   - mime em ALLOWED_MIME_LOGO
  *   - tamanho ≤ 1 MB
@@ -76,17 +92,17 @@ export async function POST(req: NextRequest) {
     await fs.mkdir(BRANDING_DIR, { recursive: true })
 
     // Limpa ficheiros antigos do mesmo slot (extensões diferentes).
-    const slot = variant === 'light' ? 'logo-light' : 'logo-dark'
+    const slot = SLOT_MAP[variant]
     await Promise.all(
       ALL_EXTENSIONS.map((e) =>
         fs.unlink(path.join(BRANDING_DIR, `${slot}.${e}`)).catch(() => {}),
       ),
     )
 
-    const filename = brandingFilename(slot as 'logo-light' | 'logo-dark', ext)
+    const filename = brandingFilename(slot, ext)
     await fs.writeFile(path.join(BRANDING_DIR, filename), buffer, { mode: 0o644 })
 
-    const field = variant === 'light' ? 'logoLightFilename' : 'logoDarkFilename'
+    const field = FIELD_MAP[variant]
     const now = new Date()
     await prisma.configuracaoSistema.upsert({
       where: { id: 'singleton' },
@@ -123,14 +139,14 @@ export async function DELETE(req: NextRequest) {
     const variant = parseVariant(req)
     if (!variant) return apiError('Variante inválida (light|dark)', 400)
 
-    const slot = variant === 'light' ? 'logo-light' : 'logo-dark'
+    const slot = SLOT_MAP[variant]
     await Promise.all(
       ALL_EXTENSIONS.map((e) =>
         fs.unlink(path.join(BRANDING_DIR, `${slot}.${e}`)).catch(() => {}),
       ),
     )
 
-    const field = variant === 'light' ? 'logoLightFilename' : 'logoDarkFilename'
+    const field = FIELD_MAP[variant]
     await prisma.configuracaoSistema.upsert({
       where: { id: 'singleton' },
       update: { [field]: null, brandUpdatedAt: new Date() },

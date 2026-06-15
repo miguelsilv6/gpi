@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Plane, Coffee, Trash2, Pencil } from 'lucide-react'
+import { Plane, Coffee, Trash2, Pencil, Plus } from 'lucide-react'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -113,6 +113,11 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
   const [membros, setMembros] = useState<MembroFerias[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [calMonth, setCalMonth] = useState(() => {
+    const n = new Date()
+    return new Date(n.getFullYear(), n.getMonth(), 1)
+  })
 
   const [selectedBrigadaId, setSelectedBrigadaId] = useState<string | null>(
     userBrigadaId ?? brigadas[0]?.id ?? null,
@@ -242,90 +247,73 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
   }
 
   const meContent = (
-    <div className="grid gap-4 xl:grid-cols-2 min-w-0 overflow-x-hidden">
-      <div className="space-y-4 min-w-0">
-        <div className="grid grid-cols-2 gap-4">
-          <CounterCard
-            icon={<Plane className="h-4 w-4 text-blue-500" />}
-            label="Férias"
-            value={totais.ferias}
-            valueClass="text-blue-700 dark:text-blue-400"
-          />
-          <CounterCard
-            icon={<Coffee className="h-4 w-4 text-amber-500" />}
-            label="Folgas"
-            value={totais.folga}
-            valueClass="text-amber-700 dark:text-amber-400"
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Dias úteis marcados em {ano} (exclui fins de semana e feriados).
-        </p>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Férias {ano}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FeriasYearBar ferias={feriasByYear} ano={ano} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Marcações de {ano}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ausencias.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Sem marcações este ano.</p>
-            ) : (
-              <ul className="divide-y">
-                {ausencias.map((a) => {
-                  const dias = countWorkingDays(new Date(a.dataInicio.slice(0, 10)), new Date(a.dataFim.slice(0, 10)))
-                  return (
-                    <li key={a.id} className="flex items-center justify-between gap-2 py-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TIPO_COR[a.tipo].badge}`}>
-                          {TIPO_LABEL[a.tipo]}
-                        </span>
-                        <span className="text-sm tabular-nums truncate">
-                          {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {dias} dia{dias === 1 ? '' : 's'}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon-sm" onClick={() => setEditing(a)} aria-label="Editar">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(a)} aria-label="Apagar">
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <CounterCard
+          icon={<Plane className="h-4 w-4 text-blue-500" />}
+          label="Férias"
+          value={totais.ferias}
+          valueClass="text-blue-700 dark:text-blue-400"
+        />
+        <CounterCard
+          icon={<Coffee className="h-4 w-4 text-amber-500" />}
+          label="Folgas"
+          value={totais.folga}
+          valueClass="text-amber-700 dark:text-amber-400"
+        />
       </div>
+      <p className="text-xs text-muted-foreground">
+        Dias úteis marcados em {ano} (exclui fins de semana e feriados).
+      </p>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Marcar período</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Férias {ano}</CardTitle>
         </CardHeader>
         <CardContent>
-          <AusenciasCalendar
-            ausencias={ausencias}
-            month={month}
-            onMonthChange={setMonth}
-            onCreate={handleCreate}
-            busy={busy}
-          />
+          <FeriasYearBar ferias={feriasByYear} ano={ano} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Marcações de {ano}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ausencias.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">Sem marcações este ano.</p>
+          ) : (
+            <ul className="divide-y">
+              {ausencias.map((a) => {
+                const dias = countWorkingDays(new Date(a.dataInicio.slice(0, 10)), new Date(a.dataFim.slice(0, 10)))
+                return (
+                  <li key={a.id} className="flex items-center justify-between gap-2 py-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TIPO_COR[a.tipo].badge}`}>
+                        {TIPO_LABEL[a.tipo]}
+                      </span>
+                      <span className="text-sm tabular-nums truncate">
+                        {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {dias} dia{dias === 1 ? '' : 's'}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon-sm" onClick={() => setEditing(a)} aria-label="Editar">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(a)} aria-label="Apagar">
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -338,28 +326,34 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
           <h1 className="text-2xl font-bold tracking-tight">Ausências</h1>
           <p className="text-muted-foreground text-sm">Marca os teus períodos de férias e folgas.</p>
         </div>
-        <HelpButton title="Ajuda — Ausências" className="shrink-0">
-          <HelpSection title="Como marcar uma ausência">
-            <p>No calendário, clique no dia de início e depois no dia de fim para selecionar um intervalo. Escolha o tipo:</p>
-            <ul className="list-disc pl-4 space-y-1 mt-1">
-              <li><strong className="text-blue-600 dark:text-blue-400">Férias</strong> — dias de férias anuais.</li>
-              <li><strong className="text-amber-600 dark:text-amber-400">Folga</strong> — folgas pontuais ou compensatórias.</li>
-            </ul>
-            <p className="mt-1">Pode adicionar uma nota opcional. Clique em <strong>Marcar</strong> para guardar.</p>
-          </HelpSection>
-          <HelpSection title="Contagem de dias úteis">
-            <p>A contagem exclui fins-de-semana e feriados nacionais portugueses (incluindo feriados móveis). O número de dias úteis é calculado automaticamente ao selecionar o intervalo.</p>
-          </HelpSection>
-          <HelpSection title="Editar ou eliminar">
-            <p>Na lista de marcações (à direita do calendário), use os ícones de lápis e lixo para editar ou apagar uma ausência existente.</p>
-          </HelpSection>
-          <HelpSection title="Vista da brigada">
-            <p>Se tiver permissões de chefe ou coordenador, o separador <strong>Brigada</strong> mostra o Gantt de ausências de todos os membros da brigada — útil para detetar conflitos ou sobreposições.</p>
-          </HelpSection>
-          <HelpSection title="Gráfico de Gantt">
-            <p>Use os botões <strong>Mês / Trimestre / Ano</strong> para ajustar a escala temporal do Gantt. Passe o cursor sobre uma barra para ver os detalhes. O fundo a cinzento indica fins-de-semana ou feriados.</p>
-          </HelpSection>
-        </HelpButton>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Adicionar ausência
+          </Button>
+          <HelpButton title="Ajuda — Ausências">
+            <HelpSection title="Como adicionar uma ausência">
+              <p>Clique em <strong>Adicionar ausência</strong>, selecione no calendário o intervalo de datas (clique no dia de início e depois no dia de fim) e escolha o tipo:</p>
+              <ul className="list-disc pl-4 space-y-1 mt-1">
+                <li><strong className="text-blue-600 dark:text-blue-400">Férias</strong> — dias de férias anuais.</li>
+                <li><strong className="text-amber-600 dark:text-amber-400">Folga</strong> — folgas pontuais ou compensatórias.</li>
+              </ul>
+              <p className="mt-1">Pode adicionar uma nota opcional. Clique em <strong>Marcar</strong> para guardar.</p>
+            </HelpSection>
+            <HelpSection title="Contagem de dias úteis">
+              <p>A contagem exclui fins-de-semana e feriados nacionais portugueses (incluindo feriados móveis). O número de dias úteis é calculado automaticamente ao selecionar o intervalo.</p>
+            </HelpSection>
+            <HelpSection title="Editar ou eliminar">
+              <p>Na lista de marcações, use os ícones de lápis e lixo para editar ou apagar uma ausência existente.</p>
+            </HelpSection>
+            <HelpSection title="Vista da brigada">
+              <p>Se tiver permissões de chefe ou coordenador, o separador <strong>Brigada</strong> mostra o Gantt de ausências de todos os membros da brigada — útil para detetar conflitos ou sobreposições.</p>
+            </HelpSection>
+            <HelpSection title="Gráfico de Gantt">
+              <p>Use os botões <strong>Mês / Trimestre / Ano</strong> para ajustar a escala temporal do Gantt. Passe o cursor sobre uma barra para ver os detalhes. O fundo a cinzento indica fins-de-semana ou feriados.</p>
+            </HelpSection>
+          </HelpButton>
+        </div>
       </div>
 
       {loading ? (
@@ -479,6 +473,22 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
             <Button variant="ghost" onClick={() => setEditing(null)} disabled={busy}>Cancelar</Button>
             <Button onClick={handleUpdate} disabled={busy}>Guardar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add absence dialog */}
+      <Dialog open={addOpen} onOpenChange={(o) => { if (!busy) setAddOpen(o) }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova ausência</DialogTitle>
+          </DialogHeader>
+          <AusenciasCalendar
+            ausencias={ausencias}
+            month={calMonth}
+            onMonthChange={setCalMonth}
+            onCreate={handleCreate}
+            busy={busy}
+          />
         </DialogContent>
       </Dialog>
 

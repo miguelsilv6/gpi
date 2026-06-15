@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Loader2, RotateCcw, Upload, Trash2, Image as ImageIcon, Palette } from 'lucide-react'
 import { BRAND_DEFAULTS, type Brand } from '@/lib/brand-defaults'
 
-type LogoVariant = 'light' | 'dark'
+type LogoVariant = 'light' | 'dark' | 'horizontal-light' | 'horizontal-dark'
 
 interface TextForm {
   appName: string
@@ -38,9 +38,14 @@ export function AparenciaTab() {
   const [uploadingFavicon, setUploadingFavicon] = useState(false)
   const [removingLogo, setRemovingLogo] = useState<LogoVariant | null>(null)
   const [removingFavicon, setRemovingFavicon] = useState(false)
+  const [horizontalEscala, setHorizontalEscala] = useState(100)
+  const [horizontalAlinhamento, setHorizontalAlinhamento] = useState<'left' | 'center' | 'right'>('center')
+  const [savingHorizontal, setSavingHorizontal] = useState(false)
 
   const logoLightInput = useRef<HTMLInputElement>(null)
   const logoDarkInput = useRef<HTMLInputElement>(null)
+  const logoHorizontalLightInput = useRef<HTMLInputElement>(null)
+  const logoHorizontalDarkInput = useRef<HTMLInputElement>(null)
   const faviconInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -58,6 +63,8 @@ export function AparenciaTab() {
         pdfFooterText: b.pdfFooterText,
         appAuthor: b.appAuthor,
       })
+      setHorizontalEscala(b.logoHorizontalEscala)
+      setHorizontalAlinhamento((b.logoHorizontalAlinhamento as 'left' | 'center' | 'right') ?? 'center')
     } catch {
       toast.error('Erro ao carregar personalização')
     } finally {
@@ -102,6 +109,13 @@ export function AparenciaTab() {
     setForm({ ...form, [k]: BRAND_DEFAULTS[k] })
   }
 
+  const LOGO_LABELS: Record<LogoVariant, string> = {
+    'light': 'claro',
+    'dark': 'escuro',
+    'horizontal-light': 'horizontal claro',
+    'horizontal-dark': 'horizontal escuro',
+  }
+
   async function handleUploadLogo(variant: LogoVariant, file: File) {
     setUploadingLogo(variant)
     try {
@@ -116,7 +130,7 @@ export function AparenciaTab() {
         toast.error(err.error ?? 'Erro no upload')
         return
       }
-      toast.success(`Logo (${variant === 'light' ? 'claro' : 'escuro'}) carregado`)
+      toast.success(`Logo (${LOGO_LABELS[variant]}) carregado`)
       await load()
       router.refresh()
     } finally {
@@ -138,6 +152,27 @@ export function AparenciaTab() {
       router.refresh()
     } finally {
       setRemovingLogo(null)
+    }
+  }
+
+  async function handleSaveHorizontalSettings() {
+    setSavingHorizontal(true)
+    try {
+      const res = await fetch('/api/branding', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoHorizontalEscala: horizontalEscala, logoHorizontalAlinhamento: horizontalAlinhamento }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success('Configurações do logo horizontal guardadas')
+      await load()
+      router.refresh()
+    } finally {
+      setSavingHorizontal(false)
     }
   }
 
@@ -184,6 +219,8 @@ export function AparenciaTab() {
   const lightLogoUrl = brandAssetUrl(brand.logoLightFilename, brand.brandUpdatedAt)
   const darkLogoUrl = brandAssetUrl(brand.logoDarkFilename, brand.brandUpdatedAt)
   const faviconUrl = brandAssetUrl(brand.faviconFilename, brand.brandUpdatedAt)
+  const horizontalLightLogoUrl = brandAssetUrl(brand.logoHorizontalLightFilename, brand.brandUpdatedAt)
+  const horizontalDarkLogoUrl = brandAssetUrl(brand.logoHorizontalDarkFilename, brand.brandUpdatedAt)
 
   return (
     <div className="space-y-4">
@@ -342,6 +379,93 @@ export function AparenciaTab() {
         hasCustom={!!brand.faviconFilename}
         previewSize={32}
       />
+
+      {/* Logo horizontal */}
+      <LogoCard
+        title="Logo horizontal (modo claro)"
+        description="Logotipo horizontal sem fundo, mostrado na sidebar por baixo do título em modo claro. Recomenda-se SVG ou PNG transparente com largura ≥ 400 px."
+        currentUrl={horizontalLightLogoUrl}
+        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        inputRef={logoHorizontalLightInput}
+        uploading={uploadingLogo === 'horizontal-light'}
+        removing={removingLogo === 'horizontal-light'}
+        onUpload={(f) => handleUploadLogo('horizontal-light', f)}
+        onRemove={() => handleRemoveLogo('horizontal-light')}
+        hasCustom={!!brand.logoHorizontalLightFilename}
+        previewWidth={200}
+        previewHeight={48}
+      />
+
+      <LogoCard
+        title="Logo horizontal (modo escuro)"
+        description="Versão para tema escuro do logo horizontal. Se não definido, usa-se a versão do modo claro."
+        currentUrl={horizontalDarkLogoUrl}
+        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        inputRef={logoHorizontalDarkInput}
+        uploading={uploadingLogo === 'horizontal-dark'}
+        removing={removingLogo === 'horizontal-dark'}
+        onUpload={(f) => handleUploadLogo('horizontal-dark', f)}
+        onRemove={() => handleRemoveLogo('horizontal-dark')}
+        hasCustom={!!brand.logoHorizontalDarkFilename}
+        previewWidth={200}
+        previewHeight={48}
+      />
+
+      {/* Configurações do logo horizontal */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ImageIcon className="h-4 w-4" />
+            Configurações do logo horizontal
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Escala: {horizontalEscala}%</Label>
+              <button
+                type="button"
+                onClick={() => setHorizontalEscala(100)}
+                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Repor (100%)
+              </button>
+            </div>
+            <input
+              type="range"
+              min={10}
+              max={200}
+              step={5}
+              value={horizontalEscala}
+              onChange={(e) => setHorizontalEscala(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+            <p className="text-xs text-muted-foreground">Largura relativa à sidebar (10%–200%). A altura máxima é sempre 48 px.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Alinhamento</Label>
+            <div className="flex gap-2">
+              {(['left', 'center', 'right'] as const).map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setHorizontalAlinhamento(a)}
+                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${horizontalAlinhamento === a ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground hover:bg-accent'}`}
+                >
+                  {a === 'left' ? 'Esquerda' : a === 'center' ? 'Centro' : 'Direita'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Button onClick={handleSaveHorizontalSettings} disabled={savingHorizontal}>
+            {savingHorizontal && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            Guardar configurações
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -424,12 +548,14 @@ function LogoCard({
   onUpload,
   onRemove,
   hasCustom,
-  previewSize = 64,
+  previewSize,
+  previewWidth,
+  previewHeight,
 }: {
   title: string
   description: string
   currentUrl: string | null
-  defaultUrl: string
+  defaultUrl?: string
   accept: string
   inputRef: React.RefObject<HTMLInputElement | null>
   uploading: boolean
@@ -438,7 +564,11 @@ function LogoCard({
   onRemove: () => void
   hasCustom: boolean
   previewSize?: number
+  previewWidth?: number
+  previewHeight?: number
 }) {
+  const w = previewWidth ?? previewSize ?? 64
+  const h = previewHeight ?? previewSize ?? 64
   const url = currentUrl ?? defaultUrl
   return (
     <Card>
@@ -451,18 +581,27 @@ function LogoCard({
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">{description}</p>
         <div className="flex items-center gap-4 flex-wrap">
-          <div
-            className="border rounded-md bg-muted/30 p-2 flex items-center justify-center"
-            style={{ width: previewSize + 16, height: previewSize + 16 }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={url}
-              alt={title}
-              style={{ width: previewSize, height: previewSize }}
-              className="object-contain"
-            />
-          </div>
+          {url ? (
+            <div
+              className="border rounded-md bg-muted/30 p-2 flex items-center justify-center"
+              style={{ width: w + 16, height: h + 16 }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={title}
+                style={{ width: w, height: h }}
+                className="object-contain"
+              />
+            </div>
+          ) : (
+            <div
+              className="border rounded-md bg-muted/30 p-2 flex items-center justify-center text-muted-foreground text-xs"
+              style={{ width: w + 16, height: h + 16 }}
+            >
+              Sem logo
+            </div>
+          )}
           <div className="flex gap-2 flex-wrap">
             <input
               ref={inputRef}
@@ -493,7 +632,7 @@ function LogoCard({
                 className="text-red-600 hover:text-red-700"
               >
                 {removing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1.5 h-4 w-4" />}
-                Remover (volta ao default)
+                Remover
               </Button>
             )}
           </div>
