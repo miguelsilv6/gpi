@@ -17,7 +17,7 @@ import {
   NaturezaBarChart,
   AnoBarChart,
 } from './charts'
-import { FileText, MonitorCog, Send, Archive, CheckCircle2, X, Mail, CalendarDays } from 'lucide-react'
+import { FileText, MonitorCog, Send, Archive, CheckCircle2, X, Mail } from 'lucide-react'
 
 interface Stats {
   total: number
@@ -84,96 +84,6 @@ function fmt(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-// ─── Férias Gantt ─────────────────────────────────────────────────────────────
-
-const MONTHS_PT_ABBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'] as const
-
-interface FeriasPeriod {
-  dataInicio: string
-  dataFim: string
-  nota: string | null
-}
-
-function parseDMY(s: string): Date {
-  const [y, m, d] = s.slice(0, 10).split('-').map(Number)
-  return new Date(y!, m! - 1, d!)
-}
-
-function FeriasYearBar({ ferias, ano }: { ferias: FeriasPeriod[]; ano: number }) {
-  const startOfYear = new Date(ano, 0, 1)
-  const endOfYear = new Date(ano, 11, 31)
-  const totalDays = Math.round((endOfYear.getTime() - startOfYear.getTime()) / 86400000) + 1
-
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const offset = Math.round((new Date(ano, i, 1).getTime() - startOfYear.getTime()) / 86400000)
-    return { label: MONTHS_PT_ABBR[i]!, pct: (offset / totalDays) * 100 }
-  })
-
-  const bars = ferias.flatMap((f) => {
-    const s = parseDMY(f.dataInicio)
-    const e = parseDMY(f.dataFim)
-    const cs = s < startOfYear ? startOfYear : s
-    const ce = e > endOfYear ? endOfYear : e
-    if (ce < cs) return []
-    const so = Math.round((cs.getTime() - startOfYear.getTime()) / 86400000)
-    const eo = Math.round((ce.getTime() - startOfYear.getTime()) / 86400000)
-    return [{
-      left: (so / totalDays) * 100,
-      width: ((eo - so + 1) / totalDays) * 100,
-      label: `${f.dataInicio.slice(0, 10)} → ${f.dataFim.slice(0, 10)}${f.nota ? ' — ' + f.nota : ''}`,
-    }]
-  })
-
-  if (ferias.length === 0 || bars.length === 0) {
-    return <p className="text-xs text-muted-foreground py-2">Sem férias registadas para {ano}.</p>
-  }
-
-  return (
-    <div className="space-y-1.5">
-      {/* Month labels */}
-      <div className="relative h-4">
-        {months.map((m) => (
-          <span
-            key={m.label}
-            className="absolute text-[10px] text-muted-foreground"
-            style={{ left: `${m.pct}%` }}
-          >
-            {m.label}
-          </span>
-        ))}
-      </div>
-      {/* Timeline */}
-      <div className="relative h-7 overflow-hidden rounded-md bg-muted/30">
-        {months.slice(1).map((m) => (
-          <div
-            key={m.label}
-            className="absolute inset-y-0 w-px bg-border/50"
-            style={{ left: `${m.pct}%` }}
-          />
-        ))}
-        {bars.map((b, i) => (
-          <div
-            key={i}
-            className="absolute inset-y-1 rounded-sm bg-blue-500/80 hover:bg-blue-600 transition-colors cursor-default"
-            style={{ left: `${b.left}%`, width: `${b.width}%` }}
-            title={b.label}
-          />
-        ))}
-      </div>
-      {/* Period list */}
-      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-        {ferias.map((f, i) => (
-          <span key={i} className="whitespace-nowrap">
-            <span className="inline-block h-2 w-2 rounded-sm bg-blue-500/80 mr-1 align-middle" />
-            {f.dataInicio.slice(0, 10)} → {f.dataFim.slice(0, 10)}
-            {f.nota && <span className="ml-1 opacity-70">({f.nota})</span>}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 
 export function EstatisticaInspetorDashboard() {
@@ -182,9 +92,6 @@ export function EstatisticaInspetorDashboard() {
   const [preset, setPreset] = useState<Preset>('custom')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
-
-  const currentYear = useMemo(() => new Date().getFullYear(), [])
-  const [feriasByYear, setFeriasByYear] = useState<FeriasPeriod[]>([])
 
   function applyPreset(p: Preset) {
     setPreset(p)
@@ -212,19 +119,6 @@ export function EstatisticaInspetorDashboard() {
   }, [dataInicio, dataFim])
 
   useEffect(() => { fetchStats() }, [fetchStats])
-
-  useEffect(() => {
-    fetch(`/api/ausencias?ano=${currentYear}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.ausencias) {
-          setFeriasByYear(
-            (d.ausencias as (FeriasPeriod & { tipo: string })[]).filter((a) => a.tipo === 'FERIAS')
-          )
-        }
-      })
-      .catch(() => {})
-  }, [currentYear])
 
   const hasDateFilter = !!(dataInicio || dataFim)
   const periodLabel = useMemo(() => {
@@ -299,8 +193,8 @@ export function EstatisticaInspetorDashboard() {
         <div className="text-sm text-muted-foreground py-8 text-center">A carregar...</div>
       ) : stats ? (
         <>
-          {/* Inquiry summary cards — Cartas Precatórias is separated below */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {/* Summary cards */}
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -346,48 +240,51 @@ export function EstatisticaInspetorDashboard() {
                 <p className="text-3xl font-bold mt-1 text-gray-600">{stats.arquivados}</p>
               </CardContent>
             </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm text-muted-foreground">C. Precatórias</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-orange-600">{stats.cartasPrecatorias}</p>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Distribution chart — between Inquéritos and C. Precatórias */}
-          {stats.total > 0 && stats.porEstado.length > 0 && (
+          {/* Inquéritos vs Cartas Precatórias comparison */}
+          {stats.total > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Distribuição por estado</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Inquéritos vs Cartas Precatórias</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex h-5 overflow-hidden rounded-full">
-                  {stats.porEstado.filter((e) => e.count > 0).map((e) => (
-                    <div
-                      key={e.estadoId}
-                      className="h-full hover:opacity-80 transition-opacity cursor-default"
-                      style={{ width: `${(e.count / stats.total) * 100}%`, backgroundColor: e.cor ?? '#888' }}
-                      title={`${e.nome}: ${e.count} (${Math.round((e.count / stats.total) * 100)}%)`}
-                    />
-                  ))}
+                  <div
+                    className="h-full bg-blue-500/80 hover:opacity-80 transition-opacity cursor-default"
+                    style={{ width: `${((stats.total - stats.cartasPrecatorias) / stats.total) * 100}%` }}
+                    title={`Inquéritos: ${stats.total - stats.cartasPrecatorias} (${Math.round(((stats.total - stats.cartasPrecatorias) / stats.total) * 100)}%)`}
+                  />
+                  <div
+                    className="h-full bg-orange-400/80 hover:opacity-80 transition-opacity cursor-default"
+                    style={{ width: `${(stats.cartasPrecatorias / stats.total) * 100}%` }}
+                    title={`Cartas Precatórias: ${stats.cartasPrecatorias} (${Math.round((stats.cartasPrecatorias / stats.total) * 100)}%)`}
+                  />
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  {stats.porEstado.filter((e) => e.count > 0).map((e) => (
-                    <div key={e.estadoId} className="flex items-center gap-1.5 text-xs">
-                      <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: e.cor ?? '#888' }} />
-                      <span className="text-muted-foreground">{e.nome}</span>
-                      <span className="font-medium">{e.count}</span>
-                    </div>
-                  ))}
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <div className="h-2.5 w-2.5 rounded-sm shrink-0 bg-blue-500/80" />
+                    <span className="text-muted-foreground">Inquéritos</span>
+                    <span className="font-medium">{stats.total - stats.cartasPrecatorias}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <div className="h-2.5 w-2.5 rounded-sm shrink-0 bg-orange-400/80" />
+                    <span className="text-muted-foreground">Cartas Precatórias</span>
+                    <span className="font-medium">{stats.cartasPrecatorias}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
-
-          {/* Cartas Precatórias */}
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-orange-500" />
-                <span className="text-sm text-muted-foreground">Cartas Precatórias</span>
-              </div>
-              <p className="text-3xl font-bold mt-1 text-orange-600">{stats.cartasPrecatorias}</p>
-            </CardContent>
-          </Card>
 
           {/* Charts row 1 */}
           <div className="grid gap-4 md:grid-cols-2">
@@ -425,18 +322,6 @@ export function EstatisticaInspetorDashboard() {
             </div>
           )}
 
-          {/* Ausências — Férias */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                <CalendarDays className="h-4 w-4" />
-                Ausências — Férias {currentYear}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FeriasYearBar ferias={feriasByYear} ano={currentYear} />
-            </CardContent>
-          </Card>
         </>
       ) : (
         <div className="text-sm text-muted-foreground py-8 text-center">
