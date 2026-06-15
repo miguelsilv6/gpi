@@ -75,7 +75,7 @@ export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo =
             <img
               src={horizontalLogo}
               alt=""
-              className="object-contain max-h-12"
+              className="object-contain max-h-12 max-w-full"
               style={{ width: `${brand.logoHorizontalEscala}%` }}
             />
           </div>

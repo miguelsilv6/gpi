@@ -29,8 +29,22 @@ function parseVariant(req: NextRequest): LogoVariant | null {
     : null
 }
 
+const SLOT_MAP = {
+  'light': 'logo-light',
+  'dark': 'logo-dark',
+  'horizontal-light': 'logo-horizontal-light',
+  'horizontal-dark': 'logo-horizontal-dark',
+} as const
+
+const FIELD_MAP = {
+  'light': 'logoLightFilename',
+  'dark': 'logoDarkFilename',
+  'horizontal-light': 'logoHorizontalLightFilename',
+  'horizontal-dark': 'logoHorizontalDarkFilename',
+} as const
+
 /**
- * Upload de logo (variant=light|dark). Validações:
+ * Upload de logo (variant=light|dark|horizontal-light|horizontal-dark). Validações:
  *   - admin + rate limit HEAVY_OPERATIONS
  *   - mime em ALLOWED_MIME_LOGO
  *   - tamanho ≤ 1 MB
@@ -78,18 +92,6 @@ export async function POST(req: NextRequest) {
     await fs.mkdir(BRANDING_DIR, { recursive: true })
 
     // Limpa ficheiros antigos do mesmo slot (extensões diferentes).
-    const SLOT_MAP = {
-      'light': 'logo-light',
-      'dark': 'logo-dark',
-      'horizontal-light': 'logo-horizontal-light',
-      'horizontal-dark': 'logo-horizontal-dark',
-    } as const
-    const FIELD_MAP = {
-      'light': 'logoLightFilename',
-      'dark': 'logoDarkFilename',
-      'horizontal-light': 'logoHorizontalLightFilename',
-      'horizontal-dark': 'logoHorizontalDarkFilename',
-    } as const
     const slot = SLOT_MAP[variant]
     await Promise.all(
       ALL_EXTENSIONS.map((e) =>
@@ -137,26 +139,14 @@ export async function DELETE(req: NextRequest) {
     const variant = parseVariant(req)
     if (!variant) return apiError('Variante inválida (light|dark)', 400)
 
-    const SLOT_MAP_DEL = {
-      'light': 'logo-light',
-      'dark': 'logo-dark',
-      'horizontal-light': 'logo-horizontal-light',
-      'horizontal-dark': 'logo-horizontal-dark',
-    } as const
-    const FIELD_MAP_DEL = {
-      'light': 'logoLightFilename',
-      'dark': 'logoDarkFilename',
-      'horizontal-light': 'logoHorizontalLightFilename',
-      'horizontal-dark': 'logoHorizontalDarkFilename',
-    } as const
-    const slot = SLOT_MAP_DEL[variant]
+    const slot = SLOT_MAP[variant]
     await Promise.all(
       ALL_EXTENSIONS.map((e) =>
         fs.unlink(path.join(BRANDING_DIR, `${slot}.${e}`)).catch(() => {}),
       ),
     )
 
-    const field = FIELD_MAP_DEL[variant]
+    const field = FIELD_MAP[variant]
     await prisma.configuracaoSistema.upsert({
       where: { id: 'singleton' },
       update: { [field]: null, brandUpdatedAt: new Date() },
