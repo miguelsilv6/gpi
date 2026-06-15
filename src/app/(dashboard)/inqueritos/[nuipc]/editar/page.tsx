@@ -151,6 +151,7 @@ export default async function EditarInqueritoPage({
           crimeId: inquerito.crimeId ?? '',
           estadoId: inquerito.estadoId,
           dataAbertura: format(inquerito.dataAbertura, 'yyyy-MM-dd'),
+          dataDistribuicao: formatForInput(inquerito.dataDistribuicao),
           dataPrazo: formatForInput(inquerito.dataPrazo),
           dataConclusao: formatForInput(inquerito.dataConclusao),
           notas: inquerito.notas ?? undefined,

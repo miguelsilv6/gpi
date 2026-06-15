@@ -54,26 +54,28 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
   )
   const [, startTransition] = useTransition()
 
-  async function handleToggle(t: TarefaBrowserItem) {
+  function handleToggle(t: TarefaBrowserItem) {
     setToggling(t.id)
-    startTransition(() => addOptimistic(t.id))
-    try {
-      const res = await fetch(`/api/tarefas/${t.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ concluida: !t.concluida }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        toast.error(err.error ?? 'Erro ao atualizar a tarefa')
-      } else {
-        router.refresh()
+    startTransition(async () => {
+      addOptimistic(t.id)
+      try {
+        const res = await fetch(`/api/tarefas/${t.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concluida: !t.concluida }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          toast.error(err.error ?? 'Erro ao atualizar a tarefa')
+        } else {
+          router.refresh()
+        }
+      } catch {
+        toast.error('Erro de rede ao atualizar a tarefa')
+      } finally {
+        setToggling(null)
       }
-    } catch {
-      toast.error('Erro de rede ao atualizar a tarefa')
-    } finally {
-      setToggling(null)
-    }
+    })
   }
 
   const filtered = useMemo(() => {
@@ -104,12 +106,12 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-0">
+      <div className="space-y-2">
+        <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar tarefa ou NUIPC…" className="pl-9" />
         </div>
-        <div className="flex rounded-md border divide-x overflow-hidden">
+        <div className="flex rounded-md border divide-x overflow-hidden w-fit">
           {([['pendentes', `Pendentes (${pendentesTotal})`], ['concluidas', `Concluídas (${concluidasTotal})`], ['todas', 'Todas']] as [Filtro, string][]).map(([v, label]) => (
             <button
               key={v}
@@ -121,7 +123,7 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
             </button>
           ))}
         </div>
-        <div className="flex rounded-md border divide-x overflow-hidden">
+        <div className="flex rounded-md border divide-x overflow-hidden w-fit">
           {([['todas', 'Prioridade'], ['ALTA', 'Alta'], ['NORMAL', 'Normal'], ['BAIXA', 'Baixa']] as [FiltroP, string][]).map(([v, label]) => (
             <button
               key={v}

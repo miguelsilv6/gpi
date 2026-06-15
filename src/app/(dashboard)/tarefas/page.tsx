@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/rbac'
+import { buildInqueritoWhere } from '@/lib/role-scope'
 import { AccessDenied } from '@/components/access-denied'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { TarefasBrowser, type TarefaBrowserItem } from '@/components/tarefas/tarefas-browser'
@@ -25,10 +26,12 @@ export default async function TarefasPage() {
     return <AccessDenied message="Não dispões de privilégios para ver as tarefas." />
   }
 
+  const scope = buildInqueritoWhere(role, session.user.id, session.user.brigadaId ?? null)
+
   const rows = await prisma.tarefaInquerito.findMany({
     where: {
       autorId: session.user.id,
-      inquerito: { deletedAt: null },
+      inquerito: { deletedAt: null, ...scope },
     },
     orderBy: [{ concluida: 'asc' }, { prioridade: 'desc' }, { createdAt: 'desc' }],
     take: 500,

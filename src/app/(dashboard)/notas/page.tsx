@@ -32,25 +32,26 @@ export default async function NotasPage() {
 
   const scope = buildInqueritoWhere(role, session.user.id, session.user.brigadaId ?? null)
 
-  const total = await prisma.notaInquerito.count({
-    where: { inquerito: { deletedAt: null, ...scope } },
-  })
-
-  const rows = await prisma.notaInquerito.findMany({
-    where: { inquerito: { deletedAt: null, ...scope } },
-    orderBy: { updatedAt: 'desc' },
-    take: MAX_NOTAS,
-    select: {
-      id: true,
-      titulo: true,
-      conteudo: true,
-      createdAt: true,
-      updatedAt: true,
-      autor: { select: { nome: true } },
-      editadoPor: { select: { nome: true } },
-      inquerito: { select: { nuipc: true, natureza: true } },
-    },
-  })
+  const [total, rows] = await Promise.all([
+    prisma.notaInquerito.count({
+      where: { inquerito: { deletedAt: null, ...scope } },
+    }),
+    prisma.notaInquerito.findMany({
+      where: { inquerito: { deletedAt: null, ...scope } },
+      orderBy: { updatedAt: 'desc' },
+      take: MAX_NOTAS,
+      select: {
+        id: true,
+        titulo: true,
+        conteudo: true,
+        createdAt: true,
+        updatedAt: true,
+        autor: { select: { nome: true } },
+        editadoPor: { select: { nome: true } },
+        inquerito: { select: { nuipc: true, natureza: true } },
+      },
+    }),
+  ])
 
   const notas: NotaBrowserItem[] = rows.map((n) => ({
     id: n.id,

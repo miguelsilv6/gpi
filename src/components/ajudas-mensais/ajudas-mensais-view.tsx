@@ -1062,15 +1062,14 @@ tr:nth-child(even) td{background:#f6f6f6}
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Ajudas Mensais</h1>
           <p className="text-muted-foreground text-sm">
             Registo de horas extra e ajudas de custo mensais
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <HelpButton title="Ajuda — Ajudas Mensais">
+        <HelpButton title="Ajuda — Ajudas Mensais" className="shrink-0">
             <HelpSection title="Tipos de entrada">
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong>Horas Extra</strong> — serviço fora do horário normal. Defina data/hora de início e fim; as horas são automaticamente classificadas por tipo (semana/FdS, dia/noite).</li>
@@ -1097,27 +1096,28 @@ tr:nth-child(even) td{background:#f6f6f6}
             <HelpSection title="Configuração necessária">
               <p>Para que os cálculos apareçam, configure o seu <strong>Vencimento Base</strong> e <strong>Taxa de IRS</strong> em <strong>Perfil → Ajudas Mensais</strong>.</p>
             </HelpSection>
-          </HelpButton>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={goToPrevMonth}
-            aria-label="Mês anterior"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[140px] text-center">
-            {MONTH_NAMES[mes - 1]} {ano}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={goToNextMonth}
-            aria-label="Mês seguinte"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        </HelpButton>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={goToPrevMonth}
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium min-w-[140px] text-center">
+          {MONTH_NAMES[mes - 1]} {ano}
+        </span>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={goToNextMonth}
+          aria-label="Mês seguinte"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
 
       {loading ? (

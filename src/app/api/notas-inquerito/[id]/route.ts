@@ -64,11 +64,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return apiError(parsed.error.issues[0]?.message ?? 'Dados inválidos', 400)
     }
 
-    const novoTitulo = parsed.data.titulo ?? null
     const updated = await prisma.notaInquerito.update({
       where: { id },
       data: {
-        titulo: novoTitulo,
+        ...(parsed.data.titulo !== undefined ? { titulo: parsed.data.titulo } : {}),
         conteudo: parsed.data.conteudo,
         editadoPorId: session.user.id,
       },
@@ -84,7 +83,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       detalhes: {
         nuipc: nota.inquerito.nuipc,
         changed: [
-          ...(nota.titulo !== novoTitulo ? ['titulo'] : []),
+          ...(parsed.data.titulo !== undefined && nota.titulo !== parsed.data.titulo ? ['titulo'] : []),
           ...(nota.conteudo !== parsed.data.conteudo ? ['conteudo'] : []),
         ],
       },
