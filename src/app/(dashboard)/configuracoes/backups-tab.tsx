@@ -128,6 +128,8 @@ export function BackupsTab() {
       }
       toast.success('Retenção guardada')
       refresh()
+    } catch {
+      toast.error('Erro de rede ao guardar retenção')
     } finally {
       setSavingRetencao(false)
     }
@@ -334,7 +336,13 @@ export function BackupsTab() {
               />
               <Button
                 onClick={handleSaveRetencao}
-                disabled={savingRetencao || retencaoInput === (config?.backupRetencao ?? 30)}
+                disabled={
+                  savingRetencao ||
+                  retencaoInput === (config?.backupRetencao ?? 30) ||
+                  !Number.isInteger(retencaoInput) ||
+                  retencaoInput < 1 ||
+                  retencaoInput > 365
+                }
               >
                 {savingRetencao && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 Guardar

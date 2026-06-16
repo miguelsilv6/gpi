@@ -9,6 +9,7 @@ import type { Role } from '@/generated/prisma/enums'
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession()
+    if (!session?.user) return apiError('Não autenticado', 401)
     const role = session.user.role as Role
     if (role !== 'ADMINISTRACAO') return apiError('Sem permissão', 403)
 

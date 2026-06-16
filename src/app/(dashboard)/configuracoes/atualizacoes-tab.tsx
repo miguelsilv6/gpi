@@ -421,6 +421,8 @@ export function AtualizacoesTab() {
       toast.success('Entrada eliminada do histórico')
       setDeleteTarget(null)
       refreshStatus(true)
+    } catch {
+      toast.error('Erro de rede ao eliminar entrada')
     } finally {
       setDeleting(false)
     }
