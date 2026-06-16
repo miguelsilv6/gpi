@@ -60,30 +60,31 @@ function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-end gap-1">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - 1))}
-          disabled={zoom <= ZOOM_MIN}
-          aria-label="Diminuir zoom"
-        >
-          <ZoomOut className="h-3.5 w-3.5" />
-        </Button>
-        <span className="text-xs text-muted-foreground tabular-nums w-7 text-center">{zoom}x</span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + 1))}
-          disabled={zoom >= ZOOM_MAX}
-          aria-label="Aumentar zoom"
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
-        </Button>
-      </div>
       {ferias.length === 0 || bars.length === 0 ? (
         <p className="text-xs text-muted-foreground py-2">Sem férias registadas para {ano}.</p>
       ) : (
+        <>
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - 1))}
+            disabled={zoom <= ZOOM_MIN}
+            aria-label="Diminuir zoom"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          <span className="text-xs text-muted-foreground tabular-nums w-7 text-center">{zoom}x</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + 1))}
+            disabled={zoom >= ZOOM_MAX}
+            aria-label="Aumentar zoom"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+        </div>
         <div className="overflow-x-auto">
           <div style={{ minWidth: `${zoom * 100}%` }}>
             <div className="relative h-4">
@@ -108,6 +109,7 @@ function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
             </div>
           </div>
         </div>
+        </>
       )}
       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
         {ferias.map((f, i) => (

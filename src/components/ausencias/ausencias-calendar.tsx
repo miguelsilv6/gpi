@@ -123,7 +123,10 @@ export function AusenciasCalendar({ ausencias, month, onMonthChange, onCreate, b
             aria-label="Data de início"
             value={range?.from ? toKey(range.from) : ''}
             onChange={(e) => {
-              if (!e.target.value) return
+              if (!e.target.value) {
+                setRange((prev) => (prev?.to ? { from: undefined, to: prev.to } : undefined))
+                return
+              }
               const from = fromKey(e.target.value)
               setRange({ from, to: range?.to && range.to >= from ? range.to : from })
             }}
@@ -133,7 +136,10 @@ export function AusenciasCalendar({ ausencias, month, onMonthChange, onCreate, b
             aria-label="Data de fim"
             value={range?.to ? toKey(range.to) : ''}
             onChange={(e) => {
-              if (!e.target.value) return
+              if (!e.target.value) {
+                setRange((prev) => (prev?.from ? { from: prev.from, to: undefined } : undefined))
+                return
+              }
               const to = fromKey(e.target.value)
               setRange({ from: range?.from && range.from <= to ? range.from : to, to })
             }}
