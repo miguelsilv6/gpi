@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 import { CopyNuipcButton } from '@/components/inqueritos/copy-nuipc-button'
@@ -279,6 +279,15 @@ export default async function InqueritoDetailPage({
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <CopyNuipcButton nuipc={inquerito.nuipc} />
+            {inquerito.cartaPrecatoria && (
+              <span
+                className="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-950/50 dark:text-orange-300"
+                title="Carta Precatória"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Carta Precatória
+              </span>
+            )}
             {overdue && (
               <span className="flex items-center gap-1 text-red-600 text-sm font-medium">
                 <AlertTriangle className="h-4 w-4" />

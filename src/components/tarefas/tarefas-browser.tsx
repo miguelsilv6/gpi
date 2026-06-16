@@ -16,6 +16,7 @@ import {
   CheckSquare,
   ChevronDown,
   Loader2,
+  Mail,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PrioridadeTarefa } from '@/generated/prisma/enums'
@@ -29,7 +30,7 @@ export interface TarefaBrowserItem {
   concluida: boolean
   concluidaEm: string | null
   createdAt: string
-  inquerito: { nuipc: string; slug: string; natureza: string | null }
+  inquerito: { nuipc: string; slug: string; natureza: string | null; cartaPrecatoria: boolean }
 }
 
 interface Props {
@@ -91,7 +92,7 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
 
   // Agrupa por inquérito preservando a ordem (prioridade desc, mais recente).
   const groups = useMemo(() => {
-    const map = new Map<string, { nuipc: string; slug: string; natureza: string | null; tarefas: TarefaBrowserItem[] }>()
+    const map = new Map<string, { nuipc: string; slug: string; natureza: string | null; cartaPrecatoria: boolean; tarefas: TarefaBrowserItem[] }>()
     for (const t of filtered) {
       const key = t.inquerito.nuipc
       if (!map.has(key)) map.set(key, { ...t.inquerito, tarefas: [] })
@@ -159,6 +160,9 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
                   <span className="flex items-center gap-2 min-w-0">
                     <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="truncate">{g.nuipc}</span>
+                    {g.cartaPrecatoria && (
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-orange-500" aria-label="Carta Precatória" />
+                    )}
                     {g.natureza && <span className="truncate text-xs font-normal text-muted-foreground">· {g.natureza}</span>}
                   </span>
                   <Link href={`/inqueritos/${g.slug}`} className="flex shrink-0 items-center gap-1 text-xs font-normal text-primary hover:underline">

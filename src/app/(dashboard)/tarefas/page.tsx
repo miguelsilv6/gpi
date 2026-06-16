@@ -43,7 +43,7 @@ export default async function TarefasPage() {
       concluida: true,
       concluidaEm: true,
       createdAt: true,
-      inquerito: { select: { nuipc: true, natureza: true } },
+      inquerito: { select: { nuipc: true, natureza: true, cartaPrecatoria: true } },
     },
   })
 
@@ -59,6 +59,7 @@ export default async function TarefasPage() {
       nuipc: t.inquerito.nuipc,
       slug: nuipcToSlug(t.inquerito.nuipc),
       natureza: t.inquerito.natureza,
+      cartaPrecatoria: t.inquerito.cartaPrecatoria,
     },
   }))
 
