@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 import { CopyNuipcButton } from '@/components/inqueritos/copy-nuipc-button'
@@ -410,6 +410,55 @@ export default async function InqueritoDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {inquerito.cartaPrecatoria &&
+        (inquerito.titularNome ||
+          inquerito.titularEmail ||
+          inquerito.titularVoip ||
+          inquerito.titularUnidade) && (
+        <Card className="border-orange-200 dark:border-orange-900/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5 text-orange-700 dark:text-orange-300">
+              <Mail className="h-4 w-4" />
+              Inspetor Titular — Carta Precatória
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="text-xs text-muted-foreground -mt-1">
+              Inquérito a devolver ao titular após as diligências.
+            </p>
+            {inquerito.titularNome && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Inspetor titular</span>
+                <span className="font-medium text-right">{inquerito.titularNome}</span>
+              </div>
+            )}
+            {inquerito.titularUnidade && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Unidade / Órgão</span>
+                <span className="font-medium text-right">{inquerito.titularUnidade}</span>
+              </div>
+            )}
+            {inquerito.titularEmail && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">Email</span>
+                <a
+                  href={`mailto:${inquerito.titularEmail}`}
+                  className="font-medium text-right text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {inquerito.titularEmail}
+                </a>
+              </div>
+            )}
+            {inquerito.titularVoip && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground shrink-0">VoIP / Contacto</span>
+                <span className="font-medium text-right font-mono">{inquerito.titularVoip}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {(inquerito.denuncianteNome ||
         inquerito.denuncianteNif ||

@@ -83,6 +83,7 @@ export async function PUT(
 
     const data = parsed.data
     const inspetorId = data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null
+    const finalCartaPrecatoria = data.cartaPrecatoria ?? existing.cartaPrecatoria
 
     // Resolve target estado
     const targetEstado = await findEstadoById(data.estadoId)
@@ -226,7 +227,12 @@ export async function PUT(
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,
         dataConclusao: conclusao,
         notas: data.notas ?? null,
-        cartaPrecatoria: data.cartaPrecatoria ?? existing.cartaPrecatoria,
+        cartaPrecatoria: finalCartaPrecatoria,
+        // Dados do titular só fazem sentido numa Carta Precatória — limpos se desmarcada.
+        titularNome: finalCartaPrecatoria ? data.titularNome?.trim() || null : null,
+        titularEmail: finalCartaPrecatoria ? data.titularEmail?.trim() || null : null,
+        titularVoip: finalCartaPrecatoria ? data.titularVoip?.trim() || null : null,
+        titularUnidade: finalCartaPrecatoria ? data.titularUnidade?.trim() || null : null,
         inspetorId,
         tribunalId: data.tribunalId || null,
         seccaoId: data.seccaoId || null,
@@ -290,6 +296,10 @@ export async function PUT(
       denuncianteResponsavel: existing.denuncianteResponsavel,
       denuncianteNotas: existing.denuncianteNotas,
       cartaPrecatoria: existing.cartaPrecatoria,
+      titularNome: existing.titularNome,
+      titularEmail: existing.titularEmail,
+      titularVoip: existing.titularVoip,
+      titularUnidade: existing.titularUnidade,
     }
     const after = {
       nuipc: updated.nuipc,
@@ -318,6 +328,10 @@ export async function PUT(
       denuncianteResponsavel: updated.denuncianteResponsavel,
       denuncianteNotas: updated.denuncianteNotas,
       cartaPrecatoria: updated.cartaPrecatoria,
+      titularNome: updated.titularNome,
+      titularEmail: updated.titularEmail,
+      titularVoip: updated.titularVoip,
+      titularUnidade: updated.titularUnidade,
     }
     const changes = diff(before, after, [
       'nuipc',
@@ -346,6 +360,10 @@ export async function PUT(
       'denuncianteResponsavel',
       'denuncianteNotas',
       'cartaPrecatoria',
+      'titularNome',
+      'titularEmail',
+      'titularVoip',
+      'titularUnidade',
     ])
 
     const crimesAssociadosBefore = existing.crimesAssociados.map((c) => c.nome)

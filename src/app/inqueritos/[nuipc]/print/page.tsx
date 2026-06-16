@@ -204,6 +204,22 @@ export default async function InqueritoPrintPage({
           </dd>
         </dl>
 
+        {inquerito.cartaPrecatoria &&
+          (inquerito.titularNome ||
+            inquerito.titularEmail ||
+            inquerito.titularVoip ||
+            inquerito.titularUnidade) && (
+          <>
+            <h2>Inspetor Titular — Carta Precatória</h2>
+            <dl className="meta-grid">
+              {inquerito.titularNome && (<><dt>Inspetor titular</dt><dd>{inquerito.titularNome}</dd></>)}
+              {inquerito.titularUnidade && (<><dt>Unidade / Órgão</dt><dd>{inquerito.titularUnidade}</dd></>)}
+              {inquerito.titularEmail && (<><dt>Email</dt><dd>{inquerito.titularEmail}</dd></>)}
+              {inquerito.titularVoip && (<><dt>VoIP / Contacto</dt><dd>{inquerito.titularVoip}</dd></>)}
+            </dl>
+          </>
+        )}
+
         {(inquerito.denuncianteNome ||
           inquerito.denuncianteNif ||
           inquerito.denuncianteMorada ||

@@ -24,6 +24,11 @@ export const inqueritoSchema = z
     dataConclusao: z.string().optional().nullable(),
     notas: z.string().optional().nullable(),
     cartaPrecatoria: z.boolean().optional(),
+    // Inspetor titular da Carta Precatória (de outra unidade) — todos opcionais.
+    titularNome: z.string().max(200).optional().nullable(),
+    titularEmail: z.string().max(200).optional().nullable(),
+    titularVoip: z.string().max(100).optional().nullable(),
+    titularUnidade: z.string().max(200).optional().nullable(),
     brigadaId: z.string().min(1, 'Brigada obrigatória'),
     inspetorId: z.string().optional().nullable(),
     // Etiquetas (tags) atribuídas — array de ids do catálogo Etiqueta.
