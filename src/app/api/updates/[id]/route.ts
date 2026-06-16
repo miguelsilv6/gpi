@@ -21,10 +21,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return apiError('Só é possível eliminar atualizações já concluídas (DONE, FAILED, ROLLED_BACK)', 409)
     }
 
-    await prisma.$transaction([
-      prisma.auditLog.deleteMany({ where: { entidade: 'AtualizacaoSistema', entidadeId: id } }),
-      prisma.atualizacaoSistema.delete({ where: { id } }),
-    ])
+    await prisma.atualizacaoSistema.delete({ where: { id } })
 
     await writeAudit({
       req,
