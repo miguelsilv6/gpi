@@ -26,7 +26,10 @@ export const inqueritoSchema = z
     cartaPrecatoria: z.boolean().optional(),
     // Inspetor titular da Carta Precatória (de outra unidade) — todos opcionais.
     titularNome: z.string().max(200).optional().nullable(),
-    titularEmail: z.string().max(200).optional().nullable(),
+    titularEmail: z
+      .union([z.string().email('E-mail do titular inválido').max(200), z.literal('')])
+      .optional()
+      .nullable(),
     titularVoip: z.string().max(100).optional().nullable(),
     titularUnidade: z.string().max(200).optional().nullable(),
     brigadaId: z.string().min(1, 'Brigada obrigatória'),
