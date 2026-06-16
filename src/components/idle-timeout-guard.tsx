@@ -60,11 +60,16 @@ export function IdleTimeoutGuard({ timeoutMinutes }: Props) {
     const timeoutMs = timeoutMinutes * 60_000
     const warnMs = Math.min(timeoutMs * 0.25, 60_000)
 
-    // Initialise from localStorage so a page reload doesn't reset the clock.
+    // Initialise from localStorage so a page reload doesn't reset the clock —
+    // but only if that activity is still within the timeout window. Otherwise
+    // (e.g. a fresh login after the previous session went idle, or after
+    // closing the tab overnight) the stale timestamp would already be "expired"
+    // and trigger an immediate sign-out right after the dashboard mounts.
     const stored = readStoredActivity()
-    if (stored) {
+    if (stored && Date.now() - stored < timeoutMs) {
       lastActivityRef.current = stored
     } else {
+      lastActivityRef.current = Date.now()
       writeStoredActivity(Date.now())
     }
 
