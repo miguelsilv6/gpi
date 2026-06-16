@@ -15,16 +15,12 @@ export type FerramentaExplicavel =
   | 'ip'
   | 'dns'
   | 'whois'
-  | 'certs'
-  | 'wayback'
   | 'email-headers'
 
 const FERRAMENTA_CONTEXTO: Record<FerramentaExplicavel, string> = {
   ip: 'um lookup de endereço IP (geolocalização, ISP/ASN e reverse DNS)',
   dns: 'uma resolução DNS (registos A/AAAA/MX/NS/TXT/CNAME ou reverse DNS)',
   whois: 'uma consulta RDAP/WHOIS de um domínio ou bloco IP (registrar, datas, nameservers)',
-  certs: 'um histórico de certificados TLS de um domínio obtido dos logs de Certificate Transparency (crt.sh)',
-  wayback: 'um histórico de capturas de um site na Wayback Machine (Internet Archive)',
   'email-headers': 'uma análise de cabeçalhos de email (cadeia Received, SPF/DKIM/DMARC, sinais de spoofing)',
 }
 

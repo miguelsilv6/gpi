@@ -9,7 +9,7 @@ import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
 const schema = z.object({
-  ferramenta: z.enum(['ip', 'dns', 'whois', 'certs', 'wayback', 'email-headers']),
+  ferramenta: z.enum(['ip', 'dns', 'whois', 'email-headers']),
   resultado: z.unknown(),
 })
 
