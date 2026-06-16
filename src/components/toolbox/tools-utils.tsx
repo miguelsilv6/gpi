@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { ArrowRightLeft, ShieldOff, CheckCircle2, XCircle, Smartphone } from 'lucide-react'
+import { ArrowRightLeft, ShieldOff, CheckCircle2, XCircle } from 'lucide-react'
 import { CopyButton, ResultRow } from './toolbox-shared'
 
 /** Defang/refang de IOCs para partilha segura (hxxp://, [.]). */
@@ -78,7 +78,7 @@ export function DefangTool() {
 function imeiCheckDigit(digits14: string): number {
   let sum = 0
   for (let i = 0; i < 14; i++) {
-    let d = digits14.charCodeAt(13 - i) - 48
+    let d = Number(digits14[13 - i])
     if (i % 2 === 0) {
       d *= 2
       if (d > 9) d -= 9
@@ -112,7 +112,7 @@ export function ImeiTool() {
     )
   } else if (digits.length === 15) {
     const cd = imeiCheckDigit(digits.slice(0, 14))
-    const fornecido = digits.charCodeAt(14) - 48
+    const fornecido = Number(digits[14])
     const valido = cd === fornecido
     resultado = (
       <div
