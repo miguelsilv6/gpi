@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
 
     const userVencimentoBase = targetUserData?.ajudasVencimentoBase ?? undefined
     const taxaIRS = targetUserData?.ajudasTaxaIRS
-    const userConfigured = taxaIRS != null
+    const userConfigured = userVencimentoBase != null && taxaIRS != null
 
     const allLinhas = [...registo.linhas, ...crossMonthLinhas]
     const totais = userConfigured

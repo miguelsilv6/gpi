@@ -435,8 +435,7 @@ export default function PerfilPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            O <strong>Vencimento Base</strong> define o seu limite mensal individual (1/3 do vencimento). Deixe em branco para usar o Vencimento (E25) global como referência de limite.
-            A <strong>Taxa de IRS</strong> é obrigatória para visualizar os totais calculados.
+            Ambos os campos são obrigatórios para ativar o cálculo das ajudas. O <strong>Vencimento Base</strong> é o seu salário base pessoal e define o limite mensal individual (1/3 do vencimento). A <strong>Taxa de IRS</strong> é a sua taxa de retenção.
           </p>
           <div className="space-y-1.5">
             <Label htmlFor="ajudasVencimento">Vencimento Base (€)</Label>
@@ -445,7 +444,7 @@ export default function PerfilPage() {
               type="number"
               step="0.01"
               min={0}
-              placeholder="Vencimento (E25) global (para limite mensal)"
+              placeholder="ex: 1974.41"
               value={ajudasVencimento}
               onChange={(e) => setAjudasVencimento(e.target.value)}
             />

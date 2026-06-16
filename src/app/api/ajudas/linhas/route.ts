@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     const userVencimentoBase = updatedRegisto?.utilizador?.ajudasVencimentoBase ?? undefined
     const taxaIRS = updatedRegisto?.utilizador?.ajudasTaxaIRS
-    const userConfigured = taxaIRS != null
+    const userConfigured = userVencimentoBase != null && taxaIRS != null
 
     const crossMonthLinhas = updatedRegisto
       ? await loadCrossMonthLinhas(updatedRegisto.utilizadorId, updatedRegisto.ano, updatedRegisto.mes, updatedRegisto.id)

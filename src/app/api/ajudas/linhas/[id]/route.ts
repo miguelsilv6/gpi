@@ -111,7 +111,7 @@ export async function PUT(
 
     const vbPut = registo?.utilizador?.ajudasVencimentoBase ?? undefined
     const irsPut = registo?.utilizador?.ajudasTaxaIRS
-    const putConfigured = irsPut != null
+    const putConfigured = vbPut != null && irsPut != null
 
     const crossMonthLinhasPut = registo
       ? await loadCrossMonthLinhas(registo.utilizadorId, registo.ano, registo.mes, registo.id)
@@ -170,7 +170,7 @@ export async function DELETE(
 
     const vbDel = registo?.utilizador?.ajudasVencimentoBase ?? undefined
     const irsDel = registo?.utilizador?.ajudasTaxaIRS
-    const delConfigured = irsDel != null
+    const delConfigured = vbDel != null && irsDel != null
 
     const crossMonthLinhasDel = registo
       ? await loadCrossMonthLinhas(registo.utilizadorId, registo.ano, registo.mes, registo.id)
