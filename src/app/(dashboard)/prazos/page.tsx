@@ -54,18 +54,6 @@ export default async function PrazosPage({
     return <AccessDenied message="Não dispões de privilégios para ver prazos." />
   }
 
-  if (role === 'INSPETOR_CHEFE' && !session.user.brigadaId) {
-    return (
-      <div className="space-y-3 max-w-xl">
-        <h1 className="text-2xl font-bold tracking-tight">Prazos e Controlos</h1>
-        <p className="text-sm text-muted-foreground">
-          A sua sessão não tem brigada associada. Termine a sessão e volte a entrar para
-          carregar a brigada actualizada.
-        </p>
-      </div>
-    )
-  }
-
   const sp = await searchParams
 
   // Panel: 'prazos' (default) | 'controlos'
@@ -76,9 +64,6 @@ export default async function PrazosPage({
 
   const view: 'list' | 'calendar' = sp.view === 'calendar' ? 'calendar' : 'list'
   const status = sp.status === 'vencidos' || sp.status === 'proximos' ? sp.status : 'todos'
-  const rawInspetorFilter = sp.inspetorId ?? ''
-  const inspetorIdFilter =
-    rawInspetorFilter === '__mine__' ? session.user.id : rawInspetorFilter
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
 
   const config = await prisma.configuracaoSistema.findUnique({
@@ -106,11 +91,6 @@ export default async function PrazosPage({
       : status === 'proximos'
         ? { dataPrazo: { gte: now, lte: limitProximos } }
         : {}
-
-  const inspetorWhere =
-    inspetorIdFilter && hasPermission(role, 'prazo:read:brigade')
-      ? { utilizadorId: inspetorIdFilter }
-      : {}
 
   const isCalendar = view === 'calendar'
   const monthDate = isCalendar
@@ -142,27 +122,14 @@ export default async function PrazosPage({
       inqueritoWhere,
       scopeWhere,
       statusWhere,
-      inspetorWhere,
       calendarWhere,
     ],
   }
 
-  const showInspetor = hasPermission(role, 'prazo:read:brigade')
-  const showBrigada = hasPermission(role, 'prazo:read:all')
-  const canFilterInspetor = showInspetor
-
-  const inspetores = canFilterInspetor
-    ? await prisma.utilizador.findMany({
-        where: {
-          ativo: true,
-          ...(role === 'INSPETOR_CHEFE'
-            ? { brigadaId: session.user.brigadaId ?? '__no_brigada__' }
-            : {}),
-        },
-        orderBy: { nome: 'asc' },
-        select: { id: true, nome: true },
-      })
-    : []
+  const showInspetor = false
+  const showBrigada = false
+  const canFilterInspetor = false
+  const inspetores: { id: string; nome: string }[] = []
 
   let items: PrazoItem[] = []
   let total = 0
@@ -229,8 +196,8 @@ export default async function PrazosPage({
       ])
     : [[], 0]
 
-  const showCriador = hasPermission(role, 'controlo:read:brigade')
-  const showBrigadaControlos = hasPermission(role, 'controlo:read:all')
+  const showCriador = false
+  const showBrigadaControlos = false
 
   function buildPageUrl(targetPage: number): string {
     const params = new URLSearchParams()

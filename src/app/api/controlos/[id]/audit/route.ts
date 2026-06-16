@@ -21,20 +21,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       select: {
         id: true,
         criadorId: true,
-        inquerito: { select: { brigadaId: true } },
-        criador: { select: { brigadaId: true } },
         realizacoes: { select: { id: true } },
       },
     })
     if (!controlo) return apiError('Controlo não encontrado', 404)
 
-    const brigadaId = session.user.brigadaId ?? null
     const canRead =
-      hasPermission(role, 'controlo:read:all') ||
       controlo.criadorId === session.user.id ||
-      (hasPermission(role, 'controlo:read:brigade') &&
-        brigadaId != null &&
-        (controlo.inquerito?.brigadaId === brigadaId || controlo.criador.brigadaId === brigadaId))
+      hasPermission(role, 'controlo:read:all')
     if (!canRead) return apiError('Sem permissão', 403)
 
     const realizacaoIds = controlo.realizacoes.map((r) => r.id)

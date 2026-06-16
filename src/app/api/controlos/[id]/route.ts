@@ -21,28 +21,16 @@ async function getControloAndCheckAccess(
   id: string,
   role: Role,
   userId: string,
-  brigadaId: string | null,
+  _brigadaId: string | null,
 ) {
   const controlo = await prisma.controlo.findUnique({
     where: { id },
-    select: {
-      id: true,
-      criadorId: true,
-      inquerito: { select: { brigadaId: true } },
-      criador: { select: { brigadaId: true } },
-    },
+    select: { id: true, criadorId: true },
   })
   if (!controlo) return null
 
-  if (hasPermission(role, 'controlo:read:all')) return controlo
   if (controlo.criadorId === userId) return controlo
-  if (
-    hasPermission(role, 'controlo:read:brigade') &&
-    brigadaId &&
-    (controlo.inquerito?.brigadaId === brigadaId || controlo.criador.brigadaId === brigadaId)
-  ) {
-    return controlo
-  }
+  if (hasPermission(role, 'controlo:read:all')) return controlo
   return null
 }
 
