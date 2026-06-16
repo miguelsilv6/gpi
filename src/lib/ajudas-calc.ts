@@ -77,7 +77,7 @@ export interface AjudasTotais {
 }
 
 export interface ConfigData {
-  vencimentoBase: number
+  vencimentoE25: number
   vencimentoDN: number
   percentPiqueteSemana: number
   percentPiqueteFds: number
@@ -277,11 +277,11 @@ export interface LinhaDetalhes {
 /**
  * Calculates a full detailed breakdown (including IRS/SS) for a single entry.
  * taxaIRS must be the user's personal rate (from AjudasTotais.taxaIRS).
+ * Rates are derived from config.vencimentoE25.
  */
 export function calcLinhaDetalhes(
   linha: LinhaWithData,
   config: ConfigData,
-  vencimentoBase: number,
   taxaIRS: number,
   ano: number,
   mes: number,
@@ -299,12 +299,12 @@ export function calcLinhaDetalhes(
     return dow === 0 || dow === 6 || holidays.has(fmtDate(d))
   }
 
-  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaDia = (config.vencimentoE25 * config.percentPiqueteSemana) / 12
   const taxaSemanaNoite = taxaSemanaDia * 2
-  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsDia = (config.vencimentoE25 * config.percentPiqueteFds) / 12
   const taxaFdsNoite = taxaFdsDia * 2
-  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
-  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
+  const taxaPiqueteSemana = config.vencimentoE25 * config.percentPiqueteSemana
+  const taxaPiqueteFds = config.vencimentoE25 * config.percentPiqueteFds
   const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
   const taxaPrevencaoFds = taxaPiqueteFds * config.percentPrevencaoPassiva
 
@@ -428,11 +428,11 @@ export function calcLinhaDetalhes(
 /**
  * Calculates the gross value (before IRS/SS deductions) for a single entry,
  * attributing only days/hours that fall within the target month.
+ * Rates are derived from config.vencimentoE25.
  */
 export function calcLinhaValor(
   linha: LinhaWithData,
   config: ConfigData,
-  vencimentoBase: number,
   ano: number,
   mes: number,
 ): number {
@@ -449,12 +449,12 @@ export function calcLinhaValor(
     return dow === 0 || dow === 6 || holidays.has(fmtDate(d))
   }
 
-  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaDia = (config.vencimentoE25 * config.percentPiqueteSemana) / 12
   const taxaSemanaNoite = taxaSemanaDia * 2
-  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsDia = (config.vencimentoE25 * config.percentPiqueteFds) / 12
   const taxaFdsNoite = taxaFdsDia * 2
-  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
-  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
+  const taxaPiqueteSemana = config.vencimentoE25 * config.percentPiqueteSemana
+  const taxaPiqueteFds = config.vencimentoE25 * config.percentPiqueteFds
   const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
   const taxaPrevencaoFds = taxaPiqueteFds * config.percentPrevencaoPassiva
 
@@ -530,11 +530,14 @@ export function calcLinhaValor(
 
 /**
  * Calculates all totals for a month's ajudas record.
- * vencimentoBase and taxaIRS must be the user's personal configured values.
+ * taxaIRS must be the user's personal configured rate.
+ * vencimentoBase, when provided, is the user's personal salary used only for
+ * the 1/3 monthly cap (limiteBase/limiteMensal). Falls back to config.vencimentoE25.
+ * All rates (hourly, piquete, prevention) always derive from config.vencimentoE25.
  * ano and mes define the target month — entries and prevention days outside
  * this month are excluded so cross-month entries are attributed correctly.
  */
-export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, vencimentoBase: number, taxaIRS: number, ano: number, mes: number): AjudasTotais {
+export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, taxaIRS: number, ano: number, mes: number, vencimentoBase?: number): AjudasTotais {
   // Gather all years from the data to compute holidays
   const years = new Set<number>()
   for (const l of linhas) {
@@ -558,13 +561,13 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
     return dow === 0 || dow === 6 || allHolidays.has(fmtDate(d))
   }
 
-  // --- Rates (computed upfront so per-day cap can use them) ---
-  const taxaSemanaDia = (vencimentoBase * config.percentPiqueteSemana) / 12
+  // --- Rates (always from vencimentoE25 — the admin-set E25 base) ---
+  const taxaSemanaDia = (config.vencimentoE25 * config.percentPiqueteSemana) / 12
   const taxaSemanaNoite = taxaSemanaDia * 2
-  const taxaFdsDia = (vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsDia = (config.vencimentoE25 * config.percentPiqueteFds) / 12
   const taxaFdsNoite = taxaFdsDia * 2
-  const taxaPiqueteSemana = vencimentoBase * config.percentPiqueteSemana
-  const taxaPiqueteFds = vencimentoBase * config.percentPiqueteFds
+  const taxaPiqueteSemana = config.vencimentoE25 * config.percentPiqueteSemana
+  const taxaPiqueteFds = config.vencimentoE25 * config.percentPiqueteFds
   // Prevenção passiva = percentPrevencaoPassiva (default 40%) do piquete do mesmo tipo de dia
   const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
   const taxaPrevencaoFds = taxaPiqueteFds * config.percentPrevencaoPassiva
@@ -711,9 +714,9 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ve
   const totalBruto = baseImponivel + totalAjudasCusto
   const liquido = totalBruto - irs - ss
 
-  // Limits
-  const limiteBase = vencimentoBase
-  const limiteMensal = vencimentoBase / 3
+  // Limits — cap based on the inspector's personal salary if set, otherwise E25
+  const limiteBase = vencimentoBase ?? config.vencimentoE25
+  const limiteMensal = limiteBase / 3
   const totalContaLimite = baseImponivel
   const emFalta = Math.max(0, limiteMensal - totalContaLimite)
   // percentCompleto is intentionally uncapped — >1 means over monthly limit

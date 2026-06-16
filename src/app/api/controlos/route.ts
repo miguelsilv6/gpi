@@ -40,10 +40,7 @@ export async function GET(req: NextRequest) {
           ? { concluidoEm: { not: null } }
           : {}
 
-    const criadorWhere =
-      criadorId && hasPermission(role, 'controlo:read:brigade')
-        ? { criadorId }
-        : {}
+    const criadorWhere: Record<string, never> = {}
 
     const where = {
       AND: [scopeWhere, statusWhere, criadorWhere],

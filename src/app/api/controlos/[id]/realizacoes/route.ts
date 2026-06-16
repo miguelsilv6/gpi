@@ -35,8 +35,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         criadorId: true,
         periodoDias: true,
         concluidoEm: true,
-        inquerito: { select: { brigadaId: true } },
-        criador: { select: { brigadaId: true } },
         realizacoes: {
           where: { id: realizacaoId },
           select: { id: true, numero: true, dataEsperada: true, dataRealizacao: true },
@@ -49,11 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const canConfirm =
       controlo.criadorId === session.user.id ||
-      hasPermission(role, 'controlo:read:all') ||
-      (hasPermission(role, 'controlo:read:brigade') &&
-        session.user.brigadaId &&
-        (controlo.inquerito?.brigadaId === session.user.brigadaId ||
-          controlo.criador.brigadaId === session.user.brigadaId))
+      hasPermission(role, 'controlo:read:all')
 
     if (!canConfirm) return apiError('Sem permissão para confirmar este controlo', 403)
 

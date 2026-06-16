@@ -85,13 +85,13 @@ export async function GET(req: NextRequest) {
       loadCrossMonthLinhas(targetUserId, ano, mes, registo.id),
     ])
 
-    const vencimentoBase = targetUserData?.ajudasVencimentoBase
+    const userVencimentoBase = targetUserData?.ajudasVencimentoBase ?? undefined
     const taxaIRS = targetUserData?.ajudasTaxaIRS
-    const userConfigured = vencimentoBase != null && taxaIRS != null
+    const userConfigured = userVencimentoBase != null && taxaIRS != null
 
     const allLinhas = [...registo.linhas, ...crossMonthLinhas]
     const totais = userConfigured
-      ? calcAjudasTotais(allLinhas, config, vencimentoBase!, taxaIRS!, ano, mes)
+      ? calcAjudasTotais(allLinhas, config, taxaIRS!, ano, mes, userVencimentoBase)
       : null
 
     return Response.json({ registo, config, totais, userConfigured })

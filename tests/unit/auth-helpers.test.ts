@@ -41,13 +41,13 @@ describe('buildAtividadePrazoWhere', () => {
     expect(where).toEqual({ utilizadorId: 'user-id-1' })
   })
 
-  test('INSPETOR_CHEFE limita a atividades cujo inquérito está na sua brigada', () => {
+  test('INSPETOR_CHEFE limita às próprias atividades (privacidade por proprietário)', () => {
     const where = buildAtividadePrazoWhere('INSPETOR_CHEFE', 'user-id-2', 'brigada-7')
-    expect(where).toEqual({ inquerito: { brigadaId: 'brigada-7' } })
+    expect(where).toEqual({ utilizadorId: 'user-id-2' })
   })
 
-  test('COORDENADOR vê todas as atividades', () => {
-    expect(buildAtividadePrazoWhere('COORDENADOR', 'u', null)).toEqual({})
+  test('COORDENADOR limita às próprias atividades (privacidade por proprietário)', () => {
+    expect(buildAtividadePrazoWhere('COORDENADOR', 'u', null)).toEqual({ utilizadorId: 'u' })
   })
 })
 

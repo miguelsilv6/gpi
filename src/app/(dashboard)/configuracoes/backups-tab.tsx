@@ -36,6 +36,7 @@ interface BackupRow {
 
 interface SistemaConfig {
   backupScheduleCron: string
+  backupRetencao: number
   maintenanceMode: boolean
 }
 
@@ -49,6 +50,8 @@ export function BackupsTab() {
   const [files, setFiles] = useState<BackupRow[]>([])
   const [config, setConfig] = useState<SistemaConfig | null>(null)
   const [cronInput, setCronInput] = useState('')
+  const [retencaoInput, setRetencaoInput] = useState(30)
+  const [savingRetencao, setSavingRetencao] = useState(false)
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [savingCron, setSavingCron] = useState(false)
@@ -74,9 +77,11 @@ export function BackupsTab() {
         const cfg = await cfgRes.json()
         setConfig({
           backupScheduleCron: cfg.backupScheduleCron,
+          backupRetencao: cfg.backupRetencao ?? 30,
           maintenanceMode: cfg.maintenanceMode,
         })
         setCronInput(cfg.backupScheduleCron)
+        setRetencaoInput(cfg.backupRetencao ?? 30)
       }
     } catch {
       toast.error('Erro ao carregar')
@@ -105,6 +110,28 @@ export function BackupsTab() {
       toast.error('Erro de rede')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleSaveRetencao() {
+    setSavingRetencao(true)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backupRetencao: retencaoInput }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar retenção')
+        return
+      }
+      toast.success('Retenção guardada')
+      refresh()
+    } catch {
+      toast.error('Erro de rede ao guardar retenção')
+    } finally {
+      setSavingRetencao(false)
     }
   }
 
@@ -293,6 +320,37 @@ export function BackupsTab() {
             </div>
             <p className="text-xs text-muted-foreground">
               Ex: <code>0 2 * * *</code> = todos os dias às 02:00. Aplicado em até 1 minuto pelo worker.
+            </p>
+          </div>
+          <div className="space-y-1.5 pt-1 border-t">
+            <Label htmlFor="retencao">Retenção (nº de ficheiros)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="retencao"
+                type="number"
+                min={1}
+                max={365}
+                value={retencaoInput}
+                onChange={(e) => setRetencaoInput(Number(e.target.value))}
+                className="w-28 font-mono"
+              />
+              <Button
+                onClick={handleSaveRetencao}
+                disabled={
+                  savingRetencao ||
+                  retencaoInput === (config?.backupRetencao ?? 30) ||
+                  !Number.isInteger(retencaoInput) ||
+                  retencaoInput < 1 ||
+                  retencaoInput > 365
+                }
+              >
+                {savingRetencao && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                Guardar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Número de backups a manter por prefixo (automáticos e manuais separados).
+              Os mais antigos são eliminados automaticamente após cada backup.
             </p>
           </div>
           {lastAuto && (

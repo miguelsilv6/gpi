@@ -12,56 +12,27 @@ import type { Prisma } from '@/generated/prisma/client'
 import { hasPermission } from '@/lib/rbac'
 
 /**
- * Atividade where-clause scoped by role for the /prazos page.
- *   INSPETOR        → atividades que ele próprio criou
- *   INSPETOR_CHEFE  → atividades em inquéritos da sua brigada
- *   COORDENADOR/ADMIN → todas
- * Fail-closed para INSPETOR_CHEFE sem brigada (configuração inválida).
+ * Atividade where-clause scoped for the /prazos page.
+ * Prazos são sempre privados — cada inspetor só vê os seus próprios.
  */
 export function buildAtividadePrazoWhere(
-  role: Role,
+  _role: Role,
   userId: string,
-  brigadaId: string | null,
+  _brigadaId: string | null,
 ): Prisma.AtividadeWhereInput {
-  if (role === 'INSPETOR') {
-    return { utilizadorId: userId }
-  }
-  if (role === 'INSPETOR_CHEFE') {
-    if (!brigadaId) {
-      return { id: '__inspetor_chefe_sem_brigada__' }
-    }
-    return { inquerito: { brigadaId } }
-  }
-  return {}
+  return { utilizadorId: userId }
 }
 
 /**
- * Controlo where-clause scoped by role for the /prazos page.
- *   INSPETOR        → controlos que ele criou
- *   INSPETOR_CHEFE  → controlos seus + controlos de inquéritos da brigada
- *   COORDENADOR/ADMIN → todos
+ * Controlo where-clause scoped for the /prazos page.
+ * Controlos são sempre privados — cada inspetor só vê os que criou.
  */
 export function buildControloWhere(
-  role: Role,
+  _role: Role,
   userId: string,
-  brigadaId: string | null,
+  _brigadaId: string | null,
 ): Prisma.ControloWhereInput {
-  if (role === 'INSPETOR') {
-    return { criadorId: userId }
-  }
-  if (role === 'INSPETOR_CHEFE') {
-    if (!brigadaId) {
-      return { id: '__inspetor_chefe_sem_brigada__' }
-    }
-    return {
-      OR: [
-        { criadorId: userId },
-        { inquerito: { brigadaId } },
-        { criador: { brigadaId } },
-      ],
-    }
-  }
-  return {}
+  return { criadorId: userId }
 }
 
 export function buildInqueritoWhere(

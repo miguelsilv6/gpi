@@ -486,6 +486,9 @@ model LoginAttempt {
 model ConfiguracaoSistema {
   id                              String   @id @default("singleton")
   backupScheduleCron              String   @default("0 2 * * *")
+  // Número de ficheiros de backup a manter por prefixo (rotação FIFO).
+  // Passado como BACKUP_RETENTION ao backup.sh pelo worker.
+  backupRetencao                  Int      @default(30)
   // Quando true, o middleware bloqueia utilizadores não-ADMINISTRACAO com 503.
   // Activado/desactivado pelo endpoint de restauro e disponível como toggle
   // manual em /configurações para janelas de manutenção planeadas.
@@ -665,7 +668,7 @@ model Viatura {
 // Singleton config for Ajudas Mensais - managed by ADMINISTRACAO
 model AjudasConfig {
   id                      String   @id @default("default")
-  vencimentoBase          Float    @default(1974.41)
+  vencimentoE25           Float    @default(1974.41)
   vencimentoDN            Float    @default(7143.207)
   percentPiqueteSemana    Float    @default(0.083)
   percentPiqueteFds       Float    @default(0.105)

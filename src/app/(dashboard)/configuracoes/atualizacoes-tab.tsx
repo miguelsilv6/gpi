@@ -31,8 +31,10 @@ import {
   ScrollText,
   Ban,
   X,
+  Trash2,
 } from 'lucide-react'
 import { formatDateTime, cn, clientRandomId, iconButtonClasses } from '@/lib/utils'
+import { ConfirmDeleteDialog } from '@/components/ui/confirm-delete-dialog'
 
 type State =
   | 'AVAILABLE'
@@ -254,6 +256,8 @@ export function AtualizacoesTab() {
   const [forceAborting, setForceAborting] = useState(false)
   const [confirmForceAbortOpen, setConfirmForceAbortOpen] = useState(false)
   const [logDialog, setLogDialog] = useState<{ id: string; label: string } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<HistoryItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
   // O painel de falha só aparece se o update falhou DURANTE esta sessão
   // (wasInProgressRef foi true). Ao navegar, o componente desmonta e o estado
   // reseta — o painel não volta a aparecer em visitas subsequentes.
@@ -401,6 +405,26 @@ export function AtualizacoesTab() {
       refreshStatus(true)
     } finally {
       setCancelling(false)
+    }
+  }
+
+  async function handleDeleteHistory() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/updates/${deleteTarget.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao eliminar entrada')
+        return
+      }
+      toast.success('Entrada eliminada do histórico')
+      setDeleteTarget(null)
+      refreshStatus(true)
+    } catch {
+      toast.error('Erro de rede ao eliminar entrada')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -738,10 +762,13 @@ export function AtualizacoesTab() {
                   <TableHead>Iniciado por</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Duração</TableHead>
+                  <TableHead className="w-8" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {history.map((h) => (
+                {history.map((h) => {
+                  const terminal = h.state === 'DONE' || h.state === 'FAILED' || h.state === 'ROLLED_BACK'
+                  return (
                   <TableRow
                     key={h.id}
                     className="cursor-pointer hover:bg-muted/50"
@@ -755,12 +782,26 @@ export function AtualizacoesTab() {
                     </TableCell>
                     <TableCell className="text-xs">{h.iniciadoPor}</TableCell>
                     <TableCell className="text-xs">{formatDateTime(h.startedAt)}</TableCell>
-                    <TableCell className="text-xs flex items-center justify-between gap-2">
+                    <TableCell className="text-xs flex items-center gap-2">
                       {formatDuration(h.durationMs)}
                       <ScrollText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {terminal && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(h)}
+                          className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
+                          title="Eliminar entrada"
+                          aria-label={`Eliminar v${h.fromVersion} → v${h.toVersion}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           )}
@@ -771,6 +812,20 @@ export function AtualizacoesTab() {
       <HistoryLogDialog
         target={logDialog}
         onClose={() => setLogDialog(null)}
+      />
+
+      {/* Confirmação de eliminação de entrada do histórico */}
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Eliminar entrada do histórico"
+        entityLabel={deleteTarget ? `v${deleteTarget.fromVersion} → v${deleteTarget.toVersion}` : ''}
+        description="Remove permanentemente esta entrada e o respetivo registo de auditoria do histórico de atualizações."
+        confirmToken="ELIMINAR"
+        inputLabel="Para confirmar, digite"
+        destructiveLabel="Eliminar"
+        onConfirm={handleDeleteHistory}
+        loading={deleting}
       />
 
       {/* Confirmação */}
