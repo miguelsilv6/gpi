@@ -25,7 +25,7 @@ describe('buildExplainPrompt', () => {
 
   test('trunca dados acima do limite', () => {
     const grande = { blob: 'x'.repeat(EXPLAIN_DATA_MAX_CHARS * 2) }
-    const prompt = buildExplainPrompt('wayback', grande)
+    const prompt = buildExplainPrompt('whois', grande)
     expect(prompt).toContain('…(truncado)')
     // O bloco DADOS não pode exceder muito o limite (margem para o sufixo).
     const dados = prompt.split('DADOS:\n')[1]
@@ -33,7 +33,6 @@ describe('buildExplainPrompt', () => {
   })
 
   test('cada ferramenta tem contexto próprio', () => {
-    expect(buildExplainPrompt('certs', {})).toContain('Certificate Transparency')
     expect(buildExplainPrompt('whois', {})).toContain('RDAP')
     expect(buildExplainPrompt('dns', {})).toContain('DNS')
   })
