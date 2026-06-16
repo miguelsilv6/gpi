@@ -10,6 +10,7 @@ import {
   FileKey2,
   History,
   ShieldOff,
+  Smartphone,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -17,7 +18,7 @@ import { ToolboxIaContext } from './toolbox-shared'
 import { IpLookupTool, DnsTool, WhoisTool } from './tools-network'
 import { EmailHeadersTool } from './tools-email'
 import { CertHistoryTool, WebHistoryTool } from './tools-osint'
-import { DefangTool } from './tools-utils'
+import { DefangTool, ImeiTool } from './tools-utils'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 
 interface Tool {
@@ -78,6 +79,13 @@ const TOOLS: Tool[] = [
     icon: ShieldOff,
     component: DefangTool,
   },
+  {
+    id: 'imei',
+    label: 'Dígito IMEI',
+    descricao: 'Calcular o dígito de controlo (Luhn) de um IMEI ou validar um IMEI completo.',
+    icon: Smartphone,
+    component: ImeiTool,
+  },
 ]
 
 export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
@@ -100,6 +108,7 @@ export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
                 <li><strong>Histórico Web</strong> — capturas históricas de sites na Wayback Machine (Internet Archive).</li>
                 <li><strong>Cabeçalhos de Email</strong> — análise da cadeia de entrega, IP de origem e autenticação SPF/DKIM/DMARC.</li>
                 <li><strong>Defang IOCs</strong> — neutraliza ou reverte URLs e domínios maliciosos para partilha segura em relatórios.</li>
+                <li><strong>Dígito IMEI</strong> — calcula o 15.º dígito de controlo (Luhn) a partir dos 14 primeiros, ou valida um IMEI de 15 dígitos.</li>
               </ul>
             </HelpSection>
             <HelpSection title="Privacidade">
