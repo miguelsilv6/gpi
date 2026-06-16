@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { countWorkingDays } from '@/lib/ferias'
 import { getPortugueseHolidays } from '@/lib/ajudas-calc'
@@ -113,6 +114,32 @@ export function AusenciasCalendar({ ausencias, month, onMonthChange, onCreate, b
       </div>
 
       <Legend />
+
+      <div className="space-y-1.5 rounded-lg border p-3">
+        <Label className="text-xs text-muted-foreground">Ou indique as datas diretamente</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            type="date"
+            aria-label="Data de início"
+            value={range?.from ? toKey(range.from) : ''}
+            onChange={(e) => {
+              if (!e.target.value) return
+              const from = fromKey(e.target.value)
+              setRange({ from, to: range?.to && range.to >= from ? range.to : from })
+            }}
+          />
+          <Input
+            type="date"
+            aria-label="Data de fim"
+            value={range?.to ? toKey(range.to) : ''}
+            onChange={(e) => {
+              if (!e.target.value) return
+              const to = fromKey(e.target.value)
+              setRange({ from: range?.from && range.from <= to ? range.from : to, to })
+            }}
+          />
+        </div>
+      </div>
 
       {range?.from && range?.to && (
         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
