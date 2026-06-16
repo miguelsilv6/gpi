@@ -154,7 +154,7 @@ export function ImeiTool() {
           <ResultRow label="Dígito fornecido" value={fornecido} />
           <ResultRow label="Dígito correto" value={<span className="font-bold">{cd}</span>} />
         </div>
-        <ImeiInfoLink imei={digits} />
+        {valido && <ImeiInfoLink imei={digits} />}
       </div>
     )
   } else if (digits.length > 0) {
