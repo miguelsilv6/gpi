@@ -169,6 +169,7 @@ export function InqueritoForm({
   const selectedCrimeIdsAssociados = watch('crimeIdsAssociados') ?? []
   const selectedTribunalId = watch('tribunalId')
   const selectedSeccaoId = watch('seccaoId')
+  const isCartaPrecatoria = watch('cartaPrecatoria')
 
   // Tribunais filtered by the selected comarca (null = tribunals with no comarca).
   const tribunaisForSelect = useMemo(() => {
@@ -540,6 +541,69 @@ export function InqueritoForm({
           </div>
         </CardContent>
       </Card>
+
+      {isCartaPrecatoria && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-orange-500" />
+              Inspetor Titular (Carta Precatória)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Inspetor de outra unidade a quem o inquérito é devolvido após as diligências.
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="titularNome">Inspetor titular</Label>
+                <Input
+                  id="titularNome"
+                  placeholder="Nome do inspetor titular"
+                  {...register('titularNome')}
+                />
+                {errors.titularNome && (
+                  <p className="text-xs text-red-600">{errors.titularNome.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="titularEmail">Email</Label>
+                <Input
+                  id="titularEmail"
+                  type="email"
+                  placeholder="inspetor@exemplo.pt"
+                  {...register('titularEmail')}
+                />
+                {errors.titularEmail && (
+                  <p className="text-xs text-red-600">{errors.titularEmail.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="titularVoip">VoIP / Contacto</Label>
+                <Input
+                  id="titularVoip"
+                  placeholder="Extensão VoIP ou telefone"
+                  {...register('titularVoip')}
+                />
+                {errors.titularVoip && (
+                  <p className="text-xs text-red-600">{errors.titularVoip.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="titularUnidade">Unidade / Órgão</Label>
+                <Input
+                  id="titularUnidade"
+                  placeholder="Unidade a que o inspetor pertence"
+                  {...register('titularUnidade')}
+                />
+                {errors.titularUnidade && (
+                  <p className="text-xs text-red-600">{errors.titularUnidade.message}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

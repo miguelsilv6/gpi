@@ -126,6 +126,13 @@ model Inquerito {
   dataConclusao    DateTime?
   notas          String?
   cartaPrecatoria Boolean @default(false)
+  // Carta Precatória — inspetor titular do inquérito (de outra unidade), a
+  // quem o processo é devolvido após as diligências. Campos livres: o titular
+  // pode pertencer a outro órgão/unidade e não ser utilizador do sistema.
+  titularNome    String?
+  titularEmail   String?
+  titularVoip    String?
+  titularUnidade String?
   // Tribunal / Ministério Público — all optional.
   procurador     String?
   oficialJustica String?

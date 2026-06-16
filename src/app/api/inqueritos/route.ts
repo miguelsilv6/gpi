@@ -223,6 +223,11 @@ export async function POST(req: NextRequest) {
         dataConclusao: conclusao,
         notas: data.notas ?? null,
         cartaPrecatoria: data.cartaPrecatoria ?? false,
+        // Dados do titular só fazem sentido numa Carta Precatória.
+        titularNome: data.cartaPrecatoria ? data.titularNome?.trim() || null : null,
+        titularEmail: data.cartaPrecatoria ? data.titularEmail?.trim() || null : null,
+        titularVoip: data.cartaPrecatoria ? data.titularVoip?.trim() || null : null,
+        titularUnidade: data.cartaPrecatoria ? data.titularUnidade?.trim() || null : null,
         brigadaId: data.brigadaId,
         inspetorId,
         tribunalId: data.tribunalId || null,
