@@ -109,16 +109,16 @@ export async function PUT(
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const vbPut = registo?.utilizador?.ajudasVencimentoBase
+    const vbPut = registo?.utilizador?.ajudasVencimentoBase ?? undefined
     const irsPut = registo?.utilizador?.ajudasTaxaIRS
-    const putConfigured = vbPut != null && irsPut != null
+    const putConfigured = irsPut != null
 
     const crossMonthLinhasPut = registo
       ? await loadCrossMonthLinhas(registo.utilizadorId, registo.ano, registo.mes, registo.id)
       : []
 
     const totais = putConfigured
-      ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasPut], config, vbPut!, irsPut!, registo!.ano, registo!.mes)
+      ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasPut], config, irsPut!, registo!.ano, registo!.mes, vbPut)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: putConfigured })
@@ -168,16 +168,16 @@ export async function DELETE(
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const vbDel = registo?.utilizador?.ajudasVencimentoBase
+    const vbDel = registo?.utilizador?.ajudasVencimentoBase ?? undefined
     const irsDel = registo?.utilizador?.ajudasTaxaIRS
-    const delConfigured = vbDel != null && irsDel != null
+    const delConfigured = irsDel != null
 
     const crossMonthLinhasDel = registo
       ? await loadCrossMonthLinhas(registo.utilizadorId, registo.ano, registo.mes, registo.id)
       : []
 
     const totais = delConfigured
-      ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasDel], config, vbDel!, irsDel!, registo!.ano, registo!.mes)
+      ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasDel], config, irsDel!, registo!.ano, registo!.mes, vbDel)
       : null
 
     return Response.json({ registo, config, totais, userConfigured: delConfigured })

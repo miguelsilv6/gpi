@@ -7,7 +7,7 @@ import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
 
 const schema = z.object({
-  vencimentoBase: z.number().positive(),
+  vencimentoE25: z.number().positive(),
   vencimentoDN: z.number().positive(),
   percentPiqueteSemana: z.number().min(0).max(1),
   percentPiqueteFds: z.number().min(0).max(1),

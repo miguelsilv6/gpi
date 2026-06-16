@@ -668,7 +668,7 @@ model Viatura {
 // Singleton config for Ajudas Mensais - managed by ADMINISTRACAO
 model AjudasConfig {
   id                      String   @id @default("default")
-  vencimentoBase          Float    @default(1974.41)
+  vencimentoE25           Float    @default(1974.41)
   vencimentoDN            Float    @default(7143.207)
   percentPiqueteSemana    Float    @default(0.083)
   percentPiqueteFds       Float    @default(0.105)

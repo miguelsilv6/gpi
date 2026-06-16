@@ -925,7 +925,6 @@ export function AjudasMensaisView({
   function handleExportPDF() {
     if (!data?.totais) return
     const { registo, config, totais } = data
-    const vencimentoBase = totais.limiteBase
 
     const monthName = MONTH_NAMES[mes - 1]
     const title = `Ajudas Mensais — ${monthName} ${ano}`
@@ -948,7 +947,6 @@ export function AjudasMensaisView({
           km: l.km,
         },
         config,
-        vencimentoBase,
         ano,
         mes,
       )
@@ -1129,8 +1127,9 @@ tr:nth-child(even) td{background:#f6f6f6}
           {/* Not-configured banner */}
           {data && !data.userConfigured && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-              Para utilizar este módulo, configure o seu <strong>Vencimento Base</strong> e a <strong>Taxa de Retenção de IRS</strong> na página de{' '}
+              Para visualizar os totais calculados, configure a sua <strong>Taxa de Retenção de IRS</strong> na página de{' '}
               <a href="/perfil" className="underline font-medium">Perfil → Ajudas Mensais</a>.
+              O Vencimento Base é opcional e apenas afeta o cálculo do seu limite mensal (1/3 do vencimento).
             </div>
           )}
 
@@ -1229,7 +1228,6 @@ tr:nth-child(even) td{background:#f6f6f6}
                                     km: l.km,
                                   },
                                   data.config,
-                                  data.totais.limiteBase,
                                   ano,
                                   mes,
                                 ))
@@ -1689,7 +1687,6 @@ function LinhaDetailBody({
           km: linha.km,
         },
         data.config,
-        data.totais.limiteBase,
         data.totais.taxaIRS,
         ano,
         mes,

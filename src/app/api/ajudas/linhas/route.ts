@@ -110,16 +110,16 @@ export async function POST(req: NextRequest) {
       prisma.ajudasConfig.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: {} }),
     ])
 
-    const vencimentoBase = updatedRegisto?.utilizador?.ajudasVencimentoBase
+    const userVencimentoBase = updatedRegisto?.utilizador?.ajudasVencimentoBase ?? undefined
     const taxaIRS = updatedRegisto?.utilizador?.ajudasTaxaIRS
-    const userConfigured = vencimentoBase != null && taxaIRS != null
+    const userConfigured = taxaIRS != null
 
     const crossMonthLinhas = updatedRegisto
       ? await loadCrossMonthLinhas(updatedRegisto.utilizadorId, updatedRegisto.ano, updatedRegisto.mes, updatedRegisto.id)
       : []
 
     const totais = userConfigured
-      ? calcAjudasTotais([...updatedRegisto!.linhas, ...crossMonthLinhas], config, vencimentoBase!, taxaIRS!, updatedRegisto!.ano, updatedRegisto!.mes)
+      ? calcAjudasTotais([...updatedRegisto!.linhas, ...crossMonthLinhas], config, taxaIRS!, updatedRegisto!.ano, updatedRegisto!.mes, userVencimentoBase)
       : null
 
     return Response.json({ registo: updatedRegisto, config, totais, userConfigured }, { status: 201 })

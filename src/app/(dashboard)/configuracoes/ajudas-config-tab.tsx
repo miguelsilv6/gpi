@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
 interface AjudasConfig {
-  vencimentoBase: number
+  vencimentoE25: number
   vencimentoDN: number
   percentPiqueteSemana: number
   percentPiqueteFds: number
@@ -31,12 +31,12 @@ function pct(n: number) {
 }
 
 function DerivedRates({ config }: { config: AjudasConfig }) {
-  const taxaSemanaDia    = (config.vencimentoBase * config.percentPiqueteSemana) / 12
+  const taxaSemanaDia    = (config.vencimentoE25 * config.percentPiqueteSemana) / 12
   const taxaSemanaNoite  = taxaSemanaDia * 2
-  const taxaFdsDia       = (config.vencimentoBase * config.percentPiqueteFds) / 12
+  const taxaFdsDia       = (config.vencimentoE25 * config.percentPiqueteFds) / 12
   const taxaFdsNoite     = taxaFdsDia * 2
-  const taxaPiqueteSemana = config.vencimentoBase * config.percentPiqueteSemana
-  const taxaPiqueteFds    = config.vencimentoBase * config.percentPiqueteFds
+  const taxaPiqueteSemana = config.vencimentoE25 * config.percentPiqueteSemana
+  const taxaPiqueteFds    = config.vencimentoE25 * config.percentPiqueteFds
   // Prevenção passiva = percentPrevencaoPassiva (padrão 40%) do piquete do mesmo tipo de dia
   const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
   const taxaPrevencaoFds    = taxaPiqueteFds    * config.percentPrevencaoPassiva
@@ -64,7 +64,7 @@ function DerivedRates({ config }: { config: AjudasConfig }) {
             <Row
               label="Semana 08-24h"
               value={`${fmtEur(taxaSemanaDia)}/h`}
-              formula={`venc × piq% ÷ 12 = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteSemana)} ÷ 12`}
+              formula={`venc × piq% ÷ 12 = ${fmtEur(config.vencimentoE25)} × ${pct(config.percentPiqueteSemana)} ÷ 12`}
             />
             <Row
               label="Semana 00-08h"
@@ -74,7 +74,7 @@ function DerivedRates({ config }: { config: AjudasConfig }) {
             <Row
               label="FdS/Feriado 08-24h"
               value={`${fmtEur(taxaFdsDia)}/h`}
-              formula={`venc × piq_fds% ÷ 12 = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteFds)} ÷ 12`}
+              formula={`venc × piq_fds% ÷ 12 = ${fmtEur(config.vencimentoE25)} × ${pct(config.percentPiqueteFds)} ÷ 12`}
             />
             <Row
               label="FdS/Feriado 00-08h"
@@ -90,12 +90,12 @@ function DerivedRates({ config }: { config: AjudasConfig }) {
             <Row
               label="Piquete Semana"
               value={`${fmtEur(taxaPiqueteSemana)}/período`}
-              formula={`venc × piq% = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteSemana)}`}
+              formula={`venc × piq% = ${fmtEur(config.vencimentoE25)} × ${pct(config.percentPiqueteSemana)}`}
             />
             <Row
               label="Piquete FdS/Feriado"
               value={`${fmtEur(taxaPiqueteFds)}/período`}
-              formula={`venc × piq_fds% = ${fmtEur(config.vencimentoBase)} × ${pct(config.percentPiqueteFds)}`}
+              formula={`venc × piq_fds% = ${fmtEur(config.vencimentoE25)} × ${pct(config.percentPiqueteFds)}`}
             />
           </div>
         </div>
@@ -224,13 +224,13 @@ export function AjudasConfigTab() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="vencimentoBase">Vencimento Base (€)</Label>
+              <Label htmlFor="vencimentoE25">Vencimento (E25) (€)</Label>
               <Input
-                id="vencimentoBase"
+                id="vencimentoE25"
                 type="number"
                 step="0.01"
-                value={config.vencimentoBase}
-                onChange={(e) => setNum('vencimentoBase', e.target.value)}
+                value={config.vencimentoE25}
+                onChange={(e) => setNum('vencimentoE25', e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
@@ -265,7 +265,7 @@ export function AjudasConfigTab() {
                   onChange={(e) => setNumPct('percentPiqueteSemana', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
-                  {fmtEur(config.vencimentoBase * config.percentPiqueteSemana)}/período
+                  {fmtEur(config.vencimentoE25 * config.percentPiqueteSemana)}/período
                 </span>
               </div>
             </div>
@@ -282,7 +282,7 @@ export function AjudasConfigTab() {
                   onChange={(e) => setNumPct('percentPiqueteFds', e.target.value)}
                 />
                 <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[90px] text-right">
-                  {fmtEur(config.vencimentoBase * config.percentPiqueteFds)}/período
+                  {fmtEur(config.vencimentoE25 * config.percentPiqueteFds)}/período
                 </span>
               </div>
             </div>
