@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { ArrowRightLeft, ShieldOff, CheckCircle2, XCircle } from 'lucide-react'
+import { ArrowRightLeft, ShieldOff, CheckCircle2, XCircle, ExternalLink } from 'lucide-react'
 import { CopyButton, ResultRow } from './toolbox-shared'
 
 /** Defang/refang de IOCs para partilha segura (hxxp://, [.]). */
@@ -88,6 +88,21 @@ function imeiCheckDigit(digits14: string): number {
   return (10 - (sum % 10)) % 10
 }
 
+/** Botão para consultar o IMEI completo em imei.info (fabricante, modelo, etc.). */
+function ImeiInfoLink({ imei }: { imei: string }) {
+  return (
+    <a
+      href={`https://www.imei.info/?imei=${imei}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+    >
+      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+      Consultar IMEI em imei.info
+    </a>
+  )
+}
+
 export function ImeiTool() {
   const [input, setInput] = useState('')
   const digits = input.replace(/\D/g, '')
@@ -97,17 +112,20 @@ export function ImeiTool() {
     const cd = imeiCheckDigit(digits)
     const completo = digits + cd
     resultado = (
-      <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
-        <ResultRow label="Dígito de controlo" value={<span className="text-lg font-bold">{cd}</span>} />
-        <ResultRow
-          label="IMEI completo"
-          value={
-            <span className="flex items-center gap-2">
-              {completo}
-              <CopyButton text={completo} />
-            </span>
-          }
-        />
+      <div className="space-y-2">
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+          <ResultRow label="Dígito de controlo" value={<span className="text-lg font-bold">{cd}</span>} />
+          <ResultRow
+            label="IMEI completo"
+            value={
+              <span className="flex items-center gap-2">
+                {completo}
+                <CopyButton text={completo} />
+              </span>
+            }
+          />
+        </div>
+        <ImeiInfoLink imei={completo} />
       </div>
     )
   } else if (digits.length === 15) {
@@ -115,25 +133,28 @@ export function ImeiTool() {
     const fornecido = Number(digits[14])
     const valido = cd === fornecido
     resultado = (
-      <div
-        className={
-          'rounded-lg border p-3 space-y-1 ' +
-          (valido
-            ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-900/20'
-            : 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-900/20')
-        }
-      >
-        <p
+      <div className="space-y-2">
+        <div
           className={
-            'flex items-center gap-1.5 text-sm font-medium ' +
-            (valido ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300')
+            'rounded-lg border p-3 space-y-1 ' +
+            (valido
+              ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-900/20'
+              : 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-900/20')
           }
         >
-          {valido ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-          {valido ? 'IMEI válido' : 'IMEI inválido — dígito de controlo incorreto'}
-        </p>
-        <ResultRow label="Dígito fornecido" value={fornecido} />
-        <ResultRow label="Dígito correto" value={<span className="font-bold">{cd}</span>} />
+          <p
+            className={
+              'flex items-center gap-1.5 text-sm font-medium ' +
+              (valido ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300')
+            }
+          >
+            {valido ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+            {valido ? 'IMEI válido' : 'IMEI inválido — dígito de controlo incorreto'}
+          </p>
+          <ResultRow label="Dígito fornecido" value={fornecido} />
+          <ResultRow label="Dígito correto" value={<span className="font-bold">{cd}</span>} />
+        </div>
+        {valido && <ImeiInfoLink imei={digits} />}
       </div>
     )
   } else if (digits.length > 0) {
