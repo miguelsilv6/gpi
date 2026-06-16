@@ -486,6 +486,9 @@ model LoginAttempt {
 model ConfiguracaoSistema {
   id                              String   @id @default("singleton")
   backupScheduleCron              String   @default("0 2 * * *")
+  // Número de ficheiros de backup a manter por prefixo (rotação FIFO).
+  // Passado como BACKUP_RETENTION ao backup.sh pelo worker.
+  backupRetencao                  Int      @default(30)
   // Quando true, o middleware bloqueia utilizadores não-ADMINISTRACAO com 503.
   // Activado/desactivado pelo endpoint de restauro e disponível como toggle
   // manual em /configurações para janelas de manutenção planeadas.

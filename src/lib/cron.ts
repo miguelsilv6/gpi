@@ -25,6 +25,7 @@ const BACKUP_SCRIPT = 'scripts/backup.sh'
 // O tick por minuto compara a string em DB com esta e re-agenda se mudou.
 let backupTask: ScheduledTask | null = null
 let backupCron: string | null = null
+let backupRetencaoCached = 30
 
 export function startCronJobs() {
   // Deadline check — corrida agendada estática (alertaDias é parametrizado
@@ -81,9 +82,10 @@ async function reloadBackupSchedule() {
   try {
     const config = await prisma.configuracaoSistema.findUnique({
       where: { id: 'singleton' },
-      select: { backupScheduleCron: true },
+      select: { backupScheduleCron: true, backupRetencao: true },
     })
     cronString = config?.backupScheduleCron ?? '0 2 * * *'
+    backupRetencaoCached = config?.backupRetencao ?? 30
   } catch (err) {
     log.error({ err }, 'Não foi possível ler backupScheduleCron')
     return
@@ -113,7 +115,7 @@ async function reloadBackupSchedule() {
  */
 async function runScheduledBackup() {
   try {
-    const filename = await runBackup({ source: 'agendado' })
+    const filename = await runBackup({ source: 'agendado', retention: backupRetencaoCached })
     log.info({ filename }, 'Backup agendado OK')
   } catch (err) {
     log.error({ err }, 'Backup agendado falhou')
