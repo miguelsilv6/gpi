@@ -7,11 +7,17 @@ Plataforma web para gestão do ciclo de vida de inquéritos criminais. Construí
 ## Funcionalidades principais
 
 - **Gestão de inquéritos** — criação, edição, transições de estado, reabertura, exportação PDF
+- **Cartas Precatórias** — identificação do inspetor titular (de outra unidade) e respetivo contacto/VoIP
 - **Atribuição e transferência** — distribuição por brigada e inspetor, com auditoria
 - **Atividades e prazos** — tarefas por inquérito com alertas configuráveis, visão global de prazos
+- **Tarefas pessoais e notas** — bloco de notas por inquérito e lista de tarefas pessoais estilo Notion
 - **Etiquetas** — tags personalizáveis para categorização transversal (ex.: "Prioritário", "Aguardando MP")
 - **Catálogos configuráveis** — estados, crimes, tribunais, secções, locais de tratamento
 - **Estatísticas** — dashboards por perfil (global, por brigada, pessoal), relatório mensal exportável
+- **Férias e Ausências** — calendário de férias/folgas com Gantt anual, gestão por brigada
+- **Ajudas Mensais** — registo e relatório PDF de ajudas de custo por inspetor/mês
+- **Toolbox OSINT** — IP lookup, DNS, WHOIS/RDAP, certificados (CT), histórico Wayback, cabeçalhos de email, defang de IOCs, dígito de controlo IMEI, e explicações por IA local (Ollama)
+- **Reporte de bugs** — módulo interno para reportar e acompanhar problemas
 - **Notificações** — in-app e email (SMTP), com políticas configuráveis por tipo
 - **Auditoria completa** — registo de todas as alterações com IP, agente e utilizador
 - **Backups automáticos** — dumps PostgreSQL agendados com retenção configurável e restauro
@@ -130,6 +136,7 @@ Os dados (base de dados e backups) ficam em **volumes Docker nomeados** e persis
 | Email | Nodemailer 7 (SMTP configurável) |
 | PDF | @react-pdf/renderer 4 |
 | Datas | date-fns 4 + react-day-picker 10 |
+| IA local | Ollama (LLM leve, ex. `qwen3:4b`) — explicações da Toolbox, opt-in pelo admin |
 | Testes | Vitest 2 (unit + integration) |
 | CI/CD | GitHub Actions |
 
