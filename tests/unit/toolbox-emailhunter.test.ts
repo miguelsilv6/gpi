@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, afterEach } from 'vitest'
 import type { EmailHunterResult } from '@/lib/toolbox/emailhunter'
 
-const netState = vi.hoisted(() => ({ behavior: 'valid' as 'valid' | 'invalid' | 'error' }))
+const netState = vi.hoisted(() => ({ behavior: 'valid' as 'valid' | 'invalid' | 'error' | 'close' }))
 
 // Mock mínimo de net.Socket (sem depender de imports externos — o factory do
 // vi.mock é hoisted acima de quaisquer imports do ficheiro, incluindo
@@ -35,6 +35,11 @@ vi.mock('node:net', () => {
     connect() {
       if (netState.behavior === 'error') {
         queueMicrotask(() => this.emit('error', new Error('ECONNREFUSED')))
+        return
+      }
+      if (netState.behavior === 'close') {
+        // fecho limpo do remoto sem dados nem erro — não deve ficar pendente para sempre
+        queueMicrotask(() => this.emit('close'))
         return
       }
       queueMicrotask(() => this.emit('data', Buffer.from('220 mail.example.com ESMTP\r\n')))
@@ -304,6 +309,15 @@ describe('huntEmail — SMTP inválido', () => {
     mockFetchSuccess('user@example.com')
     const result = await huntEmail('user@example.com')
     expect(result.smtp.estado).toBe('invalido')
+  })
+})
+
+describe('huntEmail — SMTP fecho abrupto da ligação', () => {
+  test('fecho remoto limpo (sem erro/timeout) não bloqueia — resulta em "indeterminado"', async () => {
+    netState.behavior = 'close'
+    mockFetchSuccess('user@example.com')
+    const result = await huntEmail('user@example.com')
+    expect(result.smtp.estado).toBe('indeterminado')
   })
 })
 

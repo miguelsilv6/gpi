@@ -110,7 +110,7 @@ export const PLATFORMS: PlatformDef[] = [
     detect: 'contains:"username"',
     headers: { ...HEADERS_DEFAULT, Accept: 'application/json' },
   },
-  { name: 'StackOverflow', categoria: CAT.TECH, url: 'https://api.stackexchange.com/2.3/users?inname={}&site=stackoverflow', detect: 'contains:"items"' },
+  { name: 'StackOverflow', categoria: CAT.TECH, url: 'https://api.stackexchange.com/2.3/users?inname={}&site=stackoverflow', detect: 'json_nonempty:items' },
 
   // Jogos
   { name: 'Steam', categoria: CAT.GAMING, url: 'https://steamcommunity.com/id/{}', detect: 'not_contains:The specified profile could not be found' },
@@ -158,7 +158,7 @@ export const PLATFORMS: PlatformDef[] = [
   { name: 'HackerOne', categoria: CAT.CYBER, url: 'https://hackerone.com/{}', detect: 'not_contains:Page not found' },
 
   // Criptomoeda / Finanças
-  { name: 'Keybase', categoria: CAT.CRYPTO, url: 'https://keybase.io/_/api/1.0/user/lookup.json?username={}', detect: 'contains:"them"' },
+  { name: 'Keybase', categoria: CAT.CRYPTO, url: 'https://keybase.io/_/api/1.0/user/lookup.json?username={}', detect: 'json_nonempty:them' },
   { name: 'CoinMarketCap', categoria: CAT.CRYPTO, url: 'https://coinmarketcap.com/community/profile/{}/', detect: 'not_contains:Page not found' },
   { name: 'Cashapp', categoria: CAT.CRYPTO, url: 'https://cash.app/${}', detect: 'not_contains:Page Not Found' },
 
@@ -217,6 +217,22 @@ async function checkPlatform(platform: PlatformDef, username: string): Promise<F
       return status === 200 && body.includes(needle)
         ? { name: platform.name, categoria: platform.categoria, url, status }
         : null
+    }
+
+    if (platform.detect.startsWith('json_nonempty:')) {
+      // A chave existe na resposta mesmo sem resultados (ex.: "items":[]) —
+      // só conta como encontrado se o array tiver pelo menos um elemento.
+      const key = platform.detect.slice('json_nonempty:'.length)
+      if (status !== 200) return null
+      try {
+        const data = JSON.parse(text) as Record<string, unknown>
+        if (Array.isArray(data[key]) && (data[key] as unknown[]).length > 0) {
+          return { name: platform.name, categoria: platform.categoria, url, status }
+        }
+      } catch {
+        // corpo não é JSON válido — sem perfil detetado
+      }
+      return null
     }
 
     if (platform.detect.startsWith('not_contains:')) {

@@ -106,4 +106,44 @@ describe('searchUsername', () => {
     expect(result.encontrados).toEqual([])
     expect(result.plataformasAnalisadas).toBe(PLATFORMS.length)
   })
+
+  test('deteção json_nonempty ignora chave presente com array vazio (Keybase/StackOverflow)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('keybase.io')) {
+          // utilizador inexistente: a chave "them" existe mas está vazia
+          return Promise.resolve(new Response('{"status":{"code":0},"them":[]}', { status: 200 }))
+        }
+        if (url.includes('stackexchange.com')) {
+          // utilizador inexistente: a chave "items" existe mas está vazia
+          return Promise.resolve(new Response('{"items":[],"has_more":false}', { status: 200 }))
+        }
+        return Promise.resolve(new Response('not found', { status: 404 }))
+      }),
+    )
+
+    const result = await searchUsername('testuser')
+    expect(result.encontrados.find((p) => p.name === 'Keybase')).toBeUndefined()
+    expect(result.encontrados.find((p) => p.name === 'StackOverflow')).toBeUndefined()
+  })
+
+  test('deteção json_nonempty reporta encontrado apenas com array não vazio (Keybase/StackOverflow)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('keybase.io')) {
+          return Promise.resolve(new Response('{"status":{"code":0},"them":[{"id":"abc"}]}', { status: 200 }))
+        }
+        if (url.includes('stackexchange.com')) {
+          return Promise.resolve(new Response('{"items":[{"user_id":1}],"has_more":false}', { status: 200 }))
+        }
+        return Promise.resolve(new Response('not found', { status: 404 }))
+      }),
+    )
+
+    const result = await searchUsername('testuser')
+    expect(result.encontrados.find((p) => p.name === 'Keybase')).toBeDefined()
+    expect(result.encontrados.find((p) => p.name === 'StackOverflow')).toBeDefined()
+  })
 })

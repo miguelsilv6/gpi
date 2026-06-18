@@ -96,6 +96,7 @@ function smtpRcptCode(host: string, email: string, timeoutMs: number): Promise<n
     socket.setTimeout(timeoutMs)
     socket.once('timeout', () => finish(() => reject(new Error('Tempo limite excedido'))))
     socket.once('error', (err) => finish(() => reject(err)))
+    socket.once('close', () => finish(() => reject(new Error('Conexão fechada pelo servidor remoto'))))
 
     socket.on('data', (chunk: Buffer) => {
       buf += chunk.toString('utf8')
