@@ -119,3 +119,40 @@ export async function postTool<T>(
     return null
   }
 }
+
+/**
+ * POST JSON e descarrega a resposta binária como ficheiro (export
+ * CSV/Markdown/PDF). Devolve `true` em sucesso, `false` em falha.
+ */
+export async function postToolFile(
+  url: string,
+  payload: unknown,
+  filename: string,
+  onError: (msg: string) => void,
+): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      onError(err.error ?? `Erro ${res.status}`)
+      return false
+    }
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(blobUrl)
+    return true
+  } catch {
+    onError('Erro de rede')
+    return false
+  }
+}

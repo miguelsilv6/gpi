@@ -16,7 +16,7 @@ Plataforma web para gestão do ciclo de vida de inquéritos criminais. Construí
 - **Estatísticas** — dashboards por perfil (global, por brigada, pessoal), relatório mensal exportável
 - **Férias e Ausências** — calendário de férias/folgas com Gantt anual, gestão por brigada
 - **Ajudas Mensais** — registo e relatório PDF de ajudas de custo por inspetor/mês
-- **Toolbox OSINT** — IP lookup, DNS, WHOIS/RDAP, cabeçalhos de email, defang de IOCs, dígito de controlo IMEI, e explicações por IA local (Ollama)
+- **Toolbox OSINT** — IP lookup, DNS, WHOIS/RDAP, cabeçalhos de email, defang de IOCs, dígito de controlo IMEI, pesquisa de username (70+ plataformas, exportável em Markdown/Excel/PDF), e explicações por IA local (Ollama)
 - **Reporte de bugs** — módulo interno para reportar e acompanhar problemas
 - **Notificações** — in-app e email (SMTP), com políticas configuráveis por tipo
 - **Auditoria completa** — registo de todas as alterações com IP, agente e utilizador
