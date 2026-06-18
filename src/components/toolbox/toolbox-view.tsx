@@ -10,6 +10,7 @@ import {
   ShieldOff,
   Smartphone,
   UserSearch,
+  AtSign,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -18,6 +19,7 @@ import { IpLookupTool, DnsTool, WhoisTool } from './tools-network'
 import { EmailHeadersTool } from './tools-email'
 import { DefangTool, ImeiTool } from './tools-utils'
 import { UserHunterTool } from './tools-userhunter'
+import { EmailHunterTool } from './tools-email-hunter'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 
 interface Tool {
@@ -78,6 +80,13 @@ const TOOLS: Tool[] = [
     icon: UserSearch,
     component: UserHunterTool,
   },
+  {
+    id: 'emailhunter',
+    label: 'Pesquisa de Email',
+    descricao: 'Verificar um endereço de email em múltiplas fontes OSINT (SMTP, reputação, breaches, perfis) e exportar os resultados.',
+    icon: AtSign,
+    component: EmailHunterTool,
+  },
 ]
 
 export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
@@ -100,6 +109,7 @@ export function ToolboxView({ iaAtiva = false }: { iaAtiva?: boolean }) {
                 <li><strong>Defang IOCs</strong> — neutraliza ou reverte URLs e domínios maliciosos para partilha segura em relatórios.</li>
                 <li><strong>Dígito IMEI</strong> — calcula o 15.º dígito de controlo (Luhn) a partir dos 14 primeiros, ou valida um IMEI de 15 dígitos.</li>
                 <li><strong>Pesquisa de Username</strong> — verifica a presença de um username em mais de 70 plataformas públicas; resultados exportáveis em Markdown, Excel (CSV) ou PDF.</li>
+                <li><strong>Pesquisa de Email</strong> — verifica um endereço de email via SMTP, reputação (EmailRep.io), infostealers (HudsonRock), breaches (ProxyNova/HIBP), Gravatar, dorks do Google e informação do domínio; resultados exportáveis em Markdown, Excel (CSV) ou PDF.</li>
               </ul>
             </HelpSection>
             <HelpSection title="Privacidade">
