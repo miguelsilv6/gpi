@@ -76,10 +76,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Piquete: dia de serviço de piquete inclui sempre jantar e ceia
+    // Piquete: dia de serviço de piquete inclui sempre jantar e ceia, nunca
+    // almoço (o motor de cálculo deriva jantar/ceia=1 de qualquer forma; isto
+    // mantém os valores guardados na linha consistentes com o que é contado)
     if (parsed.data.prevencao === 'PIQUETE') {
       rest.ajudaCustoJantar = 1
       rest.ajudaCustoCeia = 1
+      rest.ajudaCustoAlmoco = 0
     }
 
     // Create the line

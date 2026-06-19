@@ -75,6 +75,28 @@ describe('calcAjudasTotais — ajudas de custo em entradas de Piquete', () => {
     expect(totais.ajudaCustoJantar).toBe(1)
     expect(totais.ajudaCustoCeia).toBe(1)
   })
+
+  test('uma entrada de Piquete com almoço guardado e km abaixo do mínimo NÃO conta o almoço', () => {
+    // Defesa contra a relaxação do gate de km ter sido aplicada a todas as
+    // refeições em vez de só jantar/ceia.
+    const totais = calcAjudasTotais([linhaPiquete({ ajudaCustoAlmoco: 1 })], BASE_CONFIG, BASE_CONFIG.taxaIRS, ANO, MES)
+    expect(totais.ajudaCustoAlmoco).toBe(0)
+  })
+
+  test('uma entrada de Piquete antiga, sem jantar/ceia guardados, ainda assim conta jantar e ceia', () => {
+    // Registos criados antes desta regra existir têm ajudaCustoJantar/Ceia=0
+    // guardado — o motor de cálculo deve derivar 1/1 a partir de prevencao,
+    // não confiar apenas no valor persistido na linha.
+    const totais = calcAjudasTotais(
+      [linhaPiquete({ ajudaCustoJantar: 0, ajudaCustoCeia: 0 })],
+      BASE_CONFIG,
+      BASE_CONFIG.taxaIRS,
+      ANO,
+      MES,
+    )
+    expect(totais.ajudaCustoJantar).toBe(1)
+    expect(totais.ajudaCustoCeia).toBe(1)
+  })
 })
 
 describe('calcLinhaValor — ajudas de custo em entradas de Piquete', () => {
