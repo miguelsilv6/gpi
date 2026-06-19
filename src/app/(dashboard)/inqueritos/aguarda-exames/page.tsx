@@ -29,6 +29,9 @@ export default async function AguardaExamesPage() {
   const nomes = padroes.map((p) => p.nome)
 
   const showBrigada = hasPermission(role, 'inquerito:read:all')
+  const showInspetor = role !== 'INSPETOR'
+  const showDenunciante = role === 'INSPETOR' || role === 'INSPETOR_CHEFE'
+  const showPrazo = role !== 'INSPETOR_CHEFE'
 
   const inqueritos = nomes.length === 0
     ? []
@@ -89,7 +92,9 @@ export default async function AguardaExamesPage() {
           canBulk={false}
           canTransfer={false}
           showBrigada={showBrigada}
-          showDenunciante={role === 'INSPETOR'}
+          showInspetor={showInspetor}
+          showDenunciante={showDenunciante}
+          showPrazo={showPrazo}
           inspetores={[]}
           brigadas={[]}
           estados={[]}
