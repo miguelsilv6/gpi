@@ -76,6 +76,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Piquete: dia de serviço de piquete inclui sempre jantar e ceia
+    if (parsed.data.prevencao === 'PIQUETE') {
+      rest.ajudaCustoJantar = 1
+      rest.ajudaCustoCeia = 1
+    }
+
     // Create the line
     const linha = await prisma.ajudasLinha.create({
       data: {
