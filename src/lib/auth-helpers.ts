@@ -12,6 +12,7 @@ export {
   buildInqueritoWhere,
   buildControloWhere,
   canEditInquerito,
+  getInqueritoColumnsVisibility,
 } from '@/lib/role-scope'
 
 export async function getSession() {

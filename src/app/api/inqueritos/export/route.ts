@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { getSession, handleApiError, apiError, buildInqueritoWhere, getInqueritoColumnsVisibility } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { UTF8_BOM } from '@/lib/relatorios/formatters'
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     const cartaPrecatoriaParam = searchParams.get('cartaPrecatoria')
 
     const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+    const { showInspetor, showDenunciante, showPrazo } = getInqueritoColumnsVisibility(role)
 
     const isValidDate = (s: string) => !!s && !Number.isNaN(new Date(s).getTime())
     // Datas ISO YYYY-MM-DD são interpretadas como T00:00:00Z; o limite superior
@@ -104,6 +105,7 @@ export async function GET(req: NextRequest) {
         dataConclusao: true,
         brigada: { select: { nome: true } },
         inspetor: { select: { nome: true } },
+        denuncianteNome: true,
       },
     })
 
@@ -120,6 +122,9 @@ export async function GET(req: NextRequest) {
       },
     })
 
+    // Colunas seguem a mesma visibilidade por role da tabela /inqueritos —
+    // o export não deve revelar Prazo nem omitir Denunciante de forma
+    // inconsistente com o que o utilizador vê na lista.
     const headers = [
       'NUIPC',
       'Tipo',
@@ -127,10 +132,11 @@ export async function GET(req: NextRequest) {
       'Crimes Associados',
       'Estado',
       'Data Abertura',
-      'Prazo',
+      ...(showPrazo ? ['Prazo'] : []),
       'Data Conclusão',
       'Brigada',
-      'Inspetor',
+      ...(showInspetor ? ['Inspetor'] : []),
+      ...(showDenunciante ? ['Denunciante'] : []),
     ]
     const rows = inqueritos.map((i) => [
       i.nuipc,
@@ -139,10 +145,11 @@ export async function GET(req: NextRequest) {
       i.crimesAssociados.map((c) => c.nome).join('; '),
       i.estado.nome,
       i.dataAbertura ? new Date(i.dataAbertura).toLocaleDateString('pt-PT') : '',
-      i.dataPrazo ? new Date(i.dataPrazo).toLocaleDateString('pt-PT') : '',
+      ...(showPrazo ? [i.dataPrazo ? new Date(i.dataPrazo).toLocaleDateString('pt-PT') : ''] : []),
       i.dataConclusao ? new Date(i.dataConclusao).toLocaleDateString('pt-PT') : '',
       i.brigada?.nome ?? '',
-      i.inspetor?.nome ?? '',
+      ...(showInspetor ? [i.inspetor?.nome ?? ''] : []),
+      ...(showDenunciante ? [i.denuncianteNome ?? ''] : []),
     ])
 
     const csv = UTF8_BOM + [headers, ...rows].map((row) => row.map(escapeCSV).join(',')).join('\n')

@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { buildInqueritoWhere } from '@/lib/auth-helpers'
+import { buildInqueritoWhere, getInqueritoColumnsVisibility } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { InqueritoFilters } from '@/components/inqueritos/inquerito-filters'
@@ -118,12 +118,7 @@ export default async function InqueritosPage({
   const canTransfer = hasPermission(role, 'inquerito:transfer')
   const canImport = hasPermission(role, 'inquerito:bulk:all')
   const showBrigada = hasPermission(role, 'inquerito:read:all')
-  // INSPETOR: a coluna Inspetor é redundante (é sempre o próprio) — mostra
-  // Denunciante em vez disso. INSPETOR_CHEFE: mostra Denunciante a mais,
-  // sem coluna de Prazo.
-  const showInspetor = role !== 'INSPETOR'
-  const showDenunciante = role === 'INSPETOR' || role === 'INSPETOR_CHEFE'
-  const showPrazo = role !== 'INSPETOR_CHEFE'
+  const { showInspetor, showDenunciante, showPrazo } = getInqueritoColumnsVisibility(role)
 
   const [inqueritos, total, inspetores, brigadas, estados, crimes, inspetoresFilter, etiquetasFilter] = await Promise.all([
     prisma.inquerito.findMany({
