@@ -382,14 +382,20 @@ export function calcLinhaDetalhes(
   const totalPrevencao = prevencaoSemana * taxaPrevencaoSemana + prevencaoFds * taxaPrevencaoFds
 
   let ajudaCustoAlmoco = 0, ajudaCustoJantar = 0, ajudaCustoCeia = 0
-  if (
-    linha.km >= config.distanciaMinKmAjudas &&
-    inicio.getUTCFullYear() === ano &&
-    inicio.getUTCMonth() + 1 === mes
-  ) {
-    ajudaCustoAlmoco = linha.ajudaCustoAlmoco
-    ajudaCustoJantar = linha.ajudaCustoJantar
-    ajudaCustoCeia = linha.ajudaCustoCeia
+  if (inicio.getUTCFullYear() === ano && inicio.getUTCMonth() + 1 === mes) {
+    if (linha.km >= config.distanciaMinKmAjudas) {
+      ajudaCustoAlmoco = linha.ajudaCustoAlmoco
+    }
+    if (linha.prevencao === 'PIQUETE') {
+      // Piquete inclui sempre 1 jantar + 1 ceia, independentemente do que
+      // estiver guardado na linha (cobre também registos antigos criados
+      // antes desta regra existir).
+      ajudaCustoJantar = 1
+      ajudaCustoCeia = 1
+    } else if (linha.km >= config.distanciaMinKmAjudas) {
+      ajudaCustoJantar = linha.ajudaCustoJantar
+      ajudaCustoCeia = linha.ajudaCustoCeia
+    }
   }
 
   const totalAjudasCusto =
@@ -515,14 +521,16 @@ export function calcLinhaValor(
     }
   }
 
-  if (
-    linha.km >= config.distanciaMinKmAjudas &&
-    inicio.getUTCFullYear() === ano &&
-    inicio.getUTCMonth() + 1 === mes
-  ) {
-    valor += linha.ajudaCustoAlmoco * config.senhaAlmoco
-    valor += linha.ajudaCustoJantar * config.senhaJantar
-    valor += linha.ajudaCustoCeia * config.senhaCeia
+  if (inicio.getUTCFullYear() === ano && inicio.getUTCMonth() + 1 === mes) {
+    if (linha.km >= config.distanciaMinKmAjudas) {
+      valor += linha.ajudaCustoAlmoco * config.senhaAlmoco
+    }
+    if (linha.prevencao === 'PIQUETE') {
+      valor += config.senhaJantar + config.senhaCeia
+    } else if (linha.km >= config.distanciaMinKmAjudas) {
+      valor += linha.ajudaCustoJantar * config.senhaJantar
+      valor += linha.ajudaCustoCeia * config.senhaCeia
+    }
   }
 
   return valor
@@ -672,16 +680,21 @@ export function calcAjudasTotais(linhas: LinhaWithData[], config: ConfigData, ta
       }
     }
 
-    // Ajudas de custo: only applicable when km >= distanciaMinKmAjudas
-    // and dataInicio falls in the target month
-    if (
-      linha.km >= config.distanciaMinKmAjudas &&
-      inicio.getUTCFullYear() === ano &&
-      inicio.getUTCMonth() + 1 === mes
-    ) {
-      ajudaCustoAlmoco += linha.ajudaCustoAlmoco
-      ajudaCustoJantar += linha.ajudaCustoJantar
-      ajudaCustoCeia += linha.ajudaCustoCeia
+    // Ajudas de custo: almoço só conta com km >= distanciaMinKmAjudas. Piquete
+    // conta sempre 1 jantar + 1 ceia (derivado aqui, não do valor guardado na
+    // linha, para cobrir também registos antigos). Tudo isto apenas quando
+    // dataInicio cai no mês alvo.
+    if (inicio.getUTCFullYear() === ano && inicio.getUTCMonth() + 1 === mes) {
+      if (linha.km >= config.distanciaMinKmAjudas) {
+        ajudaCustoAlmoco += linha.ajudaCustoAlmoco
+      }
+      if (linha.prevencao === 'PIQUETE') {
+        ajudaCustoJantar += 1
+        ajudaCustoCeia += 1
+      } else if (linha.km >= config.distanciaMinKmAjudas) {
+        ajudaCustoJantar += linha.ajudaCustoJantar
+        ajudaCustoCeia += linha.ajudaCustoCeia
+      }
     }
   }
 

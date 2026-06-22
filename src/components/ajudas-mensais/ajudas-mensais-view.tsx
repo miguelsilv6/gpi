@@ -1071,7 +1071,7 @@ tr:nth-child(even) td{background:#f6f6f6}
             <HelpSection title="Tipos de entrada">
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong>Horas Extra</strong> — serviço fora do horário normal. Defina data/hora de início e fim; as horas são automaticamente classificadas por tipo (semana/FdS, dia/noite).</li>
-                <li><strong>Piquete</strong> — dia de serviço de piquete. Selecione o dia; o valor é fixo por tipo de dia (semana ou FdS/feriado).</li>
+                <li><strong>Piquete</strong> — dia de serviço de piquete. Selecione o dia; o valor é fixo por tipo de dia (semana ou FdS/feriado). É associada automaticamente 1 ajuda de custo de jantar e 1 de ceia a esse dia.</li>
                 <li><strong>Prevenção Passiva</strong> — período de prevenção passiva. Defina início e fim (máx. 31 dias); são contados os dias de semana e os FdS separadamente.</li>
               </ul>
             </HelpSection>
@@ -1083,7 +1083,7 @@ tr:nth-child(even) td{background:#f6f6f6}
               </ul>
             </HelpSection>
             <HelpSection title="Ajudas de custo">
-              <p>Se a viatura fizer ≥ {distanciaMin} km, pode registar refeições (almoço, jantar, ceia). O valor é calculado com base nas taxas configuradas globalmente.</p>
+              <p>Se a viatura fizer ≥ {distanciaMin} km, pode registar refeições (almoço, jantar, ceia). O valor é calculado com base nas taxas configuradas globalmente. Nas entradas de Piquete, o jantar e a ceia são sempre associados automaticamente, independentemente da distância.</p>
             </HelpSection>
             <HelpSection title="Limite mensal">
               <p>O total de horas extra está sujeito a um limite mensal (vencimento base ÷ 3). O progresso é mostrado na secção de resumo.</p>
