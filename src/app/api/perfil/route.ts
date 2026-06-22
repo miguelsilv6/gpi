@@ -51,10 +51,6 @@ export async function PUT(req: NextRequest) {
     const parsed = updateSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    if (parsed.data.email !== undefined && (session.user.role as Role) !== 'ADMINISTRACAO') {
-      return apiError('Apenas o administrador pode alterar o email', 403)
-    }
-
     const existing = await prisma.utilizador.findUnique({
       where: { id: session.user.id },
       select: { nome: true, email: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true },
@@ -63,6 +59,21 @@ export async function PUT(req: NextRequest) {
 
     // Normalize email
     const normalizedEmail = parsed.data.email?.toLowerCase().trim()
+
+    if (
+      normalizedEmail !== undefined &&
+      normalizedEmail !== existing.email &&
+      (session.user.role as Role) !== 'ADMINISTRACAO'
+    ) {
+      return apiError('Apenas o administrador pode alterar o email', 403)
+    }
+
+    if (
+      ('ajudasVencimentoBase' in parsed.data || 'ajudasTaxaIRS' in parsed.data) &&
+      !(await isModuloAjudasAtivo(session.user.role as Role))
+    ) {
+      return apiError('Módulo Ajudas Mensais está desativado', 503)
+    }
 
     if (normalizedEmail && normalizedEmail !== existing.email) {
       const exists = await prisma.utilizador.findFirst({
