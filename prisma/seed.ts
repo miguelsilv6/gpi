@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { randomBytes } from 'node:crypto'
 import { PrismaClient } from '../src/generated/prisma/client'
 import { TipoNotificacao, Role } from '../src/generated/prisma/enums'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -6,6 +7,11 @@ import bcrypt from 'bcryptjs'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
+
+function generateRandomPassword(length = 20): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  return Array.from(randomBytes(length), (b) => chars[b % chars.length]).join('')
+}
 
 /**
  * Seed idempotente — apenas o essencial para uma instalação utilizável:
@@ -41,23 +47,34 @@ async function main() {
     })
   }
 
-  const seedPassword = process.env.SEED_PASSWORD ?? 'Admin123!'
-  const hash = (pw: string) => bcrypt.hash(pw, 12)
-
   // ADMINISTRACAO break-glass — protegido: só role/active/password são fixos
-  // (chefeSupremo=true); nome/email podem ter sido personalizados na UI.
-  await prisma.utilizador.upsert({
+  // (chefeSupremo=true); nome/email podem ter sido personalizados na UI. A
+  // password só é gerada/conhecida na criação inicial — em reseeds (todos os
+  // arranques do container) o hash existente nunca é tocado nem reimpresso.
+  const existingAdmin = await prisma.utilizador.findUnique({
     where: { email: 'admin@gpi.pt' },
-    update: { chefeSupremo: true },
-    create: {
-      nome: 'Administrador Sistema',
-      email: 'admin@gpi.pt',
-      passwordHash: await hash(seedPassword),
-      role: 'ADMINISTRACAO',
-      chefeSupremo: true,
-      ativo: true,
-    },
+    select: { id: true },
   })
+
+  let novaPasswordAdmin: string | null = null
+  if (existingAdmin) {
+    await prisma.utilizador.update({
+      where: { email: 'admin@gpi.pt' },
+      data: { chefeSupremo: true },
+    })
+  } else {
+    novaPasswordAdmin = process.env.SEED_PASSWORD?.trim() || generateRandomPassword()
+    await prisma.utilizador.create({
+      data: {
+        nome: 'Administrador Sistema',
+        email: 'admin@gpi.pt',
+        passwordHash: await bcrypt.hash(novaPasswordAdmin, 12),
+        role: 'ADMINISTRACAO',
+        chefeSupremo: true,
+        ativo: true,
+      },
+    })
+  }
 
   await prisma.configuracaoSistema.upsert({
     where: { id: 'singleton' },
@@ -95,7 +112,13 @@ async function main() {
 
   console.log('✅ Seed concluído (estados, admin, configuração, políticas de notificação, comarcas e tribunais).')
   console.log('')
-  console.log(`Único utilizador: admin@gpi.pt (pw: ${seedPassword}). Sem dados de exemplo.`)
+  if (novaPasswordAdmin) {
+    console.log(
+      `⚠️  Utilizador admin criado: admin@gpi.pt (pw: ${novaPasswordAdmin}). Guarda esta password agora — não voltará a ser impressa. Sem dados de exemplo.`,
+    )
+  } else {
+    console.log('Único utilizador: admin@gpi.pt (password inalterada). Sem dados de exemplo.')
+  }
 }
 
 // ─── Comarcas e Tribunais — dados oficiais (comarcas.tribunais.org.pt) ────────
