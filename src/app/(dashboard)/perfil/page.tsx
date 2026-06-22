@@ -258,6 +258,7 @@ interface UserProfile {
   brigada: { id: string; nome: string } | null
   ajudasVencimentoBase: number | null
   ajudasTaxaIRS: number | null
+  moduloAjudasAtivo: boolean
 }
 
 export default function PerfilPage() {
@@ -293,10 +294,14 @@ export default function PerfilPage() {
   }, [profileForm])
 
   async function onProfileSubmit(data: ProfileData) {
+    // O campo email está desativado no formulário para quem não é
+    // administrador — não o enviar evita que o PUT seja rejeitado só por
+    // reenviar o valor (inalterado) que já estava na BD.
+    const payload = user?.role === 'ADMINISTRACAO' ? data : { nome: data.nome }
     const res = await fetch('/api/perfil', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
     if (!res.ok) {
       const err = await res.json()
@@ -412,9 +417,19 @@ export default function PerfilPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...profileForm.register('email')} />
+              <Input
+                id="email"
+                type="email"
+                disabled={user.role !== 'ADMINISTRACAO'}
+                {...profileForm.register('email')}
+              />
               {profileForm.formState.errors.email && (
                 <p className="text-xs text-red-600">{profileForm.formState.errors.email.message}</p>
+              )}
+              {user.role !== 'ADMINISTRACAO' && (
+                <p className="text-xs text-muted-foreground">
+                  Apenas o administrador pode alterar o email. Contacte o administrador do sistema.
+                </p>
               )}
             </div>
             <Button type="submit" disabled={profileForm.formState.isSubmitting} size="sm">
@@ -425,49 +440,51 @@ export default function PerfilPage() {
         </CardContent>
       </Card>
 
-      {/* Ajudas Mensais settings */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
-            <Calculator className="h-4 w-4" />
-            Ajudas Mensais
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            Ambos os campos são obrigatórios para ativar o cálculo das ajudas. O <strong>Vencimento Base</strong> é o seu salário base pessoal e define o limite mensal individual (1/3 do vencimento). A <strong>Taxa de IRS</strong> é a sua taxa de retenção.
-          </p>
-          <div className="space-y-1.5">
-            <Label htmlFor="ajudasVencimento">Vencimento Base (€)</Label>
-            <Input
-              id="ajudasVencimento"
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="ex: 1974.41"
-              value={ajudasVencimento}
-              onChange={(e) => setAjudasVencimento(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ajudasIRS">Taxa de Retenção de IRS (%)</Label>
-            <Input
-              id="ajudasIRS"
-              type="number"
-              step="0.01"
-              min={0}
-              max={100}
-              placeholder="ex: 11.16"
-              value={ajudasIRS}
-              onChange={(e) => setAjudasIRS(e.target.value)}
-            />
-          </div>
-          <Button size="sm" onClick={onAjudasSave} disabled={savingAjudas}>
-            {savingAjudas && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Guardar
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Ajudas Mensais settings — só visível com o módulo ativo */}
+      {user.moduloAjudasAtivo && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+              <Calculator className="h-4 w-4" />
+              Ajudas Mensais
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Ambos os campos são obrigatórios para ativar o cálculo das ajudas. O <strong>Vencimento Base</strong> é o seu salário base pessoal e define o limite mensal individual (1/3 do vencimento). A <strong>Taxa de IRS</strong> é a sua taxa de retenção.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="ajudasVencimento">Vencimento Base (€)</Label>
+              <Input
+                id="ajudasVencimento"
+                type="number"
+                step="0.01"
+                min={0}
+                placeholder="ex: 1974.41"
+                value={ajudasVencimento}
+                onChange={(e) => setAjudasVencimento(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ajudasIRS">Taxa de Retenção de IRS (%)</Label>
+              <Input
+                id="ajudasIRS"
+                type="number"
+                step="0.01"
+                min={0}
+                max={100}
+                placeholder="ex: 11.16"
+                value={ajudasIRS}
+                onChange={(e) => setAjudasIRS(e.target.value)}
+              />
+            </div>
+            <Button size="sm" onClick={onAjudasSave} disabled={savingAjudas}>
+              {savingAjudas && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Viaturas */}
       <ViaturasList />

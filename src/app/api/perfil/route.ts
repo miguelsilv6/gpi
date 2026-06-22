@@ -2,8 +2,10 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit, diff } from '@/lib/audit'
+import { isModuloAjudasAtivo } from '@/lib/ajudas-module'
 import { z } from 'zod'
 import { hash, compare } from 'bcryptjs'
+import type { Role } from '@/generated/prisma/enums'
 
 const updateSchema = z.object({
   nome: z.string().min(1, 'Nome obrigatório').max(100).optional(),
@@ -35,7 +37,8 @@ export async function GET() {
       },
     })
     if (!user) return apiError('Utilizador não encontrado', 404)
-    return Response.json(user)
+    const moduloAjudasAtivo = await isModuloAjudasAtivo(user.role as Role)
+    return Response.json({ ...user, moduloAjudasAtivo })
   } catch (error) {
     return handleApiError(error)
   }
@@ -47,6 +50,10 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const parsed = updateSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
+
+    if (parsed.data.email !== undefined && (session.user.role as Role) !== 'ADMINISTRACAO') {
+      return apiError('Apenas o administrador pode alterar o email', 403)
+    }
 
     const existing = await prisma.utilizador.findUnique({
       where: { id: session.user.id },
