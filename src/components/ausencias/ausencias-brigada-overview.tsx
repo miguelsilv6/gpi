@@ -89,6 +89,7 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
   }, [rangeStart, rangeEnd])
 
   const total = dayList.length
+  const todayKey = dayKey(new Date())
 
   const absentPerDay = useMemo(() => {
     const counts = new Array(total).fill(0)
@@ -263,6 +264,7 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
                   >
                     {dayList.map((dm, idx) => {
                       const multi = absentPerDay[idx] > 1
+                      const isToday = dm.key === todayKey
                       return (
                         <div
                           key={dm.key}
@@ -272,9 +274,10 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
                               ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 font-semibold'
                               : dm.nonWorking
                                 ? 'bg-muted text-muted-foreground'
-                                : 'text-muted-foreground')
+                                : 'text-muted-foreground') +
+                            (isToday ? ' bg-primary text-primary-foreground font-semibold' : '')
                           }
-                          title={multi ? `${absentPerDay[idx]} inspetores ausentes em ${format(dm.date, 'dd/MM/yyyy')}` : undefined}
+                          title={isToday ? 'Hoje' : multi ? `${absentPerDay[idx]} inspetores ausentes em ${format(dm.date, 'dd/MM/yyyy')}` : undefined}
                         >
                           {showDayNumbers ? dm.day : ''}
                         </div>
@@ -291,7 +294,10 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
                         {dayList.map((dm) => (
                           <div
                             key={dm.key}
-                            className={'border-l first:border-l-0 ' + (dm.nonWorking ? 'bg-muted/60' : '')}
+                            className={
+                              'border-l first:border-l-0 ' +
+                              (dm.key === todayKey ? 'bg-primary/10' : dm.nonWorking ? 'bg-muted/60' : '')
+                            }
                           />
                         ))}
                       </div>
@@ -346,6 +352,9 @@ function Legend() {
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span className="h-2.5 w-4 rounded bg-red-200 dark:bg-red-950/60" /> +1 ausente
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-2.5 w-4 rounded bg-primary" /> Hoje
       </span>
     </div>
   )

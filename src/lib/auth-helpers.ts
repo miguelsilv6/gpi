@@ -11,6 +11,7 @@ export {
   buildAtividadePrazoWhere,
   buildInqueritoWhere,
   buildControloWhere,
+  buildNotaInqueritoAutorWhere,
   canEditInquerito,
   getInqueritoColumnsVisibility,
 } from '@/lib/role-scope'

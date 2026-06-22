@@ -1,7 +1,7 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { buildInqueritoWhere } from '@/lib/role-scope'
+import { buildInqueritoWhere, buildNotaInqueritoAutorWhere } from '@/lib/role-scope'
 import { hasPermission } from '@/lib/rbac'
 import { AccessDenied } from '@/components/access-denied'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
@@ -31,13 +31,17 @@ export default async function NotasPage() {
   }
 
   const scope = buildInqueritoWhere(role, session.user.id, session.user.brigadaId ?? null)
+  const notaWhere = {
+    inquerito: { deletedAt: null, ...scope },
+    ...buildNotaInqueritoAutorWhere(role, session.user.id),
+  }
 
   const [total, rows] = await Promise.all([
     prisma.notaInquerito.count({
-      where: { inquerito: { deletedAt: null, ...scope } },
+      where: notaWhere,
     }),
     prisma.notaInquerito.findMany({
-      where: { inquerito: { deletedAt: null, ...scope } },
+      where: notaWhere,
       orderBy: { updatedAt: 'desc' },
       take: MAX_NOTAS,
       select: {
@@ -79,7 +83,7 @@ export default async function NotasPage() {
         </div>
         <HelpButton title="Ajuda — Notas" className="shrink-0">
           <HelpSection title="O que vê aqui">
-            <p>Esta página reúne todas as notas de investigação a que tem acesso, agrupadas por inquérito e ordenadas pela última atualização. O acesso respeita as mesmas regras dos inquéritos (inspetor vê as suas, chefe vê as da brigada).</p>
+            <p>Esta página reúne as notas de investigação a que tem acesso, agrupadas por inquérito e ordenadas pela última atualização. O inspetor vê todas as notas dos seus inquéritos; chefe e superior veem, dentro do seu âmbito de inquéritos (brigada ou todos), apenas as notas que eles próprios escreveram.</p>
           </HelpSection>
           <HelpSection title="Pesquisar">
             <p>Use a caixa de pesquisa para filtrar por conteúdo, título, NUIPC ou autor. Clique em <strong>Abrir</strong> num inquérito para ir ao seu detalhe e editar as notas.</p>
