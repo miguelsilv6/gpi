@@ -93,6 +93,14 @@ describe('hasPermission', () => {
     })
   })
 
+  describe('permissions de histórico de auditoria do inquérito', () => {
+    test('todos exceto ESTATISTICA veem o histórico (scoped ao seu âmbito de leitura)', () => {
+      for (const role of ROLES) {
+        expect(hasPermission(role, 'inquerito:audit:read')).toBe(role !== 'ESTATISTICA')
+      }
+    })
+  })
+
   describe('permissions de exportação', () => {
     test('todos os roles exportam (INSPETOR incluído, scoped aos seus próprios inquéritos)', () => {
       expect(hasPermission('INSPETOR', 'inquerito:export')).toBe(true)
