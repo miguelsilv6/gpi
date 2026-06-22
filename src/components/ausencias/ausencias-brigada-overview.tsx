@@ -275,9 +275,19 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
                               : dm.nonWorking
                                 ? 'bg-muted text-muted-foreground'
                                 : 'text-muted-foreground') +
-                            (isToday ? ' bg-primary text-primary-foreground font-semibold' : '')
+                            // ring (não bg-*/text-*) para não colidir com as classes de
+                            // cor acima — assim "hoje" fica visível mesmo num dia com +1 ausente.
+                            (isToday ? ' ring-2 ring-inset ring-primary font-semibold' : '')
                           }
-                          title={isToday ? 'Hoje' : multi ? `${absentPerDay[idx]} inspetores ausentes em ${format(dm.date, 'dd/MM/yyyy')}` : undefined}
+                          title={
+                            isToday
+                              ? multi
+                                ? `Hoje — ${absentPerDay[idx]} inspetores ausentes`
+                                : 'Hoje'
+                              : multi
+                                ? `${absentPerDay[idx]} inspetores ausentes em ${format(dm.date, 'dd/MM/yyyy')}`
+                                : undefined
+                          }
                         >
                           {showDayNumbers ? dm.day : ''}
                         </div>
