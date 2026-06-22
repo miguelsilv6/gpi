@@ -194,8 +194,8 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
         </CardContent>
       </Card>
 
-      {/* Gantt timeline */}
-      <Card>
+      {/* Gantt timeline — oculto em mobile, onde a grelha de dias fica demasiado apertada */}
+      <Card className="hidden md:block">
         <CardHeader className="pb-2 flex-row flex-wrap items-center justify-between space-y-0 gap-2">
           <CardTitle className="text-sm font-medium text-muted-foreground capitalize">
             {rangeLabel}
