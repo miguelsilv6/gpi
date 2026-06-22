@@ -15,6 +15,9 @@ ALTER TYPE "TipoNotificacao" ADD VALUE IF NOT EXISTS 'ATIVIDADE_PRAZO_APROXIMAND
 -- DropIndex
 DROP INDEX IF EXISTS "Controlo_atividadeId_idx";
 DROP INDEX IF EXISTS "Inquerito_faseProcessual_idx";
+-- Redundant with the unique index already on this column (Inquerito_nai_key);
+-- @@index([nai]) was removed from schema.prisma.
+DROP INDEX IF EXISTS "Inquerito_nai_idx";
 
 -- AlterTable Atividade
 ALTER TABLE "Atividade" ADD COLUMN IF NOT EXISTS "alerta1Enviado" BOOLEAN NOT NULL DEFAULT false;
@@ -130,7 +133,6 @@ CREATE INDEX IF NOT EXISTS "Atividade_dataPrazo_idx" ON "Atividade"("dataPrazo")
 CREATE INDEX IF NOT EXISTS "Atividade_concluidaEm_idx" ON "Atividade"("concluidaEm");
 CREATE INDEX IF NOT EXISTS "EstadoInquerito_ativo_ordem_idx" ON "EstadoInquerito"("ativo", "ordem");
 CREATE UNIQUE INDEX IF NOT EXISTS "Inquerito_nai_key" ON "Inquerito"("nai");
-CREATE INDEX IF NOT EXISTS "Inquerito_nai_idx" ON "Inquerito"("nai");
 CREATE INDEX IF NOT EXISTS "Inquerito_updatedAt_idx" ON "Inquerito"("updatedAt" DESC);
 CREATE INDEX IF NOT EXISTS "Inquerito_brigadaId_updatedAt_idx" ON "Inquerito"("brigadaId", "updatedAt" DESC);
 CREATE INDEX IF NOT EXISTS "Inquerito_inspetorId_updatedAt_idx" ON "Inquerito"("inspetorId", "updatedAt" DESC);
