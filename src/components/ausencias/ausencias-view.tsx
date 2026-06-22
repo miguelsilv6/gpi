@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Plane, Coffee, Trash2, Pencil, ZoomIn, ZoomOut } from 'lucide-react'
+import { Plane, Coffee, Trash2, Pencil, ZoomIn, ZoomOut, Lock, LockOpen } from 'lucide-react'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -160,6 +161,12 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
   const [editing, setEditing] = useState<Ausencia | null>(null)
   const [deleting, setDeleting] = useState<Ausencia | null>(null)
 
+  // No telemóvel, editar/apagar uma marcação começa bloqueado para evitar
+  // toques acidentais na lista; o utilizador desbloqueia explicitamente.
+  const isMobile = useIsMobile()
+  const [unlocked, setUnlocked] = useState(false)
+  const editingLocked = isMobile && !unlocked
+
   const fetchSelf = useCallback(async (y: number, signal?: AbortSignal) => {
     setLoading(true)
     try {
@@ -307,8 +314,24 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex-row flex-wrap items-center justify-between space-y-0 gap-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Marcações de {ano}</CardTitle>
+            {isMobile && (
+              <Button
+                size="sm"
+                variant={unlocked ? 'secondary' : 'outline'}
+                className={cn(
+                  'gap-1.5 text-xs',
+                  !unlocked && 'text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950/30',
+                )}
+                onClick={() => setUnlocked((v) => !v)}
+              >
+                {unlocked
+                  ? <><LockOpen className="h-3.5 w-3.5" />Bloquear edição</>
+                  : <><Lock className="h-3.5 w-3.5" />Editar</>
+                }
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {ausencias.length === 0 ? (
@@ -332,10 +355,22 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
                           {dias} dia{dias === 1 ? '' : 's'}
                         </span>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon-sm" onClick={() => setEditing(a)} aria-label="Editar">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setEditing(a)}
+                            aria-label="Editar"
+                            disabled={editingLocked}
+                          >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(a)} aria-label="Apagar">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleting(a)}
+                            aria-label="Apagar"
+                            disabled={editingLocked}
+                          >
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>
@@ -387,13 +422,13 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
               <p>A contagem exclui fins-de-semana e feriados nacionais portugueses (incluindo feriados móveis). O número de dias úteis é calculado automaticamente ao selecionar o intervalo.</p>
             </HelpSection>
             <HelpSection title="Editar ou eliminar">
-              <p>Na lista de marcações, use os ícones de lápis e lixo para editar ou apagar uma ausência existente.</p>
+              <p>Na lista de marcações, use os ícones de lápis e lixo para editar ou apagar uma ausência existente. No telemóvel, estas ações começam bloqueadas para evitar toques acidentais — clique em <strong>Editar</strong>, junto ao título da lista, para desbloquear.</p>
             </HelpSection>
             <HelpSection title="Vista da brigada">
               <p>Se tiver permissões de chefe ou coordenador, o separador <strong>Brigada</strong> mostra o Gantt de ausências de todos os membros da brigada — útil para detetar conflitos ou sobreposições.</p>
             </HelpSection>
             <HelpSection title="Gráfico de Gantt">
-              <p>Use os botões <strong>Mês / Trimestre / Ano</strong> para ajustar a escala temporal do Gantt. Passe o cursor sobre uma barra para ver os detalhes. O fundo a cinzento indica fins-de-semana ou feriados.</p>
+              <p>Use os botões <strong>Mês / Trimestre / Ano</strong> para ajustar a escala temporal do Gantt. Passe o cursor sobre uma barra para ver os detalhes. O fundo a cinzento indica fins-de-semana ou feriados. No telemóvel o Gantt não é mostrado — fica disponível a tabela de totais por inspetor.</p>
             </HelpSection>
           </HelpButton>
         </div>
@@ -484,7 +519,7 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Início</Label>
                   <Input

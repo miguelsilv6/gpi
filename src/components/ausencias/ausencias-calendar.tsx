@@ -117,33 +117,39 @@ export function AusenciasCalendar({ ausencias, month, onMonthChange, onCreate, b
 
       <div className="space-y-1.5 rounded-lg border p-3">
         <Label className="text-xs text-muted-foreground">Ou indique as datas diretamente</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type="date"
-            aria-label="Data de início"
-            value={range?.from ? toKey(range.from) : ''}
-            onChange={(e) => {
-              if (!e.target.value) {
-                setRange((prev) => (prev?.to ? { from: undefined, to: prev.to } : undefined))
-                return
-              }
-              const from = fromKey(e.target.value)
-              setRange({ from, to: range?.to && range.to >= from ? range.to : from })
-            }}
-          />
-          <Input
-            type="date"
-            aria-label="Data de fim"
-            value={range?.to ? toKey(range.to) : ''}
-            onChange={(e) => {
-              if (!e.target.value) {
-                setRange((prev) => (prev?.from ? { from: prev.from, to: undefined } : undefined))
-                return
-              }
-              const to = fromKey(e.target.value)
-              setRange({ from: range?.from && range.from <= to ? range.from : to, to })
-            }}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label htmlFor="ausencia-data-inicio" className="text-xs text-muted-foreground">Início</Label>
+            <Input
+              id="ausencia-data-inicio"
+              type="date"
+              value={range?.from ? toKey(range.from) : ''}
+              onChange={(e) => {
+                if (!e.target.value) {
+                  setRange((prev) => (prev?.to ? { from: undefined, to: prev.to } : undefined))
+                  return
+                }
+                const from = fromKey(e.target.value)
+                setRange({ from, to: range?.to && range.to >= from ? range.to : from })
+              }}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="ausencia-data-fim" className="text-xs text-muted-foreground">Fim</Label>
+            <Input
+              id="ausencia-data-fim"
+              type="date"
+              value={range?.to ? toKey(range.to) : ''}
+              onChange={(e) => {
+                if (!e.target.value) {
+                  setRange((prev) => (prev?.from ? { from: prev.from, to: undefined } : undefined))
+                  return
+                }
+                const to = fromKey(e.target.value)
+                setRange({ from: range?.from && range.from <= to ? range.from : to, to })
+              }}
+            />
+          </div>
         </div>
       </div>
 
