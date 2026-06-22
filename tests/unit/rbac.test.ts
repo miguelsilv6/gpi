@@ -94,15 +94,10 @@ describe('hasPermission', () => {
   })
 
   describe('permissions de histórico de auditoria do inquérito', () => {
-    test('INSPETOR, INSPETOR_CHEFE, COORDENADOR e ADMINISTRACAO veem o histórico (scoped ao seu âmbito de leitura)', () => {
-      expect(hasPermission('INSPETOR', 'inquerito:audit:read')).toBe(true)
-      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:audit:read')).toBe(true)
-      expect(hasPermission('COORDENADOR', 'inquerito:audit:read')).toBe(true)
-      expect(hasPermission('ADMINISTRACAO', 'inquerito:audit:read')).toBe(true)
-    })
-
-    test('ESTATISTICA não vê o histórico (role apenas de leitura agregada)', () => {
-      expect(hasPermission('ESTATISTICA', 'inquerito:audit:read')).toBe(false)
+    test('todos exceto ESTATISTICA veem o histórico (scoped ao seu âmbito de leitura)', () => {
+      for (const role of ROLES) {
+        expect(hasPermission(role, 'inquerito:audit:read')).toBe(role !== 'ESTATISTICA')
+      }
     })
   })
 
