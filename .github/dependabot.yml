@@ -1,0 +1,20 @@
+# Dependabot security updates (sem version updates de rotina).
+#
+# open-pull-requests-limit: 0 desativa PRs de version update agendadas;
+# não afeta os PRs de security update, que continuam a ser abertos
+# automaticamente quando há um alerta de vulnerabilidade.
+#
+# ignore com update-types semver-major aplica-se também aos security
+# updates (ver docs do Dependabot), pelo que correções que exijam subir
+# de major version ficam de fora — exigem revisão manual por poderem
+# trazer breaking changes.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
