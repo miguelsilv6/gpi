@@ -193,7 +193,6 @@ model Inquerito {
   @@index([crimeId])
   @@index([dataPrazo])
   @@index([nuipc])
-  @@index([nai])
   @@index([updatedAt(sort: Desc)])
   @@index([brigadaId, updatedAt(sort: Desc)])
   @@index([inspetorId, updatedAt(sort: Desc)])
