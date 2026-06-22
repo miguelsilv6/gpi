@@ -2,8 +2,10 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit, diff } from '@/lib/audit'
+import { isModuloAjudasAtivo } from '@/lib/ajudas-module'
 import { z } from 'zod'
 import { hash, compare } from 'bcryptjs'
+import type { Role } from '@/generated/prisma/enums'
 
 const updateSchema = z.object({
   nome: z.string().min(1, 'Nome obrigatório').max(100).optional(),
@@ -35,7 +37,8 @@ export async function GET() {
       },
     })
     if (!user) return apiError('Utilizador não encontrado', 404)
-    return Response.json(user)
+    const moduloAjudasAtivo = await isModuloAjudasAtivo(user.role as Role)
+    return Response.json({ ...user, moduloAjudasAtivo })
   } catch (error) {
     return handleApiError(error)
   }
@@ -56,6 +59,21 @@ export async function PUT(req: NextRequest) {
 
     // Normalize email
     const normalizedEmail = parsed.data.email?.toLowerCase().trim()
+
+    if (
+      normalizedEmail !== undefined &&
+      normalizedEmail !== existing.email &&
+      (session.user.role as Role) !== 'ADMINISTRACAO'
+    ) {
+      return apiError('Apenas o administrador pode alterar o email', 403)
+    }
+
+    if (
+      ('ajudasVencimentoBase' in parsed.data || 'ajudasTaxaIRS' in parsed.data) &&
+      !(await isModuloAjudasAtivo(session.user.role as Role))
+    ) {
+      return apiError('Módulo Ajudas Mensais está desativado', 503)
+    }
 
     if (normalizedEmail && normalizedEmail !== existing.email) {
       const exists = await prisma.utilizador.findFirst({
