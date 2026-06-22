@@ -74,6 +74,20 @@ export function getInqueritoColumnsVisibility(role: Role): {
 }
 
 /**
+ * Notas de investigação — restrição por autor para chefe e superior.
+ * O inspetor vê todas as notas dos inquéritos a que tem acesso (incluindo
+ * notas de outros, ex.: do seu chefe, no mesmo inquérito). Chefe e superior
+ * (todos exceto INSPETOR) só veem, dentro do seu âmbito de inquéritos
+ * (brigada ou todos), as notas que eles próprios escreveram.
+ */
+export function buildNotaInqueritoAutorWhere(
+  role: Role,
+  userId: string,
+): { autorId?: string } {
+  return role === 'INSPETOR' ? {} : { autorId: userId }
+}
+
+/**
  * Single source of truth para "pode este utilizador editar este inquérito?".
  * Usa-se após obter o inquérito (para conhecer o brigadaId/inspetorId reais).
  */

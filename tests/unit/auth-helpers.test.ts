@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest'
 import {
   buildInqueritoWhere,
   buildAtividadePrazoWhere,
+  buildNotaInqueritoAutorWhere,
   canEditInquerito,
   getInqueritoColumnsVisibility,
 } from '@/lib/role-scope'
@@ -103,6 +104,18 @@ describe('getInqueritoColumnsVisibility', () => {
         showDenunciante: false,
         showPrazo: true,
       })
+    }
+  })
+})
+
+describe('buildNotaInqueritoAutorWhere', () => {
+  test('INSPETOR não tem restrição por autor (vê todas as notas a que tem acesso)', () => {
+    expect(buildNotaInqueritoAutorWhere('INSPETOR', 'user-1')).toEqual({})
+  })
+
+  test('INSPETOR_CHEFE e superior só veem as próprias notas', () => {
+    for (const role of ['INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'] as const) {
+      expect(buildNotaInqueritoAutorWhere(role, 'user-1')).toEqual({ autorId: 'user-1' })
     }
   })
 })

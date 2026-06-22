@@ -138,7 +138,7 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
   })
   const ano = month.getFullYear()
 
-  const [tab, setTab] = useState<'me' | 'brigade'>('me')
+  const [tab, setTab] = useState<'me' | 'brigade'>(canViewBrigade ? 'brigade' : 'me')
   const [ausencias, setAusencias] = useState<Ausencia[]>([])
   const [totais, setTotais] = useState<Totais>({ ferias: 0, folga: 0, total: 0 })
   const [membros, setMembros] = useState<MembroFerias[]>([])
