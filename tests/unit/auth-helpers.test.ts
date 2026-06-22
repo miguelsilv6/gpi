@@ -3,6 +3,7 @@ import {
   buildInqueritoWhere,
   buildAtividadePrazoWhere,
   canEditInquerito,
+  getInqueritoColumnsVisibility,
 } from '@/lib/role-scope'
 
 /**
@@ -75,5 +76,33 @@ describe('canEditInquerito', () => {
 
   test('ESTATISTICA não tem edit (read-only role)', () => {
     expect(canEditInquerito('ESTATISTICA', 'u', null, inq)).toBe(false)
+  })
+})
+
+describe('getInqueritoColumnsVisibility', () => {
+  test('INSPETOR: oculta Inspetor (é sempre o próprio), mostra Denunciante e Prazo', () => {
+    expect(getInqueritoColumnsVisibility('INSPETOR')).toEqual({
+      showInspetor: false,
+      showDenunciante: true,
+      showPrazo: true,
+    })
+  })
+
+  test('INSPETOR_CHEFE: mostra Inspetor e Denunciante, oculta Prazo', () => {
+    expect(getInqueritoColumnsVisibility('INSPETOR_CHEFE')).toEqual({
+      showInspetor: true,
+      showDenunciante: true,
+      showPrazo: false,
+    })
+  })
+
+  test('COORDENADOR/ESTATISTICA/ADMINISTRACAO: mostra Inspetor e Prazo, oculta Denunciante', () => {
+    for (const role of ['COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'] as const) {
+      expect(getInqueritoColumnsVisibility(role)).toEqual({
+        showInspetor: true,
+        showDenunciante: false,
+        showPrazo: true,
+      })
+    }
   })
 })

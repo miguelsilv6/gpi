@@ -56,6 +56,24 @@ export function buildInqueritoWhere(
 }
 
 /**
+ * Single source of truth para a visibilidade de colunas na lista de
+ * inquéritos (tabela, cartões mobile e export CSV). INSPETOR: Inspetor é
+ * redundante (é sempre o próprio) — mostra Denunciante em vez disso.
+ * INSPETOR_CHEFE: mostra Denunciante a mais, sem coluna de Prazo.
+ */
+export function getInqueritoColumnsVisibility(role: Role): {
+  showInspetor: boolean
+  showDenunciante: boolean
+  showPrazo: boolean
+} {
+  return {
+    showInspetor: role !== 'INSPETOR',
+    showDenunciante: role === 'INSPETOR' || role === 'INSPETOR_CHEFE',
+    showPrazo: role !== 'INSPETOR_CHEFE',
+  }
+}
+
+/**
  * Single source of truth para "pode este utilizador editar este inquérito?".
  * Usa-se após obter o inquérito (para conhecer o brigadaId/inspetorId reais).
  */

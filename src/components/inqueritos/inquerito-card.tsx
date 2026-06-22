@@ -30,6 +30,9 @@ interface InqueritoCardProps {
   estado: EstadoLike
   etiquetas?: EtiquetaLike[]
   dataPrazo: Date | null
+  /** Mostra a etiqueta de Prazo. O alerta de atraso (ícone) mantém-se
+   *  mesmo quando false — só a data deixa de ser exibida. */
+  showPrazo?: boolean
   inspetorNome?: string | null
   atividadesCount?: number
   /**
@@ -126,6 +129,7 @@ export function InqueritoCard({
   estado,
   etiquetas = [],
   dataPrazo,
+  showPrazo = true,
   inspetorNome,
   atividadesCount = 0,
   selectionMode = false,
@@ -215,7 +219,7 @@ export function InqueritoCard({
             {inspetorNome}
           </span>
         )}
-        {dataPrazo && (
+        {showPrazo && dataPrazo && (
           <span className={cn('flex items-center gap-1', overdue && 'text-red-600 font-medium')}>
             <Calendar className="h-3 w-3" />
             {formatDate(dataPrazo)}

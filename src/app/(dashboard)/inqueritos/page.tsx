@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { buildInqueritoWhere } from '@/lib/auth-helpers'
+import { buildInqueritoWhere, getInqueritoColumnsVisibility } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { InqueritoFilters } from '@/components/inqueritos/inquerito-filters'
@@ -118,6 +118,7 @@ export default async function InqueritosPage({
   const canTransfer = hasPermission(role, 'inquerito:transfer')
   const canImport = hasPermission(role, 'inquerito:bulk:all')
   const showBrigada = hasPermission(role, 'inquerito:read:all')
+  const { showInspetor, showDenunciante, showPrazo } = getInqueritoColumnsVisibility(role)
 
   const [inqueritos, total, inspetores, brigadas, estados, crimes, inspetoresFilter, etiquetasFilter] = await Promise.all([
     prisma.inquerito.findMany({
@@ -249,7 +250,9 @@ export default async function InqueritosPage({
         canBulk={canBulk}
         canTransfer={canTransfer}
         showBrigada={showBrigada}
-        showDenunciante={role === 'INSPETOR'}
+        showInspetor={showInspetor}
+        showDenunciante={showDenunciante}
+        showPrazo={showPrazo}
         inspetores={inspetores}
         brigadas={brigadas}
         estados={estados}

@@ -1,7 +1,7 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { buildInqueritoWhere } from '@/lib/auth-helpers'
+import { buildInqueritoWhere, getInqueritoColumnsVisibility } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { InqueritoTable } from '@/components/inqueritos/inquerito-table'
 import { ChevronLeft, Send } from 'lucide-react'
@@ -27,6 +27,7 @@ export default async function EnviadosPage() {
   const nomes = padroes.map((p) => p.nome)
 
   const showBrigada = hasPermission(role, 'inquerito:read:all')
+  const { showInspetor, showDenunciante, showPrazo } = getInqueritoColumnsVisibility(role)
 
   const inqueritos = nomes.length === 0
     ? []
@@ -87,7 +88,9 @@ export default async function EnviadosPage() {
           canBulk={false}
           canTransfer={false}
           showBrigada={showBrigada}
-          showDenunciante={role === 'INSPETOR'}
+          showInspetor={showInspetor}
+          showDenunciante={showDenunciante}
+          showPrazo={showPrazo}
           inspetores={[]}
           brigadas={[]}
           estados={[]}
