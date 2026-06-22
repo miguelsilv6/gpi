@@ -194,8 +194,10 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
         </CardContent>
       </Card>
 
-      {/* Gantt timeline — oculto em mobile, onde a grelha de dias fica demasiado apertada */}
-      <Card className="hidden md:block">
+      {/* Gantt timeline — grelha oculta em mobile (demasiado apertada), mas o cabeçalho
+          com os controlos de mês/trimestre/ano mantém-se visível: a tabela de totais
+          acima também depende deste estado de período. */}
+      <Card>
         <CardHeader className="pb-2 flex-row flex-wrap items-center justify-between space-y-0 gap-2">
           <CardTitle className="text-sm font-medium text-muted-foreground capitalize">
             {rangeLabel}
@@ -226,7 +228,7 @@ export function AusenciasBrigadaOverview({ membros, month, onMonthChange, scale,
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="hidden md:block">
           {membros.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">Sem dados para apresentar.</p>
           ) : (
