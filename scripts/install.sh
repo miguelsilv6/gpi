@@ -134,6 +134,7 @@ else
   NEXTAUTH_SECRET=$(gen_secret)
   CRON_SECRET=$(gen_secret)
   POSTGRES_PASSWORD=$(gen_password)
+  SEED_PASSWORD=$(gen_password)
 
   cat > .env <<EOF
 HOST_PORT=$PORT
@@ -145,7 +146,7 @@ POSTGRES_DB=gpi_db
 NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 NEXTAUTH_URL=http://localhost:$PORT
 
-SEED_PASSWORD=Admin123!
+SEED_PASSWORD=$SEED_PASSWORD
 
 CRON_SECRET=$CRON_SECRET
 
@@ -226,12 +227,15 @@ fi
 
 # ─── Final summary ────────────────────────────────────────────────────────────
 SEED_PWD=$(grep -E '^SEED_PASSWORD=' .env | head -n1 | cut -d= -f2)
-SEED_PWD=${SEED_PWD:-Admin123!}
 
 title "✅ GPI pronto"
 echo
 printf "  URL:           ${C_BOLD}%s${C_RESET}\n" "$URL"
-printf "  Login admin:   ${C_BOLD}admin@gpi.pt${C_RESET} / ${C_BOLD}%s${C_RESET}\n" "$SEED_PWD"
+if [ -n "$SEED_PWD" ]; then
+  printf "  Login admin:   ${C_BOLD}admin@gpi.pt${C_RESET} / ${C_BOLD}%s${C_RESET}\n" "$SEED_PWD"
+else
+  printf "  Login admin:   ${C_BOLD}admin@gpi.pt${C_RESET} / (gerada aleatoriamente — ver ${C_BOLD}%s logs${C_RESET} do primeiro arranque)\n" "$DC -f docker-compose.prod.yml"
+fi
 echo
 echo "Comandos úteis (a partir de $INSTALL_DIR):"
 echo "  Ver logs:      $DC -f docker-compose.prod.yml logs -f"

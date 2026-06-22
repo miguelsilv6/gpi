@@ -153,6 +153,7 @@ if (Test-Path $envFile) {
     $nextauthSecret    = New-Secret
     $cronSecret        = New-Secret
     $postgresPassword  = New-Password
+    $seedPassword      = New-Password
 
     @"
 HOST_PORT=$port
@@ -164,7 +165,7 @@ POSTGRES_DB=gpi_db
 NEXTAUTH_SECRET=$nextauthSecret
 NEXTAUTH_URL=http://localhost:$port
 
-SEED_PASSWORD=Admin123!
+SEED_PASSWORD=$seedPassword
 
 CRON_SECRET=$cronSecret
 
@@ -217,12 +218,16 @@ if ($env:GPI_NO_OPEN -ne '1') {
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
 $seedLine = (Get-Content $envFile | Where-Object { $_ -match '^SEED_PASSWORD=' } | Select-Object -First 1)
-$seedPwd  = if ($seedLine) { ($seedLine -split '=', 2)[1].Trim() } else { 'Admin123!' }
+$seedPwd  = if ($seedLine) { ($seedLine -split '=', 2)[1].Trim() } else { '' }
 
 Write-Title '✅ GPI pronto'
 Write-Host ''
 Write-Host "  URL:           " -NoNewline; Write-Host $url -ForegroundColor White
-Write-Host "  Login admin:   admin@gpi.pt / $seedPwd" -ForegroundColor White
+if ($seedPwd) {
+    Write-Host "  Login admin:   admin@gpi.pt / $seedPwd" -ForegroundColor White
+} else {
+    Write-Host "  Login admin:   admin@gpi.pt / (gerada aleatoriamente — ver '$DC -f docker-compose.prod.yml logs' do primeiro arranque)" -ForegroundColor White
+}
 Write-Host ''
 Write-Host "Comandos úteis (a partir de $InstallDir):"
 Write-Host "  Ver logs:      $DC -f docker-compose.prod.yml logs -f"
