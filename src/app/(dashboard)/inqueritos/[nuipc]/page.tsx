@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail, MonitorCog } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 import { CopyNuipcButton } from '@/components/inqueritos/copy-nuipc-button'
@@ -129,18 +129,35 @@ export default async function InqueritoDetailPage({
     .filter((p) => p.contaParaEstatistica)
     .map((p) => p.nome)
   const temQtdByNome = new Map(todosPadroes.map((p) => [p.nome, p.temQuantidade]))
+  const nomesAguardaExames = todosPadroes
+    .filter((p) => p.categoriaDashboard === 'AGUARDA_EXAMES')
+    .map((p) => p.nome)
 
-  const summary = nomesQueContam.length
-    ? await prisma.atividade.groupBy({
-        by: ['descricao'],
-        where: {
-          inqueritoid: inquerito.id,
-          descricao: { in: nomesQueContam },
-        },
-        _count: { _all: true },
-        _sum: { quantidade: true },
-      })
-    : []
+  // aguardaExamesPendentes conta TODAS as atividades por concluir (não só as
+  // da página atual), para o balão junto ao estado refletir a realidade
+  // mesmo quando essas atividades estão fora da página de paginação.
+  const [summary, aguardaExamesPendentes] = await Promise.all([
+    nomesQueContam.length
+      ? prisma.atividade.groupBy({
+          by: ['descricao'],
+          where: {
+            inqueritoid: inquerito.id,
+            descricao: { in: nomesQueContam },
+          },
+          _count: { _all: true },
+          _sum: { quantidade: true },
+        })
+      : Promise.resolve([]),
+    nomesAguardaExames.length
+      ? prisma.atividade.count({
+          where: {
+            inqueritoid: inquerito.id,
+            descricao: { in: nomesAguardaExames },
+            concluidaEm: null,
+          },
+        })
+      : Promise.resolve(0),
+  ])
 
   const totalAtividades = inquerito._count.atividades
   const totalAtivPages = Math.ceil(totalAtividades / ATIVIDADES_PAGE_SIZE)
@@ -318,6 +335,15 @@ export default async function InqueritoDetailPage({
           )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <EstadoBadge estado={inquerito.estado} />
+            {aguardaExamesPendentes > 0 && (
+              <span
+                className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-950/50 dark:text-purple-300"
+                title="Este inquérito tem exames por concluir"
+              >
+                <MonitorCog className="h-3.5 w-3.5" />
+                Aguarda exames
+              </span>
+            )}
             <EtiquetaList etiquetas={inquerito.etiquetas} max={inquerito.etiquetas.length} />
           </div>
         </div>

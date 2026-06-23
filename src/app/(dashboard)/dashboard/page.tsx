@@ -113,7 +113,7 @@ export default async function DashboardPage() {
           </Card>
         </Link>
 
-        <Link href="/inqueritos/aguarda-exames" className="block">
+        <Link href="/inqueritos/pedidos-exame" className="block">
           <Card className="transition-colors hover:bg-accent/30 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-medium text-muted-foreground">Aguarda Exames</CardTitle>
