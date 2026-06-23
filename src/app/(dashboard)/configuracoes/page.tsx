@@ -72,6 +72,7 @@ interface AtividadePadrao {
   temControlo: boolean
   contaParaEstatistica: boolean
   transicaoEstadoId: string | null
+  transicaoEstadoConclusaoId: string | null
   categoriaDashboard: CategoriaDashboard
 }
 
@@ -94,6 +95,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [newTemControlo, setNewTemControlo] = useState(false)
   const [newContaParaEstatistica, setNewContaParaEstatistica] = useState(true)
   const [newTransicaoEstadoId, setNewTransicaoEstadoId] = useState<string>('')
+  const [newTransicaoEstadoConclusaoId, setNewTransicaoEstadoConclusaoId] = useState<string>('')
   const [newCategoriaDashboard, setNewCategoriaDashboard] = useState<CategoriaDashboard>(null)
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -104,6 +106,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
   const [editTemControlo, setEditTemControlo] = useState(false)
   const [editContaParaEstatistica, setEditContaParaEstatistica] = useState(true)
   const [editTransicaoEstadoId, setEditTransicaoEstadoId] = useState<string>('')
+  const [editTransicaoEstadoConclusaoId, setEditTransicaoEstadoConclusaoId] = useState<string>('')
   const [editCategoriaDashboard, setEditCategoriaDashboard] = useState<CategoriaDashboard>(null)
   const [deleteCandidate, setDeleteCandidate] = useState<AtividadePadrao | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -135,6 +138,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
         temControlo: newTemControlo,
         contaParaEstatistica: newContaParaEstatistica,
         transicaoEstadoId: newTransicaoEstadoId || null,
+        transicaoEstadoConclusaoId: newTransicaoEstadoConclusaoId || null,
         categoriaDashboard: newCategoriaDashboard,
       }),
     })
@@ -152,6 +156,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
     setNewTemControlo(false)
     setNewContaParaEstatistica(true)
     setNewTransicaoEstadoId('')
+    setNewTransicaoEstadoConclusaoId('')
     setNewCategoriaDashboard(null)
     setAdding(false)
     load()
@@ -240,6 +245,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
     setEditTemControlo(a.temControlo)
     setEditContaParaEstatistica(a.contaParaEstatistica)
     setEditTransicaoEstadoId(a.transicaoEstadoId ?? '')
+    setEditTransicaoEstadoConclusaoId(a.transicaoEstadoConclusaoId ?? '')
     setEditCategoriaDashboard(a.categoriaDashboard)
   }
 
@@ -256,6 +262,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
         temControlo: editTemControlo,
         contaParaEstatistica: editContaParaEstatistica,
         transicaoEstadoId: editTransicaoEstadoId || null,
+        transicaoEstadoConclusaoId: editTransicaoEstadoConclusaoId || null,
         categoriaDashboard: editCategoriaDashboard,
       }),
     })
@@ -380,6 +387,34 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
               <p className="text-xs text-muted-foreground">
                 Quando esta atividade for adicionada a um inquérito, o estado passará automaticamente
                 para o escolhido (respeitando a máquina de estados).
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newTransicaoConclusao">Ao confirmar conclusão, altera estado para</Label>
+              <Select
+                value={newTransicaoEstadoConclusaoId || TRANSICAO_NONE}
+                onValueChange={(v) =>
+                  setNewTransicaoEstadoConclusaoId(!v || v === TRANSICAO_NONE ? '' : v)
+                }
+              >
+                <SelectTrigger id="newTransicaoConclusao">
+                  <SelectValue>
+                    {(v: string) => {
+                      if (!v || v === TRANSICAO_NONE) return 'Não altera o estado'
+                      return estadoById.get(v)?.nome ?? 'Não altera o estado'
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TRANSICAO_NONE}>Não altera o estado</SelectItem>
+                  {estadosAtivos.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Quando a conclusão desta atividade for confirmada (ex.: confirmar devolução ou
+                conclusão de exames), o estado do inquérito passa para o escolhido.
               </p>
             </div>
             <div className="space-y-1.5">
@@ -526,6 +561,30 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                     </Select>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
+                    <Label className="text-xs text-muted-foreground">Ao confirmar conclusão, altera para</Label>
+                    <Select
+                      value={editTransicaoEstadoConclusaoId || TRANSICAO_NONE}
+                      onValueChange={(v) =>
+                        setEditTransicaoEstadoConclusaoId(!v || v === TRANSICAO_NONE ? '' : v)
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[200px] text-xs">
+                        <SelectValue>
+                          {(v: string) => {
+                            if (!v || v === TRANSICAO_NONE) return 'Não altera o estado'
+                            return estadoById.get(v)?.nome ?? 'Não altera o estado'
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TRANSICAO_NONE}>Não altera o estado</SelectItem>
+                        {estadosAtivos.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Label className="text-xs text-muted-foreground">Categoria Dashboard</Label>
                     <Select
                       value={editCategoriaDashboard ?? CATEGORIA_NONE}
@@ -574,6 +633,25 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
                           )}
                         >
                           → {target.nome}
+                        </span>
+                      )
+                    })()}
+                    {/* Transição na conclusão badge */}
+                    {a.transicaoEstadoConclusaoId && (() => {
+                      const target = estadoById.get(a.transicaoEstadoConclusaoId)
+                      if (!target) return null
+                      const corClass = target.cor
+                        ? ESTADO_COR_CLASSES[target.cor] ?? ESTADO_COR_DEFAULT
+                        : ESTADO_COR_DEFAULT
+                      return (
+                        <span
+                          title={`Ao confirmar a conclusão, altera o estado para «${target.nome}»`}
+                          className={cn(
+                            'text-xs px-2 py-0.5 rounded-full font-medium border',
+                            corClass,
+                          )}
+                        >
+                          ✓→ {target.nome}
                         </span>
                       )
                     })()}
