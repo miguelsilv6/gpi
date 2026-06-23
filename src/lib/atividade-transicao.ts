@@ -40,6 +40,13 @@ interface Args {
   }
   utilizadorId: string
   req: NextRequest | Request
+  /**
+   * Qual transição aplicar:
+   *  - 'criacao' (default): usa `transicaoEstadoId` — ao criar a atividade.
+   *  - 'conclusao': usa `transicaoEstadoConclusaoId` — ao confirmar a conclusão
+   *    (confirmação de devolução / conclusão de exames).
+   */
+  fase?: 'criacao' | 'conclusao'
 }
 
 const ESTADO_SELECT = {
@@ -56,20 +63,26 @@ export async function applyAtividadeTransicao({
   inquerito,
   utilizadorId,
   req,
+  fase = 'criacao',
 }: Args): Promise<TransicaoResult> {
   // Find the AtividadePadrao that matches this Atividade's descricao
   // (Atividade.descricao is a snapshot of AtividadePadrao.nome).
   const padrao = await tx.atividadePadrao.findUnique({
     where: { nome: atividade.descricao },
-    select: { id: true, nome: true, transicaoEstadoId: true },
+    select: { id: true, nome: true, transicaoEstadoId: true, transicaoEstadoConclusaoId: true },
   })
 
-  if (!padrao || !padrao.transicaoEstadoId) {
+  // Alvo depende da fase: criação usa transicaoEstadoId; conclusão usa
+  // transicaoEstadoConclusaoId.
+  const targetEstadoId =
+    fase === 'conclusao' ? padrao?.transicaoEstadoConclusaoId : padrao?.transicaoEstadoId
+
+  if (!padrao || !targetEstadoId) {
     return { applied: false, skipped: false }
   }
 
   const targetEstado = await tx.estadoInquerito.findUnique({
-    where: { id: padrao.transicaoEstadoId },
+    where: { id: targetEstadoId },
     select: ESTADO_SELECT,
   })
 
@@ -89,10 +102,11 @@ export async function applyAtividadeTransicao({
         acao: 'AUTO_TRANSITION_SKIPPED',
         detalhes: {
           reason: 'estado_alvo_invalido',
+          fase,
           atividadeId: atividade.id,
           atividadePadraoId: padrao.id,
           atividadePadraoNome: padrao.nome,
-          estadoAlvoId: padrao.transicaoEstadoId,
+          estadoAlvoId: targetEstadoId,
         } as never,
       },
     })
@@ -111,6 +125,7 @@ export async function applyAtividadeTransicao({
         acao: 'AUTO_TRANSITION_SKIPPED',
         detalhes: {
           reason: 'transicao_invalida',
+          fase,
           atividadeId: atividade.id,
           atividadePadraoId: padrao.id,
           atividadePadraoNome: padrao.nome,
@@ -140,6 +155,7 @@ export async function applyAtividadeTransicao({
       ...auditBase,
       acao: 'AUTO_TRANSITION_INQUERITO',
       detalhes: {
+        fase,
         atividadeId: atividade.id,
         atividadePadraoId: padrao.id,
         atividadePadraoNome: padrao.nome,

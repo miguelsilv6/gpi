@@ -265,8 +265,9 @@ model EstadoInquerito {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  inqueritos                   Inquerito[]
-  atividadesPadraoQueTransitam AtividadePadrao[]
+  inqueritos                            Inquerito[]
+  atividadesPadraoQueTransitam          AtividadePadrao[] @relation("AtividadePadraoTransicao")
+  atividadesPadraoQueTransitamConclusao AtividadePadrao[] @relation("AtividadePadraoTransicaoConclusao")
 
   @@index([ativo, ordem])
 }
@@ -635,8 +636,14 @@ model AtividadePadrao {
   // Optional auto-transition: when an Atividade with this padrão's `nome` is
   // created, the parent inquérito is moved to this estado (subject to the
   // state machine). Null means no transition.
-  transicaoEstado   EstadoInquerito? @relation(fields: [transicaoEstadoId], references: [id], onDelete: SetNull)
+  transicaoEstado   EstadoInquerito? @relation("AtividadePadraoTransicao", fields: [transicaoEstadoId], references: [id], onDelete: SetNull)
   transicaoEstadoId String?
+  // Optional auto-transition on CONFIRMATION: when an Atividade of this padrão
+  // is marked as concluded (confirmação de devolução / conclusão de exames), the
+  // parent inquérito moves to this estado (subject to the state machine). Null
+  // means no transition on conclusion. Parametrizável pelo administrador.
+  transicaoEstadoConclusao   EstadoInquerito? @relation("AtividadePadraoTransicaoConclusao", fields: [transicaoEstadoConclusaoId], references: [id], onDelete: SetNull)
+  transicaoEstadoConclusaoId String?
   // Optional category for the dashboard counters. Values are an app-level
   // union ('AGUARDA_EXAMES' | 'ENVIADO'); kept as a nullable String so new
   // categories can be added without a Prisma migration.
@@ -645,6 +652,7 @@ model AtividadePadrao {
   updatedAt     DateTime @updatedAt
 
   @@index([transicaoEstadoId])
+  @@index([transicaoEstadoConclusaoId])
   @@index([categoriaDashboard])
 }
 

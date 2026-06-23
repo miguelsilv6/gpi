@@ -16,6 +16,7 @@ const schema = z.object({
   temControlo: z.boolean().optional(),
   contaParaEstatistica: z.boolean().optional(),
   transicaoEstadoId: z.string().nullable().optional(),
+  transicaoEstadoConclusaoId: z.string().nullable().optional(),
   categoriaDashboard: z.enum(['AGUARDA_EXAMES', 'ENVIADO']).nullable().optional(),
 })
 
@@ -36,11 +37,12 @@ export async function PUT(
     const existing = await prisma.atividadePadrao.findUnique({ where: { id } })
     if (!existing) return apiError('Atividade não encontrada', 404)
 
-    // If the caller is setting a new transition target, verify it exists.
+    // If the caller is setting new transition targets, verify they exist.
     // null/undefined are accepted (clears the rule).
-    if (parsed.data.transicaoEstadoId) {
+    for (const estadoId of [parsed.data.transicaoEstadoId, parsed.data.transicaoEstadoConclusaoId]) {
+      if (!estadoId) continue
       const estado = await prisma.estadoInquerito.findUnique({
-        where: { id: parsed.data.transicaoEstadoId },
+        where: { id: estadoId },
         select: { ativo: true },
       })
       if (!estado || !estado.ativo) {
@@ -60,6 +62,7 @@ export async function PUT(
       'temControlo',
       'contaParaEstatistica',
       'transicaoEstadoId',
+      'transicaoEstadoConclusaoId',
       'categoriaDashboard',
     ])
     if (changes) {

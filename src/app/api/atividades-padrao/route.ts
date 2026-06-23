@@ -15,6 +15,7 @@ const schema = z.object({
   temControlo: z.boolean().optional(),
   contaParaEstatistica: z.boolean().optional(),
   transicaoEstadoId: z.string().nullable().optional(),
+  transicaoEstadoConclusaoId: z.string().nullable().optional(),
   categoriaDashboard: z.enum(['AGUARDA_EXAMES', 'ENVIADO']).nullable().optional(),
 })
 
@@ -43,10 +44,11 @@ export async function POST(req: NextRequest) {
     const exists = await prisma.atividadePadrao.findUnique({ where: { nome: parsed.data.nome } })
     if (exists) return apiError('Já existe uma atividade padrão com este nome', 409)
 
-    // If a transition target was given, verify it exists and is active.
-    if (parsed.data.transicaoEstadoId) {
+    // If transition targets were given, verify they exist and are active.
+    for (const estadoId of [parsed.data.transicaoEstadoId, parsed.data.transicaoEstadoConclusaoId]) {
+      if (!estadoId) continue
       const estado = await prisma.estadoInquerito.findUnique({
-        where: { id: parsed.data.transicaoEstadoId },
+        where: { id: estadoId },
         select: { ativo: true },
       })
       if (!estado || !estado.ativo) {

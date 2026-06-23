@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit, diff } from '@/lib/audit'
+import { applyAtividadeTransicao } from '@/lib/atividade-transicao'
 import { nuipcToSlug } from '@/lib/utils'
 import { z } from 'zod'
 import type { Role } from '@/generated/prisma/enums'
@@ -69,7 +70,7 @@ export async function PUT(
             inspetorId: true,
             brigadaId: true,
             deletedAt: true,
-            estado: { select: { terminal: true } },
+            estado: { select: { id: true, codigo: true, terminal: true, ativo: true } },
           },
         },
       },
@@ -111,10 +112,39 @@ export async function PUT(
       updateData.concluidaEm = data.concluidaEm ? new Date(data.concluidaEm) : null
     }
 
-    const updated = await prisma.atividade.update({
-      where: { id },
-      data: updateData,
-      include: { realizadaPor: { select: { id: true, nome: true } } },
+    // Confirmar a conclusão (concluidaEm: null → data) pode disparar uma
+    // transição de estado configurada pelo admin no AtividadePadrao
+    // (transicaoEstadoConclusao). Update + transição na mesma transação.
+    const confirmandoConclusao =
+      existing.concluidaEm === null && updateData.concluidaEm instanceof Date
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const upd = await tx.atividade.update({
+        where: { id },
+        data: updateData,
+        include: { realizadaPor: { select: { id: true, nome: true } } },
+      })
+
+      if (confirmandoConclusao) {
+        await applyAtividadeTransicao({
+          tx,
+          fase: 'conclusao',
+          atividade: {
+            id: upd.id,
+            descricao: upd.descricao,
+            dataRealizacao: updateData.concluidaEm as Date,
+          },
+          inquerito: {
+            id: existing.inquerito.id,
+            estadoId: existing.inquerito.estado.id,
+            estado: existing.inquerito.estado,
+          },
+          utilizadorId: session.user.id,
+          req,
+        })
+      }
+
+      return upd
     })
 
     // Audit diff — log against the parent Inquerito so the history of the
