@@ -48,6 +48,16 @@ enum EstadoBug {
   REJEITADO
 }
 
+// Tipo de ligação entre dois inquéritos.
+//   APENSO      — processos fisicamente apensados.
+//   CONEXO      — conexão de processos (art. 24.º CPP).
+//   RELACIONADO — relação genérica de investigação.
+enum TipoRelacaoInquerito {
+  RELACIONADO
+  APENSO
+  CONEXO
+}
+
 model Brigada {
   id          String   @id @default(cuid())
   nome        String   @unique
@@ -110,6 +120,7 @@ model Utilizador {
   notasInquerito       NotaInquerito[] @relation("NotaInqueritoAutor")
   notasEditadas        NotaInquerito[] @relation("NotaInqueritoEditor")
   tarefasInquerito     TarefaInquerito[]
+  relacoesInqueritoCriadas InqueritoRelacao[] @relation("RelacaoCriador")
 
   @@index([brigadaId])
   @@index([role])
@@ -190,6 +201,11 @@ model Inquerito {
   documentos   Documento[]
   notasRegisto NotaInquerito[]
   tarefas      TarefaInquerito[]
+
+  // Ligações a outros inquéritos (apensos/conexões). Cada par é guardado uma
+  // vez; a leitura é feita nos dois sentidos (ver src/lib/relacoes.ts).
+  relacoesOrigem  InqueritoRelacao[] @relation("RelacaoOrigem")
+  relacoesDestino InqueritoRelacao[] @relation("RelacaoDestino")
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -890,4 +906,31 @@ model TarefaInquerito {
   @@index([inqueritoId])
   @@index([autorId, concluida])
   @@index([autorId, prioridade])
+}
+
+// Ligação entre dois inquéritos (apensos / conexões / relacionados).
+//
+// Cada par é guardado UMA única vez (origem→destino). A relação é simétrica: a
+// leitura (src/lib/relacoes.ts) procura nos dois sentidos, pelo que o inquérito
+// de destino também "vê" o de origem. O `tipo` aplica-se ao par. A criação
+// recusa auto-ligações (origem==destino) e duplicados em qualquer sentido (a
+// verificação do sentido inverso é feita na API; o @@unique cobre o sentido
+// directo). Não confundir com `crimesAssociados` (crimes do mesmo inquérito).
+model InqueritoRelacao {
+  id          String               @id @default(cuid())
+  origemId    String
+  destinoId   String
+  tipo        TipoRelacaoInquerito @default(RELACIONADO)
+  nota        String?
+  criadoPorId String
+  createdAt   DateTime             @default(now())
+
+  origem    Inquerito  @relation("RelacaoOrigem", fields: [origemId], references: [id], onDelete: Cascade)
+  destino   Inquerito  @relation("RelacaoDestino", fields: [destinoId], references: [id], onDelete: Cascade)
+  criadoPor Utilizador @relation("RelacaoCriador", fields: [criadoPorId], references: [id])
+
+  @@unique([origemId, destinoId])
+  @@index([origemId])
+  @@index([destinoId])
+  @@index([criadoPorId])
 }
