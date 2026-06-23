@@ -1,23 +1,25 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
-import { nuipcToSlug } from '@/lib/utils'
+import { isModuloAnexosAtivo } from '@/lib/anexos-module'
+import {
+  searchInqueritos,
+  searchNotas,
+  searchAtividades,
+  searchDocumentos,
+} from '@/lib/search'
 import type { Role } from '@/generated/prisma/enums'
 
-// Pesquisa global (paleta de comandos / Cmd+K). Mantida deliberadamente leve:
-// poucos resultados por grupo, ordenados por relevância de recência. O scope
-// por role é aplicado por buildInqueritoWhere e ANDado em último lugar para que
-// nunca possa ser contornado pelo termo de pesquisa.
-const MAX_INQUERITOS = 8
-
+// Pesquisa global (paleta de comandos / Cmd+K). Agrega inquéritos (por NUIPC,
+// NAI, denunciante e etiqueta) e resultados full-text de notas e atividades,
+// além de documentos por nome. Todo o âmbito por role é aplicado em src/lib/search.
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
 
-    // Qualquer perfil que possa ler inquéritos (próprios, da brigada ou todos)
-    // pode usar a pesquisa global; o âmbito é restringido por buildInqueritoWhere.
+    // Qualquer perfil que possa ler inquéritos pode usar a pesquisa; o âmbito
+    // é restringido por role em cada função de pesquisa.
     if (
       !hasPermission(role, 'inquerito:read:own') &&
       !hasPermission(role, 'inquerito:read:all')
@@ -26,50 +28,22 @@ export async function GET(req: NextRequest) {
     }
 
     const q = new URL(req.url).searchParams.get('q')?.trim() ?? ''
-    // Abaixo de 2 caracteres não vale a pena ir à BD — a paleta mostra apenas
-    // atalhos de navegação (resolvidos no cliente).
-    if (q.length < 2) return Response.json({ inqueritos: [] })
+    if (q.length < 2) {
+      return Response.json({ inqueritos: [], notas: [], atividades: [], documentos: [] })
+    }
 
-    const scopeWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId ?? null)
+    const userId = session.user.id
+    const brigadaId = session.user.brigadaId ?? null
+    const anexosAtivo = await isModuloAnexosAtivo(role)
 
-    const inqueritos = await prisma.inquerito.findMany({
-      where: {
-        AND: [
-          { deletedAt: null },
-          {
-            OR: [
-              { nuipc: { contains: q, mode: 'insensitive' } },
-              { nai: { contains: q, mode: 'insensitive' } },
-              { denuncianteNome: { contains: q, mode: 'insensitive' } },
-              { denuncianteNif: { contains: q, mode: 'insensitive' } },
-              { etiquetas: { some: { nome: { contains: q, mode: 'insensitive' } } } },
-            ],
-          },
-          scopeWhere,
-        ],
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: MAX_INQUERITOS,
-      select: {
-        id: true,
-        nuipc: true,
-        natureza: true,
-        crime: { select: { nome: true } },
-        estado: { select: { nome: true } },
-        inspetor: { select: { nome: true } },
-      },
-    })
+    const [inqueritos, notas, atividades, documentos] = await Promise.all([
+      searchInqueritos(q, role, userId, brigadaId),
+      searchNotas(q, role, userId, brigadaId),
+      searchAtividades(q, role, userId, brigadaId),
+      anexosAtivo ? searchDocumentos(q, role, userId, brigadaId) : Promise.resolve([]),
+    ])
 
-    return Response.json({
-      inqueritos: inqueritos.map((i) => ({
-        id: i.id,
-        nuipc: i.nuipc,
-        slug: nuipcToSlug(i.nuipc),
-        crimeNome: i.crime?.nome ?? i.natureza,
-        estadoNome: i.estado.nome,
-        inspetorNome: i.inspetor?.nome ?? null,
-      })),
-    })
+    return Response.json({ inqueritos, notas, atividades, documentos })
   } catch (error) {
     return handleApiError(error)
   }

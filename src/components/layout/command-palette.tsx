@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/command'
 import { filterNavItems, type NavModuleFlags } from './nav-items'
 import type { Role } from '@/generated/prisma/enums'
-import { Search, FolderOpen, Loader2 } from 'lucide-react'
+import { Search, FolderOpen, NotebookPen, Activity, Paperclip, Loader2 } from 'lucide-react'
 
 interface InqueritoHit {
   id: string
@@ -23,6 +23,35 @@ interface InqueritoHit {
   estadoNome: string
   inspetorNome: string | null
 }
+interface NotaHit {
+  id: string
+  nuipc: string
+  slug: string
+  titulo: string | null
+  snippet: string
+}
+interface AtividadeHit {
+  id: string
+  nuipc: string
+  slug: string
+  descricao: string
+  snippet: string
+}
+interface DocumentoHit {
+  id: string
+  nuipc: string
+  slug: string
+  filename: string
+}
+
+interface SearchState {
+  inqueritos: InqueritoHit[]
+  notas: NotaHit[]
+  atividades: AtividadeHit[]
+  documentos: DocumentoHit[]
+}
+
+const EMPTY: SearchState = { inqueritos: [], notas: [], atividades: [], documentos: [] }
 
 interface CommandPaletteProps {
   role: Role
@@ -33,7 +62,7 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [inqueritos, setInqueritos] = useState<InqueritoHit[]>([])
+  const [results, setResults] = useState<SearchState>(EMPTY)
   const [loading, setLoading] = useState(false)
   const [isMac, setIsMac] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -60,13 +89,13 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
     setIsMac(/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent))
   }, [])
 
-  // Pesquisa de inquéritos no servidor (debounce 250ms). Atalhos de navegação
-  // são resolvidos no cliente e não dependem deste efeito.
+  // Pesquisa no servidor (debounce 250ms). Os atalhos de navegação são
+  // resolvidos no cliente e não dependem deste efeito.
   useEffect(() => {
     if (!open) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (term.length < 2) {
-      setInqueritos([])
+      setResults(EMPTY)
       setLoading(false)
       return
     }
@@ -79,7 +108,12 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
         })
         if (!res.ok) throw new Error('search failed')
         const data = await res.json()
-        setInqueritos(Array.isArray(data.inqueritos) ? data.inqueritos : [])
+        setResults({
+          inqueritos: Array.isArray(data.inqueritos) ? data.inqueritos : [],
+          notas: Array.isArray(data.notas) ? data.notas : [],
+          atividades: Array.isArray(data.atividades) ? data.atividades : [],
+          documentos: Array.isArray(data.documentos) ? data.documentos : [],
+        })
       } catch {
         // Abort ou erro de rede — mantém a lista atual em silêncio.
       } finally {
@@ -96,7 +130,7 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
     (href: string) => {
       setOpen(false)
       setQuery('')
-      setInqueritos([])
+      setResults(EMPTY)
       router.push(href)
     },
     [router],
@@ -106,12 +140,13 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
     setOpen(next)
     if (!next) {
       setQuery('')
-      setInqueritos([])
+      setResults(EMPTY)
       setLoading(false)
     }
   }
 
   const kbd = isMac ? '⌘K' : 'Ctrl K'
+  const { inqueritos, notas, atividades, documentos } = results
 
   return (
     <>
@@ -140,20 +175,20 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
         open={open}
         onOpenChange={onOpenChange}
         title="Pesquisa global"
-        description="Pesquisar inquéritos e navegar entre páginas"
+        description="Pesquisar inquéritos, notas, atividades e documentos, ou navegar entre páginas"
       >
         <Command shouldFilter={false}>
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder="Pesquisar inquéritos (NUIPC, denunciante, etiqueta) ou páginas…"
+            placeholder="Pesquisar inquéritos, notas, atividades, documentos ou páginas…"
           />
           <CommandList>
             <CommandEmpty>
               {loading
                 ? 'A pesquisar…'
                 : term.length < 2
-                  ? 'Escreva pelo menos 2 caracteres para pesquisar inquéritos.'
+                  ? 'Escreva pelo menos 2 caracteres para pesquisar.'
                   : 'Nada encontrado.'}
             </CommandEmpty>
 
@@ -191,6 +226,66 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
                     <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                       {inq.estadoNome}
                     </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {notas.length > 0 && (
+              <CommandGroup heading="Notas">
+                {notas.map((nota) => (
+                  <CommandItem
+                    key={nota.id}
+                    value={`nota:${nota.id}`}
+                    onSelect={() => go(`/inqueritos/${nota.slug}`)}
+                  >
+                    <NotebookPen className="h-4 w-4" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm truncate">{nota.titulo || nota.snippet || 'Nota'}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        <span className="font-mono">{nota.nuipc}</span>
+                        {nota.titulo && nota.snippet ? ` · ${nota.snippet}` : ''}
+                      </p>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {atividades.length > 0 && (
+              <CommandGroup heading="Atividades">
+                {atividades.map((at) => (
+                  <CommandItem
+                    key={at.id}
+                    value={`atividade:${at.id}`}
+                    onSelect={() => go(`/inqueritos/${at.slug}`)}
+                  >
+                    <Activity className="h-4 w-4" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm truncate">{at.descricao}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        <span className="font-mono">{at.nuipc}</span>
+                        {at.snippet ? ` · ${at.snippet}` : ''}
+                      </p>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {documentos.length > 0 && (
+              <CommandGroup heading="Documentos">
+                {documentos.map((doc) => (
+                  <CommandItem
+                    key={doc.id}
+                    value={`documento:${doc.id}`}
+                    onSelect={() => go(`/inqueritos/${doc.slug}`)}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm truncate">{doc.filename}</p>
+                      <p className="text-xs text-muted-foreground truncate font-mono">{doc.nuipc}</p>
+                    </div>
                   </CommandItem>
                 ))}
               </CommandGroup>
