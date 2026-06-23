@@ -30,8 +30,11 @@ export default async function PedidosExamePage({
 
   const where = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
 
+  // Não filtramos por `ativa` — uma atividade pendente cujo padrão foi
+  // desativado depois de criada continua por concluir e não deve desaparecer
+  // desta listagem nem do contador do dashboard.
   const padroes = await prisma.atividadePadrao.findMany({
-    where: { ativa: true, categoriaDashboard: 'AGUARDA_EXAMES' },
+    where: { categoriaDashboard: 'AGUARDA_EXAMES' },
     select: { nome: true },
   })
   const nomes = padroes.map((p) => p.nome)
@@ -58,6 +61,7 @@ export default async function PedidosExamePage({
           crime: { select: { id: true, nome: true } },
           brigada: { select: { id: true, nome: true } },
           inspetor: { select: { id: true, nome: true } },
+          etiquetas: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
           _count: { select: { atividades: true } },
         },
       })
