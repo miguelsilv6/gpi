@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save } from 'lucide-react'
+import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save, ListFilter } from 'lucide-react'
 import { ROLE_LABELS } from '@/lib/rbac'
 import { NOTIFICATION_TIPO_LABELS, NOTIFICATION_TIPO_DESCRIPTIONS } from '@/lib/notification-labels'
 import type { Role } from '@/generated/prisma/enums'
@@ -250,6 +250,12 @@ const passwordSchema = z.object({
 type ProfileData = z.infer<typeof profileSchema>
 type PasswordData = z.infer<typeof passwordSchema>
 
+interface EstadoOption {
+  codigo: string
+  nome: string
+  cor: string | null
+}
+
 interface UserProfile {
   id: string
   nome: string
@@ -259,6 +265,8 @@ interface UserProfile {
   ajudasVencimentoBase: number | null
   ajudasTaxaIRS: number | null
   moduloAjudasAtivo: boolean
+  inqueritoFiltroEstadosDefault: string[]
+  estadosDisponiveis: EstadoOption[]
 }
 
 export default function PerfilPage() {
@@ -267,6 +275,9 @@ export default function PerfilPage() {
   const [ajudasVencimento, setAjudasVencimento] = useState<string>('')
   const [ajudasIRS, setAjudasIRS] = useState<string>('')
   const [savingAjudas, setSavingAjudas] = useState(false)
+  const [filtroEstados, setFiltroEstados] = useState<string[]>([])
+  const [filtroEstadosOriginal, setFiltroEstadosOriginal] = useState<string[]>([])
+  const [savingFiltros, setSavingFiltros] = useState(false)
 
   const profileForm = useForm<ProfileData>({ resolver: zodResolver(profileSchema) })
   const passwordForm = useForm<PasswordData>({ resolver: zodResolver(passwordSchema) })
@@ -285,6 +296,8 @@ export default function PerfilPage() {
         setAjudasVencimento(data.ajudasVencimentoBase != null ? String(data.ajudasVencimentoBase) : '')
         // Store IRS as percentage for display (DB stores decimal, e.g. 0.1116 → "11.16")
         setAjudasIRS(data.ajudasTaxaIRS != null ? String(+(data.ajudasTaxaIRS * 100).toFixed(4)) : '')
+        setFiltroEstados(data.inqueritoFiltroEstadosDefault ?? [])
+        setFiltroEstadosOriginal(data.inqueritoFiltroEstadosDefault ?? [])
         setLoading(false)
       })
       .catch(() => {
@@ -362,6 +375,41 @@ export default function PerfilPage() {
       toast.error('Erro ao guardar')
     } finally {
       setSavingAjudas(false)
+    }
+  }
+
+  function toggleFiltroEstado(codigo: string) {
+    setFiltroEstados((prev) =>
+      prev.includes(codigo) ? prev.filter((c) => c !== codigo) : [...prev, codigo],
+    )
+  }
+
+  const filtrosDirty =
+    [...filtroEstados].sort().join(',') !== [...filtroEstadosOriginal].sort().join(',')
+
+  async function onFiltrosSave() {
+    setSavingFiltros(true)
+    try {
+      const res = await fetch('/api/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inqueritoFiltroEstadosDefault: filtroEstados }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      const updated = await res.json()
+      const saved: string[] = updated.inqueritoFiltroEstadosDefault ?? filtroEstados
+      setFiltroEstados(saved)
+      setFiltroEstadosOriginal(saved)
+      setUser((prev) => (prev ? { ...prev, inqueritoFiltroEstadosDefault: saved } : prev))
+      toast.success('Filtro de estados guardado')
+    } catch {
+      toast.error('Erro ao guardar')
+    } finally {
+      setSavingFiltros(false)
     }
   }
 
@@ -486,6 +534,55 @@ export default function PerfilPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Filtro de estados pré-definido na pesquisa de inquéritos */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+            <ListFilter className="h-4 w-4" />
+            Filtro de estados (Inquéritos)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Estados pré-selecionados por defeito ao abrir a pesquisa de inquéritos. Se não
+            escolher nenhum, é usado o filtro padrão definido pelo administrador.
+          </p>
+          {user.estadosDisponiveis.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhum estado disponível.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {user.estadosDisponiveis.map((e) => {
+                const active = filtroEstados.includes(e.codigo)
+                return (
+                  <button
+                    key={e.codigo}
+                    type="button"
+                    onClick={() => toggleFiltroEstado(e.codigo)}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
+                      active
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-input hover:bg-accent'
+                    }`}
+                  >
+                    {e.cor && (
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: e.cor }}
+                      />
+                    )}
+                    {e.nome}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          <Button size="sm" onClick={onFiltrosSave} disabled={!filtrosDirty || savingFiltros}>
+            {savingFiltros ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Guardar
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Viaturas */}
       <ViaturasList />

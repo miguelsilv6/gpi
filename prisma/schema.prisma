@@ -96,6 +96,10 @@ model Utilizador {
   // When set, these take precedence over the global AjudasConfig values.
   ajudasVencimentoBase Float?
   ajudasTaxaIRS        Float?
+  // Estados pré-selecionados por defeito no filtro da pesquisa de inquéritos
+  // (guardados como codigos, estáveis a renomeações). Quando não vazio,
+  // sobrepõe-se ao default global (ConfiguracaoSistema.inqueritoFiltroEstadosDefault).
+  inqueritoFiltroEstadosDefault String[] @default([])
   viaturas             Viatura[]
   ausencias            Ausencia[]    @relation("AusenciasInspetor")
   notificacaoPreferencias NotificacaoPreferencia[]

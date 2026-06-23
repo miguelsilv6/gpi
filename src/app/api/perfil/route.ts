@@ -12,6 +12,7 @@ const updateSchema = z.object({
   email: z.string().email('Email inválido').optional(),
   ajudasVencimentoBase: z.number().positive().nullable().optional(),
   ajudasTaxaIRS: z.number().min(0).max(1).nullable().optional(),
+  inqueritoFiltroEstadosDefault: z.array(z.string()).max(50).optional(),
 })
 
 const passwordSchema = z.object({
@@ -22,23 +23,31 @@ const passwordSchema = z.object({
 export async function GET() {
   try {
     const session = await getSession()
-    const user = await prisma.utilizador.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        role: true,
-        ativo: true,
-        brigada: { select: { id: true, nome: true } },
-        lastLoginAt: true,
-        ajudasVencimentoBase: true,
-        ajudasTaxaIRS: true,
-      },
-    })
+    const [user, estadosDisponiveis] = await Promise.all([
+      prisma.utilizador.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          role: true,
+          ativo: true,
+          brigada: { select: { id: true, nome: true } },
+          lastLoginAt: true,
+          ajudasVencimentoBase: true,
+          ajudasTaxaIRS: true,
+          inqueritoFiltroEstadosDefault: true,
+        },
+      }),
+      prisma.estadoInquerito.findMany({
+        where: { ativo: true },
+        orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+        select: { codigo: true, nome: true, cor: true },
+      }),
+    ])
     if (!user) return apiError('Utilizador não encontrado', 404)
     const moduloAjudasAtivo = await isModuloAjudasAtivo(user.role as Role)
-    return Response.json({ ...user, moduloAjudasAtivo })
+    return Response.json({ ...user, moduloAjudasAtivo, estadosDisponiveis })
   } catch (error) {
     return handleApiError(error)
   }
@@ -53,7 +62,7 @@ export async function PUT(req: NextRequest) {
 
     const existing = await prisma.utilizador.findUnique({
       where: { id: session.user.id },
-      select: { nome: true, email: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true },
+      select: { nome: true, email: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true, inqueritoFiltroEstadosDefault: true },
     })
     if (!existing) return apiError('Utilizador não encontrado', 404)
 
@@ -89,19 +98,48 @@ export async function PUT(req: NextRequest) {
         ...(normalizedEmail !== undefined && { email: normalizedEmail }),
         ...('ajudasVencimentoBase' in parsed.data && { ajudasVencimentoBase: parsed.data.ajudasVencimentoBase }),
         ...('ajudasTaxaIRS' in parsed.data && { ajudasTaxaIRS: parsed.data.ajudasTaxaIRS }),
+        ...(parsed.data.inqueritoFiltroEstadosDefault !== undefined && {
+          inqueritoFiltroEstadosDefault: parsed.data.inqueritoFiltroEstadosDefault,
+        }),
       },
-      select: { id: true, nome: true, email: true, role: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true },
+      select: { id: true, nome: true, email: true, role: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true, inqueritoFiltroEstadosDefault: true },
     })
 
-    const changes = diff(existing, updated, ['nome', 'email', 'ajudasVencimentoBase', 'ajudasTaxaIRS'])
-    if (changes) {
+    const scalarKeys = ['nome', 'email', 'ajudasVencimentoBase', 'ajudasTaxaIRS'] as const
+    const changes = diff(
+      { nome: existing.nome, email: existing.email, ajudasVencimentoBase: existing.ajudasVencimentoBase, ajudasTaxaIRS: existing.ajudasTaxaIRS },
+      { nome: updated.nome, email: updated.email, ajudasVencimentoBase: updated.ajudasVencimentoBase, ajudasTaxaIRS: updated.ajudasTaxaIRS },
+      scalarKeys,
+    )
+
+    // Array fields não cabem no helper `diff` (só primitivos) — detetamos a
+    // alteração comparando o conteúdo ordenado.
+    const beforeFiltros = [...existing.inqueritoFiltroEstadosDefault].sort()
+    const afterFiltros = [...updated.inqueritoFiltroEstadosDefault].sort()
+    const filtrosChanged = JSON.stringify(beforeFiltros) !== JSON.stringify(afterFiltros)
+
+    if (changes || filtrosChanged) {
+      const detalhes = {
+        changed: [
+          ...(changes?.changed ?? []),
+          ...(filtrosChanged ? ['inqueritoFiltroEstadosDefault'] : []),
+        ],
+        before: {
+          ...(changes?.before ?? {}),
+          ...(filtrosChanged && { inqueritoFiltroEstadosDefault: existing.inqueritoFiltroEstadosDefault }),
+        },
+        after: {
+          ...(changes?.after ?? {}),
+          ...(filtrosChanged && { inqueritoFiltroEstadosDefault: updated.inqueritoFiltroEstadosDefault }),
+        },
+      }
       await writeAudit({
         req,
         acao: 'UPDATE_PERFIL',
         entidade: 'Utilizador',
         entidadeId: session.user.id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: detalhes as never,
       })
     }
 
