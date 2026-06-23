@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
@@ -51,10 +52,12 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const brand = await getBrand()
+  // Nonce da CSP (definido pelo middleware) para o script inline do next-themes.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html lang="pt" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem nonce={nonce}>
           <SessionProvider>
             <BrandProvider value={brand}>
               <TooltipProvider>

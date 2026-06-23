@@ -1,7 +1,5 @@
 import type { NextConfig } from 'next'
 
-const isDev = process.env.NODE_ENV === 'development'
-
 /**
  * Headers de segurança aplicados a TODAS as rotas (HTML + API).
  *
@@ -12,8 +10,11 @@ const isDev = process.env.NODE_ENV === 'development'
  *   em URLs para domínios externos.
  * - `X-DNS-Prefetch-Control: off`: evita pré-resolução DNS de recursos externos.
  * - `Permissions-Policy`: nega features que a app não usa.
- * - `Content-Security-Policy`: `unsafe-eval` removido em produção (só necessário
- *   em dev para HMR). `unsafe-inline` mantido para o RSC bootstrap do Next.js.
+ *
+ * A `Content-Security-Policy` das páginas HTML é definida no middleware
+ * (src/middleware.ts) com um nonce por pedido — `script-src` deixou de usar
+ * `'unsafe-inline'`. As respostas de API recebem uma CSP estática mínima
+ * (`default-src 'none'`) abaixo, já que nunca renderizam recursos.
  */
 const SECURITY_HEADERS = [
   {
@@ -37,22 +38,6 @@ const SECURITY_HEADERS = [
       'gyroscope=()',
     ].join(', '),
   },
-  {
-    key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      // unsafe-eval removido em produção. Dev ainda precisa para HMR.
-      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      "connect-src 'self'",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join('; '),
-  },
 ]
 
 const API_CACHE_HEADERS = [
@@ -60,6 +45,9 @@ const API_CACHE_HEADERS = [
   // Pragma + Expires: defence-in-depth for HTTP/1.0 proxies and misconfigured caches.
   { key: 'Pragma', value: 'no-cache' },
   { key: 'Expires', value: '0' },
+  // As respostas de API são JSON e nunca devem carregar recursos nem ser
+  // enquadradas. CSP mínima e estática (o nonce só é necessário em HTML).
+  { key: 'Content-Security-Policy', value: "default-src 'none'; frame-ancestors 'none'" },
 ]
 
 const nextConfig: NextConfig = {
