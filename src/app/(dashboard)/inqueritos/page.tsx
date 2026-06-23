@@ -56,14 +56,25 @@ export default async function InqueritosPage({
   const sort = sp.sort && ALLOWED_SORT[sp.sort] ? sp.sort : 'updatedAt'
   const order = sp.order === 'asc' ? 'asc' : 'desc'
 
-  // Read the system-wide default for the estado filter. Used when the URL
-  // has no `estado` param (initial visit). Sentinel `__none__` means the user
-  // explicitly chose "no estado filter".
-  const config = await prisma.configuracaoSistema.findUnique({
-    where: { id: 'singleton' },
-    select: { inqueritoFiltroEstadosDefault: true },
-  })
-  const estadosDefault = config?.inqueritoFiltroEstadosDefault ?? []
+  // Default aplicado ao filtro de estados quando o URL não tem `estado`
+  // (visita inicial). O default pessoal do utilizador (perfil) tem prioridade;
+  // se este estiver vazio, recai no default global do sistema. Sentinela
+  // `__none__` significa que o utilizador escolheu explicitamente "sem filtro".
+  const [config, currentUser] = await Promise.all([
+    prisma.configuracaoSistema.findUnique({
+      where: { id: 'singleton' },
+      select: { inqueritoFiltroEstadosDefault: true },
+    }),
+    prisma.utilizador.findUnique({
+      where: { id: session.user.id },
+      select: { inqueritoFiltroEstadosDefault: true },
+    }),
+  ])
+  const estadosDefaultUtilizador = currentUser?.inqueritoFiltroEstadosDefault ?? []
+  const estadosDefault =
+    estadosDefaultUtilizador.length > 0
+      ? estadosDefaultUtilizador
+      : config?.inqueritoFiltroEstadosDefault ?? []
 
   let estadoCodigos: string[] = []
   if (sp.estado === undefined) {
