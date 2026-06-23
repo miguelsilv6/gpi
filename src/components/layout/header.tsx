@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { LogOut, Menu, User } from 'lucide-react'
 import { SidebarNav } from './sidebar-nav'
+import { CommandPalette } from './command-palette'
 import { NotificationBell } from './notification-bell'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ROLE_LABELS } from '@/lib/rbac'
@@ -57,6 +58,11 @@ export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = tru
             <SidebarNav role={user.role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
+
+        <CommandPalette
+          role={user.role}
+          modules={{ moduloAjudasAtivo, moduloFeriasAtivo, moduloBugReportsAtivo, moduloToolboxAtivo }}
+        />
 
         <div className="flex-1" />
 

@@ -144,3 +144,34 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['ADMINISTRACAO'],
   },
 ]
+
+export interface NavModuleFlags {
+  moduloAjudasAtivo?: boolean
+  moduloFeriasAtivo?: boolean
+  moduloBugReportsAtivo?: boolean
+  moduloToolboxAtivo?: boolean
+}
+
+/**
+ * Single source of truth para a visibilidade dos itens de navegação: filtra
+ * por role e respeita os módulos opcionais (Ajudas, Férias, Bug Reports,
+ * Toolbox). ADMINISTRACAO vê sempre todos os itens, mesmo com módulos
+ * desligados. Reutilizado pelo sidebar, bottom-nav e command palette para que
+ * a navegação se mantenha coerente em todo o lado.
+ */
+export function filterNavItems(role: Role, modules: NavModuleFlags = {}): NavItem[] {
+  const {
+    moduloAjudasAtivo = true,
+    moduloFeriasAtivo = true,
+    moduloBugReportsAtivo = true,
+    moduloToolboxAtivo = true,
+  } = modules
+  return NAV_ITEMS.filter((item) => {
+    if (!item.roles.includes(role)) return false
+    if (item.href === '/ajudas-mensais' && !moduloAjudasAtivo && role !== 'ADMINISTRACAO') return false
+    if (item.href === '/ausencias' && !moduloFeriasAtivo && role !== 'ADMINISTRACAO') return false
+    if (item.href === '/reportar-bug' && !moduloBugReportsAtivo && role !== 'ADMINISTRACAO') return false
+    if (item.href === '/toolbox' && !moduloToolboxAtivo && role !== 'ADMINISTRACAO') return false
+    return true
+  })
+}
