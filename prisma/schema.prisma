@@ -329,13 +329,18 @@ model Seccao {
 
 
 // Etiqueta (tag) pessoal — cada utilizador cria as suas, únicas dentro do seu
-// perfil (@@unique [criadoPorId, nome]). Atribuível a vários inquéritos (m2m
+// perfil. A unicidade é case-insensitive: garantida por `nomeNormalizado`
+// (lower-case de `nome`) com @@unique [criadoPorId, nomeNormalizado], para que
+// "Roubo" e "roubo" não possam coexistir. Atribuível a vários inquéritos (m2m
 // implícita) para categorização livre — ex.: "Prioritário", "Aguardando MP".
 // Uma vez aplicada, a etiqueta "viaja" com o inquérito e fica visível a quem o
 // vê, independentemente de quem a criou.
 model Etiqueta {
   id          String   @id @default(cuid())
   nome        String
+  // Forma normalizada (lower-case de `nome`) usada apenas para impor unicidade
+  // case-insensitive por utilizador. Mantida em sincronia em cada escrita.
+  nomeNormalizado String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -344,7 +349,7 @@ model Etiqueta {
 
   inqueritos Inquerito[]
 
-  @@unique([criadoPorId, nome])
+  @@unique([criadoPorId, nomeNormalizado])
   @@index([criadoPorId])
 }
 
