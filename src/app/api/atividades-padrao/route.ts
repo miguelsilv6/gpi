@@ -14,8 +14,8 @@ const schema = z.object({
   temQuantidade: z.boolean().optional(),
   temControlo: z.boolean().optional(),
   contaParaEstatistica: z.boolean().optional(),
-  transicaoEstadoId: z.string().nullable().optional(),
-  transicaoEstadoConclusaoId: z.string().nullable().optional(),
+  transicaoEstadoId: z.string().min(1).nullable().optional(),
+  transicaoEstadoConclusaoId: z.string().min(1).nullable().optional(),
   categoriaDashboard: z.enum(['AGUARDA_EXAMES', 'ENVIADO']).nullable().optional(),
 })
 

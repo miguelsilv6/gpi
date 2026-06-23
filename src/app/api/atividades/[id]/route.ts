@@ -126,6 +126,18 @@ export async function PUT(
       })
 
       if (confirmandoConclusao) {
+        // Reler o estado do inquérito dentro da transação — evita aplicar a
+        // transição com base num estado obsoleto caso tenha mudado entre o
+        // findUnique inicial e este momento.
+        const currentInquerito = await tx.inquerito.findUniqueOrThrow({
+          where: { id: existing.inquerito.id },
+          select: {
+            id: true,
+            estadoId: true,
+            estado: { select: { id: true, codigo: true, terminal: true, ativo: true } },
+          },
+        })
+
         await applyAtividadeTransicao({
           tx,
           fase: 'conclusao',
@@ -135,9 +147,9 @@ export async function PUT(
             dataRealizacao: updateData.concluidaEm as Date,
           },
           inquerito: {
-            id: existing.inquerito.id,
-            estadoId: existing.inquerito.estado.id,
-            estado: existing.inquerito.estado,
+            id: currentInquerito.id,
+            estadoId: currentInquerito.estadoId,
+            estado: currentInquerito.estado,
           },
           utilizadorId: session.user.id,
           req,
