@@ -94,6 +94,7 @@ export default async function InqueritosPage({
         { nai: { contains: sp.search, mode: 'insensitive' as const } },
         { denuncianteNome: { contains: sp.search, mode: 'insensitive' as const } },
         { denuncianteNif: { contains: sp.search, mode: 'insensitive' as const } },
+        { etiquetas: { some: { nome: { contains: sp.search, mode: 'insensitive' as const } } } },
       ],
     }),
     ...(estadoCodigos.length > 0 && {
@@ -200,7 +201,7 @@ export default async function InqueritosPage({
           <HelpSection title="Filtros disponíveis">
             <p>Use a barra de filtros para limitar a lista. Pode combinar vários filtros em simultâneo:</p>
             <ul className="list-disc pl-4 space-y-1 mt-1">
-              <li><strong>Pesquisa</strong> — procura por NUIPC, NAI, denunciante ou crime.</li>
+              <li><strong>Pesquisa</strong> — procura por NUIPC, NAI, denunciante ou etiqueta.</li>
               <li><strong>Estado</strong> — filtra por um ou mais estados do inquérito.</li>
               <li><strong>Prazo vencido</strong> — mostra apenas inquéritos com prazo ultrapassado.</li>
               <li><strong>Sem inspetor</strong> — mostra inquéritos por atribuir.</li>

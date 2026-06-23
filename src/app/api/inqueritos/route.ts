@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
           { nai: { contains: search, mode: 'insensitive' as const } },
           { denuncianteNome: { contains: search, mode: 'insensitive' as const } },
           { denuncianteNif: { contains: search, mode: 'insensitive' as const } },
+          { etiquetas: { some: { nome: { contains: search, mode: 'insensitive' as const } } } },
         ],
       }),
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
