@@ -12,7 +12,7 @@ const updateSchema = z.object({
   email: z.string().email('Email inválido').optional(),
   ajudasVencimentoBase: z.number().positive().nullable().optional(),
   ajudasTaxaIRS: z.number().min(0).max(1).nullable().optional(),
-  inqueritoFiltroEstadosDefault: z.array(z.string()).max(50).optional(),
+  inqueritoFiltroEstadosDefault: z.array(z.string().min(1, 'Código de estado inválido')).max(50).optional(),
 })
 
 const passwordSchema = z.object({

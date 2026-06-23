@@ -558,6 +558,7 @@ export default function PerfilPage() {
                   <button
                     key={e.codigo}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => toggleFiltroEstado(e.codigo)}
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
                       active
