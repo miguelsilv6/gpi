@@ -55,15 +55,29 @@ export default async function InqueritosPage({
 
   const sort = sp.sort && ALLOWED_SORT[sp.sort] ? sp.sort : 'updatedAt'
   const order = sp.order === 'asc' ? 'asc' : 'desc'
+  // Trim para não correr queries `contains` com espaços (ex.: "% %"), que
+  // seriam caras e sem valor; vazio após trim = sem filtro de pesquisa.
+  const search = sp.search?.trim()
 
-  // Read the system-wide default for the estado filter. Used when the URL
-  // has no `estado` param (initial visit). Sentinel `__none__` means the user
-  // explicitly chose "no estado filter".
-  const config = await prisma.configuracaoSistema.findUnique({
-    where: { id: 'singleton' },
-    select: { inqueritoFiltroEstadosDefault: true },
-  })
-  const estadosDefault = config?.inqueritoFiltroEstadosDefault ?? []
+  // Default aplicado ao filtro de estados quando o URL não tem `estado`
+  // (visita inicial). O default pessoal do utilizador (perfil) tem prioridade;
+  // se este estiver vazio, recai no default global do sistema. Sentinela
+  // `__none__` significa que o utilizador escolheu explicitamente "sem filtro".
+  const [config, currentUser] = await Promise.all([
+    prisma.configuracaoSistema.findUnique({
+      where: { id: 'singleton' },
+      select: { inqueritoFiltroEstadosDefault: true },
+    }),
+    prisma.utilizador.findUnique({
+      where: { id: session.user.id },
+      select: { inqueritoFiltroEstadosDefault: true },
+    }),
+  ])
+  const estadosDefaultUtilizador = currentUser?.inqueritoFiltroEstadosDefault ?? []
+  const estadosDefault =
+    estadosDefaultUtilizador.length > 0
+      ? estadosDefaultUtilizador
+      : config?.inqueritoFiltroEstadosDefault ?? []
 
   let estadoCodigos: string[] = []
   if (sp.estado === undefined) {
@@ -77,12 +91,13 @@ export default async function InqueritosPage({
   const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
   const where = {
     deletedAt: null,
-    ...(sp.search && {
+    ...(search && {
       OR: [
-        { nuipc: { contains: sp.search, mode: 'insensitive' as const } },
-        { nai: { contains: sp.search, mode: 'insensitive' as const } },
-        { denuncianteNome: { contains: sp.search, mode: 'insensitive' as const } },
-        { denuncianteNif: { contains: sp.search, mode: 'insensitive' as const } },
+        { nuipc: { contains: search, mode: 'insensitive' as const } },
+        { nai: { contains: search, mode: 'insensitive' as const } },
+        { denuncianteNome: { contains: search, mode: 'insensitive' as const } },
+        { denuncianteNif: { contains: search, mode: 'insensitive' as const } },
+        { etiquetas: { some: { nome: { contains: search, mode: 'insensitive' as const } } } },
       ],
     }),
     ...(estadoCodigos.length > 0 && {
@@ -189,7 +204,7 @@ export default async function InqueritosPage({
           <HelpSection title="Filtros disponíveis">
             <p>Use a barra de filtros para limitar a lista. Pode combinar vários filtros em simultâneo:</p>
             <ul className="list-disc pl-4 space-y-1 mt-1">
-              <li><strong>Pesquisa</strong> — procura por NUIPC, NAI, denunciante ou crime.</li>
+              <li><strong>Pesquisa</strong> — procura por NUIPC, NAI, denunciante ou etiqueta.</li>
               <li><strong>Estado</strong> — filtra por um ou mais estados do inquérito.</li>
               <li><strong>Prazo vencido</strong> — mostra apenas inquéritos com prazo ultrapassado.</li>
               <li><strong>Sem inspetor</strong> — mostra inquéritos por atribuir.</li>

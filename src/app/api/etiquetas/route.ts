@@ -5,6 +5,7 @@ import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { z } from 'zod'
+import { Prisma as PrismaLib } from '@/generated/prisma/client'
 import type { Role } from '@/generated/prisma/enums'
 
 const createSchema = z.object({
@@ -62,21 +63,34 @@ export async function POST(req: NextRequest) {
 
     const nome = parsed.data.nome.trim()
     if (!nome) return apiError('Nome é obrigatório', 400)
+    const nomeNormalizado = nome.toLowerCase()
 
-    // Unificação dentro do perfil do utilizador (case-insensitive).
-    const existing = await prisma.etiqueta.findFirst({
-      where: {
-        criadoPorId: session.user.id,
-        nome: { equals: nome, mode: 'insensitive' },
-      },
+    // Unificação dentro do perfil do utilizador (case-insensitive via
+    // nomeNormalizado): se já existe, devolve a existente em vez de duplicar.
+    const existing = await prisma.etiqueta.findUnique({
+      where: { criadoPorId_nomeNormalizado: { criadoPorId: session.user.id, nomeNormalizado } },
       select: { id: true, nome: true },
     })
     if (existing) return Response.json(existing, { status: 200 })
 
-    const created = await prisma.etiqueta.create({
-      data: { nome, criadoPorId: session.user.id },
-      select: { id: true, nome: true },
-    })
+    let created: { id: string; nome: string }
+    try {
+      created = await prisma.etiqueta.create({
+        data: { nome, nomeNormalizado, criadoPorId: session.user.id },
+        select: { id: true, nome: true },
+      })
+    } catch (e) {
+      // Corrida: outra criação concorrente ganhou entre o findUnique e o
+      // create. O índice único impede o duplicado — devolvemos a existente.
+      if (e instanceof PrismaLib.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const raced = await prisma.etiqueta.findUnique({
+          where: { criadoPorId_nomeNormalizado: { criadoPorId: session.user.id, nomeNormalizado } },
+          select: { id: true, nome: true },
+        })
+        if (raced) return Response.json(raced, { status: 200 })
+      }
+      throw e
+    }
 
     await writeAudit({
       req,

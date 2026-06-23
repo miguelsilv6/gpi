@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 20))
     const skip = (page - 1) * limit
 
-    const search = searchParams.get('search') ?? ''
+    const search = (searchParams.get('search') ?? '').trim()
     const estadoCodigo = searchParams.get('estado') ?? ''
     const crimeId = searchParams.get('crimeId') ?? ''
     const brigadaId = searchParams.get('brigadaId') ?? ''
@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
           { nai: { contains: search, mode: 'insensitive' as const } },
           { denuncianteNome: { contains: search, mode: 'insensitive' as const } },
           { denuncianteNif: { contains: search, mode: 'insensitive' as const } },
+          { etiquetas: { some: { nome: { contains: search, mode: 'insensitive' as const } } } },
         ],
       }),
       ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),

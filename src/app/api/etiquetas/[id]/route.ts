@@ -5,6 +5,7 @@ import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit, diff } from '@/lib/audit'
 import { z } from 'zod'
+import { Prisma as PrismaLib } from '@/generated/prisma/client'
 import type { Role } from '@/generated/prisma/enums'
 
 const updateSchema = z.object({
@@ -32,22 +33,32 @@ export async function PUT(
 
     const nome = parsed.data.nome.trim()
     if (!nome) return apiError('Nome é obrigatório', 400)
+    const nomeNormalizado = nome.toLowerCase()
 
-    // Colisão com outra etiqueta do mesmo utilizador (case-insensitive).
+    // Colisão com outra etiqueta do mesmo utilizador (case-insensitive via
+    // nomeNormalizado). O índice único é a garantia final (ver catch P2002).
     const collision = await prisma.etiqueta.findFirst({
       where: {
         criadoPorId: session.user.id,
-        nome: { equals: nome, mode: 'insensitive' },
+        nomeNormalizado,
         NOT: { id },
       },
       select: { id: true },
     })
     if (collision) return apiError('Já tens outra etiqueta com este nome', 409)
 
-    const updated = await prisma.etiqueta.update({
-      where: { id },
-      data: { nome },
-    })
+    let updated
+    try {
+      updated = await prisma.etiqueta.update({
+        where: { id },
+        data: { nome, nomeNormalizado },
+      })
+    } catch (e) {
+      if (e instanceof PrismaLib.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return apiError('Já tens outra etiqueta com este nome', 409)
+      }
+      throw e
+    }
 
     const changes = diff(existing, updated, ['nome'])
     if (changes) {
