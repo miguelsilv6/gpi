@@ -55,6 +55,9 @@ export default async function InqueritosPage({
 
   const sort = sp.sort && ALLOWED_SORT[sp.sort] ? sp.sort : 'updatedAt'
   const order = sp.order === 'asc' ? 'asc' : 'desc'
+  // Trim para não correr queries `contains` com espaços (ex.: "% %"), que
+  // seriam caras e sem valor; vazio após trim = sem filtro de pesquisa.
+  const search = sp.search?.trim()
 
   // Default aplicado ao filtro de estados quando o URL não tem `estado`
   // (visita inicial). O default pessoal do utilizador (perfil) tem prioridade;
@@ -88,13 +91,13 @@ export default async function InqueritosPage({
   const roleWhere = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
   const where = {
     deletedAt: null,
-    ...(sp.search && {
+    ...(search && {
       OR: [
-        { nuipc: { contains: sp.search, mode: 'insensitive' as const } },
-        { nai: { contains: sp.search, mode: 'insensitive' as const } },
-        { denuncianteNome: { contains: sp.search, mode: 'insensitive' as const } },
-        { denuncianteNif: { contains: sp.search, mode: 'insensitive' as const } },
-        { etiquetas: { some: { nome: { contains: sp.search, mode: 'insensitive' as const } } } },
+        { nuipc: { contains: search, mode: 'insensitive' as const } },
+        { nai: { contains: search, mode: 'insensitive' as const } },
+        { denuncianteNome: { contains: search, mode: 'insensitive' as const } },
+        { denuncianteNif: { contains: search, mode: 'insensitive' as const } },
+        { etiquetas: { some: { nome: { contains: search, mode: 'insensitive' as const } } } },
       ],
     }),
     ...(estadoCodigos.length > 0 && {
