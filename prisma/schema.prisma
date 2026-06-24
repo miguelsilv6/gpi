@@ -58,6 +58,17 @@ enum TipoRelacaoInquerito {
   CONEXO
 }
 
+// Tipo de diligência/evento de agenda (datas de tribunal e atos processuais).
+enum TipoDiligencia {
+  JULGAMENTO
+  INQUIRICAO
+  BUSCA
+  INTERROGATORIO
+  RECONSTITUICAO
+  REUNIAO
+  OUTRA
+}
+
 model Brigada {
   id          String   @id @default(cuid())
   nome        String   @unique
@@ -121,6 +132,7 @@ model Utilizador {
   notasEditadas        NotaInquerito[] @relation("NotaInqueritoEditor")
   tarefasInquerito     TarefaInquerito[]
   relacoesInqueritoCriadas InqueritoRelacao[] @relation("RelacaoCriador")
+  diligenciasCriadas   Diligencia[]  @relation("DiligenciaCriador")
 
   @@index([brigadaId])
   @@index([role])
@@ -206,6 +218,8 @@ model Inquerito {
   // vez; a leitura é feita nos dois sentidos (ver src/lib/relacoes.ts).
   relacoesOrigem  InqueritoRelacao[] @relation("RelacaoOrigem")
   relacoesDestino InqueritoRelacao[] @relation("RelacaoDestino")
+
+  diligencias     Diligencia[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -550,6 +564,13 @@ model ConfiguracaoSistema {
   // Comma-separated list of Role values allowed to see/manage attachments when
   // the module is active. ADMINISTRACAO always has access and is never stored here.
   moduloAnexosRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // When false, the Agenda module (vista de calendário: prazos, atividades,
+  // controlos e diligências) is hidden and its API routes return 503. Only
+  // ADMINISTRACAO can toggle this in Configurações → Sistema.
+  moduloAgendaAtivo               Boolean  @default(true)
+  // Comma-separated list of Role values allowed to use the Agenda when the
+  // module is active. ADMINISTRACAO always has access and is never stored here.
+  moduloAgendaRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Explicações por IA na Toolbox (LLM local via Ollama). Opt-in: o admin só
   // deve ativar depois de descarregar o modelo no container Ollama.
   toolboxIaAtivo                  Boolean  @default(false)
@@ -933,4 +954,32 @@ model InqueritoRelacao {
   @@index([origemId])
   @@index([destinoId])
   @@index([criadoPorId])
+}
+
+// Diligência / evento de agenda — datas de tribunal (julgamentos, inquirições),
+// buscas, interrogatórios e outros atos com data marcada. Opcionalmente ligada a
+// um inquérito. Alimenta a vista de calendário (Agenda) em conjunto com os
+// prazos de inquérito, atividades com prazo e controlos. Visibilidade por role
+// em src/lib/role-scope.ts (buildDiligenciaWhere).
+model Diligencia {
+  id          String         @id @default(cuid())
+  titulo      String
+  tipo        TipoDiligencia @default(OUTRA)
+  dataInicio  DateTime
+  dataFim     DateTime?
+  local       String?
+  observacoes String?
+  concluida   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  inquerito   Inquerito? @relation(fields: [inqueritoId], references: [id], onDelete: SetNull)
+  inqueritoId String?
+
+  criadoPor   Utilizador @relation("DiligenciaCriador", fields: [criadoPorId], references: [id])
+  criadoPorId String
+
+  @@index([inqueritoId])
+  @@index([criadoPorId])
+  @@index([dataInicio])
 }

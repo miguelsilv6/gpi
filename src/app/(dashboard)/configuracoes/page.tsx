@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { CrimesTab } from './crimes-tab'
@@ -835,6 +835,9 @@ export default function ConfiguracoesPage() {
   const [moduloToolboxRoles, setModuloToolboxRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloAnexosAtivo, setModuloAnexosAtivo] = useState(true)
   const [moduloAnexosRoles, setModuloAnexosRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [moduloAgendaAtivo, setModuloAgendaAtivo] = useState(true)
+  const [moduloAgendaRoles, setModuloAgendaRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [savingModuloAgenda, setSavingModuloAgenda] = useState(false)
   const [savingModuloAnexos, setSavingModuloAnexos] = useState(false)
   const [emailNotificacoesAtivo, setEmailNotificacoesAtivo] = useState(true)
   const [savingEmailNotificacoes, setSavingEmailNotificacoes] = useState(false)
@@ -898,6 +901,8 @@ export default function ConfiguracoesPage() {
         setModuloToolboxRoles((d.moduloToolboxRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloAnexosAtivo(d.moduloAnexosAtivo ?? true)
         setModuloAnexosRoles((d.moduloAnexosRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setModuloAgendaAtivo(d.moduloAgendaAtivo ?? true)
+        setModuloAgendaRoles((d.moduloAgendaRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setToolboxIaAtivo(d.toolboxIaAtivo ?? false)
         setToolboxIaModelo(d.toolboxIaModelo ?? 'qwen3:4b')
         setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
@@ -1221,6 +1226,31 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function toggleModuloAgenda() {
+    const next = !moduloAgendaAtivo
+    setSavingModuloAgenda(true)
+    setModuloAgendaAtivo(next)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduloAgendaAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setModuloAgendaAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Módulo Agenda ativado' : 'Módulo Agenda desativado')
+    } catch {
+      setModuloAgendaAtivo(!next)
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingModuloAgenda(false)
+    }
+  }
+
   async function toggleEmailNotificacoes() {
     const next = !emailNotificacoesAtivo
     setSavingEmailNotificacoes(true)
@@ -1246,13 +1276,14 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos', role: string) {
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos' | 'agenda', role: string) {
     const configMap = {
       ajudas:     { roles: moduloAjudasRoles,     setter: setModuloAjudasRoles,     key: 'moduloAjudasRoles' },
       ferias:     { roles: moduloFeriasRoles,     setter: setModuloFeriasRoles,     key: 'moduloFeriasRoles' },
       bugreports: { roles: moduloBugReportsRoles, setter: setModuloBugReportsRoles, key: 'moduloBugReportsRoles' },
       toolbox:    { roles: moduloToolboxRoles,    setter: setModuloToolboxRoles,    key: 'moduloToolboxRoles' },
       anexos:     { roles: moduloAnexosRoles,     setter: setModuloAnexosRoles,     key: 'moduloAnexosRoles' },
+      agenda:     { roles: moduloAgendaRoles,     setter: setModuloAgendaRoles,     key: 'moduloAgendaRoles' },
     } as const
     const { roles: current, setter, key } = configMap[modulo]
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
@@ -1843,6 +1874,49 @@ export default function ConfiguracoesPage() {
                   roles={moduloAnexosRoles}
                   disabled={savingRoles}
                   onToggle={(r) => toggleModuloRole('anexos', r)}
+                />
+              )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloAgendaAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <CalendarCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Agenda</p>
+                    <p className="text-xs text-muted-foreground">
+                      Vista de calendário: prazos, atividades, controlos e diligências (datas de tribunal)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleModuloAgenda}
+                  disabled={savingModuloAgenda}
+                  aria-label={moduloAgendaAtivo ? 'Desativar módulo Agenda' : 'Ativar módulo Agenda'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloAgendaAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloAgendaAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloAgendaAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloAgendaRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('agenda', r)}
                 />
               )}
             </div>
