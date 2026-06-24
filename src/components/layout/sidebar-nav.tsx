@@ -17,16 +17,18 @@ interface SidebarNavProps {
   moduloFeriasAtivo?: boolean
   moduloBugReportsAtivo?: boolean
   moduloToolboxAtivo?: boolean
+  moduloAgendaAtivo?: boolean
   onNavigate?: () => void
 }
 
-export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, moduloAgendaAtivo = true, onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
   const items = filterNavItems(role, {
     moduloAjudasAtivo,
     moduloFeriasAtivo,
     moduloBugReportsAtivo,
     moduloToolboxAtivo,
+    moduloAgendaAtivo,
   })
   const brand = useBrand()
   const lightLogo = useBrandAssetUrl('light')

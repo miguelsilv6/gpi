@@ -11,6 +11,7 @@ export {
   buildAtividadePrazoWhere,
   buildInqueritoWhere,
   buildControloWhere,
+  buildDiligenciaWhere,
   buildNotaInqueritoAutorWhere,
   canEditInquerito,
   getInqueritoColumnsVisibility,

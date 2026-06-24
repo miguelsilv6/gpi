@@ -11,6 +11,7 @@ import {
   Settings,
   ClipboardList,
   CalendarClock,
+  CalendarCheck,
   FileBarChart,
   BarChart2,
   Banknote,
@@ -57,6 +58,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Prazos e Controlos',
     href: '/prazos',
     icon: CalendarClock,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Agenda',
+    href: '/agenda',
+    icon: CalendarCheck,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
@@ -150,6 +157,7 @@ export interface NavModuleFlags {
   moduloFeriasAtivo?: boolean
   moduloBugReportsAtivo?: boolean
   moduloToolboxAtivo?: boolean
+  moduloAgendaAtivo?: boolean
 }
 
 /**
@@ -165,6 +173,7 @@ export function filterNavItems(role: Role, modules: NavModuleFlags = {}): NavIte
     moduloFeriasAtivo = true,
     moduloBugReportsAtivo = true,
     moduloToolboxAtivo = true,
+    moduloAgendaAtivo = true,
   } = modules
   return NAV_ITEMS.filter((item) => {
     if (!item.roles.includes(role)) return false
@@ -172,6 +181,7 @@ export function filterNavItems(role: Role, modules: NavModuleFlags = {}): NavIte
     if (item.href === '/ausencias' && !moduloFeriasAtivo && role !== 'ADMINISTRACAO') return false
     if (item.href === '/reportar-bug' && !moduloBugReportsAtivo && role !== 'ADMINISTRACAO') return false
     if (item.href === '/toolbox' && !moduloToolboxAtivo && role !== 'ADMINISTRACAO') return false
+    if (item.href === '/agenda' && !moduloAgendaAtivo && role !== 'ADMINISTRACAO') return false
     return true
   })
 }

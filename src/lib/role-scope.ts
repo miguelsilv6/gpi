@@ -88,6 +88,25 @@ export function buildNotaInqueritoAutorWhere(
 }
 
 /**
+ * Diligências/agenda — visibilidade por role. Read-all (COORDENADOR,
+ * ESTATISTICA, ADMINISTRACAO) vê todas. INSPETOR_CHEFE vê as ligadas a
+ * inquéritos da sua brigada e as que criou. INSPETOR vê as ligadas aos seus
+ * inquéritos e as que criou. Diligências sem inquérito são privadas do criador.
+ */
+export function buildDiligenciaWhere(
+  role: Role,
+  userId: string,
+  brigadaId: string | null,
+): Prisma.DiligenciaWhereInput {
+  if (hasPermission(role, 'inquerito:read:all')) return {}
+  if (role === 'INSPETOR_CHEFE') {
+    if (!brigadaId) return { criadoPorId: userId }
+    return { OR: [{ inquerito: { brigadaId } }, { criadoPorId: userId }] }
+  }
+  return { OR: [{ inquerito: { inspetorId: userId } }, { criadoPorId: userId }] }
+}
+
+/**
  * Single source of truth para "pode este utilizador editar este inquérito?".
  * Usa-se após obter o inquérito (para conhecer o brigadaId/inspetorId reais).
  */
