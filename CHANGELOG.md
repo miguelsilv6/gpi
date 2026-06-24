@@ -7,6 +7,38 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-24 — "Pesquisa, ligações e CSP por nonce"
+
+### Adicionado
+- **Pesquisa global / paleta de comandos (⌘K / Ctrl+K)** — campo de pesquisa
+  no header e atalho de teclado que navegam para qualquer página acessível e
+  pesquisam inquéritos por NUIPC, NAI, denunciante (nome/NIF) e etiqueta.
+  Endpoint `GET /api/search`, scope-locked por role. `filterNavItems` passa a
+  ser a fonte única da visibilidade da navegação (sidebar, bottom-nav, paleta).
+- **Pesquisa full-text em notas, atividades e documentos** — `to_tsvector` +
+  `websearch_to_tsquery` em Português (com stemming) para notas e atividades,
+  e por nome de ficheiro para documentos. Índices GIN de expressão (migração
+  `20260623150000`). A segurança é aplicada em duas fases: match em SQL →
+  re-filtragem com scope por role no Prisma.
+- **Ligação entre inquéritos (apensos/conexões)** — modelo `InqueritoRelacao`
+  (migração `20260623234310`) com tipos RELACIONADO/APENSO/CONEXO. A relação é
+  simétrica e respeita o âmbito do utilizador. Secção "Inquéritos relacionados"
+  no detalhe, com pesquisa por NUIPC, tipo e nota.
+- **Testes E2E (Playwright)** — fluxos de login, rotas protegidas e paleta de
+  comandos; workflow de CI dedicado (`.github/workflows/e2e.yml`).
+
+### Alterado
+- **Content-Security-Policy baseada em nonce** — `script-src` deixa de usar
+  `'unsafe-inline'`: o middleware gera um nonce por pedido com `'strict-dynamic'`
+  e o Next.js aplica-o aos seus scripts (e o next-themes ao seu script inline).
+  `style-src` mantém `'unsafe-inline'`. As respostas de API passam a ter uma CSP
+  mínima `default-src 'none'`. O middleware passa a cobrir também /login e
+  /password-reset.
+
+### Testes
+- 11 testes de integração novos (pesquisa full-text/scope, ligações simétricas/
+  scope) + 5 testes E2E. 
+
 ## [0.2.0]
 
 ### Adicionado
