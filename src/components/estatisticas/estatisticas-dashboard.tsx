@@ -372,7 +372,7 @@ export function EstatisticasDashboard({
                   <Share2 className="h-4 w-4 text-purple-500" />
                   <span className="text-sm text-muted-foreground">Distribuídos</span>
                 </div>
-                <p className="text-3xl font-bold mt-1 text-purple-700">{stats.distribuido}</p>
+                <p className="text-3xl font-bold mt-1 text-purple-700 dark:text-purple-400">{stats.distribuido}</p>
               </CardContent>
             </Card>
             <Card>
@@ -381,7 +381,7 @@ export function EstatisticasDashboard({
                   <MonitorCog className="h-4 w-4 text-purple-500" />
                   <span className="text-sm text-muted-foreground">Aguarda Exames</span>
                 </div>
-                <p className="text-3xl font-bold mt-1 text-purple-700">{stats.aguardaExames}</p>
+                <p className="text-3xl font-bold mt-1 text-purple-700 dark:text-purple-400">{stats.aguardaExames}</p>
               </CardContent>
             </Card>
             <Card>
@@ -390,7 +390,7 @@ export function EstatisticasDashboard({
                   <Send className="h-4 w-4 text-blue-500" />
                   <span className="text-sm text-muted-foreground">Enviados</span>
                 </div>
-                <p className="text-3xl font-bold mt-1 text-blue-700">{stats.enviados}</p>
+                <p className="text-3xl font-bold mt-1 text-blue-700 dark:text-blue-400">{stats.enviados}</p>
               </CardContent>
             </Card>
             <Card>
@@ -399,7 +399,7 @@ export function EstatisticasDashboard({
                   <Archive className="h-4 w-4 text-gray-500" />
                   <span className="text-sm text-muted-foreground">Arquivados</span>
                 </div>
-                <p className="text-3xl font-bold mt-1 text-gray-600">{stats.arquivados}</p>
+                <p className="text-3xl font-bold mt-1 text-gray-600 dark:text-gray-400">{stats.arquivados}</p>
               </CardContent>
             </Card>
           </div>
