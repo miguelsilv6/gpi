@@ -7,6 +7,17 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-06-24
+
+### Alterado
+- **Dashboard (chefe e superiores)** passa a mostrar os 8 contadores da página
+  de Estatísticas (Total, C. Precatórias, Ativos, Sem inspetor, Distribuídos,
+  Aguarda Exames, Enviados, Arquivados) em vez dos 4 anteriores. O INSPETOR
+  mantém os 4 cartões essenciais. Os contadores foram extraídos para
+  `src/lib/estatisticas-counters.ts` (`getInqueritoCounters`), agora a fonte
+  única usada tanto pelo Dashboard como por `/api/estatisticas`, garantindo
+  valores idênticos. O âmbito por role é respeitado (chefe → sua brigada).
+
 ## [0.5.0] — 2026-06-24 — "Pesquisa, ligações e CSP por nonce"
 
 ### Adicionado
