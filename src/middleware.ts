@@ -39,7 +39,7 @@ function buildCsp(nonce: string): string {
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     "connect-src 'self' https://challenges.cloudflare.com",
-    'frame-src https://challenges.cloudflare.com',
+    "frame-src 'self' https://challenges.cloudflare.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -50,7 +50,6 @@ function buildCsp(nonce: string): string {
 export default auth((req) => {
   const { nextUrl } = req
   const session = req.auth
-  const role = session?.user?.role as Role | undefined
 
   // Nonce único por pedido. APIs edge-safe (crypto/btoa) para o Edge runtime.
   const nonce = btoa(crypto.randomUUID())
@@ -81,8 +80,11 @@ export default auth((req) => {
     return redirect('/login')
   }
 
+  // Fail-closed: se o role faltasse, includes() devolve false e o acesso a
+  // rotas restritas é negado (em vez de permitido).
+  const role = session.user.role as Role
   for (const { prefix, roles } of ROUTE_ROLE_REQUIREMENTS) {
-    if (path.startsWith(prefix) && role && !roles.includes(role)) {
+    if (path.startsWith(prefix) && !roles.includes(role)) {
       return redirect('/dashboard?erro=sem-permissao')
     }
   }

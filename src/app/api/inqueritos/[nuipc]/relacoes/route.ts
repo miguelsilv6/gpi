@@ -87,10 +87,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
     })
     if (existing) return apiError('Estes inquéritos já estão ligados', 409)
 
+    // Guarda o par numa ordem canónica (id menor como origem) para que o índice
+    // único (origemId, destinoId) cubra AMBOS os sentidos: fecha a race em que
+    // dois pedidos simétricos simultâneos (A→B e B→A) passariam ambos a
+    // verificação acima e criariam duas linhas para o mesmo par. A direção é
+    // irrelevante — a leitura é simétrica e o criador fica em criadoPorId.
+    const [menorId, maiorId] = [inquerito.id, destino.id].sort()
+
     const relacao = await prisma.inqueritoRelacao.create({
       data: {
-        origemId: inquerito.id,
-        destinoId: destino.id,
+        origemId: menorId,
+        destinoId: maiorId,
         tipo,
         nota: nota ?? null,
         criadoPorId: session.user.id,
