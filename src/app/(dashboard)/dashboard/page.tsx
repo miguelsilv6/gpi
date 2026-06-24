@@ -4,11 +4,33 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buildInqueritoWhere } from '@/lib/auth-helpers'
-import { ROLE_LABELS } from '@/lib/rbac'
+import { hasPermission, ROLE_LABELS } from '@/lib/rbac'
+import { getInqueritoCounters } from '@/lib/estatisticas-counters'
 import type { Role } from '@/generated/prisma/enums'
-import { FolderOpen, Activity, MonitorCog, Send } from 'lucide-react'
+import {
+  FolderOpen,
+  Activity,
+  MonitorCog,
+  Send,
+  FileText,
+  Mail,
+  Users,
+  Share2,
+  Archive,
+  type LucideIcon,
+} from 'lucide-react'
 import { formatDate, nuipcToSlug } from '@/lib/utils'
 import Link from 'next/link'
+
+interface StatCard {
+  label: string
+  value: number
+  icon: LucideIcon
+  iconClass: string
+  valueClass?: string
+  href?: string
+  note?: string
+}
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -16,52 +38,68 @@ export default async function DashboardPage() {
 
   const role = session.user.role as Role
   const where = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
+  // Chefe e superiores (quem pode ver estatísticas) veem o mesmo conjunto de 8
+  // contadores da página de Estatísticas; o INSPETOR mantém os 4 essenciais.
+  const chefePlus = hasPermission(role, 'estatistica:read')
 
-  // Padrões com categoria de dashboard — agrupados por categoria. O link
-  // Atividade↔Padrão é feito por nome (consistente com `contaParaEstatistica`).
-  const padroes = await prisma.atividadePadrao.findMany({
-    where: { ativa: true, categoriaDashboard: { not: null } },
-    select: { nome: true, categoriaDashboard: true },
-  })
-  const nomesAguardaExames = padroes
-    .filter((p) => p.categoriaDashboard === 'AGUARDA_EXAMES')
-    .map((p) => p.nome)
-  const nomesEnviados = padroes
-    .filter((p) => p.categoriaDashboard === 'ENVIADO')
-    .map((p) => p.nome)
-
-  // Base where: apenas inquéritos activos (excluindo terminal/eliminados).
+  // Base: inquéritos ativos (não-terminal, não-eliminados) — usado nos cartões
+  // simples do inspetor e na lista de recentes.
   const baseWhere = {
     ...where,
     deletedAt: null,
     estado: { terminal: false },
   }
 
-  const [total, emInvestigacao, aguardaExames, enviados, recentes] = await Promise.all([
-    prisma.inquerito.count({ where: baseWhere }),
-    prisma.inquerito.count({
-      where: { ...baseWhere, estado: { codigo: 'EM_INVESTIGACAO' } },
-    }),
-    nomesAguardaExames.length === 0
-      ? Promise.resolve(0)
-      : prisma.inquerito.count({
-          where: {
-            ...baseWhere,
-            atividades: {
-              some: { descricao: { in: nomesAguardaExames }, concluidaEm: null },
-            },
-          },
-        }),
-    nomesEnviados.length === 0
-      ? Promise.resolve(0)
-      : prisma.inquerito.count({
-          where: {
-            ...baseWhere,
-            atividades: {
-              some: { descricao: { in: nomesEnviados }, concluidaEm: null },
-            },
-          },
-        }),
+  async function buildCards(): Promise<StatCard[]> {
+    if (chefePlus) {
+      // Âmbito por role, sem filtro de datas — "Total" conta tudo (igual às
+      // Estatísticas), com Ativos/Arquivados/Distribuídos em separado.
+      const scopeWhere = { ...where, deletedAt: null }
+      const c = await getInqueritoCounters(scopeWhere, scopeWhere)
+      return [
+        { label: 'Total', value: c.total, icon: FileText, iconClass: 'text-muted-foreground', href: '/inqueritos', note: 'Todos' },
+        { label: 'C. Precatórias', value: c.cartaPrecatoria, icon: Mail, iconClass: 'text-orange-500', valueClass: 'text-orange-600 dark:text-orange-400' },
+        { label: 'Ativos', value: c.ativos, icon: Activity, iconClass: 'text-green-500', valueClass: 'text-green-700 dark:text-green-400' },
+        { label: 'Sem inspetor', value: c.semInspetor, icon: Users, iconClass: 'text-muted-foreground', href: '/inqueritos?semInspetor=1' },
+        { label: 'Distribuídos', value: c.distribuido, icon: Share2, iconClass: 'text-purple-500', valueClass: 'text-purple-700', href: '/inqueritos?estado=DISTRIBUIDO' },
+        { label: 'Aguarda Exames', value: c.aguardaExames, icon: MonitorCog, iconClass: 'text-purple-500', valueClass: 'text-purple-700', href: '/inqueritos/pedidos-exame' },
+        { label: 'Enviados', value: c.enviados, icon: Send, iconClass: 'text-blue-500', valueClass: 'text-blue-700', href: '/inqueritos/enviados' },
+        { label: 'Arquivados', value: c.arquivados, icon: Archive, iconClass: 'text-gray-500', valueClass: 'text-gray-600', href: '/inqueritos?estado=ARQUIVADO' },
+      ]
+    }
+
+    // INSPETOR — 4 cartões essenciais (sobre inquéritos ativos).
+    const padroes = await prisma.atividadePadrao.findMany({
+      where: { ativa: true, categoriaDashboard: { not: null } },
+      select: { nome: true, categoriaDashboard: true },
+    })
+    const nomesAguardaExames = padroes.filter((p) => p.categoriaDashboard === 'AGUARDA_EXAMES').map((p) => p.nome)
+    const nomesEnviados = padroes.filter((p) => p.categoriaDashboard === 'ENVIADO').map((p) => p.nome)
+
+    const [total, emInvestigacao, aguardaExames, enviados] = await Promise.all([
+      prisma.inquerito.count({ where: baseWhere }),
+      prisma.inquerito.count({ where: { ...baseWhere, estado: { codigo: 'EM_INVESTIGACAO' } } }),
+      nomesAguardaExames.length === 0
+        ? Promise.resolve(0)
+        : prisma.inquerito.count({
+            where: { ...baseWhere, atividades: { some: { descricao: { in: nomesAguardaExames }, concluidaEm: null } } },
+          }),
+      nomesEnviados.length === 0
+        ? Promise.resolve(0)
+        : prisma.inquerito.count({
+            where: { ...baseWhere, atividades: { some: { descricao: { in: nomesEnviados }, concluidaEm: null } } },
+          }),
+    ])
+    return [
+      { label: 'Total', value: total, icon: FolderOpen, iconClass: 'text-muted-foreground', href: '/inqueritos', note: 'Inquéritos ativos' },
+      { label: 'Em Investigação', value: emInvestigacao, icon: Activity, iconClass: 'text-yellow-500', valueClass: 'text-yellow-600', href: '/inqueritos?estado=EM_INVESTIGACAO', note: 'Ativos' },
+      { label: 'Aguarda Exames', value: aguardaExames, icon: MonitorCog, iconClass: 'text-purple-500', valueClass: 'text-purple-700', href: '/inqueritos/pedidos-exame', note: nomesAguardaExames.length === 0 ? 'Configurar em /configurações' : 'Por concluir' },
+      { label: 'Enviados', value: enviados, icon: Send, iconClass: 'text-blue-500', valueClass: 'text-blue-700', href: '/inqueritos/enviados', note: nomesEnviados.length === 0 ? 'Configurar em /configurações' : 'Por concluir' },
+    ]
+  }
+
+  const [cards, recentes] = await Promise.all([
+    buildCards(),
     prisma.inquerito.findMany({
       where: baseWhere,
       orderBy: { updatedAt: 'desc' },
@@ -84,64 +122,30 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats cards — every card is a Link so operators can drill into the
-          filtered listing. */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-        <Link href="/inqueritos" className="block">
-          <Card className="transition-colors hover:bg-accent/30 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Total</CardTitle>
-              <FolderOpen className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{total}</p>
-              <p className="text-xs text-muted-foreground mt-1">Inquéritos ativos</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/inqueritos?estado=EM_INVESTIGACAO" className="block">
-          <Card className="transition-colors hover:bg-accent/30 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Em Investigação</CardTitle>
-              <Activity className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-yellow-600">{emInvestigacao}</p>
-              <p className="text-xs text-muted-foreground mt-1">Ativos</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/inqueritos/pedidos-exame" className="block">
-          <Card className="transition-colors hover:bg-accent/30 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Aguarda Exames</CardTitle>
-              <MonitorCog className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-purple-700">{aguardaExames}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {nomesAguardaExames.length === 0 ? 'Configurar em /configurações' : 'Por concluir'}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/inqueritos/enviados" className="block">
-          <Card className="transition-colors hover:bg-accent/30 cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Enviados</CardTitle>
-              <Send className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-blue-700">{enviados}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {nomesEnviados.length === 0 ? 'Configurar em /configurações' : 'Por concluir'}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* Stats cards — os que têm filtro associado são links para a listagem. */}
+      <div className={`grid grid-cols-2 gap-3 md:gap-4 ${chefePlus ? 'md:grid-cols-4 xl:grid-cols-8' : 'md:grid-cols-4'}`}>
+        {cards.map((card) => {
+          const Icon = card.icon
+          const inner = (
+            <Card className={card.href ? 'transition-colors hover:bg-accent/30 cursor-pointer h-full' : 'h-full'}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{card.label}</CardTitle>
+                <Icon className={`h-4 w-4 ${card.iconClass}`} />
+              </CardHeader>
+              <CardContent>
+                <p className={`text-2xl font-bold ${card.valueClass ?? ''}`}>{card.value}</p>
+                {card.note && <p className="text-xs text-muted-foreground mt-1">{card.note}</p>}
+              </CardContent>
+            </Card>
+          )
+          return card.href ? (
+            <Link key={card.label} href={card.href} className="block">
+              {inner}
+            </Link>
+          ) : (
+            <div key={card.label}>{inner}</div>
+          )
+        })}
       </div>
 
       {/* Recent inquiries */}

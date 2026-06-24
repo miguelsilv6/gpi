@@ -19,6 +19,9 @@ test.describe('Autenticação', () => {
     // Se a CSP (nonce) bloqueasse os scripts, a app não hidratava e o
     // formulário não submetia — este teste cobre também esse caminho.
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    // admin é "chefe ou superior" → o dashboard mostra os 8 contadores das
+    // Estatísticas (o card "Arquivados" só existe nessa vista alargada).
+    await expect(page.getByText('Arquivados')).toBeVisible()
   })
 
   test('rota protegida sem sessão é redirecionada para /login', async ({ page }) => {
