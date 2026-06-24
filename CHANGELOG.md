@@ -7,6 +7,29 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.4] — 2026-06-24 — "Agenda / Diligências"
+
+### Adicionado
+- **Módulo Agenda** (ativável/desativável pelo administrador em Configurações →
+  Sistema, com roles configuráveis) — vista de calendário mensal que reúne, no
+  mesmo sítio: prazos de inquérito, atividades com prazo, controlos e
+  **diligências** (datas de tribunal: julgamentos, inquirições, buscas,
+  interrogatórios, reconstituições, reuniões).
+- **Modelo `Diligencia`** (migração `20260624134752`) com tipo, datas de
+  início/fim, local, observações e ligação opcional a um inquérito. CRUD em
+  `/api/diligencias` (criar/editar/eliminar pelo criador ou admin), gated pelo
+  módulo.
+- **Página `/agenda`** com calendário (react-day-picker), pontos coloridos por
+  tipo de evento, lista do dia/mês e diálogo para criar/editar diligências
+  (com pesquisa de inquérito por NUIPC).
+- `src/lib/agenda.ts` (`getAgendaEvents`) agrega as 4 fontes com o âmbito por
+  role; `buildDiligenciaWhere` define a visibilidade das diligências
+  (read-all → todas; chefe → brigada; inspetor → próprias/dos seus inquéritos).
+
+### Testes
+- 4 testes de integração (agregação das 4 fontes, intervalo do mês, âmbito das
+  diligências) + 1 teste E2E.
+
 ## [0.5.2] — 2026-06-24
 
 ### Alterado
