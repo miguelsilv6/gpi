@@ -7,6 +7,14 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.6] — 2026-06-24
+
+### Corrigido
+- **Agenda**: deixam de aparecer controlos e diligências ligados a inquéritos
+  **eliminados** (soft-delete) — a agregação passa a filtrar `inquerito.deletedAt`
+  nas duas fontes, mantendo os controlos/diligências sem inquérito associado
+  (alinhado com o que já acontecia nos prazos de inquérito e atividades).
+
 ## [0.5.4] — 2026-06-24 — "Agenda / Diligências"
 
 ### Adicionado
