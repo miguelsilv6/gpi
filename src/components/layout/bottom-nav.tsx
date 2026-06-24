@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { NAV_ITEMS } from './nav-items'
+import { filterNavItems } from './nav-items'
 import type { Role } from '@/generated/prisma/enums'
 
 interface BottomNavProps {
@@ -16,13 +16,11 @@ interface BottomNavProps {
 
 export function BottomNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true }: BottomNavProps) {
   const pathname = usePathname()
-  const items = NAV_ITEMS.filter((item) => {
-    if (!item.roles.includes(role)) return false
-    if (item.href === '/ajudas-mensais' && !moduloAjudasAtivo && role !== 'ADMINISTRACAO') return false
-    if (item.href === '/ausencias' && !moduloFeriasAtivo && role !== 'ADMINISTRACAO') return false
-    if (item.href === '/reportar-bug' && !moduloBugReportsAtivo && role !== 'ADMINISTRACAO') return false
-    if (item.href === '/toolbox' && !moduloToolboxAtivo && role !== 'ADMINISTRACAO') return false
-    return true
+  const items = filterNavItems(role, {
+    moduloAjudasAtivo,
+    moduloFeriasAtivo,
+    moduloBugReportsAtivo,
+    moduloToolboxAtivo,
   }).slice(0, 5)
 
   return (

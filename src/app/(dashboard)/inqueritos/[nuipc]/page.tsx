@@ -14,6 +14,8 @@ import { AtividadesSection } from '@/components/inqueritos/atividades-section'
 import { DocumentosSection } from '@/components/inqueritos/documentos-section'
 import { NotasSection } from '@/components/inqueritos/notas-section'
 import { TarefasSection, type TarefaItem } from '@/components/inqueritos/tarefas-section'
+import { RelacoesSection } from '@/components/inqueritos/relacoes-section'
+import { getRelacoesForInquerito } from '@/lib/relacoes'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -269,6 +271,14 @@ export default async function InqueritoDetailPage({
         : null,
     }
   })
+
+  // Inquéritos relacionados (apensos/conexões) — simétrico e com scope aplicado.
+  const relacoes = await getRelacoesForInquerito(
+    inquerito.id,
+    role,
+    session.user.id,
+    session.user.brigadaId,
+  )
 
   const canReopen = hasPermission(role, 'inquerito:reopen')
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
@@ -722,6 +732,13 @@ export default async function InqueritoDetailPage({
           </CardContent>
         </Card>
       )}
+
+      <RelacoesSection
+        nuipcSlug={inqSlug}
+        selfNuipc={inquerito.nuipc}
+        relacoes={relacoes}
+        canEdit={canEdit}
+      />
 
       <AtividadesSection
         atividades={atividadeItems}

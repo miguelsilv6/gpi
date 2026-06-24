@@ -1,6 +1,6 @@
 {
   "name": "gestao-processos",
-  "version": "0.4.74",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,8 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -54,6 +55,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
