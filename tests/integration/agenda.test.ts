@@ -59,6 +59,53 @@ describe('getAgendaEvents — agregação', () => {
     const events = await getAgendaEvents('INSPETOR', s.inspetorA.id, s.brigadaA.id, monthStart, monthEnd)
     expect(events).toHaveLength(0)
   })
+
+  test('exclui controlo/diligência de inquérito eliminado, mantém os sem inquérito', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const inq = s.inqA[0]
+
+    // Ligados ao inquérito.
+    await prisma.controlo.create({
+      data: {
+        descricao: 'Controlo do inquérito',
+        dataInicio: mid,
+        criadorId: s.inspetorA.id,
+        inqueritoid: inq.id,
+        realizacoes: { create: { numero: 1, dataEsperada: mid } },
+      },
+    })
+    await prisma.diligencia.create({
+      data: { titulo: 'Diligência do inquérito', dataInicio: mid, inqueritoId: inq.id, criadoPorId: s.inspetorA.id },
+    })
+    // Sem inquérito (standalone).
+    await prisma.controlo.create({
+      data: {
+        descricao: 'Controlo solto',
+        dataInicio: mid,
+        criadorId: s.inspetorA.id,
+        realizacoes: { create: { numero: 1, dataEsperada: mid } },
+      },
+    })
+    await prisma.diligencia.create({
+      data: { titulo: 'Diligência solta', dataInicio: mid, criadoPorId: s.inspetorA.id },
+    })
+
+    // Antes de eliminar: 2 controlos + 2 diligências.
+    let events = await getAgendaEvents('INSPETOR', s.inspetorA.id, s.brigadaA.id, monthStart, monthEnd)
+    expect(events.filter((e) => e.tipo === 'controlo')).toHaveLength(2)
+    expect(events.filter((e) => e.tipo === 'diligencia')).toHaveLength(2)
+
+    // Soft-delete do inquérito.
+    await prisma.inquerito.update({ where: { id: inq.id }, data: { deletedAt: new Date() } })
+
+    events = await getAgendaEvents('INSPETOR', s.inspetorA.id, s.brigadaA.id, monthStart, monthEnd)
+    const controlos = events.filter((e) => e.tipo === 'controlo')
+    const diligencias = events.filter((e) => e.tipo === 'diligencia')
+    expect(controlos).toHaveLength(1)
+    expect(controlos[0].titulo).toContain('Controlo solto')
+    expect(diligencias).toHaveLength(1)
+    expect(diligencias[0].titulo).toBe('Diligência solta')
+  })
 })
 
 describe('getAgendaEvents — âmbito das diligências', () => {

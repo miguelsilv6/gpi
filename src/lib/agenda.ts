@@ -76,7 +76,14 @@ export async function getAgendaEvents(
       where: {
         dataRealizacao: null,
         dataEsperada: { gte: from, lt: to },
-        controlo: buildControloWhere(role, userId, brigadaId),
+        controlo: {
+          AND: [
+            buildControloWhere(role, userId, brigadaId),
+            // Excluir controlos de inquéritos eliminados (soft-delete); manter
+            // os controlos sem inquérito associado.
+            { OR: [{ inqueritoid: null }, { inquerito: { deletedAt: null } }] },
+          ],
+        },
       },
       select: {
         id: true,
@@ -87,7 +94,13 @@ export async function getAgendaEvents(
     }),
     prisma.diligencia.findMany({
       where: {
-        AND: [{ dataInicio: { gte: from, lt: to } }, buildDiligenciaWhere(role, userId, brigadaId)],
+        AND: [
+          { dataInicio: { gte: from, lt: to } },
+          buildDiligenciaWhere(role, userId, brigadaId),
+          // Esconder diligências de inquéritos eliminados (soft-delete); manter
+          // as que não têm inquérito associado.
+          { OR: [{ inqueritoId: null }, { inquerito: { deletedAt: null } }] },
+        ],
       },
       select: {
         id: true,
