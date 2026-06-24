@@ -96,11 +96,13 @@ export function DiligenciaDialog({ open, onOpenChange, existing, defaultDay }: P
     if (!titulo.trim() || !dataInicio) return
     setSaving(true)
     try {
+      // Converter as datas locais (datetime-local) para ISO UTC, para o instante
+      // ser preservado independentemente do fuso do servidor.
       const payload = {
         titulo: titulo.trim(),
         tipo,
-        dataInicio,
-        dataFim: dataFim || '',
+        dataInicio: new Date(dataInicio).toISOString(),
+        dataFim: dataFim ? new Date(dataFim).toISOString() : '',
         local: local.trim(),
         observacoes: observacoes.trim(),
         inqueritoId: inquerito?.id ?? '',

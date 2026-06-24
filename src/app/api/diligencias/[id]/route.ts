@@ -17,7 +17,7 @@ function parseDate(s: string): Date | null {
 async function loadManageable(id: string, role: Role, userId: string) {
   const diligencia = await prisma.diligencia.findUnique({
     where: { id },
-    select: { id: true, criadoPorId: true, titulo: true, dataInicio: true },
+    select: { id: true, criadoPorId: true, titulo: true, dataInicio: true, dataFim: true },
   })
   if (!diligencia) return { error: apiError('Diligência não encontrada', 404) }
   const canManage = diligencia.criadoPorId === userId || hasPermission(role, 'inquerito:edit:all')
@@ -43,10 +43,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const update: Prisma.DiligenciaUpdateInput = {}
     if (data.titulo !== undefined) update.titulo = data.titulo
     if (data.tipo !== undefined) update.tipo = data.tipo
-    if (data.local !== undefined) update.local = data.local ?? null
-    if (data.observacoes !== undefined) update.observacoes = data.observacoes ?? null
+    // String vazia limpa o campo (null); omitido mantém o valor atual.
+    if (data.local !== undefined) update.local = data.local.trim() || null
+    if (data.observacoes !== undefined) update.observacoes = data.observacoes.trim() || null
     if (data.concluida !== undefined) update.concluida = data.concluida
 
+    // Datas: validar a combinação FINAL (nova ou existente), para apanhar o caso
+    // de atualizar só a dataInicio para depois da dataFim já guardada.
     let novaDataInicio = diligencia!.dataInicio
     if (data.dataInicio !== undefined) {
       const d = parseDate(data.dataInicio)
@@ -54,25 +57,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       update.dataInicio = d
       novaDataInicio = d
     }
+    const novaDataFim =
+      data.dataFim !== undefined
+        ? data.dataFim
+          ? parseDate(data.dataFim)
+          : null
+        : diligencia!.dataFim
+    if (data.dataFim !== undefined && data.dataFim && !novaDataFim) {
+      return apiError('Data de fim inválida', 400)
+    }
+    if (novaDataFim && novaDataFim < novaDataInicio) {
+      return apiError('A data de fim não pode ser anterior à de início', 400)
+    }
     if (data.dataFim !== undefined) {
-      if (!data.dataFim) {
-        update.dataFim = null
-      } else {
-        const d = parseDate(data.dataFim)
-        if (!d) return apiError('Data de fim inválida', 400)
-        if (d < novaDataInicio) return apiError('A data de fim não pode ser anterior à de início', 400)
-        update.dataFim = d
-      }
+      update.dataFim = novaDataFim
     }
 
     if (data.inqueritoId !== undefined) {
-      if (!data.inqueritoId) {
+      if (!data.inqueritoId.trim()) {
         update.inquerito = { disconnect: true }
       } else {
         const inq = await prisma.inquerito.findFirst({
           where: {
             AND: [
-              { id: data.inqueritoId },
+              { id: data.inqueritoId.trim() },
               { deletedAt: null },
               buildInqueritoWhere(role, session.user.id, session.user.brigadaId ?? null),
             ],

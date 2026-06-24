@@ -68,6 +68,23 @@ export const diligenciaCreateSchema = z.object({
   concluida: z.boolean().optional(),
 })
 
-export const diligenciaUpdateSchema = diligenciaCreateSchema.partial()
+// No update, os campos opcionais são mantidos "crus" (sem transformar '' em
+// undefined): assim a rota distingue "omitido" (saltar) de "string vazia"
+// (limpar → null). O trim/normalização é feito no handler.
+export const diligenciaUpdateSchema = z.object({
+  titulo: z
+    .string()
+    .trim()
+    .min(1, 'O título é obrigatório')
+    .max(DILIGENCIA_TITULO_MAX, `O título não pode exceder ${DILIGENCIA_TITULO_MAX} caracteres`)
+    .optional(),
+  tipo: z.enum(TIPO_DILIGENCIA_VALUES).optional(),
+  dataInicio: z.string().min(1, 'A data é obrigatória').optional(),
+  dataFim: z.string().optional(),
+  local: z.string().max(DILIGENCIA_LOCAL_MAX).optional(),
+  observacoes: z.string().max(DILIGENCIA_OBS_MAX).optional(),
+  inqueritoId: z.string().optional(),
+  concluida: z.boolean().optional(),
+})
 
 export type DiligenciaCreateData = z.infer<typeof diligenciaCreateSchema>
