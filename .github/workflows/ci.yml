@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+# Limita o GITHUB_TOKEN ao mínimo: os jobs só leem o repositório.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Lint + Build + Test

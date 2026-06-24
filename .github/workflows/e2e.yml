@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
 
+# Mínimo necessário: o job só lê o repositório (checkout). O upload do
+# relatório usa o runtime de Actions, que não exige permissões extra no token.
+permissions:
+  contents: read
+
 jobs:
   e2e:
     name: Playwright E2E
