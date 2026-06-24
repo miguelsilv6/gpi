@@ -61,10 +61,10 @@ export default async function DashboardPage() {
         { label: 'C. Precatórias', value: c.cartaPrecatoria, icon: Mail, iconClass: 'text-orange-500', valueClass: 'text-orange-600 dark:text-orange-400' },
         { label: 'Ativos', value: c.ativos, icon: Activity, iconClass: 'text-green-500', valueClass: 'text-green-700 dark:text-green-400' },
         { label: 'Sem inspetor', value: c.semInspetor, icon: Users, iconClass: 'text-muted-foreground', href: '/inqueritos?semInspetor=1' },
-        { label: 'Distribuídos', value: c.distribuido, icon: Share2, iconClass: 'text-purple-500', valueClass: 'text-purple-700', href: '/inqueritos?estado=DISTRIBUIDO' },
-        { label: 'Aguarda Exames', value: c.aguardaExames, icon: MonitorCog, iconClass: 'text-purple-500', valueClass: 'text-purple-700', href: '/inqueritos/pedidos-exame' },
-        { label: 'Enviados', value: c.enviados, icon: Send, iconClass: 'text-blue-500', valueClass: 'text-blue-700', href: '/inqueritos/enviados' },
-        { label: 'Arquivados', value: c.arquivados, icon: Archive, iconClass: 'text-gray-500', valueClass: 'text-gray-600', href: '/inqueritos?estado=ARQUIVADO' },
+        { label: 'Distribuídos', value: c.distribuido, icon: Share2, iconClass: 'text-purple-500', valueClass: 'text-purple-700 dark:text-purple-400', href: '/inqueritos?estado=DISTRIBUIDO' },
+        { label: 'Aguarda Exames', value: c.aguardaExames, icon: MonitorCog, iconClass: 'text-purple-500', valueClass: 'text-purple-700 dark:text-purple-400', href: '/inqueritos/pedidos-exame' },
+        { label: 'Enviados', value: c.enviados, icon: Send, iconClass: 'text-blue-500', valueClass: 'text-blue-700 dark:text-blue-400', href: '/inqueritos/enviados' },
+        { label: 'Arquivados', value: c.arquivados, icon: Archive, iconClass: 'text-gray-500', valueClass: 'text-gray-600 dark:text-gray-400', href: '/inqueritos?estado=ARQUIVADO' },
       ]
     }
 
@@ -92,9 +92,9 @@ export default async function DashboardPage() {
     ])
     return [
       { label: 'Total', value: total, icon: FolderOpen, iconClass: 'text-muted-foreground', href: '/inqueritos', note: 'Inquéritos ativos' },
-      { label: 'Em Investigação', value: emInvestigacao, icon: Activity, iconClass: 'text-yellow-500', valueClass: 'text-yellow-600', href: '/inqueritos?estado=EM_INVESTIGACAO', note: 'Ativos' },
-      { label: 'Aguarda Exames', value: aguardaExames, icon: MonitorCog, iconClass: 'text-purple-500', valueClass: 'text-purple-700', href: '/inqueritos/pedidos-exame', note: nomesAguardaExames.length === 0 ? 'Configurar em /configurações' : 'Por concluir' },
-      { label: 'Enviados', value: enviados, icon: Send, iconClass: 'text-blue-500', valueClass: 'text-blue-700', href: '/inqueritos/enviados', note: nomesEnviados.length === 0 ? 'Configurar em /configurações' : 'Por concluir' },
+      { label: 'Em Investigação', value: emInvestigacao, icon: Activity, iconClass: 'text-yellow-500', valueClass: 'text-yellow-600 dark:text-yellow-400', href: '/inqueritos?estado=EM_INVESTIGACAO', note: 'Ativos' },
+      { label: 'Aguarda Exames', value: aguardaExames, icon: MonitorCog, iconClass: 'text-purple-500', valueClass: 'text-purple-700 dark:text-purple-400', href: '/inqueritos/pedidos-exame', note: nomesAguardaExames.length === 0 ? 'Configurar em /configurações' : 'Por concluir' },
+      { label: 'Enviados', value: enviados, icon: Send, iconClass: 'text-blue-500', valueClass: 'text-blue-700 dark:text-blue-400', href: '/inqueritos/enviados', note: nomesEnviados.length === 0 ? 'Configurar em /configurações' : 'Por concluir' },
     ]
   }
 
@@ -139,11 +139,11 @@ export default async function DashboardPage() {
             </Card>
           )
           return card.href ? (
-            <Link key={card.label} href={card.href} className="block">
+            <Link key={card.label} href={card.href} className="block h-full">
               {inner}
             </Link>
           ) : (
-            <div key={card.label}>{inner}</div>
+            <div key={card.label} className="h-full">{inner}</div>
           )
         })}
       </div>
