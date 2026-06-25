@@ -20,7 +20,9 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 - **Botão "Enviar por e-mail"** na Estatística Mensal: abre um novo e-mail no
   cliente predefinido (Outlook, no ambiente corporativo) já preenchido com o
   período no assunto e, no corpo, o resumo por atividade e o detalhe por
-  inquérito — para o utilizador rever e remeter posteriormente.
+  inquérito — para o utilizador rever e remeter posteriormente. Se o conteúdo
+  exceder o limite de tamanho do `mailto:`, o texto é copiado para a área de
+  transferência (com aviso) em vez de o clique falhar em silêncio.
 
 ## [0.5.6] — 2026-06-24
 

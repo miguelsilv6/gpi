@@ -21,6 +21,7 @@ import {
   TableFooter,
 } from '@/components/ui/table'
 import { Download, ChevronLeft, ChevronRight, Mail } from 'lucide-react'
+import { toast } from 'sonner'
 import Link from 'next/link'
 
 interface InqueritoBreakdown {
@@ -46,6 +47,11 @@ const MES_LABEL: Record<number, string> = {
   5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
   9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro',
 }
+
+// Limite prático do URL de um mailto: (~2000 caracteres em Outlook/Chrome).
+// Acima disto o cliente de e-mail ignora o clique, por isso recorremos à área
+// de transferência. Usamos 1900 para deixar margem.
+const MAILTO_MAX_LENGTH = 1900
 
 export function EstatisticaMensalView() {
   const now = new Date()
@@ -141,13 +147,29 @@ export function EstatisticaMensalView() {
     return lines.join('\r\n')
   }
 
-  function handleEmail() {
+  async function handleEmail() {
     if (!data) return
     const subject = `Estatística Mensal — ${MES_LABEL[mes]} ${ano}`
     const body = buildEmailBody(data)
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+    // Com muitos inquéritos o corpo pode ultrapassar o limite do mailto: e o
+    // clique falharia em silêncio. Nesse caso copiamos o texto para a área de
+    // transferência para o utilizador colar manualmente no e-mail.
+    if (mailtoUrl.length > MAILTO_MAX_LENGTH) {
+      try {
+        await navigator.clipboard.writeText(body)
+        toast.success(
+          'A estatística é demasiado extensa para abrir no e-mail. O texto foi copiado para a área de transferência — cole-o no corpo da mensagem.',
+        )
+      } catch {
+        toast.error('Não foi possível copiar a estatística para a área de transferência.')
+      }
+      return
+    }
     // mailto: abre um novo e-mail no cliente predefinido (Outlook, no ambiente
     // corporativo) já preenchido, para o utilizador rever e enviar.
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.location.href = mailtoUrl
   }
 
   // Compute row and column totals for display
