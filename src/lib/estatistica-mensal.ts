@@ -1,5 +1,15 @@
 import { prisma } from '@/lib/prisma'
+import { nuipcToSlug } from '@/lib/utils'
 import type { Role } from '@/generated/prisma/enums'
+
+/** Detalhe por inquérito: que atividades (e quantas) foram feitas no mês. */
+export interface InqueritoAtividadeBreakdown {
+  nuipc: string
+  slug: string
+  brigadaNome: string | null
+  atividades: { nome: string; quantidade: number }[]
+  total: number
+}
 
 export interface EstatisticaMensalData {
   ano: number
@@ -9,6 +19,8 @@ export interface EstatisticaMensalData {
   /** counts[padraoNome][brigadaId] = count */
   counts: Record<string, Record<string, number>>
   totalGeral: number
+  /** Detalhe por inquérito (NUIPC) × atividade × quantidade. */
+  porInquerito: InqueritoAtividadeBreakdown[]
 }
 
 interface BuildOpts {
@@ -64,6 +76,11 @@ export async function buildEstatisticaMensal(
   }
 
   let totalGeral = 0
+  // Acumulador por inquérito: id → { nuipc, brigada, atividades, total }.
+  const porInqueritoMap = new Map<
+    string,
+    { nuipc: string; brigadaNome: string | null; atividades: Map<string, number>; total: number }
+  >()
 
   if (padraoNomes.length > 0 && brigadas.length > 0) {
     const atividades = await prisma.atividade.findMany({
@@ -78,7 +95,14 @@ export async function buildEstatisticaMensal(
       select: {
         descricao: true,
         quantidade: true,
-        inquerito: { select: { brigadaId: true } },
+        inquerito: {
+          select: {
+            id: true,
+            nuipc: true,
+            brigadaId: true,
+            brigada: { select: { nome: true } },
+          },
+        },
       },
     })
 
@@ -97,10 +121,39 @@ export async function buildEstatisticaMensal(
         : 1
       row[brigadaId] = (row[brigadaId] ?? 0) + increment
       totalGeral += increment
+
+      // Detalhe por inquérito.
+      let entry = porInqueritoMap.get(a.inquerito.id)
+      if (!entry) {
+        entry = {
+          nuipc: a.inquerito.nuipc,
+          brigadaNome: a.inquerito.brigada?.nome ?? null,
+          atividades: new Map(),
+          total: 0,
+        }
+        porInqueritoMap.set(a.inquerito.id, entry)
+      }
+      entry.atividades.set(a.descricao, (entry.atividades.get(a.descricao) ?? 0) + increment)
+      entry.total += increment
     }
   }
 
-  return { ano, mes, atividadesPadrao, brigadas, counts, totalGeral }
+  const porInquerito: InqueritoAtividadeBreakdown[] = Array.from(porInqueritoMap.values())
+    .map((e) => ({
+      nuipc: e.nuipc,
+      slug: nuipcToSlug(e.nuipc),
+      brigadaNome: e.brigadaNome,
+      atividades: Array.from(e.atividades.entries())
+        .map(([nome, quantidade]) => ({ nome, quantidade }))
+        .sort((x, y) => x.nome.localeCompare(y.nome)),
+      total: e.total,
+    }))
+    .sort(
+      (a, b) =>
+        (a.brigadaNome ?? '').localeCompare(b.brigadaNome ?? '') || a.nuipc.localeCompare(b.nuipc),
+    )
+
+  return { ano, mes, atividadesPadrao, brigadas, counts, totalGeral, porInquerito }
 }
 
 const MES_LABEL_PT: Record<number, string> = {
