@@ -20,7 +20,16 @@ import {
   TableRow,
   TableFooter,
 } from '@/components/ui/table'
-import { Download, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Download, ChevronLeft, ChevronRight, Mail } from 'lucide-react'
+import Link from 'next/link'
+
+interface InqueritoBreakdown {
+  nuipc: string
+  slug: string
+  brigadaNome: string | null
+  atividades: { nome: string; quantidade: number }[]
+  total: number
+}
 
 interface ApiResponse {
   ano: number
@@ -29,6 +38,7 @@ interface ApiResponse {
   brigadas: { id: string; nome: string }[]
   counts: Record<string, Record<string, number>>
   totalGeral: number
+  porInquerito: InqueritoBreakdown[]
 }
 
 const MES_LABEL: Record<number, string> = {
@@ -91,6 +101,55 @@ export function EstatisticaMensalView() {
     window.open(`/api/estatistica-mensal/export?${params}`, '_blank')
   }
 
+  // Constrói um corpo de e-mail em texto simples: resumo por atividade +
+  // detalhe por inquérito (NUIPC × atividade × quantidade). Usa CRLF porque
+  // é o que o Outlook espera nas quebras de linha de um mailto.
+  function buildEmailBody(d: ApiResponse): string {
+    const lines: string[] = []
+    lines.push(`Estatística Mensal — ${MES_LABEL[d.mes]} ${d.ano}`)
+    lines.push('')
+    lines.push(`Total geral: ${d.totalGeral}`)
+    lines.push('')
+
+    lines.push('== Resumo por atividade ==')
+    for (const p of d.atividadesPadrao) {
+      let row = 0
+      const parts: string[] = []
+      for (const b of d.brigadas) {
+        const v = d.counts[p.nome]?.[b.id] ?? 0
+        row += v
+        if (d.brigadas.length > 1 && v > 0) parts.push(`${b.nome}: ${v}`)
+      }
+      if (row > 0) {
+        const suffix = parts.length > 0 ? ` (${parts.join(', ')})` : ''
+        lines.push(`- ${p.nome}: ${row}${suffix}`)
+      }
+    }
+
+    if (d.porInquerito.length > 0) {
+      lines.push('')
+      lines.push('== Detalhe por inquérito ==')
+      for (const inq of d.porInquerito) {
+        const brig = inq.brigadaNome ? ` [${inq.brigadaNome}]` : ''
+        lines.push(`NUIPC ${inq.nuipc}${brig} — total ${inq.total}`)
+        for (const a of inq.atividades) {
+          lines.push(`   • ${a.nome}: ${a.quantidade}`)
+        }
+      }
+    }
+
+    return lines.join('\r\n')
+  }
+
+  function handleEmail() {
+    if (!data) return
+    const subject = `Estatística Mensal — ${MES_LABEL[mes]} ${ano}`
+    const body = buildEmailBody(data)
+    // mailto: abre um novo e-mail no cliente predefinido (Outlook, no ambiente
+    // corporativo) já preenchido, para o utilizador rever e enviar.
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
   // Compute row and column totals for display
   const { rowTotals, colTotals } = useMemo(() => {
     const rt: Record<string, number> = {}
@@ -110,6 +169,10 @@ export function EstatisticaMensalView() {
 
   const hasMatrix =
     data && data.atividadesPadrao.length > 0 && data.brigadas.length > 0
+
+  // Só mostra a coluna "Brigada" no detalhe quando há mais do que uma em vista
+  // (para INSPETOR_CHEFE a brigada está fixada, logo seria redundante).
+  const showBrigadaCol = (data?.brigadas.length ?? 0) > 1
 
   return (
     <div className="space-y-4">
@@ -186,6 +249,16 @@ export function EstatisticaMensalView() {
           >
             <Download className="h-4 w-4 mr-1.5" />
             Markdown
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleEmail}
+            disabled={!hasMatrix || loading}
+            title="Abrir um novo e-mail (Outlook) com a estatística"
+          >
+            <Mail className="h-4 w-4 mr-1.5" />
+            Enviar por e-mail
           </Button>
         </div>
       </div>
@@ -269,6 +342,65 @@ export function EstatisticaMensalView() {
           )}
         </CardContent>
       </Card>
+
+      {/* Detalhe por inquérito: que atividades (e quantas) foram feitas em cada
+          NUIPC no período — ex.: "no inquérito X foram feitas 3 constituições
+          de arguido". */}
+      {!loading && !error && data && data.porInquerito.length > 0 && (
+        <Card>
+          <CardContent className="p-0">
+            <div className="border-b px-4 py-3">
+              <h3 className="text-sm font-semibold">Detalhe por inquérito</h3>
+              <p className="text-xs text-muted-foreground">
+                Atividades realizadas em cada inquérito (NUIPC) no período.
+              </p>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>NUIPC</TableHead>
+                  {showBrigadaCol && <TableHead>Brigada</TableHead>}
+                  <TableHead>Atividade</TableHead>
+                  <TableHead className="text-right">Quantidade</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.porInquerito.map((inq) =>
+                  inq.atividades.map((a, idx) => (
+                    <TableRow key={`${inq.slug}-${a.nome}`}>
+                      {idx === 0 && (
+                        <TableCell
+                          rowSpan={inq.atividades.length}
+                          className="align-top font-medium"
+                        >
+                          <Link
+                            href={`/inqueritos/${inq.slug}`}
+                            className="text-primary hover:underline"
+                          >
+                            {inq.nuipc}
+                          </Link>
+                        </TableCell>
+                      )}
+                      {idx === 0 && showBrigadaCol && (
+                        <TableCell
+                          rowSpan={inq.atividades.length}
+                          className="align-top text-muted-foreground"
+                        >
+                          {inq.brigadaNome ?? '—'}
+                        </TableCell>
+                      )}
+                      <TableCell>{a.nome}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {a.quantidade}
+                      </TableCell>
+                    </TableRow>
+                  )),
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -7,6 +7,21 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.8] — 2026-06-25
+
+### Adicionado
+- **Estatística Mensal — detalhe por inquérito**: por baixo da tabela
+  agregada passa a haver uma nova tabela que lista, para cada inquérito
+  (NUIPC) do período, as atividades realizadas e respetiva quantidade
+  (ex.: "no inquérito X foram feitas 3 constituições de arguido"). O NUIPC
+  liga ao detalhe do inquérito e a coluna **Brigada** só aparece quando há
+  mais do que uma brigada em vista. Respeita o âmbito por role (INSPETOR_CHEFE
+  vê apenas a sua brigada) e exclui inquéritos eliminados.
+- **Botão "Enviar por e-mail"** na Estatística Mensal: abre um novo e-mail no
+  cliente predefinido (Outlook, no ambiente corporativo) já preenchido com o
+  período no assunto e, no corpo, o resumo por atividade e o detalhe por
+  inquérito — para o utilizador rever e remeter posteriormente.
+
 ## [0.5.6] — 2026-06-24
 
 ### Corrigido
