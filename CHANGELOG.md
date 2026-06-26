@@ -7,6 +7,22 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.10] — 2026-06-26
+
+### Adicionado
+- **Documentação pendente**: é possível marcar um inquérito como tendo
+  documentação por juntar (caso típico: o inquérito já foi enviado/concluído mas
+  chega documentação que tem de ser anexada a posterior). A marca tem uma nota
+  opcional do que falta e regista automaticamente desde quando está pendente.
+  - Marcação rápida no **detalhe do inquérito** (com nota), também disponível
+    com o inquérito já concluído, e *badge* "Documentação pendente". Igualmente
+    presente no formulário de criação/edição.
+  - Nova página **Documentação Pendente** que lista todos os inquéritos
+    marcados (âmbito por role), com a nota, desde quando, e ação
+    **"Marcar como junta"**.
+  - Migração `add_documentacao_pendente` (campos `documentacaoPendente`,
+    `documentacaoPendenteNota`, `documentacaoPendenteDesde` + índice).
+
 ## [0.5.8] — 2026-06-25
 
 ### Adicionado
