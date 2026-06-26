@@ -87,7 +87,12 @@ export async function PUT(
     const finalCartaPrecatoria = data.cartaPrecatoria ?? existing.cartaPrecatoria
     const docPendente = computeDocumentacaoPendenteUpdate({
       pendente: data.documentacaoPendente ?? existing.documentacaoPendente,
-      nota: data.documentacaoPendenteNota ?? existing.documentacaoPendenteNota,
+      // `undefined` = campo não enviado → preserva a nota atual; `null`/'' =
+      // intenção explícita de limpar (o helper normaliza para null).
+      nota:
+        data.documentacaoPendenteNota !== undefined
+          ? data.documentacaoPendenteNota
+          : existing.documentacaoPendenteNota,
       current: {
         documentacaoPendente: existing.documentacaoPendente,
         documentacaoPendenteDesde: existing.documentacaoPendenteDesde,

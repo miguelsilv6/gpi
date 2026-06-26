@@ -17,29 +17,26 @@ import {
 } from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
 import { MarcarJuntaButton } from '@/components/inqueritos/marcar-junta-button'
-import { nuipcToSlug } from '@/lib/utils'
+import { nuipcToSlug, formatDate } from '@/lib/utils'
 import { Paperclip } from 'lucide-react'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
+
+// Perfis com acesso operacional a esta página (espelha nav-items.tsx). O
+// ESTATISTICA, ainda que possa ler inquéritos para fins estatísticos, não tem
+// o item no menu — aplicamos a mesma restrição ao nível da página.
+const ROLES_PERMITIDOS: Role[] = ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO']
 
 /**
  * Lista de inquéritos marcados com documentação por juntar (inquéritos já
  * enviados/concluídos a aguardar documentação que chega depois). Âmbito por
  * role garantido por buildInqueritoWhere. Ordenado pelos mais antigos primeiro.
  */
-function formatDesde(d: Date | null): string {
-  if (!d) return '—'
-  return new Intl.DateTimeFormat('pt-PT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(d)
-}
-
 export default async function DocumentacaoPendentePage() {
   const session = await auth()
   if (!session?.user) redirect('/login')
   const role = session.user.role as Role
+  if (!ROLES_PERMITIDOS.includes(role)) redirect('/dashboard')
 
   const where = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
   const showBrigada = hasPermission(role, 'inquerito:read:all')
@@ -125,7 +122,7 @@ export default async function DocumentacaoPendentePage() {
                         )}
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">
-                        {formatDesde(inq.documentacaoPendenteDesde)}
+                        {formatDate(inq.documentacaoPendenteDesde)}
                       </TableCell>
                       <TableCell className="text-right">
                         {canResolve && <MarcarJuntaButton slug={nuipcToSlug(inq.nuipc)} />}
