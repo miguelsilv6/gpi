@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { checkPermission, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
+import { computeDocumentacaoPendenteUpdate } from '@/lib/documentacao-pendente'
 import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import { isTerminal } from '@/lib/inquerito-state'
 import type { Role } from '@/generated/prisma/enums'
@@ -210,6 +211,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const docPendente = computeDocumentacaoPendenteUpdate({
+      pendente: data.documentacaoPendente ?? false,
+      nota: data.documentacaoPendenteNota,
+      current: { documentacaoPendente: false, documentacaoPendenteDesde: null },
+    })
+
     const inquerito = await prisma.inquerito.create({
       data: {
         nuipc: data.nuipc,
@@ -247,6 +254,7 @@ export async function POST(req: NextRequest) {
         denuncianteEmail: data.denuncianteEmail?.trim() || null,
         denuncianteResponsavel: data.denuncianteResponsavel?.trim() || null,
         denuncianteNotas: data.denuncianteNotas?.trim() || null,
+        ...docPendente,
         ...(etiquetaIds.length > 0 && {
           etiquetas: { connect: etiquetaIds.map((id) => ({ id })) },
         }),

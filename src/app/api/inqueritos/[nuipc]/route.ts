@@ -10,6 +10,7 @@ import {
 } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
+import { computeDocumentacaoPendenteUpdate } from '@/lib/documentacao-pendente'
 import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import { notifyInqueritoAtribuido } from '@/lib/notifications'
 import { slugToNuipc, nuipcToSlug } from '@/lib/utils'
@@ -84,6 +85,14 @@ export async function PUT(
     const data = parsed.data
     const inspetorId = data.inspetorId && data.inspetorId.length > 0 ? data.inspetorId : null
     const finalCartaPrecatoria = data.cartaPrecatoria ?? existing.cartaPrecatoria
+    const docPendente = computeDocumentacaoPendenteUpdate({
+      pendente: data.documentacaoPendente ?? existing.documentacaoPendente,
+      nota: data.documentacaoPendenteNota ?? existing.documentacaoPendenteNota,
+      current: {
+        documentacaoPendente: existing.documentacaoPendente,
+        documentacaoPendenteDesde: existing.documentacaoPendenteDesde,
+      },
+    })
 
     // Resolve target estado
     const targetEstado = await findEstadoById(data.estadoId)
@@ -233,6 +242,7 @@ export async function PUT(
         titularEmail: finalCartaPrecatoria ? data.titularEmail?.trim() || null : null,
         titularVoip: finalCartaPrecatoria ? data.titularVoip?.trim() || null : null,
         titularUnidade: finalCartaPrecatoria ? data.titularUnidade?.trim() || null : null,
+        ...docPendente,
         inspetorId,
         tribunalId: data.tribunalId || null,
         seccaoId: data.seccaoId || null,
@@ -300,6 +310,8 @@ export async function PUT(
       titularEmail: existing.titularEmail,
       titularVoip: existing.titularVoip,
       titularUnidade: existing.titularUnidade,
+      documentacaoPendente: existing.documentacaoPendente,
+      documentacaoPendenteNota: existing.documentacaoPendenteNota,
     }
     const after = {
       nuipc: updated.nuipc,
@@ -332,6 +344,8 @@ export async function PUT(
       titularEmail: updated.titularEmail,
       titularVoip: updated.titularVoip,
       titularUnidade: updated.titularUnidade,
+      documentacaoPendente: updated.documentacaoPendente,
+      documentacaoPendenteNota: updated.documentacaoPendenteNota,
     }
     const changes = diff(before, after, [
       'nuipc',
@@ -364,6 +378,8 @@ export async function PUT(
       'titularEmail',
       'titularVoip',
       'titularUnidade',
+      'documentacaoPendente',
+      'documentacaoPendenteNota',
     ])
 
     const crimesAssociadosBefore = existing.crimesAssociados.map((c) => c.nome)

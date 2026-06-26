@@ -178,6 +178,13 @@ model Inquerito {
   denuncianteEmail       String?
   denuncianteResponsavel String?
   denuncianteNotas       String?
+  // Documentação pendente — inquérito já enviado/concluído mas a aguardar
+  // documentação que chega depois e tem de ser junta a posterior.
+  // `documentacaoPendenteNota` descreve o que falta; `...Desde` é preenchido
+  // automaticamente ao marcar e limpo ao resolver.
+  documentacaoPendente      Boolean   @default(false)
+  documentacaoPendenteNota  String?
+  documentacaoPendenteDesde DateTime?
   deletedAt      DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -234,6 +241,7 @@ model Inquerito {
   @@index([tribunalId])
   @@index([seccaoId])
   @@index([cartaPrecatoria])
+  @@index([documentacaoPendente])
 }
 
 // Documentos/anexos de um inquérito (provas, relatórios, ofícios…).

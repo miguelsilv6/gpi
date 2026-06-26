@@ -21,7 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail, MonitorCog } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail, MonitorCog, Paperclip } from 'lucide-react'
+import { DocumentacaoPendenteToggle } from '@/components/inqueritos/documentacao-pendente-toggle'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 import { CopyNuipcButton } from '@/components/inqueritos/copy-nuipc-button'
@@ -354,6 +355,15 @@ export default async function InqueritoDetailPage({
                 Aguarda exames
               </span>
             )}
+            {inquerito.documentacaoPendente && (
+              <span
+                className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
+                title={inquerito.documentacaoPendenteNota ?? 'Documentação por juntar'}
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+                Documentação pendente
+              </span>
+            )}
             <EtiquetaList etiquetas={inquerito.etiquetas} max={inquerito.etiquetas.length} />
           </div>
         </div>
@@ -390,6 +400,13 @@ export default async function InqueritoDetailPage({
                 Editar
               </Link>
             </Button>
+          )}
+          {canEdit && (
+            <DocumentacaoPendenteToggle
+              slug={inqSlug}
+              pendente={inquerito.documentacaoPendente}
+              nota={inquerito.documentacaoPendenteNota}
+            />
           )}
           {canReopen && terminal && <ReopenDialog slug={inqSlug} />}
           {canDelete && <DeleteInqueritoButton nuipc={inquerito.nuipc} />}

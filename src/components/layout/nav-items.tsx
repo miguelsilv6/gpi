@@ -19,6 +19,7 @@ import {
   Wrench,
   NotebookPen,
   ListTodo,
+  Paperclip,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,6 +42,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/inqueritos',
     icon: FolderOpen,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ESTATISTICA', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Documentação Pendente',
+    href: '/documentacao-pendente',
+    icon: Paperclip,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
     label: 'Notas',

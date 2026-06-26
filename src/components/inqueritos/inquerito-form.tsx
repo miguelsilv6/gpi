@@ -170,6 +170,7 @@ export function InqueritoForm({
   const selectedTribunalId = watch('tribunalId')
   const selectedSeccaoId = watch('seccaoId')
   const isCartaPrecatoria = watch('cartaPrecatoria')
+  const isDocumentacaoPendente = watch('documentacaoPendente')
 
   // Tribunais filtered by the selected comarca (null = tribunals with no comarca).
   const tribunaisForSelect = useMemo(() => {
@@ -361,6 +362,35 @@ export function InqueritoForm({
             <Label htmlFor="cartaPrecatoria" className="cursor-pointer font-normal">
               Carta Precatória
             </Label>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-2">
+              <input
+                id="documentacaoPendente"
+                type="checkbox"
+                {...register('documentacaoPendente')}
+                className="h-4 w-4 rounded border-border cursor-pointer"
+              />
+              <Label htmlFor="documentacaoPendente" className="cursor-pointer font-normal">
+                Documentação pendente (falta juntar)
+              </Label>
+            </div>
+            {isDocumentacaoPendente && (
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="documentacaoPendenteNota"
+                  className="text-xs text-muted-foreground"
+                >
+                  O que falta juntar (opcional)
+                </Label>
+                <Input
+                  id="documentacaoPendenteNota"
+                  placeholder="Ex.: relatório do INML, auto de notícia…"
+                  {...register('documentacaoPendenteNota')}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
