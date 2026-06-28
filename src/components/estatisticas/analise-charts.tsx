@@ -43,3 +43,17 @@ export function DistribuicaoResolucaoChart({ data }: { data: AnaliseBucket[] }) 
     </ResponsiveContainer>
   )
 }
+
+export function AgingChart({ data }: { data: AnaliseBucket[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+        <Tooltip />
+        <Bar dataKey="count" name="Ativos" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
