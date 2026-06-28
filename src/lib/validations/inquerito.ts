@@ -61,10 +61,6 @@ export const inqueritoSchema = z
     denuncianteEmail: z.string().max(200).optional().nullable(),
     denuncianteResponsavel: z.string().max(200).optional().nullable(),
     denuncianteNotas: z.string().max(2000).optional().nullable(),
-    // Documentação pendente — flag (já enviado mas falta juntar documentação
-    // que chega depois) + nota do que falta. O `...Desde` é gerido no servidor.
-    documentacaoPendente: z.boolean().optional(),
-    documentacaoPendenteNota: z.string().max(2000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
     const abertura = parseDate(data.dataAbertura)

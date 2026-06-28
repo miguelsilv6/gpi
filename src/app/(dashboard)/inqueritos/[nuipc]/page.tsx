@@ -407,7 +407,7 @@ export default async function InqueritoDetailPage({
               </Link>
             </Button>
           )}
-          {canEdit && (
+          {canEdit && (!inquerito.documentacaoPendente || isMinhaDocPendente) && (
             <DocumentacaoPendenteToggle
               slug={inqSlug}
               pendente={!!isMinhaDocPendente}

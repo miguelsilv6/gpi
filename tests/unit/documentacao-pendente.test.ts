@@ -31,11 +31,11 @@ describe('computeDocumentacaoPendenteUpdate', () => {
     expect(r.documentacaoPendentePorId).toBe(USER)
   })
 
-  test('já pendente: preserva desde e autor originais mesmo se outro edita a nota', () => {
+  test('mesmo autor a editar a nota preserva o desde e o autor', () => {
     const r = computeDocumentacaoPendenteUpdate({
       pendente: true,
       nota: 'Falta auto de notícia',
-      userId: OUTRO,
+      userId: USER,
       current: {
         documentacaoPendente: true,
         documentacaoPendenteDesde: DESDE,
@@ -46,6 +46,23 @@ describe('computeDocumentacaoPendenteUpdate', () => {
     expect(r.documentacaoPendenteDesde).toEqual(DESDE)
     expect(r.documentacaoPendentePorId).toBe(USER)
     expect(r.documentacaoPendenteNota).toBe('Falta auto de notícia')
+  })
+
+  test('utilizador diferente a marcar assume a propriedade (novo desde/autor)', () => {
+    const r = computeDocumentacaoPendenteUpdate({
+      pendente: true,
+      nota: 'A minha nota',
+      userId: OUTRO,
+      current: {
+        documentacaoPendente: true,
+        documentacaoPendenteDesde: DESDE,
+        documentacaoPendentePorId: USER,
+      },
+      now: NOW,
+    })
+    expect(r.documentacaoPendentePorId).toBe(OUTRO)
+    expect(r.documentacaoPendenteDesde).toEqual(NOW)
+    expect(r.documentacaoPendenteNota).toBe('A minha nota')
   })
 
   test('resolver: limpa flag, nota, desde e autor', () => {

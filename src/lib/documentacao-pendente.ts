@@ -47,9 +47,12 @@ export function computeDocumentacaoPendenteUpdate(args: {
   }
 
   const nota = args.nota?.trim() ? args.nota.trim() : null
-  // Preserva o "desde" e o autor originais se já estava pendente; caso
-  // contrário marca o momento atual e o utilizador atual como dono.
-  const jaPendente = current.documentacaoPendente
+  // "Já pendente" só conta se a marca pertence ao MESMO utilizador — assim,
+  // editar a própria nota preserva o desde/autor, mas um utilizador diferente
+  // a marcar assume a propriedade (não fica preso à marca de outrem nem lhe
+  // sobrescreve a nota silenciosamente).
+  const jaPendente =
+    current.documentacaoPendente && current.documentacaoPendentePorId === userId
   const desde = jaPendente && current.documentacaoPendenteDesde ? current.documentacaoPendenteDesde : now
   const porId = jaPendente && current.documentacaoPendentePorId ? current.documentacaoPendentePorId : userId
 
