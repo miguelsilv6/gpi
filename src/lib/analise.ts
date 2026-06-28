@@ -20,6 +20,7 @@ export interface AnaliseBucket {
 
 /** Carga de trabalho ativa por inspetor titular. */
 export interface CargaInspetor {
+  id: string | null
   nome: string
   ativos: number
   vencidos: number
@@ -93,7 +94,7 @@ export async function computeAnalise(brigadaId: string | null): Promise<AnaliseR
       select: {
         dataAbertura: true,
         dataPrazo: true,
-        inspetor: { select: { nome: true } },
+        inspetor: { select: { id: true, nome: true } },
       },
     }),
   ])
@@ -147,7 +148,7 @@ export async function computeAnalise(brigadaId: string | null): Promise<AnaliseR
 
   // Carga por inspetor + antiguidade dos inquéritos ativos.
   const agingCounts = BUCKETS.map(() => 0)
-  const cargaMap = new Map<string, { nome: string; ativos: number; vencidos: number }>()
+  const cargaMap = new Map<string, { id: string | null; nome: string; ativos: number; vencidos: number }>()
   for (const inq of ativosDetalhe) {
     const dias = Math.max(0, Math.round(
       (hoje.getTime() - inq.dataAbertura.getTime()) / 86_400_000,
@@ -155,11 +156,13 @@ export async function computeAnalise(brigadaId: string | null): Promise<AnaliseR
     const idx = BUCKETS.findIndex((b) => dias < b.max)
     agingCounts[idx === -1 ? BUCKETS.length - 1 : idx]++
 
+    // Agrupa pelo id do inspetor (não pelo nome) para não fundir homónimos.
+    const inspKey = inq.inspetor?.id ?? 'sem-inspetor'
     const nome = inq.inspetor?.nome ?? 'Sem inspetor'
-    const entry = cargaMap.get(nome) ?? { nome, ativos: 0, vencidos: 0 }
+    const entry = cargaMap.get(inspKey) ?? { id: inq.inspetor?.id ?? null, nome, ativos: 0, vencidos: 0 }
     entry.ativos++
     if (inq.dataPrazo && inq.dataPrazo < hoje) entry.vencidos++
-    cargaMap.set(nome, entry)
+    cargaMap.set(inspKey, entry)
   }
   const cargaPorInspetor = Array.from(cargaMap.values()).sort(
     (a, b) => b.ativos - a.ativos || a.nome.localeCompare(b.nome),

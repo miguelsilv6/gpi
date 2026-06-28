@@ -191,7 +191,7 @@ export default async function AnalisePage({
                   </thead>
                   <tbody>
                     {analise.cargaPorInspetor.map((c) => (
-                      <tr key={c.nome} className="border-b last:border-0">
+                      <tr key={c.id ?? 'sem-inspetor'} className="border-b last:border-0">
                         <td className="px-4 py-2">{c.nome}</td>
                         <td className="px-4 py-2 text-right tabular-nums">{c.ativos}</td>
                         <td
