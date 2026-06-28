@@ -219,6 +219,12 @@ export default async function InqueritoDetailPage({
     : []
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
+  // A marca de documentação pendente é privada do autor: badge e estado do
+  // toggle só refletem a marca para quem a criou; aos outros aparece como
+  // não-marcado.
+  const isMinhaDocPendente =
+    inquerito.documentacaoPendente &&
+    inquerito.documentacaoPendentePorId === session.user.id
   const terminal = isTerminal(inquerito.estado)
   // INSPETOR_CHEFE a ver inquérito atribuído a outro membro da brigada: bloquear
   // edição de atividades por omissão para evitar modificações acidentais.
@@ -355,7 +361,7 @@ export default async function InqueritoDetailPage({
                 Aguarda exames
               </span>
             )}
-            {inquerito.documentacaoPendente && (
+            {isMinhaDocPendente && (
               <span
                 className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
                 title={inquerito.documentacaoPendenteNota ?? 'Documentação por juntar'}
@@ -401,11 +407,11 @@ export default async function InqueritoDetailPage({
               </Link>
             </Button>
           )}
-          {canEdit && (
+          {canEdit && (!inquerito.documentacaoPendente || isMinhaDocPendente) && (
             <DocumentacaoPendenteToggle
               slug={inqSlug}
-              pendente={inquerito.documentacaoPendente}
-              nota={inquerito.documentacaoPendenteNota}
+              pendente={!!isMinhaDocPendente}
+              nota={isMinhaDocPendente ? inquerito.documentacaoPendenteNota : null}
             />
           )}
           {canReopen && terminal && <ReopenDialog slug={inqSlug} />}

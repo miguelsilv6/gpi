@@ -106,6 +106,7 @@ model Utilizador {
   brigadaId String?
 
   inqueritos           Inquerito[]   @relation("InspetorAtribuido")
+  inqueritosDocPendente Inquerito[]  @relation("DocumentacaoPendentePor")
   atividadesRealizadas Atividade[]
   notificacoes         Notificacao[]
   sessoes              Sessao[]
@@ -198,6 +199,12 @@ model Inquerito {
   inspetor   Utilizador? @relation("InspetorAtribuido", fields: [inspetorId], references: [id])
   inspetorId String?
 
+  // Quem ativou a marca de documentação pendente — a listagem é privada do
+  // autor (cada utilizador só vê as marcas que fez). SetNull se o autor for
+  // removido, para não quebrar o inquérito.
+  documentacaoPendentePor   Utilizador? @relation("DocumentacaoPendentePor", fields: [documentacaoPendentePorId], references: [id], onDelete: SetNull)
+  documentacaoPendentePorId String?
+
   crime    Crime?  @relation("CrimePrincipal", fields: [crimeId], references: [id])
   crimeId  String?
   // Crimes adicionais (m2m implícita). Não contam para estatísticas —
@@ -242,6 +249,7 @@ model Inquerito {
   @@index([seccaoId])
   @@index([cartaPrecatoria])
   @@index([documentacaoPendente])
+  @@index([documentacaoPendentePorId])
 }
 
 // Documentos/anexos de um inquérito (provas, relatórios, ofícios…).
