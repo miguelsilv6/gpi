@@ -7,6 +7,22 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.14] — 2026-06-28
+
+### Adicionado
+- **Exportação completa do inquérito**: o CSV de um inquérito (botão CSV no
+  detalhe) passa a incluir, além dos metadados e atividades, secções de
+  **Controlos** (com nº de realizações feitas/total e próxima data esperada) e
+  de **Diligências** (tipo, datas, local, estado). *(Os intervenientes/pessoas
+  serão incluídos quando esse modelo existir.)*
+- **Análise — carga e antiguidade** (em Estatísticas → Análise, chefe+):
+  - **Carga por inspetor**: nº de inquéritos ativos por inspetor titular, com
+    contagem dos que estão com prazo vencido.
+  - **Antiguidade dos inquéritos ativos**: distribuição por escalões de idade
+    (há quanto tempo abertos: <30 dias, 30–90, 90–180, 180–365, >1 ano).
+  - (As tendências mensais abertos/concluídos já existiam.) Respeita o âmbito
+    por brigada.
+
 ## [0.5.12] — 2026-06-28
 
 ### Alterado

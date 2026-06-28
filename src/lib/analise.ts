@@ -18,6 +18,14 @@ export interface AnaliseBucket {
   count: number
 }
 
+/** Carga de trabalho ativa por inspetor titular. */
+export interface CargaInspetor {
+  id: string | null
+  nome: string
+  ativos: number
+  vencidos: number
+}
+
 export interface AnaliseResult {
   ativos: number
   concluidos12m: number
@@ -28,6 +36,10 @@ export interface AnaliseResult {
   taxaDentroPrazo: number | null
   trendMensal: AnaliseMensal[]
   distribuicaoResolucao: AnaliseBucket[]
+  /** Inquéritos ativos por inspetor (ordenado por carga desc). */
+  cargaPorInspetor: CargaInspetor[]
+  /** Antiguidade dos inquéritos ativos (hoje − data de abertura). */
+  agingAtivos: AnaliseBucket[]
 }
 
 const BUCKETS: { label: string; max: number }[] = [
@@ -47,7 +59,7 @@ export async function computeAnalise(brigadaId: string | null): Promise<AnaliseR
 
   const scope = brigadaId ? { brigadaId } : {}
 
-  const [ativos, vencidosHoje, concluidos, abertos12m] = await Promise.all([
+  const [ativos, vencidosHoje, concluidos, abertos12m, ativosDetalhe] = await Promise.all([
     prisma.inquerito.count({
       where: { ...scope, deletedAt: null, estado: { terminal: false } },
     }),
@@ -75,6 +87,15 @@ export async function computeAnalise(brigadaId: string | null): Promise<AnaliseR
         dataAbertura: { gte: inicio12m },
       },
       select: { dataAbertura: true },
+    }),
+    // Inquéritos ativos com detalhe, para carga por inspetor e antiguidade.
+    prisma.inquerito.findMany({
+      where: { ...scope, deletedAt: null, estado: { terminal: false } },
+      select: {
+        dataAbertura: true,
+        dataPrazo: true,
+        inspetor: { select: { id: true, nome: true } },
+      },
     }),
   ])
 
@@ -125,6 +146,28 @@ export async function computeAnalise(brigadaId: string | null): Promise<AnaliseR
     if (idx !== undefined) meses[idx].concluidos++
   }
 
+  // Carga por inspetor + antiguidade dos inquéritos ativos.
+  const agingCounts = BUCKETS.map(() => 0)
+  const cargaMap = new Map<string, { id: string | null; nome: string; ativos: number; vencidos: number }>()
+  for (const inq of ativosDetalhe) {
+    const dias = Math.max(0, Math.round(
+      (hoje.getTime() - inq.dataAbertura.getTime()) / 86_400_000,
+    ))
+    const idx = BUCKETS.findIndex((b) => dias < b.max)
+    agingCounts[idx === -1 ? BUCKETS.length - 1 : idx]++
+
+    // Agrupa pelo id do inspetor (não pelo nome) para não fundir homónimos.
+    const inspKey = inq.inspetor?.id ?? 'sem-inspetor'
+    const nome = inq.inspetor?.nome ?? 'Sem inspetor'
+    const entry = cargaMap.get(inspKey) ?? { id: inq.inspetor?.id ?? null, nome, ativos: 0, vencidos: 0 }
+    entry.ativos++
+    if (inq.dataPrazo && inq.dataPrazo < hoje) entry.vencidos++
+    cargaMap.set(inspKey, entry)
+  }
+  const cargaPorInspetor = Array.from(cargaMap.values()).sort(
+    (a, b) => b.ativos - a.ativos || a.nome.localeCompare(b.nome),
+  )
+
   return {
     ativos,
     concluidos12m: comTempoCount,
@@ -133,5 +176,7 @@ export async function computeAnalise(brigadaId: string | null): Promise<AnaliseR
     taxaDentroPrazo: comPrazoCount > 0 ? Math.round((dentroPrazo / comPrazoCount) * 100) : null,
     trendMensal: meses,
     distribuicaoResolucao: BUCKETS.map((b, i) => ({ label: b.label, count: bucketCounts[i] })),
+    cargaPorInspetor,
+    agingAtivos: BUCKETS.map((b, i) => ({ label: b.label, count: agingCounts[i] })),
   }
 }

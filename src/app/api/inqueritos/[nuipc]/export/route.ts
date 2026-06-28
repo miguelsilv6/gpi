@@ -9,6 +9,7 @@ import {
 import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { slugToNuipc } from '@/lib/utils'
+import { TIPO_DILIGENCIA_LABEL } from '@/lib/validations/diligencia'
 import type { Role } from '@/generated/prisma/enums'
 
 function escapeCSV(value: unknown): string {
@@ -64,6 +65,17 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           include: { realizadaPor: { select: { nome: true } } },
         },
+        controlos: {
+          orderBy: { dataInicio: 'desc' },
+          include: {
+            criador: { select: { nome: true } },
+            realizacoes: { orderBy: { numero: 'asc' } },
+          },
+        },
+        diligencias: {
+          orderBy: { dataInicio: 'desc' },
+          include: { criadoPor: { select: { nome: true } } },
+        },
       },
     })
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
@@ -74,7 +86,12 @@ export async function GET(
       entidade: 'Inquerito',
       entidadeId: inquerito.id,
       utilizadorId: session.user.id,
-      detalhes: { nuipc: inquerito.nuipc, atividades: inquerito.atividades.length },
+      detalhes: {
+        nuipc: inquerito.nuipc,
+        atividades: inquerito.atividades.length,
+        controlos: inquerito.controlos.length,
+        diligencias: inquerito.diligencias.length,
+      },
     })
 
     // Header block — inquérito metadata as key/value pairs. We use a
@@ -150,6 +167,73 @@ export async function GET(
           fmtDate(a.concluidaEm),
           a.realizadaPor.nome,
           a.observacoes ?? '',
+        ]
+          .map(escapeCSV)
+          .join(','),
+      )
+    }
+
+    // Spacer + controlos section
+    lines.push('')
+    lines.push(`Controlos (${inquerito.controlos.length})`)
+    const ctrlHeaders = [
+      'Descrição',
+      'Início',
+      'Periodicidade (dias)',
+      'Concluído em',
+      'Realizações (feitas/total)',
+      'Próxima esperada',
+      'Criado por',
+      'Observações',
+    ]
+    lines.push(ctrlHeaders.map(escapeCSV).join(','))
+    for (const c of inquerito.controlos) {
+      const total = c.realizacoes.length
+      const feitas = c.realizacoes.filter((r) => r.dataRealizacao).length
+      const proxima = c.realizacoes
+        .filter((r) => !r.dataRealizacao)
+        .sort((a, b) => a.dataEsperada.getTime() - b.dataEsperada.getTime())[0]
+      lines.push(
+        [
+          c.descricao,
+          fmtDate(c.dataInicio),
+          c.periodoDias ?? '',
+          fmtDate(c.concluidoEm),
+          `${feitas}/${total}`,
+          proxima ? fmtDate(proxima.dataEsperada) : '',
+          c.criador.nome,
+          c.observacoes ?? '',
+        ]
+          .map(escapeCSV)
+          .join(','),
+      )
+    }
+
+    // Spacer + diligências section
+    lines.push('')
+    lines.push(`Diligências (${inquerito.diligencias.length})`)
+    const dilHeaders = [
+      'Tipo',
+      'Título',
+      'Início',
+      'Fim',
+      'Local',
+      'Concluída',
+      'Criado por',
+      'Observações',
+    ]
+    lines.push(dilHeaders.map(escapeCSV).join(','))
+    for (const d of inquerito.diligencias) {
+      lines.push(
+        [
+          TIPO_DILIGENCIA_LABEL[d.tipo] ?? d.tipo,
+          d.titulo,
+          fmtDateTime(d.dataInicio),
+          d.dataFim ? fmtDateTime(d.dataFim) : '',
+          d.local ?? '',
+          d.concluida ? 'Sim' : 'Não',
+          d.criadoPor.nome,
+          d.observacoes ?? '',
         ]
           .map(escapeCSV)
           .join(','),

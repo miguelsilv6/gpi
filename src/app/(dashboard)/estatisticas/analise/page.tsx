@@ -6,7 +6,7 @@ import { hasPermission } from '@/lib/rbac'
 import { computeAnalise } from '@/lib/analise'
 import { AccessDenied } from '@/components/access-denied'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendMensalChart, DistribuicaoResolucaoChart } from '@/components/estatisticas/analise-charts'
+import { TrendMensalChart, DistribuicaoResolucaoChart, AgingChart } from '@/components/estatisticas/analise-charts'
 import { ArrowLeft, Timer, Target, FolderOpen, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
@@ -159,6 +159,55 @@ export default async function AnalisePage({
           </CardHeader>
           <CardContent>
             <DistribuicaoResolucaoChart data={analise.distribuicaoResolucao} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Antiguidade dos inquéritos ativos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AgingChart data={analise.agingAtivos} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Carga por inspetor (ativos)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {analise.cargaPorInspetor.length === 0 ? (
+              <p className="px-6 pb-4 text-sm text-muted-foreground">Sem inquéritos ativos.</p>
+            ) : (
+              <div className="max-h-[260px] overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-background">
+                    <tr className="border-b text-left text-xs text-muted-foreground">
+                      <th className="px-4 py-2 font-medium">Inspetor</th>
+                      <th className="px-4 py-2 text-right font-medium">Ativos</th>
+                      <th className="px-4 py-2 text-right font-medium">Vencidos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analise.cargaPorInspetor.map((c) => (
+                      <tr key={c.id ?? 'sem-inspetor'} className="border-b last:border-0">
+                        <td className="px-4 py-2">{c.nome}</td>
+                        <td className="px-4 py-2 text-right tabular-nums">{c.ativos}</td>
+                        <td
+                          className={cn(
+                            'px-4 py-2 text-right tabular-nums',
+                            c.vencidos > 0 && 'font-medium text-red-600',
+                          )}
+                        >
+                          {c.vencidos}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
