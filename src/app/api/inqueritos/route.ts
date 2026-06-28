@@ -214,7 +214,12 @@ export async function POST(req: NextRequest) {
     const docPendente = computeDocumentacaoPendenteUpdate({
       pendente: data.documentacaoPendente ?? false,
       nota: data.documentacaoPendenteNota,
-      current: { documentacaoPendente: false, documentacaoPendenteDesde: null },
+      userId: session.user.id,
+      current: {
+        documentacaoPendente: false,
+        documentacaoPendenteDesde: null,
+        documentacaoPendentePorId: null,
+      },
     })
 
     const inquerito = await prisma.inquerito.create({

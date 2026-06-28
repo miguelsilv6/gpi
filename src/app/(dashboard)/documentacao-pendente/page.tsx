@@ -1,11 +1,7 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import {
-  buildInqueritoWhere,
-  getInqueritoColumnsVisibility,
-  canEditInquerito,
-} from '@/lib/auth-helpers'
+import { getInqueritoColumnsVisibility } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import {
   Table,
@@ -28,9 +24,9 @@ import type { Role } from '@/generated/prisma/enums'
 const ROLES_PERMITIDOS: Role[] = ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO']
 
 /**
- * Lista de inquéritos marcados com documentação por juntar (inquéritos já
- * enviados/concluídos a aguardar documentação que chega depois). Âmbito por
- * role garantido por buildInqueritoWhere. Ordenado pelos mais antigos primeiro.
+ * Lista de inquéritos com documentação por juntar — PRIVADA do autor: cada
+ * utilizador só vê as marcas que ele próprio criou (filtro por
+ * documentacaoPendentePorId). Ordenada pelos mais antigos primeiro.
  */
 export default async function DocumentacaoPendentePage() {
   const session = await auth()
@@ -38,18 +34,19 @@ export default async function DocumentacaoPendentePage() {
   const role = session.user.role as Role
   if (!ROLES_PERMITIDOS.includes(role)) redirect('/dashboard')
 
-  const where = buildInqueritoWhere(role, session.user.id, session.user.brigadaId)
   const showBrigada = hasPermission(role, 'inquerito:read:all')
   const { showInspetor } = getInqueritoColumnsVisibility(role)
 
   const inqueritos = await prisma.inquerito.findMany({
-    where: { ...where, deletedAt: null, documentacaoPendente: true },
+    where: {
+      deletedAt: null,
+      documentacaoPendente: true,
+      documentacaoPendentePorId: session.user.id,
+    },
     orderBy: { documentacaoPendenteDesde: 'asc' },
     select: {
       id: true,
       nuipc: true,
-      brigadaId: true,
-      inspetorId: true,
       documentacaoPendenteNota: true,
       documentacaoPendenteDesde: true,
       brigada: { select: { nome: true } },
@@ -89,14 +86,7 @@ export default async function DocumentacaoPendentePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inqueritos.map((inq) => {
-                  const canResolve = canEditInquerito(
-                    role,
-                    session.user.id,
-                    session.user.brigadaId,
-                    inq,
-                  )
-                  return (
+                {inqueritos.map((inq) => (
                     <TableRow key={inq.id}>
                       <TableCell className="font-medium">
                         <Link
@@ -125,11 +115,10 @@ export default async function DocumentacaoPendentePage() {
                         {formatDate(inq.documentacaoPendenteDesde)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {canResolve && <MarcarJuntaButton slug={nuipcToSlug(inq.nuipc)} />}
+                        <MarcarJuntaButton slug={nuipcToSlug(inq.nuipc)} />
                       </TableCell>
                     </TableRow>
-                  )
-                })}
+                ))}
               </TableBody>
             </Table>
           )}

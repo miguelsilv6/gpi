@@ -93,9 +93,11 @@ export async function PUT(
         data.documentacaoPendenteNota !== undefined
           ? data.documentacaoPendenteNota
           : existing.documentacaoPendenteNota,
+      userId: session.user.id,
       current: {
         documentacaoPendente: existing.documentacaoPendente,
         documentacaoPendenteDesde: existing.documentacaoPendenteDesde,
+        documentacaoPendentePorId: existing.documentacaoPendentePorId,
       },
     })
 

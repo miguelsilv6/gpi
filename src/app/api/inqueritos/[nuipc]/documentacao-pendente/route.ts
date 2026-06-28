@@ -38,11 +38,16 @@ export async function PATCH(
         documentacaoPendente: true,
         documentacaoPendenteDesde: true,
         documentacaoPendenteNota: true,
+        documentacaoPendentePorId: true,
       },
     })
     if (!existing || existing.deletedAt) return apiError('Inquérito não encontrado', 404)
 
-    if (!canEditInquerito(role, session.user.id, session.user.brigadaId, existing)) {
+    // Quem já é o dono da marca pode sempre geri-la (editar nota / resolver),
+    // mesmo que entretanto tenha perdido permissão de edição do inquérito.
+    // Marcar de novo (criar a entrada) continua a exigir canEditInquerito.
+    const isMarker = existing.documentacaoPendentePorId === session.user.id
+    if (!isMarker && !canEditInquerito(role, session.user.id, session.user.brigadaId, existing)) {
       return apiError('Sem permissão para editar este inquérito', 403)
     }
 
@@ -53,9 +58,11 @@ export async function PATCH(
     const update = computeDocumentacaoPendenteUpdate({
       pendente: parsed.data.pendente,
       nota: parsed.data.nota,
+      userId: session.user.id,
       current: {
         documentacaoPendente: existing.documentacaoPendente,
         documentacaoPendenteDesde: existing.documentacaoPendenteDesde,
+        documentacaoPendentePorId: existing.documentacaoPendentePorId,
       },
     })
 

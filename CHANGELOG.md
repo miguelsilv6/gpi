@@ -7,6 +7,17 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.12] — 2026-06-28
+
+### Alterado
+- **Documentação pendente** passa a ser **privada do autor**: cada utilizador só
+  vê na página (e no badge do detalhe) as marcas que ele próprio criou. A página
+  deixa de usar o âmbito por role e filtra pelo autor da marca; o badge/realce no
+  detalhe do inquérito só aparece a quem o marcou (aos restantes o inquérito surge
+  como não-marcado). Migração `add_documentacao_pendente_por` (coluna
+  `documentacaoPendentePorId`, relação ao utilizador, índice). O autor pode sempre
+  resolver/editar a sua própria marca, mesmo sem permissão de edição do inquérito.
+
 ## [0.5.10] — 2026-06-26
 
 ### Adicionado
