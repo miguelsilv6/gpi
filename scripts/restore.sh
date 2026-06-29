@@ -56,4 +56,21 @@ if ! gunzip -c "$BACKUP_FILE" | psql -1 -v ON_ERROR_STOP=1 "$PG_URL"; then
   exit 1
 fi
 
+# ── Anexos ────────────────────────────────────────────────────────────────────
+# Se existir um arquivo companion de anexos (mesmo nome base, .files.tar.gz),
+# restaura-o para DOCUMENTOS_DIR. A BD já foi confirmada; uma falha aqui é
+# avisada mas não reverte o restauro da BD.
+FILES_FILE="${BACKUP_FILE%.sql.gz}.files.tar.gz"
+if [ -f "$FILES_FILE" ] && [ -n "${DOCUMENTOS_DIR:-}" ]; then
+  if gzip -t "$FILES_FILE" 2>/dev/null; then
+    echo "[restore] A restaurar anexos de: $FILES_FILE"
+    mkdir -p "$DOCUMENTOS_DIR"
+    if ! tar -xzf "$FILES_FILE" -C "$DOCUMENTOS_DIR"; then
+      echo "[restore] AVISO: extração de anexos falhou — BD restaurada na mesma." >&2
+    fi
+  else
+    echo "[restore] AVISO: arquivo de anexos corrompido, ignorado: $FILES_FILE" >&2
+  fi
+fi
+
 echo "[restore] OK."

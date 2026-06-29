@@ -87,6 +87,21 @@ fi
 size="$(du -h "$FILE_PATH" | cut -f1)"
 echo "[backup] OK: $FILE_PATH ($size)"
 
+# ── Anexos (ficheiros em disco) ───────────────────────────────────────────────
+# O pg_dump só cobre a BD. Quando DOCUMENTOS_DIR existe e tem conteúdo, criamos
+# um arquivo companion com os ficheiros anexados, com o mesmo timestamp/prefixo
+# do dump (gpi_*_<ts>.files.tar.gz). A falha do arquivo de anexos não invalida
+# o backup da BD — apenas é avisada.
+if [ -n "${DOCUMENTOS_DIR:-}" ] && [ -d "$DOCUMENTOS_DIR" ] && [ -n "$(find "$DOCUMENTOS_DIR" -mindepth 1 -print -quit 2>/dev/null)" ]; then
+  FILES_PATH="${BACKUP_DIR}/${BACKUP_PREFIX}${TIMESTAMP}.files.tar.gz"
+  if tar -czf "$FILES_PATH" -C "$DOCUMENTOS_DIR" . && gzip -t "$FILES_PATH" 2>/dev/null; then
+    echo "[backup] Anexos: $FILES_PATH ($(du -h "$FILES_PATH" | cut -f1))"
+  else
+    echo "[backup] AVISO: arquivo de anexos falhou — backup da BD permanece OK." >&2
+    rm -f "$FILES_PATH"
+  fi
+fi
+
 # ── Hook off-site opcional ────────────────────────────────────────────────────
 if [ -n "${BACKUP_REMOTE_CMD:-}" ]; then
   cmd="${BACKUP_REMOTE_CMD//\{file\}/$FILE_PATH}"
@@ -104,7 +119,10 @@ fi
 to_delete="$(ls -1t "${BACKUP_DIR}"/${BACKUP_PREFIX}*.sql.gz 2>/dev/null \
               | tail -n +$((BACKUP_RETENTION + 1)))"
 if [ -n "$to_delete" ]; then
-  echo "$to_delete" | xargs -r rm --
+  # Para cada dump removido, remove também o arquivo de anexos companion.
+  echo "$to_delete" | while IFS= read -r f; do
+    rm -f -- "$f" "${f%.sql.gz}.files.tar.gz"
+  done
   echo "[backup] Retenção ${BACKUP_PREFIX}*: mantidos $BACKUP_RETENTION mais recentes."
 fi
 

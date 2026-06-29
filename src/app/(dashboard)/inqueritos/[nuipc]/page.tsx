@@ -23,6 +23,8 @@ import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
 import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail, MonitorCog, Paperclip } from 'lucide-react'
 import { DocumentacaoPendenteToggle } from '@/components/inqueritos/documentacao-pendente-toggle'
+import { PrazoLegalSection } from '@/components/inqueritos/prazo-legal-section'
+import { computePrazoLegal } from '@/lib/prazo-legal'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 import { CopyNuipcButton } from '@/components/inqueritos/copy-nuipc-button'
@@ -57,6 +59,10 @@ export default async function InqueritoDetailPage({
       crimesAssociados: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
       tribunal: { select: { id: true, nome: true } },
       seccao: { select: { id: true, nome: true } },
+      prorrogacoes: {
+        orderBy: { data: 'desc' },
+        include: { criadoPor: { select: { nome: true } } },
+      },
       _count: { select: { atividades: true } },
     },
   })
@@ -219,6 +225,27 @@ export default async function InqueritoDetailPage({
     : []
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
+
+  // Prazo legal: abertura + base configurada + soma das prorrogações.
+  const prazoLegalConfig = await prisma.configuracaoSistema.findUnique({
+    where: { id: 'singleton' },
+    select: { prazoLegalMeses: true, prazoLegalAlertaDias: true },
+  })
+  const prorrogacaoMesesTotal = inquerito.prorrogacoes.reduce((s, p) => s + p.meses, 0)
+  const prazoLegal = computePrazoLegal({
+    dataAbertura: inquerito.dataAbertura,
+    baseMeses: prazoLegalConfig?.prazoLegalMeses ?? 8,
+    prorrogacaoMeses: prorrogacaoMesesTotal,
+    alertaDias: prazoLegalConfig?.prazoLegalAlertaDias ?? 30,
+  })
+  const prorrogacoesView = inquerito.prorrogacoes.map((p) => ({
+    id: p.id,
+    meses: p.meses,
+    despacho: p.despacho,
+    dataLabel: formatDate(p.data),
+    porNome: p.criadoPor.nome,
+  }))
+
   // A marca de documentação pendente é privada do autor: badge e estado do
   // toggle só refletem a marca para quem a criou; aos outros aparece como
   // não-marcado.
@@ -418,6 +445,18 @@ export default async function InqueritoDetailPage({
           {canDelete && <DeleteInqueritoButton nuipc={inquerito.nuipc} />}
         </div>
       </div>
+
+      <PrazoLegalSection
+        slug={inqSlug}
+        estado={prazoLegal.estado}
+        dataLabel={formatDate(prazoLegal.data)}
+        diasRestantes={prazoLegal.diasRestantes}
+        baseMeses={prazoLegal.baseMeses}
+        prorrogacaoMeses={prazoLegal.prorrogacaoMeses}
+        totalMeses={prazoLegal.totalMeses}
+        prorrogacoes={prorrogacoesView}
+        canEdit={canEdit}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>

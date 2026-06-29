@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, beforeEach, afterAll } from 'vitest'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getTestPrisma, resetDatabase, disconnectTestPrisma } from '../helpers/db'
@@ -149,6 +149,48 @@ describe('scripts/backup.sh', () => {
       expect(all.filter((f) => f.startsWith('gpi_prerestore_'))).toHaveLength(1)
     },
   )
+
+  test.skipIf(!hasTools)('inclui anexos (DOCUMENTOS_DIR) num arquivo companion .files.tar.gz', async () => {
+    await scenarioTwoBrigadas(prisma)
+    const docsDir = mkdtempSync(join(tmpdir(), 'gpi-docs-'))
+    writeFileSync(join(docsDir, 'prova.txt'), 'conteudo de prova')
+
+    const out = execFileSync('bash', [BACKUP_SCRIPT], {
+      env: {
+        ...process.env,
+        DATABASE_URL: pgDumpUrl(),
+        BACKUP_DIR: backupDir,
+        BACKUP_PREFIX: 'gpi_test_',
+        DOCUMENTOS_DIR: docsDir,
+      },
+      encoding: 'utf-8',
+    })
+
+    const filename = out.trim().split('\n').pop()!
+    const filesArchive = join(backupDir, filename.replace(/\.sql\.gz$/, '.files.tar.gz'))
+    expect(existsSync(filesArchive)).toBe(true)
+    // gzip íntegro
+    expect(spawnSync('gzip', ['-t', filesArchive]).status).toBe(0)
+    // contém o ficheiro de anexo
+    const list = spawnSync('tar', ['-tzf', filesArchive], { encoding: 'utf-8' }).stdout
+    expect(list).toContain('prova.txt')
+  })
+
+  test.skipIf(!hasTools)('não cria companion de anexos quando DOCUMENTOS_DIR está vazio/ausente', async () => {
+    await scenarioTwoBrigadas(prisma)
+    const out = execFileSync('bash', [BACKUP_SCRIPT], {
+      env: {
+        ...process.env,
+        DATABASE_URL: pgDumpUrl(),
+        BACKUP_DIR: backupDir,
+        BACKUP_PREFIX: 'gpi_test_',
+      },
+      encoding: 'utf-8',
+    })
+    const filename = out.trim().split('\n').pop()!
+    const filesArchive = join(backupDir, filename.replace(/\.sql\.gz$/, '.files.tar.gz'))
+    expect(existsSync(filesArchive)).toBe(false)
+  })
 
   test.skipIf(!hasTools)('falha quando DATABASE_URL é inválido', () => {
     const r = spawnSync('bash', [BACKUP_SCRIPT], {
