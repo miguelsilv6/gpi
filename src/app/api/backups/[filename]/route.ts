@@ -30,6 +30,8 @@ export async function DELETE(
     }
 
     await fs.unlink(filePath)
+    // Remove também o arquivo companion de anexos, se existir (best-effort).
+    await fs.unlink(filePath.replace(/\.sql\.gz$/, '.files.tar.gz')).catch(() => {})
 
     await prisma.auditLog.create({
       data: {

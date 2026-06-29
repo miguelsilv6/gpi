@@ -7,6 +7,25 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.16] — 2026-06-29
+
+### Adicionado
+- **Backup dos anexos**: o backup passa a incluir um arquivo companion
+  (`*.files.tar.gz`) com os ficheiros do `DOCUMENTOS_DIR` sempre que existirem,
+  com a mesma retenção do dump SQL; o restauro repõe-nos automaticamente. O
+  `pg_dump` cobria apenas a base de dados.
+- **Prazos legais inteligentes**:
+  - Cálculo do limite legal de cada inquérito (data de abertura + duração-base
+    configurável + prorrogações), com secção no detalhe que mostra a data, os
+    dias em falta / de atraso, e permite **registar/remover prorrogações**
+    (cada uma com despacho e autor).
+  - **Digest semanal** (segunda-feira, 08:00): notifica cada inspetor titular,
+    de forma agrupada, dos seus inquéritos com prazo legal a vencer (dentro do
+    limiar) ou já ultrapassado.
+  - Definições configuráveis pelo administrador em Configurações → Sistema:
+    duração-base (meses) e antecedência do aviso (dias). Migração
+    `add_prazo_legal_prorrogacoes`.
+
 ## [0.5.14] — 2026-06-28
 
 ### Adicionado

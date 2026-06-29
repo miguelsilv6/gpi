@@ -14,6 +14,7 @@ import { fetchLatestRelease, isNewerVersion } from '@/lib/updates/github'
 import { reconcileFromStatusFile, processAvailableUpdates } from '@/lib/updates/orchestrator'
 import { isTerminal, type UpdateState } from '@/lib/updates/state-machine'
 import { APP_VERSION } from '@/lib/version'
+import { computePrazoLegal } from '@/lib/prazo-legal'
 
 const log = childLogger({ subsystem: 'cron' })
 
@@ -36,6 +37,16 @@ export function startCronJobs() {
       await runDeadlineCheck()
     } catch (err) {
       log.error({ err }, 'Deadline check failed')
+    }
+  })
+
+  // Digest semanal de prazos legais — segunda-feira às 08:00.
+  cron.schedule('0 8 * * 1', async () => {
+    log.info('Running prazo legal digest')
+    try {
+      await runPrazoLegalDigest()
+    } catch (err) {
+      log.error({ err }, 'Prazo legal digest failed')
     }
   })
 
@@ -495,5 +506,74 @@ export async function runDeadlineCheck() {
     },
     'Deadline check completed',
   )
+}
+
+/**
+ * Digest semanal de prazos legais: para cada inspetor titular, agrupa os
+ * inquéritos ativos cujo prazo legal está a vencer (dentro do limiar
+ * configurado) ou já ultrapassado, e envia UMA notificação (in-app + email,
+ * conforme a policy). Exportada para os testes de integração.
+ */
+export async function runPrazoLegalDigest() {
+  const config = await prisma.configuracaoSistema.findUnique({
+    where: { id: 'singleton' },
+    select: { prazoLegalMeses: true, prazoLegalAlertaDias: true },
+  })
+  const baseMeses = config?.prazoLegalMeses ?? 8
+  const alertaDias = config?.prazoLegalAlertaDias ?? 30
+
+  const ativos = await prisma.inquerito.findMany({
+    where: { deletedAt: null, estado: { terminal: false }, inspetorId: { not: null } },
+    select: {
+      id: true,
+      nuipc: true,
+      dataAbertura: true,
+      inspetorId: true,
+      prorrogacoes: { select: { meses: true } },
+    },
+  })
+
+  type Item = { nuipc: string; data: Date; dias: number; estado: 'a_vencer' | 'vencido' }
+  const porInspetor = new Map<string, Item[]>()
+  for (const inq of ativos) {
+    if (!inq.inspetorId) continue
+    const prorrogacaoMeses = inq.prorrogacoes.reduce((s, p) => s + p.meses, 0)
+    const prazo = computePrazoLegal({ dataAbertura: inq.dataAbertura, baseMeses, prorrogacaoMeses, alertaDias })
+    if (prazo.estado === 'ok') continue
+    const lista = porInspetor.get(inq.inspetorId) ?? []
+    lista.push({ nuipc: inq.nuipc, data: prazo.data, dias: prazo.diasRestantes, estado: prazo.estado })
+    porInspetor.set(inq.inspetorId, lista)
+  }
+
+  const jobs: Promise<unknown>[] = []
+  let totalInqueritos = 0
+  for (const [inspetorId, itens] of porInspetor) {
+    totalInqueritos += itens.length
+    // Vencidos primeiro; depois por dias restantes ascendente.
+    itens.sort((a, b) =>
+      a.estado === b.estado ? a.dias - b.dias : a.estado === 'vencido' ? -1 : 1,
+    )
+    const linhas = itens.map((i) => {
+      const d = i.data.toLocaleDateString('pt-PT', { timeZone: 'UTC' })
+      return i.estado === 'vencido'
+        ? `• ${i.nuipc} — ultrapassado há ${Math.abs(i.dias)} dia(s) (${d})`
+        : `• ${i.nuipc} — faltam ${i.dias} dia(s) (${d})`
+    })
+    jobs.push(
+      createNotification({
+        utilizadorId: inspetorId,
+        tipo: 'PRAZO_APROXIMANDO',
+        titulo: `Prazos legais a vencer (${itens.length})`,
+        mensagem: `Inquéritos com prazo legal a vencer ou ultrapassado:\n${linhas.join('\n')}`,
+      }),
+    )
+  }
+
+  await Promise.allSettled(jobs)
+  log.info(
+    { inspetores: porInspetor.size, inqueritos: totalInqueritos },
+    'Prazo legal digest completed',
+  )
+  return { inspetores: porInspetor.size, inqueritos: totalInqueritos }
 }
 
