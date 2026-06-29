@@ -1,11 +1,14 @@
 import { prisma } from '@/lib/prisma'
 
 /**
- * Loads linhas from registos OTHER than registoId whose dates overlap the
- * target month — either because dataInicio falls in the month (covers ajudas
- * de custo and piquete) or because a PREVENCAO_PASSIVA interval straddles the
- * month boundary.  Used so that POST/PUT/DELETE responses are consistent with
- * the GET endpoint which also includes these cross-month entries.
+ * Loads linhas from registos OTHER than registoId whose interval overlaps the
+ * target month, i.e. any entry that starts before the next month and ends on or
+ * after the first of the month. This covers both prevenção passiva that
+ * straddles the month boundary and overtime/piquete shifts that cross midnight
+ * at month-end (e.g. 22:00 of the 31st → 02:00 of the 1st): in either case the
+ * day-by-day engine (calcAjudasTotais/calcLinhaValor) attributes each day/hour
+ * to the right month, so the entry must surface in every month it touches.
+ * Used so that GET and POST/PUT/DELETE responses are consistent.
  */
 export async function loadCrossMonthLinhas(
   utilizadorId: string,
@@ -22,14 +25,8 @@ export async function loadCrossMonthLinhas(
         utilizadorId,
         NOT: { id: registoId },
       },
-      OR: [
-        { dataInicio: { gte: startOfMonth, lt: startOfNextMonth } },
-        {
-          prevencao: 'PREVENCAO_PASSIVA',
-          dataInicio: { lt: startOfNextMonth },
-          dataFim: { gte: startOfMonth },
-        },
-      ],
+      dataInicio: { lt: startOfNextMonth },
+      dataFim: { gte: startOfMonth },
     },
     orderBy: { dataInicio: 'asc' },
     include: { viatura: { select: { id: true, nome: true, matricula: true } } },
