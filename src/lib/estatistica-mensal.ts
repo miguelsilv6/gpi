@@ -7,6 +7,8 @@ export interface InqueritoAtividadeBreakdown {
   nuipc: string
   slug: string
   brigadaNome: string | null
+  /** Inspetor titular atribuído ao inquérito (null se não atribuído). */
+  inspetorNome: string | null
   atividades: { nome: string; quantidade: number }[]
   total: number
 }
@@ -79,7 +81,13 @@ export async function buildEstatisticaMensal(
   // Acumulador por inquérito: id → { nuipc, brigada, atividades, total }.
   const porInqueritoMap = new Map<
     string,
-    { nuipc: string; brigadaNome: string | null; atividades: Map<string, number>; total: number }
+    {
+      nuipc: string
+      brigadaNome: string | null
+      inspetorNome: string | null
+      atividades: Map<string, number>
+      total: number
+    }
   >()
 
   if (padraoNomes.length > 0 && brigadas.length > 0) {
@@ -101,6 +109,7 @@ export async function buildEstatisticaMensal(
             nuipc: true,
             brigadaId: true,
             brigada: { select: { nome: true } },
+            inspetor: { select: { nome: true } },
           },
         },
       },
@@ -128,6 +137,7 @@ export async function buildEstatisticaMensal(
         entry = {
           nuipc: a.inquerito.nuipc,
           brigadaNome: a.inquerito.brigada?.nome ?? null,
+          inspetorNome: a.inquerito.inspetor?.nome ?? null,
           atividades: new Map(),
           total: 0,
         }
@@ -143,6 +153,7 @@ export async function buildEstatisticaMensal(
       nuipc: e.nuipc,
       slug: nuipcToSlug(e.nuipc),
       brigadaNome: e.brigadaNome,
+      inspetorNome: e.inspetorNome,
       atividades: Array.from(e.atividades.entries())
         .map(([nome, quantidade]) => ({ nome, quantidade }))
         .sort((x, y) => x.nome.localeCompare(y.nome)),

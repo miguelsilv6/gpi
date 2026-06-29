@@ -28,6 +28,7 @@ interface InqueritoBreakdown {
   nuipc: string
   slug: string
   brigadaNome: string | null
+  inspetorNome: string | null
   atividades: { nome: string; quantidade: number }[]
   total: number
 }
@@ -137,7 +138,8 @@ export function EstatisticaMensalView() {
       lines.push('== Detalhe por inquérito ==')
       for (const inq of d.porInquerito) {
         const brig = inq.brigadaNome ? ` [${inq.brigadaNome}]` : ''
-        lines.push(`NUIPC ${inq.nuipc}${brig} — total ${inq.total}`)
+        const insp = inq.inspetorNome ?? 'Não atribuído'
+        lines.push(`NUIPC ${inq.nuipc}${brig} — Inspetor: ${insp} — total ${inq.total}`)
         for (const a of inq.atividades) {
           lines.push(`   • ${a.nome}: ${a.quantidade}`)
         }
@@ -188,6 +190,13 @@ export function EstatisticaMensalView() {
     }
     return { rowTotals: rt, colTotals: ct }
   }, [data])
+
+  // Só mostra na matriz as atividades padrão com pelo menos uma ocorrência no
+  // período — linhas a zero são escondidas para a tabela ficar mais legível.
+  const visibleAtividades = useMemo(
+    () => (data?.atividadesPadrao ?? []).filter((p) => (rowTotals[p.nome] ?? 0) > 0),
+    [data, rowTotals],
+  )
 
   const hasMatrix =
     data && data.atividadesPadrao.length > 0 && data.brigadas.length > 0
@@ -306,6 +315,10 @@ export function EstatisticaMensalView() {
                 ? 'Nenhuma atividade padrão ativa para estatística.'
                 : 'Nenhuma brigada disponível.'}
             </div>
+          ) : visibleAtividades.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-10 text-center">
+              Sem atividade registada no período.
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -320,7 +333,7 @@ export function EstatisticaMensalView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data!.atividadesPadrao.map((p) => (
+                {visibleAtividades.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="sticky left-0 bg-background z-10 font-medium">
                       {p.nome}
@@ -382,6 +395,7 @@ export function EstatisticaMensalView() {
                 <TableRow>
                   <TableHead>NUIPC</TableHead>
                   {showBrigadaCol && <TableHead>Brigada</TableHead>}
+                  <TableHead>Inspetor</TableHead>
                   <TableHead>Atividade</TableHead>
                   <TableHead className="text-right">Quantidade</TableHead>
                 </TableRow>
@@ -409,6 +423,14 @@ export function EstatisticaMensalView() {
                           className="align-top text-muted-foreground"
                         >
                           {inq.brigadaNome ?? '—'}
+                        </TableCell>
+                      )}
+                      {idx === 0 && (
+                        <TableCell
+                          rowSpan={inq.atividades.length}
+                          className="align-top text-muted-foreground"
+                        >
+                          {inq.inspetorNome ?? 'Não atribuído'}
                         </TableCell>
                       )}
                       <TableCell>{a.nome}</TableCell>
