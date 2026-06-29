@@ -259,13 +259,23 @@ export async function notifyInqueritoAtribuido(opts: {
   inqueritoid: string
   nuipc: string
   inspetorId: string
+  /**
+   * Quem efetuou a atribuição. Quando coincide com o inspetor (auto-atribuição),
+   * não se notifica o próprio — mas os `ccRoles` configurados continuam a
+   * receber. Mesma convenção de `notifyAtividadeAdicionada`. Omitir/null mantém
+   * o comportamento anterior (notifica sempre o inspetor como natural).
+   */
+  assignedByUserId?: string | null
 }): Promise<void> {
+  const selfAssigned =
+    opts.assignedByUserId != null && opts.assignedByUserId === opts.inspetorId
+
   await applyPolicy({
     tipo: 'INQUERITO_ATRIBUIDO',
     titulo: `Inquérito atribuído — ${opts.nuipc}`,
     mensagem: `O inquérito ${opts.nuipc} foi-lhe atribuído.`,
     inqueritoid: opts.inqueritoid,
-    naturalUserId: opts.inspetorId,
+    naturalUserId: selfAssigned ? null : opts.inspetorId,
   })
 }
 

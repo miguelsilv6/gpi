@@ -14,7 +14,8 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
   a um inspetor, este passa a receber a notificação **"Inquérito atribuído"**. Até
   agora a notificação só era enviada quando a atribuição era feita mais tarde (na
   edição); na atribuição feita no próprio ato de criação não chegava nada ao
-  inspetor. (O criador não é notificado quando se atribui a si mesmo.)
+  inspetor. Quem se atribui a si mesmo não recebe a própria notificação, mas os
+  destinatários configurados em CC continuam a ser avisados.
 
 ## [0.5.22] — 2026-06-29
 
