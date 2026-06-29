@@ -121,7 +121,7 @@ export async function PUT(
       ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasPut], config, irsPut!, registo!.ano, registo!.mes, vbPut)
       : null
 
-    return Response.json({ registo, config, totais, userConfigured: putConfigured })
+    return Response.json({ registo, crossMonthLinhas: crossMonthLinhasPut, config, totais, userConfigured: putConfigured })
   } catch (error) {
     return handleApiError(error)
   }
@@ -180,7 +180,7 @@ export async function DELETE(
       ? calcAjudasTotais([...registo!.linhas, ...crossMonthLinhasDel], config, irsDel!, registo!.ano, registo!.mes, vbDel)
       : null
 
-    return Response.json({ registo, config, totais, userConfigured: delConfigured })
+    return Response.json({ registo, crossMonthLinhas: crossMonthLinhasDel, config, totais, userConfigured: delConfigured })
   } catch (error) {
     return handleApiError(error)
   }

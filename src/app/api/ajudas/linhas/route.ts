@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
       ? calcAjudasTotais([...updatedRegisto!.linhas, ...crossMonthLinhas], config, taxaIRS!, updatedRegisto!.ano, updatedRegisto!.mes, userVencimentoBase)
       : null
 
-    return Response.json({ registo: updatedRegisto, config, totais, userConfigured }, { status: 201 })
+    return Response.json({ registo: updatedRegisto, crossMonthLinhas, config, totais, userConfigured }, { status: 201 })
   } catch (error) {
     return handleApiError(error)
   }

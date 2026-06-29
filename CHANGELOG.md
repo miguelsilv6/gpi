@@ -7,6 +7,20 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.25] — 2026-06-29
+
+### Corrigido
+- **Ajudas de custo — entradas entre dois meses**: uma entrada cujo intervalo
+  atravessa a fronteira de dois meses (prevenção passiva, ou um turno de horas
+  extra que vira a meia-noite no fim do mês) passa a aparecer na lista de
+  **ambos** os meses — no mês de início como entrada própria e, nos restantes
+  meses que abrange, em modo só-leitura, marcada como «outro mês». Antes só era
+  visível no mês de início. No caso das horas extra, as horas do mês seguinte
+  deixavam de ser contadas (na lista **e** no total desse mês); passam agora a
+  contar. Em cada mês, a duração e o valor apresentados correspondem apenas aos
+  dias/horas desse mês, e a exportação em PDF passa também a incluir estas
+  entradas.
+
 ## [0.5.22] — 2026-06-29
 
 ### Alterado
