@@ -92,7 +92,7 @@ echo "[backup] OK: $FILE_PATH ($size)"
 # um arquivo companion com os ficheiros anexados, com o mesmo timestamp/prefixo
 # do dump (gpi_*_<ts>.files.tar.gz). A falha do arquivo de anexos não invalida
 # o backup da BD — apenas é avisada.
-if [ -n "${DOCUMENTOS_DIR:-}" ] && [ -d "$DOCUMENTOS_DIR" ] && [ -n "$(ls -A "$DOCUMENTOS_DIR" 2>/dev/null)" ]; then
+if [ -n "${DOCUMENTOS_DIR:-}" ] && [ -d "$DOCUMENTOS_DIR" ] && [ -n "$(find "$DOCUMENTOS_DIR" -mindepth 1 -print -quit 2>/dev/null)" ]; then
   FILES_PATH="${BACKUP_DIR}/${BACKUP_PREFIX}${TIMESTAMP}.files.tar.gz"
   if tar -czf "$FILES_PATH" -C "$DOCUMENTOS_DIR" . && gzip -t "$FILES_PATH" 2>/dev/null; then
     echo "[backup] Anexos: $FILES_PATH ($(du -h "$FILES_PATH" | cut -f1))"

@@ -569,7 +569,16 @@ export async function runPrazoLegalDigest() {
     )
   }
 
-  await Promise.allSettled(jobs)
+  const results = await Promise.allSettled(jobs)
+  const rejeitadas = results.filter(
+    (r): r is PromiseRejectedResult => r.status === 'rejected',
+  )
+  if (rejeitadas.length > 0) {
+    log.error(
+      { erros: rejeitadas.map((r) => r.reason) },
+      `${rejeitadas.length} notificações falharam no digest de prazos legais`,
+    )
+  }
   log.info(
     { inspetores: porInspetor.size, inqueritos: totalInqueritos },
     'Prazo legal digest completed',
