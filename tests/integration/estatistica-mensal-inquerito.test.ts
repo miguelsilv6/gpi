@@ -58,6 +58,7 @@ describe('buildEstatisticaMensal — detalhe por inquérito', () => {
     const detalhe = data!.porInquerito.find((p) => p.nuipc === 'A-001/22')
     expect(detalhe).toBeDefined()
     expect(detalhe!.brigadaNome).toBe('Brigada Alpha')
+    expect(detalhe!.inspetorNome).toBe('Inspetor Alpha')
     expect(detalhe!.slug.length).toBeGreaterThan(0)
     expect(detalhe!.total).toBe(5) // 3 + 1 + 1
 

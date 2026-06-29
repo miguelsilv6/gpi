@@ -7,6 +7,15 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.22] — 2026-06-29
+
+### Alterado
+- **Estatística Mensal**: a matriz de atividades passa a mostrar **apenas as
+  atividades com ocorrências no período** (as linhas a zero são escondidas,
+  para a tabela ficar mais legível). A tabela **"Detalhe por inquérito"** passa
+  a incluir o **inspetor titular** de cada inquérito (também no envio por
+  e-mail).
+
 ## [0.5.20] — 2026-06-29
 
 ### Adicionado
