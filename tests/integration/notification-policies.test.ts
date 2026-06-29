@@ -6,6 +6,7 @@ import {
   invalidatePolicyCache,
   notifyBackupFailed,
   notifyAtividadeAdicionada,
+  notifyInqueritoAtribuido,
 } from '@/lib/notifications'
 import { TipoNotificacao } from '@/generated/prisma/enums'
 
@@ -224,6 +225,30 @@ describe('notifyAtividadeAdicionada (skip self-notification)', () => {
 
     const notifs = await prisma.notificacao.findMany({ where: { utilizadorId: inspetor.id } })
     expect(notifs).toHaveLength(1)
+  })
+})
+
+describe('notifyInqueritoAtribuido (atribuição do inquérito)', () => {
+  test('notifica o inspetor atribuído (tipo INQUERITO_ATRIBUIDO, ligado ao inquérito)', async () => {
+    const brigada = await makeBrigada(prisma)
+    const estado = await makeEstado(prisma)
+    const inspetor = await makeUtilizador(prisma, { role: 'INSPETOR', brigadaId: brigada.id })
+    const inq = await makeInquerito(prisma, {
+      brigadaId: brigada.id,
+      estadoId: estado.id,
+      inspetorId: inspetor.id,
+    })
+
+    await notifyInqueritoAtribuido({
+      inqueritoid: inq.id,
+      nuipc: inq.nuipc,
+      inspetorId: inspetor.id,
+    })
+
+    const notifs = await prisma.notificacao.findMany({ where: { utilizadorId: inspetor.id } })
+    expect(notifs).toHaveLength(1)
+    expect(notifs[0].tipo).toBe('INQUERITO_ATRIBUIDO')
+    expect(notifs[0].inqueritoid).toBe(inq.id)
   })
 })
 

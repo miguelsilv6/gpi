@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
+import { notifyInqueritoAtribuido } from '@/lib/notifications'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
 import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import { isTerminal } from '@/lib/inquerito-state'
@@ -272,6 +273,19 @@ export async function POST(req: NextRequest) {
         ...(crimeIdsAssociados.length > 0 && { crimesAssociados: crimeIdsAssociados }),
       },
     })
+
+    // Distribuição no ato de criação: notificar o inspetor atribuído. O
+    // inspetorId já foi validado acima (existe, ativo e pertence à brigada).
+    // Não notificamos o próprio criador caso se atribua a si mesmo — mesma
+    // convenção de notifyAtividadeAdicionada. Fire-and-forget como nas outras
+    // rotas: uma falha de notificação não invalida a criação.
+    if (inspetorId && inspetorId !== session.user.id) {
+      notifyInqueritoAtribuido({
+        inqueritoid: inquerito.id,
+        nuipc: inquerito.nuipc,
+        inspetorId,
+      }).catch(() => {})
+    }
 
     revalidatePath('/inqueritos')
     revalidatePath('/dashboard')

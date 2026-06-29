@@ -7,6 +7,15 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.24] — 2026-06-29
+
+### Corrigido
+- **Notificação de atribuição na criação**: ao criar um inquérito já distribuído
+  a um inspetor, este passa a receber a notificação **"Inquérito atribuído"**. Até
+  agora a notificação só era enviada quando a atribuição era feita mais tarde (na
+  edição); na atribuição feita no próprio ato de criação não chegava nada ao
+  inspetor. (O criador não é notificado quando se atribui a si mesmo.)
+
 ## [0.5.22] — 2026-06-29
 
 ### Alterado
