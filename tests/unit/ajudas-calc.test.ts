@@ -155,3 +155,42 @@ describe('Prevenção passiva que atravessa dois meses — dividida por mês', (
     expect(valJunho).toBeCloseTo(1 * taxaPrevSemana + 1 * taxaPrevFds, 6) // 72
   })
 })
+
+describe('Horas extra que cruzam a meia-noite na fronteira do mês', () => {
+  // Turno 31/05/2025 (Sáb) 22:00 → 01/06/2025 (Dom) 02:00, sem feriados:
+  //   Maio: 22-24h de Sáb       → 2h FdS-dia
+  //   Junho: 00-02h de Dom      → 2h FdS-noite
+  const turnoCrossMonth: LinhaWithData = {
+    dataInicio: new Date(Date.UTC(2025, 4, 31, 22, 0, 0, 0)),
+    dataFim: new Date(Date.UTC(2025, 5, 1, 2, 0, 0, 0)),
+    prevencao: 'NENHUMA',
+    prevencaoOnly: false,
+    ajudaCustoAlmoco: 0,
+    ajudaCustoJantar: 0,
+    ajudaCustoCeia: 0,
+    senhaAlmoco: 0,
+    senhaJantar: 0,
+    senhaCeia: 0,
+    km: 0,
+  }
+
+  const taxaFdsDia = (BASE_CONFIG.vencimentoE25 * BASE_CONFIG.percentPiqueteFds) / 12 // 10
+  const taxaFdsNoite = taxaFdsDia * 2 // 20
+
+  test('cada mês conta apenas as horas trabalhadas nesse mês', () => {
+    const maio = calcAjudasTotais([turnoCrossMonth], BASE_CONFIG, 0.2, 2025, 5)
+    expect(maio.fdsDia).toBeCloseTo(2, 6)
+    expect(maio.fdsNoite).toBeCloseTo(0, 6)
+    expect(maio.totalHorasExtra).toBeCloseTo(2 * taxaFdsDia, 6) // 20
+
+    const junho = calcAjudasTotais([turnoCrossMonth], BASE_CONFIG, 0.2, 2025, 6)
+    expect(junho.fdsNoite).toBeCloseTo(2, 6)
+    expect(junho.fdsDia).toBeCloseTo(0, 6)
+    expect(junho.totalHorasExtra).toBeCloseTo(2 * taxaFdsNoite, 6) // 40
+  })
+
+  test('calcLinhaValor atribui a cada mês só o valor das horas desse mês', () => {
+    expect(calcLinhaValor(turnoCrossMonth, BASE_CONFIG, 2025, 5)).toBeCloseTo(2 * taxaFdsDia, 6) // 20
+    expect(calcLinhaValor(turnoCrossMonth, BASE_CONFIG, 2025, 6)).toBeCloseTo(2 * taxaFdsNoite, 6) // 40
+  })
+})

@@ -926,7 +926,15 @@ export function AjudasMensaisView({
   }, [ano])
 
   function calcPaidHours(inicio: string, fim: string): string {
-    const { semanaDia, semanaNoite, fdsDia, fdsNoite } = splitHours(new Date(inicio), new Date(fim), holidaySet)
+    // Conta só as horas que caem no mês em vista: uma entrada que atravessa a
+    // fronteira do mês mostra, em cada mês, apenas as horas desse mês — para
+    // reconciliar com o valor por mês (que também é atribuído por mês).
+    const monthStart = Date.UTC(ano, mes - 1, 1)
+    const monthEnd = Date.UTC(ano, mes, 1)
+    const start = Math.max(new Date(inicio).getTime(), monthStart)
+    const end = Math.min(new Date(fim).getTime(), monthEnd)
+    if (end <= start) return '—'
+    const { semanaDia, semanaNoite, fdsDia, fdsNoite } = splitHours(new Date(start), new Date(end), holidaySet)
     const total = semanaDia + semanaNoite + fdsDia + fdsNoite
     if (total <= 0) return '—'
     const h = Math.floor(total)
@@ -971,8 +979,9 @@ export function AjudasMensaisView({
         mes,
       )
       const prevLabel =
-        (l.prevencao === 'PIQUETE' ? 'Piquete' : l.prevencao === 'PREVENCAO_PASSIVA' ? 'Prev. Passiva' : '—') +
-        (crossMonth ? ' (doutro mês)' : '')
+        l.prevencao === 'NENHUMA'
+          ? (crossMonth ? '(doutro mês)' : '—')
+          : (l.prevencao === 'PIQUETE' ? 'Piquete' : 'Prev. Passiva') + (crossMonth ? ' (doutro mês)' : '')
       const viaturaStr = l.viatura
         ? `${escHtml(l.viatura.nome)}${l.viatura.matricula ? ` (${escHtml(l.viatura.matricula)})` : ''} / ${l.km}km`
         : l.km > 0 ? `${l.km}km` : '—'
@@ -1236,7 +1245,7 @@ tr:nth-child(even) td{background:#f6f6f6}
                               {crossMonth && (
                                 <span
                                   className="text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400"
-                                  title="Prevenção iniciada noutro mês — aqui contam só os dias deste mês. Para editar/eliminar, abra o mês de início."
+                                  title="Entrada iniciada noutro mês — aqui contam só os dias/horas deste mês. Para editar/eliminar, abra o mês de início."
                                 >
                                   outro mês
                                 </span>

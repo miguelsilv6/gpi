@@ -20,7 +20,7 @@ afterAll(async () => {
   await disconnectTestPrisma()
 })
 
-describe('loadCrossMonthLinhas — prevenção que atravessa dois meses', () => {
+describe('loadCrossMonthLinhas — entradas que atravessam dois meses', () => {
   test('uma prevenção de Maio que entra em Junho aparece na vista de Junho, não na de Maio', async () => {
     const user = await makeUtilizador(prisma, { role: 'INSPETOR' })
     const maio = await prisma.ajudasRegisto.create({ data: { utilizadorId: user.id, ano: 2025, mes: 5 } })
@@ -74,5 +74,24 @@ describe('loadCrossMonthLinhas — prevenção que atravessa dois meses', () => 
 
     const crossJunho = await loadCrossMonthLinhas(user.id, 2025, 6, junho.id)
     expect(crossJunho).toHaveLength(0)
+  })
+
+  test('horas extra que cruzam a meia-noite na fronteira do mês entram no mês seguinte', async () => {
+    const user = await makeUtilizador(prisma, { role: 'INSPETOR' })
+    const maio = await prisma.ajudasRegisto.create({ data: { utilizadorId: user.id, ano: 2025, mes: 5 } })
+    const junho = await prisma.ajudasRegisto.create({ data: { utilizadorId: user.id, ano: 2025, mes: 6 } })
+
+    // Turno 31/05 22:00 → 01/06 02:00 (horas extra, não prevenção), no registo de Maio.
+    const turno = await prisma.ajudasLinha.create({
+      data: {
+        registoId: maio.id,
+        dataInicio: new Date(Date.UTC(2025, 4, 31, 22, 0, 0, 0)),
+        dataFim: new Date(Date.UTC(2025, 5, 1, 2, 0, 0, 0)),
+        prevencao: 'NENHUMA',
+      },
+    })
+
+    const crossJunho = await loadCrossMonthLinhas(user.id, 2025, 6, junho.id)
+    expect(crossJunho.map((l) => l.id)).toContain(turno.id)
   })
 })
