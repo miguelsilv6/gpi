@@ -86,6 +86,7 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
 
   async function copiarHash(hash: string) {
     try {
+      if (!navigator?.clipboard) throw new Error('Clipboard API não disponível')
       await navigator.clipboard.writeText(hash)
       toast.success('SHA-256 copiado')
     } catch {
@@ -213,8 +214,8 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
                       const Icon =
                         st === 'verifying' ? Loader2
                         : st === 'mismatch' ? ShieldAlert
-                        : st === 'noref' ? Shield
-                        : ShieldCheck
+                        : st === 'ok' ? ShieldCheck
+                        : Shield
                       const color =
                         st === 'ok' ? 'text-green-600'
                         : st === 'mismatch' ? 'text-red-600'
