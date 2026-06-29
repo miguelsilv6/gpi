@@ -6,6 +6,7 @@ import {
   invalidatePolicyCache,
   notifyBackupFailed,
   notifyAtividadeAdicionada,
+  notifyInqueritoAtribuido,
 } from '@/lib/notifications'
 import { TipoNotificacao } from '@/generated/prisma/enums'
 
@@ -224,6 +225,61 @@ describe('notifyAtividadeAdicionada (skip self-notification)', () => {
 
     const notifs = await prisma.notificacao.findMany({ where: { utilizadorId: inspetor.id } })
     expect(notifs).toHaveLength(1)
+  })
+})
+
+describe('notifyInqueritoAtribuido (atribuição do inquérito)', () => {
+  test('notifica o inspetor atribuído (tipo INQUERITO_ATRIBUIDO, ligado ao inquérito)', async () => {
+    const brigada = await makeBrigada(prisma)
+    const estado = await makeEstado(prisma)
+    const inspetor = await makeUtilizador(prisma, { role: 'INSPETOR', brigadaId: brigada.id })
+    const inq = await makeInquerito(prisma, {
+      brigadaId: brigada.id,
+      estadoId: estado.id,
+      inspetorId: inspetor.id,
+    })
+
+    await notifyInqueritoAtribuido({
+      inqueritoid: inq.id,
+      nuipc: inq.nuipc,
+      inspetorId: inspetor.id,
+    })
+
+    const notifs = await prisma.notificacao.findMany({ where: { utilizadorId: inspetor.id } })
+    expect(notifs).toHaveLength(1)
+    expect(notifs[0].tipo).toBe('INQUERITO_ATRIBUIDO')
+    expect(notifs[0].inqueritoid).toBe(inq.id)
+  })
+
+  test('auto-atribuição não notifica o próprio, mas mantém os ccRoles', async () => {
+    const brigada = await makeBrigada(prisma)
+    const estado = await makeEstado(prisma)
+    const inspetor = await makeUtilizador(prisma, { role: 'INSPETOR', brigadaId: brigada.id })
+    const chefe = await makeUtilizador(prisma, { role: 'INSPETOR_CHEFE', brigadaId: brigada.id })
+    const inq = await makeInquerito(prisma, {
+      brigadaId: brigada.id,
+      estadoId: estado.id,
+      inspetorId: inspetor.id,
+    })
+
+    await prisma.notificationPolicy.update({
+      where: { tipo: 'INQUERITO_ATRIBUIDO' },
+      data: { ccRoles: ['INSPETOR_CHEFE'] },
+    })
+    invalidatePolicyCache()
+
+    // O inspetor atribui o inquérito a si próprio: não se auto-notifica, mas o
+    // chefe (em ccRoles) ainda recebe.
+    await notifyInqueritoAtribuido({
+      inqueritoid: inq.id,
+      nuipc: inq.nuipc,
+      inspetorId: inspetor.id,
+      assignedByUserId: inspetor.id,
+    })
+
+    const notifs = await prisma.notificacao.findMany()
+    expect(notifs).toHaveLength(1)
+    expect(notifs[0].utilizadorId).toBe(chefe.id)
   })
 })
 

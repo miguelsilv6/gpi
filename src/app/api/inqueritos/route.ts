@@ -3,10 +3,14 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, buildInqueritoWhere, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
+import { notifyInqueritoAtribuido } from '@/lib/notifications'
+import { childLogger } from '@/lib/logger'
 import { inqueritoSchema } from '@/lib/validations/inquerito'
 import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
 import { isTerminal } from '@/lib/inquerito-state'
 import type { Role } from '@/generated/prisma/enums'
+
+const log = childLogger({ subsystem: 'api-inqueritos' })
 
 export async function GET(req: NextRequest) {
   try {
@@ -272,6 +276,25 @@ export async function POST(req: NextRequest) {
         ...(crimeIdsAssociados.length > 0 && { crimesAssociados: crimeIdsAssociados }),
       },
     })
+
+    // Distribuição no ato de criação: notificar o inspetor atribuído. O
+    // inspetorId já foi validado acima (existe, ativo e pertence à brigada).
+    // Se o criador se atribuir a si mesmo, o helper salta o próprio mas mantém
+    // os ccRoles (convenção partilhada com notifyAtividadeAdicionada).
+    // Fire-and-forget — uma falha não invalida a criação, mas é registada.
+    if (inspetorId) {
+      notifyInqueritoAtribuido({
+        inqueritoid: inquerito.id,
+        nuipc: inquerito.nuipc,
+        inspetorId,
+        assignedByUserId: session.user.id,
+      }).catch((err) => {
+        log.error(
+          { err, inqueritoid: inquerito.id, nuipc: inquerito.nuipc },
+          'Falha ao enviar notificação de atribuição na criação',
+        )
+      })
+    }
 
     revalidatePath('/inqueritos')
     revalidatePath('/dashboard')
