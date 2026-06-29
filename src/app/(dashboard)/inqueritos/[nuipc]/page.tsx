@@ -180,6 +180,7 @@ export default async function InqueritoDetailPage({
           filename: true,
           mimeType: true,
           tamanho: true,
+          sha256: true,
           createdAt: true,
           uploadedBy: { select: { id: true, nome: true } },
         },

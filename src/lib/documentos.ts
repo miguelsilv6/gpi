@@ -1,4 +1,22 @@
 import path from 'node:path'
+import { createHash } from 'node:crypto'
+import { createReadStream } from 'node:fs'
+
+/** SHA-256 (hex) de um buffer ou string. Usado no upload de documentos. */
+export function sha256Hex(data: Buffer | string): string {
+  return createHash('sha256').update(data).digest('hex')
+}
+
+/** SHA-256 (hex) de um ficheiro em disco, por streaming (memória constante). */
+export function sha256OfFile(absPath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = createHash('sha256')
+    const stream = createReadStream(absPath)
+    stream.on('error', reject)
+    stream.on('data', (chunk) => hash.update(chunk))
+    stream.on('end', () => resolve(hash.digest('hex')))
+  })
+}
 
 // Diretório em disco onde vivem os anexos dos inquéritos. Em produção é um
 // bind mount (tal como BACKUP_DIR); em dev cai numa pasta local.
