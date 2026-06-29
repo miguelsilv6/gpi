@@ -107,7 +107,6 @@ model Utilizador {
 
   inqueritos           Inquerito[]   @relation("InspetorAtribuido")
   inqueritosDocPendente Inquerito[]  @relation("DocumentacaoPendentePor")
-  prorrogacoesCriadas  ProrrogacaoInquerito[] @relation("ProrrogacaoCriador")
   atividadesRealizadas Atividade[]
   notificacoes         Notificacao[]
   sessoes              Sessao[]
@@ -235,7 +234,6 @@ model Inquerito {
   relacoesDestino InqueritoRelacao[] @relation("RelacaoDestino")
 
   diligencias     Diligencia[]
-  prorrogacoes    ProrrogacaoInquerito[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -252,28 +250,6 @@ model Inquerito {
   @@index([cartaPrecatoria])
   @@index([documentacaoPendente])
   @@index([documentacaoPendentePorId])
-}
-
-/**
- * Prorrogação do prazo legal de um inquérito — cada despacho de prorrogação
- * acrescenta `meses` ao limite legal (calculado a partir da data de abertura +
- * duração-base configurada). Guarda quem registou e a data, para auditoria.
- */
-model ProrrogacaoInquerito {
-  id          String   @id @default(cuid())
-  meses       Int
-  despacho    String?
-  data        DateTime @default(now())
-  createdAt   DateTime @default(now())
-
-  inquerito   Inquerito @relation(fields: [inqueritoId], references: [id], onDelete: Cascade)
-  inqueritoId String
-
-  criadoPor   Utilizador @relation("ProrrogacaoCriador", fields: [criadoPorId], references: [id])
-  criadoPorId String
-
-  @@index([inqueritoId])
-  @@index([criadoPorId])
 }
 
 // Documentos/anexos de um inquérito (provas, relatórios, ofícios…).
@@ -622,11 +598,6 @@ model ConfiguracaoSistema {
   // de inquéritos: quando o prazo cai dentro deste nº de dias, escala também
   // ao Inspetor-Chefe da brigada. null = desligado.
   prazoAlertaDiasUrgente          Int?
-  // Prazo legal do inquérito: duração-base em meses (a contar da data de
-  // abertura) e nº de dias de antecedência para o digest semanal de prazos
-  // legais a vencer. As prorrogações (ProrrogacaoInquerito) somam-se à base.
-  prazoLegalMeses                 Int      @default(8)
-  prazoLegalAlertaDias            Int      @default(30)
   emailRemetenteNome              String   @default("GPI Sistema")
   emailRemetenteAddr              String   @default("noreply@gpi.pt")
   // Ligação ao servidor SMTP, configurável pelo ADMINISTRACAO em
