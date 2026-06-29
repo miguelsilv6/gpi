@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Paperclip, Upload, Download, Trash2, Loader2, FileText, Image as ImageIcon, FileArchive, Mail, File } from 'lucide-react'
+import { Paperclip, Upload, Download, Trash2, Loader2, FileText, Image as ImageIcon, FileArchive, Mail, File, ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
 
@@ -26,9 +26,12 @@ export interface DocumentoItem {
   filename: string
   mimeType: string
   tamanho: number
+  sha256: string | null
   createdAt: string
   uploadedBy: { id: string; nome: string }
 }
+
+type VerifyState = 'verifying' | 'ok' | 'mismatch' | 'noref'
 
 interface Props {
   nuipcSlug: string
@@ -52,6 +55,44 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
   const [uploading, setUploading] = useState(false)
   const [toDelete, setToDelete] = useState<DocumentoItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [verify, setVerify] = useState<Record<string, VerifyState | undefined>>({})
+
+  async function verificar(id: string) {
+    setVerify((s) => ({ ...s, [id]: 'verifying' }))
+    try {
+      const res = await fetch(`/api/documentos/${id}/verificar`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao verificar a integridade')
+        setVerify((s) => ({ ...s, [id]: undefined }))
+        return
+      }
+      const data = await res.json()
+      if (!data.hasReference) {
+        toast.info('Documento sem hash de referência (anterior a esta funcionalidade).')
+        setVerify((s) => ({ ...s, [id]: 'noref' }))
+      } else if (data.match) {
+        toast.success('Integridade confirmada — o ficheiro não foi alterado.')
+        setVerify((s) => ({ ...s, [id]: 'ok' }))
+      } else {
+        toast.error('ALERTA: o ficheiro foi alterado — o SHA-256 não corresponde ao registado!')
+        setVerify((s) => ({ ...s, [id]: 'mismatch' }))
+      }
+    } catch {
+      toast.error('Erro de rede ao verificar a integridade')
+      setVerify((s) => ({ ...s, [id]: undefined }))
+    }
+  }
+
+  async function copiarHash(hash: string) {
+    try {
+      if (!navigator?.clipboard) throw new Error('Clipboard API não disponível')
+      await navigator.clipboard.writeText(hash)
+      toast.success('SHA-256 copiado')
+    } catch {
+      toast.error('Não foi possível copiar')
+    }
+  }
 
   async function handleFile(file: File) {
     setUploading(true)
@@ -156,8 +197,43 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
                     <p className="text-xs text-muted-foreground">
                       {formatBytes(d.tamanho)} · {d.uploadedBy.nome} · {formatDateTime(d.createdAt)}
                     </p>
+                    {d.sha256 && (
+                      <button
+                        type="button"
+                        onClick={() => copiarHash(d.sha256!)}
+                        title={`SHA-256: ${d.sha256}\n(clique para copiar)`}
+                        className="mt-0.5 block max-w-full truncate font-mono text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        sha256:{d.sha256.slice(0, 12)}…
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {(() => {
+                      const st = verify[d.id]
+                      const Icon =
+                        st === 'verifying' ? Loader2
+                        : st === 'mismatch' ? ShieldAlert
+                        : st === 'ok' ? ShieldCheck
+                        : Shield
+                      const color =
+                        st === 'ok' ? 'text-green-600'
+                        : st === 'mismatch' ? 'text-red-600'
+                        : st === 'noref' ? 'text-amber-600'
+                        : 'text-muted-foreground'
+                      return (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={`h-7 w-7 p-0 ${color}`}
+                          title="Verificar integridade (SHA-256)"
+                          onClick={() => verificar(d.id)}
+                          disabled={st === 'verifying'}
+                        >
+                          <Icon className={`h-3.5 w-3.5 ${st === 'verifying' ? 'animate-spin' : ''}`} />
+                        </Button>
+                      )
+                    })()}
                     <a
                       href={`/api/documentos/${d.id}/download`}
                       download

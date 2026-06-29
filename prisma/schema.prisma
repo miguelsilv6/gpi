@@ -261,6 +261,10 @@ model Documento {
   storedName String   @unique
   mimeType   String
   tamanho    Int
+  // SHA-256 (hex) do conteúdo, calculado no upload. Serve de referência de
+  // integridade (cadeia de custódia): a verificação recalcula o hash do
+  // ficheiro em disco e compara. Null em documentos anteriores à feature.
+  sha256     String?
   createdAt  DateTime @default(now())
 
   inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)

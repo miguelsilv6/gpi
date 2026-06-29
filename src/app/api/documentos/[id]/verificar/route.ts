@@ -1,15 +1,18 @@
 import { NextRequest } from 'next/server'
-import { createReadStream } from 'node:fs'
 import { promises as fs } from 'node:fs'
-import { Readable } from 'node:stream'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { isModuloAnexosAtivo } from '@/lib/anexos-module'
-import { documentoPath } from '@/lib/documentos'
+import { documentoPath, sha256OfFile } from '@/lib/documentos'
 import { writeAudit } from '@/lib/audit'
 import type { Role } from '@/generated/prisma/enums'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+/**
+ * Verifica a integridade de um documento: recalcula o SHA-256 do ficheiro em
+ * disco e compara com o hash de referência guardado no upload. Acessível a quem
+ * pode ler o inquérito; registado no AuditLog (cadeia de custódia).
+ */
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession()
     const role = session.user.role as Role
@@ -24,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           ...buildInqueritoWhere(role, session.user.id, session.user.brigadaId ?? null),
         },
       },
-      select: { filename: true, storedName: true, mimeType: true, tamanho: true },
+      select: { id: true, filename: true, storedName: true, sha256: true },
     })
     if (!documento) return apiError('Documento não encontrado', 404)
 
@@ -35,31 +38,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return apiError('Ficheiro não encontrado em disco', 410)
     }
 
-    // Cadeia de custódia: regista cada transferência (quem, quando, o quê).
+    const computed = await sha256OfFile(filePath)
+    const hasReference = documento.sha256 != null
+    const match = hasReference ? computed === documento.sha256 : null
+
     await writeAudit({
       req,
-      acao: 'DOWNLOAD_DOCUMENTO',
+      acao: 'VERIFY_DOCUMENTO',
       entidade: 'Documento',
-      entidadeId: id,
+      entidadeId: documento.id,
       utilizadorId: session.user.id,
-      detalhes: { filename: documento.filename },
+      detalhes: { filename: documento.filename, match, hasReference },
     }).catch(() => {})
 
-    // RFC 5987 para nomes com caracteres não-ASCII.
-    const asciiName = documento.filename.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, "'")
-    const utf8Name = encodeURIComponent(documento.filename)
-
-    const fileStream = createReadStream(filePath)
-
-    return new Response(Readable.toWeb(fileStream) as ReadableStream, {
-      headers: {
-        'Content-Type': documento.mimeType,
-        'Content-Length': String(documento.tamanho),
-        'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${utf8Name}`,
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'private, no-store',
-      },
-    })
+    return Response.json({ hasReference, match, stored: documento.sha256, computed })
   } catch (error) {
     return handleApiError(error)
   }

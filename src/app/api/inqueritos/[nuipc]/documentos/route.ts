@@ -13,6 +13,7 @@ import {
   DOCUMENTO_MAX_BYTES,
   DOCUMENTO_MIME_ALLOWLIST,
   sanitizeFilename,
+  sha256Hex,
 } from '@/lib/documentos'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -21,6 +22,7 @@ const DOCUMENTO_SELECT = {
   filename: true,
   mimeType: true,
   tamanho: true,
+  sha256: true,
   createdAt: true,
   uploadedBy: { select: { id: true, nome: true } },
 } as const
@@ -113,6 +115,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
     const storedName = `${randomUUID()}${ext.slice(0, 12)}`
 
     const buffer = Buffer.from(await file.arrayBuffer())
+    const sha256 = sha256Hex(buffer)
     await fs.mkdir(DOCUMENTOS_DIR, { recursive: true })
     await fs.writeFile(path.join(DOCUMENTOS_DIR, storedName), buffer, { mode: 0o644 })
 
@@ -126,6 +129,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
             storedName,
             mimeType: file.type,
             tamanho: buffer.length,
+            sha256,
             inqueritoid: inquerito.id,
             uploadedById: session.user.id,
           },
@@ -143,7 +147,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
       entidade: 'Documento',
       entidadeId: documento.id,
       utilizadorId: session.user.id,
-      detalhes: { filename, tamanho: buffer.length, nuipc: inquerito.nuipc },
+      detalhes: { filename, tamanho: buffer.length, sha256, nuipc: inquerito.nuipc },
     }).catch(() => {})
 
     return Response.json(documento, { status: 201 })

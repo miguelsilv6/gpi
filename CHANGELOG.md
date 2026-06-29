@@ -7,6 +7,17 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.20] — 2026-06-29
+
+### Adicionado
+- **Integridade dos anexos (SHA-256)**: cada documento passa a guardar o
+  **SHA-256** do conteúdo, calculado no upload. Na lista de anexos é possível
+  **verificar a integridade** de cada documento (recalcula o hash do ficheiro
+  em disco e compara com a referência), com resultado claro: íntegro, **alterado**
+  ou sem hash de referência (documentos anteriores). O hash é mostrado (com
+  cópia rápida) e as **transferências e verificações ficam registadas no log
+  de auditoria** (cadeia de custódia). Migração `add_documento_sha256`.
+
 ## [0.5.18] — 2026-06-29
 
 ### Removido
