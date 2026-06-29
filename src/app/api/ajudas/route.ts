@@ -94,7 +94,11 @@ export async function GET(req: NextRequest) {
       ? calcAjudasTotais(allLinhas, config, taxaIRS!, ano, mes, userVencimentoBase)
       : null
 
-    return Response.json({ registo, config, totais, userConfigured })
+    // crossMonthLinhas: entradas de OUTROS registos (meses) que se estendem a
+    // este mês — tipicamente prevenção passiva que atravessa a fronteira do
+    // mês. São devolvidas para o cliente as poder mostrar (só-leitura) na lista
+    // do mês, de forma consistente com os totais que já as contam.
+    return Response.json({ registo, crossMonthLinhas, config, totais, userConfigured })
   } catch (error) {
     return handleApiError(error)
   }

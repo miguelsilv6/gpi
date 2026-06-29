@@ -77,9 +77,22 @@ interface AjudasRegisto {
 
 interface ApiResponse {
   registo: AjudasRegisto
+  /**
+   * Entradas de outros meses cujo intervalo se estende a este mês (prevenção
+   * passiva que atravessa a fronteira do mês). Mostradas na lista em modo
+   * só-leitura — pertencem ao registo do mês de início e são editadas aí.
+   */
+  crossMonthLinhas?: AjudasLinha[]
   config: ConfigData
   totais: AjudasTotais | null
   userConfigured: boolean
+}
+
+// Entrada da lista com origem: própria deste mês (editável) ou de outro mês
+// (prevenção que atravessa a fronteira — só-leitura aqui).
+interface DisplayLinha {
+  linha: AjudasLinha
+  crossMonth: boolean
 }
 
 interface LinhaFormData {
@@ -931,7 +944,14 @@ export function AjudasMensaisView({
     const today = new Date()
     const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`
 
-    const tableRows = registo.linhas.map((l) => {
+    // Inclui as entradas de outros meses que se estendem a este (prevenção
+    // cross-month), para que a tabela reconcilie com os totais do mês.
+    const exportLinhas: DisplayLinha[] = [
+      ...registo.linhas.map((l) => ({ linha: l, crossMonth: false })),
+      ...(data.crossMonthLinhas ?? []).map((l) => ({ linha: l, crossMonth: true })),
+    ].sort((a, b) => a.linha.dataInicio.localeCompare(b.linha.dataInicio))
+
+    const tableRows = exportLinhas.map(({ linha: l, crossMonth }) => {
       const valor = calcLinhaValor(
         {
           dataInicio: new Date(l.dataInicio),
@@ -950,7 +970,9 @@ export function AjudasMensaisView({
         ano,
         mes,
       )
-      const prevLabel = l.prevencao === 'PIQUETE' ? 'Piquete' : l.prevencao === 'PREVENCAO_PASSIVA' ? 'Prev. Passiva' : '—'
+      const prevLabel =
+        (l.prevencao === 'PIQUETE' ? 'Piquete' : l.prevencao === 'PREVENCAO_PASSIVA' ? 'Prev. Passiva' : '—') +
+        (crossMonth ? ' (doutro mês)' : '')
       const viaturaStr = l.viatura
         ? `${escHtml(l.viatura.nome)}${l.viatura.matricula ? ` (${escHtml(l.viatura.matricula)})` : ''} / ${l.km}km`
         : l.km > 0 ? `${l.km}km` : '—'
@@ -1054,8 +1076,16 @@ tr:nth-child(even) td{background:#f6f6f6}
   }
 
   const distanciaMin = data?.config.distanciaMinKmAjudas ?? 35
-  const linhas = data?.registo.linhas ?? []
   const totais = data?.totais
+  // Lista apresentada: entradas próprias do mês (editáveis) + entradas de
+  // outros meses que se estendem a este (prevenção cross-month, só-leitura),
+  // ordenadas cronologicamente por início.
+  const displayLinhas: DisplayLinha[] = useMemo(() => {
+    if (!data) return []
+    const own: DisplayLinha[] = data.registo.linhas.map((l) => ({ linha: l, crossMonth: false }))
+    const cross: DisplayLinha[] = (data.crossMonthLinhas ?? []).map((l) => ({ linha: l, crossMonth: true }))
+    return [...own, ...cross].sort((a, b) => a.linha.dataInicio.localeCompare(b.linha.dataInicio))
+  }, [data])
 
   return (
     <div className="space-y-4">
@@ -1138,7 +1168,7 @@ tr:nth-child(even) td{background:#f6f6f6}
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Entradas do Mês</CardTitle>
               <div className="flex items-center gap-2">
-                {linhas.length > 0 && data?.totais && (
+                {displayLinhas.length > 0 && data?.totais && (
                   <Button size="sm" variant="outline" onClick={handleExportPDF}>
                     <FileDown className="h-4 w-4 mr-1.5" />
                     Exportar PDF
@@ -1153,7 +1183,7 @@ tr:nth-child(even) td{background:#f6f6f6}
               </div>
             </CardHeader>
             <CardContent>
-              {linhas.length === 0 ? (
+              {displayLinhas.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   Sem entradas para este mês. Clique em «Nova entrada» para adicionar.
                 </p>
@@ -1176,10 +1206,14 @@ tr:nth-child(even) td{background:#f6f6f6}
                       </tr>
                     </thead>
                     <tbody>
-                      {linhas.map((l, i) => (
+                      {displayLinhas.map(({ linha: l, crossMonth }, i) => (
                         <tr
                           key={l.id}
-                          className={cn('border-b last:border-0', i % 2 === 0 ? 'bg-transparent' : 'bg-muted/20')}
+                          className={cn(
+                            'border-b last:border-0',
+                            i % 2 === 0 ? 'bg-transparent' : 'bg-muted/20',
+                            crossMonth && 'opacity-70',
+                          )}
                         >
                           <td className="py-2 px-2">{l.nuipc || '—'}</td>
                           <td className="py-2 px-2">{l.local || '—'}</td>
@@ -1191,11 +1225,23 @@ tr:nth-child(even) td{background:#f6f6f6}
                               : calcPaidHours(l.dataInicio, l.dataFim)}
                           </td>
                           <td className="py-2 px-2">
-                            {l.prevencao === 'NENHUMA'
-                              ? '—'
-                              : l.prevencao === 'PIQUETE'
-                                ? 'Piquete'
-                                : 'Prev. Passiva'}
+                            <div className="flex flex-col gap-0.5">
+                              <span>
+                                {l.prevencao === 'NENHUMA'
+                                  ? '—'
+                                  : l.prevencao === 'PIQUETE'
+                                    ? 'Piquete'
+                                    : 'Prev. Passiva'}
+                              </span>
+                              {crossMonth && (
+                                <span
+                                  className="text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400"
+                                  title="Prevenção iniciada noutro mês — aqui contam só os dias deste mês. Para editar/eliminar, abra o mês de início."
+                                >
+                                  outro mês
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-2 px-2">
                             {l.viatura
@@ -1245,7 +1291,7 @@ tr:nth-child(even) td{background:#f6f6f6}
                               >
                                 <Eye className="h-3.5 w-3.5" />
                               </button>
-                              {!l.prevencaoOnly && (
+                              {!crossMonth && !l.prevencaoOnly && (
                                 <button
                                   onClick={() => openEditDialog(l)}
                                   className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
@@ -1254,13 +1300,15 @@ tr:nth-child(even) td{background:#f6f6f6}
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
                               )}
-                              <button
-                                onClick={() => setDeleteCandidate(l)}
-                                className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
-                                aria-label="Eliminar linha"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              {!crossMonth && (
+                                <button
+                                  onClick={() => setDeleteCandidate(l)}
+                                  className={cn(iconButtonClasses, 'text-red-500 hover:text-red-700')}
+                                  aria-label="Eliminar linha"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

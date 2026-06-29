@@ -7,6 +7,17 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.25] — 2026-06-29
+
+### Corrigido
+- **Ajudas de custo — prevenção entre dois meses**: uma entrada de **Prevenção
+  Passiva** cujo intervalo atravessa a fronteira de dois meses passa a aparecer
+  na lista de **ambos** os meses (no mês de início como entrada própria; nos
+  restantes meses que abrange, em modo só-leitura, marcada como «outro mês»).
+  Antes só era visível no mês de início, apesar de os totais já contarem os dias
+  de cada mês. O valor mostrado em cada mês corresponde apenas aos dias desse
+  mês, e a exportação em PDF passa também a incluir estas entradas.
+
 ## [0.5.22] — 2026-06-29
 
 ### Alterado
