@@ -42,8 +42,6 @@ import { AjudasConfigTab } from './ajudas-config-tab'
 
 const schema = z.object({
   prazoAlertaDias: z.number().int().min(1).max(365),
-  prazoLegalMeses: z.number().int().min(1).max(120),
-  prazoLegalAlertaDias: z.number().int().min(1).max(365),
   backupScheduleCron: z.string().min(1),
   emailRemetenteNome: z.string().min(1),
   emailRemetenteAddr: z.string().email('Email inválido'),
@@ -878,8 +876,6 @@ export default function ConfiguracoesPage() {
       .then(([d, e]) => {
         reset({
           prazoAlertaDias: d.prazoAlertaDias,
-          prazoLegalMeses: d.prazoLegalMeses ?? 8,
-          prazoLegalAlertaDias: d.prazoLegalAlertaDias ?? 30,
           backupScheduleCron: d.backupScheduleCron,
           emailRemetenteNome: d.emailRemetenteNome,
           emailRemetenteAddr: d.emailRemetenteAddr,
@@ -1383,38 +1379,6 @@ export default function ConfiguracoesPage() {
                 />
                 {errors.prazoAlertaDias && (
                   <p className="text-xs text-red-600">{errors.prazoAlertaDias.message}</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prazoLegalMeses">Prazo legal — duração-base (meses)</Label>
-                <Input
-                  id="prazoLegalMeses"
-                  type="number"
-                  min={1}
-                  max={120}
-                  {...register('prazoLegalMeses', { valueAsNumber: true })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Limite legal = data de abertura + esta base + prorrogações.
-                </p>
-                {errors.prazoLegalMeses && (
-                  <p className="text-xs text-red-600">{errors.prazoLegalMeses.message}</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="prazoLegalAlertaDias">Prazo legal — aviso com antecedência (dias)</Label>
-                <Input
-                  id="prazoLegalAlertaDias"
-                  type="number"
-                  min={1}
-                  max={365}
-                  {...register('prazoLegalAlertaDias', { valueAsNumber: true })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Limiar do digest semanal de prazos legais a vencer.
-                </p>
-                {errors.prazoLegalAlertaDias && (
-                  <p className="text-xs text-red-600">{errors.prazoLegalAlertaDias.message}</p>
                 )}
               </div>
               <div className="space-y-1.5">

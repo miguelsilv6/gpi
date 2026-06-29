@@ -10,8 +10,6 @@ import type { Role } from '@/generated/prisma/enums'
 const schema = z.object({
   prazoAlertaDias: z.number().int().min(1).max(365).optional(),
   prazoAlertaDiasUrgente: z.number().int().min(1).max(365).nullable().optional(),
-  prazoLegalMeses: z.number().int().min(1).max(120).optional(),
-  prazoLegalAlertaDias: z.number().int().min(1).max(365).optional(),
   backupScheduleCron: z.string().min(1).max(100).optional(),
   backupRetencao: z.number().int().min(1).max(365).optional(),
   emailRemetenteNome: z.string().min(1).max(100).optional(),
@@ -130,8 +128,6 @@ export async function PUT(req: NextRequest) {
           {
             prazoAlertaDias: before.prazoAlertaDias,
             prazoAlertaDiasUrgente: before.prazoAlertaDiasUrgente,
-            prazoLegalMeses: before.prazoLegalMeses,
-            prazoLegalAlertaDias: before.prazoLegalAlertaDias,
             backupScheduleCron: before.backupScheduleCron,
             backupRetencao: before.backupRetencao,
             emailRemetenteNome: before.emailRemetenteNome,
@@ -161,8 +157,6 @@ export async function PUT(req: NextRequest) {
           {
             prazoAlertaDias: config.prazoAlertaDias,
             prazoAlertaDiasUrgente: config.prazoAlertaDiasUrgente,
-            prazoLegalMeses: config.prazoLegalMeses,
-            prazoLegalAlertaDias: config.prazoLegalAlertaDias,
             backupScheduleCron: config.backupScheduleCron,
             backupRetencao: config.backupRetencao,
             emailRemetenteNome: config.emailRemetenteNome,
@@ -192,8 +186,6 @@ export async function PUT(req: NextRequest) {
           [
             'prazoAlertaDias',
             'prazoAlertaDiasUrgente',
-            'prazoLegalMeses',
-            'prazoLegalAlertaDias',
             'backupScheduleCron',
             'backupRetencao',
             'emailRemetenteNome',

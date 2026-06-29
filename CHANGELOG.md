@@ -7,6 +7,16 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.18] — 2026-06-29
+
+### Removido
+- **Prazos legais inteligentes** (introduzidos em 0.5.16): por não se enquadrarem
+  no objetivo da aplicação, foram removidos o cálculo do prazo legal, a secção e
+  as prorrogações no detalhe do inquérito, o digest semanal e as definições em
+  Configurações → Sistema. Migração `remove_prazo_legal_prorrogacoes` larga a
+  tabela `ProrrogacaoInquerito` e as colunas `prazoLegalMeses`/`prazoLegalAlertaDias`.
+  O **backup dos anexos** (também de 0.5.16) mantém-se.
+
 ## [0.5.16] — 2026-06-29
 
 ### Adicionado
