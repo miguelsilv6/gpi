@@ -44,7 +44,14 @@ export function AtividadesInspetorChart({ data }: { data: AtividadeInspetor[] })
       <BarChart data={top} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
-        <YAxis type="category" dataKey="descricao" tick={{ fontSize: 11 }} width={150} interval={0} />
+        <YAxis
+          type="category"
+          dataKey="descricao"
+          tick={{ fontSize: 11 }}
+          width={150}
+          interval={0}
+          tickFormatter={(value: string) => (value.length > 22 ? `${value.slice(0, 22)}…` : value)}
+        />
         <Tooltip />
         <Bar dataKey="count" name="Registos" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
       </BarChart>

@@ -195,7 +195,7 @@ export function EstatisticaInspetorDashboard() {
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-7">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
