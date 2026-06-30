@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Plane, Coffee, Trash2, Pencil, ZoomIn, ZoomOut, Lock, LockOpen } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -33,7 +33,7 @@ function parseISODate(s: string): Date {
 const ZOOM_MIN = 1
 const ZOOM_MAX = 4
 
-function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
+function AusenciasYearBar({ ausencias, ano }: { ausencias: Ausencia[]; ano: number }) {
   const [zoom, setZoom] = useState(1)
   const startOfYear = new Date(ano, 0, 1)
   const endOfYear = new Date(ano, 11, 31)
@@ -44,9 +44,9 @@ function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
     return { label: MONTHS_PT_ABBR[i]!, pct: (offset / totalDays) * 100 }
   })
 
-  const bars = ferias.flatMap((f) => {
-    const s = parseISODate(f.dataInicio)
-    const e = parseISODate(f.dataFim)
+  const bars = ausencias.flatMap((a) => {
+    const s = parseISODate(a.dataInicio)
+    const e = parseISODate(a.dataFim)
     const cs = s < startOfYear ? startOfYear : s
     const ce = e > endOfYear ? endOfYear : e
     if (ce < cs) return []
@@ -55,14 +55,15 @@ function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
     return [{
       left: (so / totalDays) * 100,
       width: ((eo - so + 1) / totalDays) * 100,
-      label: `${f.dataInicio.slice(0, 10)} → ${f.dataFim.slice(0, 10)}${f.nota ? ' — ' + f.nota : ''}`,
+      tipo: a.tipo,
+      label: `${TIPO_LABEL[a.tipo]}: ${a.dataInicio.slice(0, 10)} → ${a.dataFim.slice(0, 10)}${a.nota ? ' — ' + a.nota : ''}`,
     }]
   })
 
   return (
     <div className="space-y-1.5">
-      {ferias.length === 0 || bars.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">Sem férias registadas para {ano}.</p>
+      {ausencias.length === 0 || bars.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2">Sem ausências registadas para {ano}.</p>
       ) : (
         <>
         <div className="flex items-center justify-end gap-1">
@@ -102,7 +103,7 @@ function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
               {bars.map((b, i) => (
                 <div
                   key={i}
-                  className="absolute inset-y-1 rounded-sm bg-blue-500/80 hover:bg-blue-600 transition-colors cursor-default"
+                  className={`absolute inset-y-1 rounded-sm transition-colors cursor-default ${TIPO_COR[b.tipo].bar}`}
                   style={{ left: `${b.left}%`, width: `${b.width}%` }}
                   title={b.label}
                 />
@@ -112,12 +113,20 @@ function FeriasYearBar({ ferias, ano }: { ferias: Ausencia[]; ano: number }) {
         </div>
         </>
       )}
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-4 rounded bg-blue-500/80" /> Férias
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-4 rounded bg-amber-500/80" /> Folga
+        </span>
+      </div>
       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-        {ferias.map((f, i) => (
+        {ausencias.map((a, i) => (
           <span key={i} className="whitespace-nowrap">
-            <span className="inline-block h-2 w-2 rounded-sm bg-blue-500/80 mr-1 align-middle" />
-            {f.dataInicio.slice(0, 10)} → {f.dataFim.slice(0, 10)}
-            {f.nota && <span className="ml-1 opacity-70">({f.nota})</span>}
+            <span className={`inline-block h-2 w-2 rounded-sm mr-1 align-middle ${TIPO_COR[a.tipo].dot}`} />
+            {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
+            {a.nota && <span className="ml-1 opacity-70">({a.nota})</span>}
           </span>
         ))}
       </div>
@@ -155,8 +164,6 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
   )
 
   const [ganttScale, setGanttScale] = useState<GanttScale>('month')
-
-  const feriasByYear = useMemo(() => ausencias.filter((a) => a.tipo === 'FERIAS'), [ausencias])
 
   const [editing, setEditing] = useState<Ausencia | null>(null)
   const [deleting, setDeleting] = useState<Ausencia | null>(null)
@@ -306,10 +313,10 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Férias {ano}</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Ausências {ano}</CardTitle>
           </CardHeader>
           <CardContent>
-            <FeriasYearBar ferias={feriasByYear} ano={ano} />
+            <AusenciasYearBar ausencias={ausencias} ano={ano} />
           </CardContent>
         </Card>
 
@@ -341,40 +348,47 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
                 {ausencias.map((a) => {
                   const dias = countWorkingDays(new Date(a.dataInicio.slice(0, 10)), new Date(a.dataFim.slice(0, 10)))
                   return (
-                    <li key={a.id} className="flex items-center justify-between gap-2 py-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TIPO_COR[a.tipo].badge}`}>
-                          {TIPO_LABEL[a.tipo]}
-                        </span>
-                        <span className="text-sm tabular-nums truncate">
-                          {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {dias} dia{dias === 1 ? '' : 's'}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setEditing(a)}
-                            aria-label="Editar"
-                            disabled={editingLocked}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setDeleting(a)}
-                            aria-label="Apagar"
-                            disabled={editingLocked}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                    <li key={a.id} className="py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TIPO_COR[a.tipo].badge}`}>
+                            {TIPO_LABEL[a.tipo]}
+                          </span>
+                          <span className="text-sm tabular-nums truncate">
+                            {a.dataInicio.slice(0, 10)} → {a.dataFim.slice(0, 10)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {dias} dia{dias === 1 ? '' : 's'}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setEditing(a)}
+                              aria-label="Editar"
+                              disabled={editingLocked}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setDeleting(a)}
+                              aria-label="Apagar"
+                              disabled={editingLocked}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                      {a.nota && (
+                        <p className="mt-1 text-xs text-muted-foreground break-words">
+                          <span className="font-medium">Nota:</span> {a.nota}
+                        </p>
+                      )}
                     </li>
                   )
                 })}

@@ -32,6 +32,32 @@ interface PorInspetor { inspetorId: string; nome: string; count: number }
 interface PorNatureza { natureza: string; count: number }
 interface PorComarca { comarcaId: string; nome: string; count: number }
 interface PorTribunal { tribunalId: string; nome: string; count: number }
+interface AtividadeInspetor { descricao: string; count: number; sumQuantidade: number; temQuantidade: boolean }
+
+// Atividades registadas pelo próprio inspetor — barras horizontais (os nomes
+// das atividades são longos), top 10 por número de registos.
+export function AtividadesInspetorChart({ data }: { data: AtividadeInspetor[] }) {
+  const top = data.slice(0, 10)
+  const height = Math.max(160, top.length * 32 + 24)
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={top} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+        <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+        <YAxis
+          type="category"
+          dataKey="descricao"
+          tick={{ fontSize: 11 }}
+          width={150}
+          interval={0}
+          tickFormatter={(value: string) => (value.length > 22 ? `${value.slice(0, 22)}…` : value)}
+        />
+        <Tooltip />
+        <Bar dataKey="count" name="Registos" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
 
 export function AnoBarChart({ data }: { data: PorAno[] }) {
   return (

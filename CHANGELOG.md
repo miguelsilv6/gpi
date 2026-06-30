@@ -7,6 +7,18 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.29] — 2026-06-30
+
+### Adicionado
+- **Ausências**: a lista **"Marcações de {ano}"** passa a mostrar a **nota** de
+  cada marcação que a tenha. O Gantt anual de cada inspetor (cartão **"Ausências
+  {ano}"**, antes "Férias") passa a incluir também as **Folgas** (a amarelo,
+  além das férias a azul), com legenda.
+- **Estatística do inspetor**: novo cartão de **inquéritos vencidos** (prazo
+  ultrapassado) e novo gráfico **"Atividades realizadas"** com as atividades
+  registadas pelo próprio inspetor no período (top 10 por número de registos).
+  Estes dados já eram calculados mas não eram apresentados.
+
 ## [0.5.27] — 2026-06-29
 
 ### Corrigido

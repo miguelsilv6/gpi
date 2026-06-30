@@ -16,8 +16,9 @@ import {
   EstadoBarChart,
   NaturezaBarChart,
   AnoBarChart,
+  AtividadesInspetorChart,
 } from './charts'
-import { FileText, MonitorCog, Send, Archive, CheckCircle2, X, Mail } from 'lucide-react'
+import { FileText, MonitorCog, Send, Archive, CheckCircle2, X, Mail, AlertTriangle, Activity } from 'lucide-react'
 
 interface Stats {
   total: number
@@ -194,7 +195,7 @@ export function EstatisticaInspetorDashboard() {
       ) : stats ? (
         <>
           {/* Summary cards */}
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
@@ -202,6 +203,15 @@ export function EstatisticaInspetorDashboard() {
                   <span className="text-sm text-muted-foreground">Total</span>
                 </div>
                 <p className="text-3xl font-bold mt-1">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm text-muted-foreground">Vencidos</span>
+                </div>
+                <p className="text-3xl font-bold mt-1 text-red-600">{stats.vencidos}</p>
               </CardContent>
             </Card>
             <Card>
@@ -320,6 +330,27 @@ export function EstatisticaInspetorDashboard() {
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* Atividades registadas pelo próprio inspetor no período */}
+          {stats.atividadesInspetor.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Atividades realizadas
+                  <span className="text-xs font-normal">({stats.atividadesInspetorTotal} no total)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AtividadesInspetorChart data={stats.atividadesInspetor} />
+                {stats.atividadesInspetor.length > 10 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    A mostrar as 10 atividades mais frequentes (de {stats.atividadesInspetor.length}).
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           )}
 
         </>
