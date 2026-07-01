@@ -7,6 +7,24 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.33] — 2026-07-01
+
+### Corrigido
+- **Detalhe do inquérito — botões no mobile**: os botões de ação (CSV, PDF,
+  Editar, Marcar doc. pendente, Reabrir, Eliminar) já não ficam cortados/fora
+  do ecrã em ecrãs estreitos — o cabeçalho passa a empilhar o título e os
+  botões verticalmente no mobile (lado a lado a partir do breakpoint `sm`).
+
+### Alterado
+- **Notas**: a lista deixa de mostrar o conteúdo das notas de imediato — mostra
+  apenas o NUIPC (com contagem e data da última atualização); as notas só
+  aparecem ao expandir esse inquérito. Durante uma pesquisa ativa, os
+  resultados aparecem sempre expandidos, para não esconder o próprio resultado.
+- **Calendários**: os dias de fim-de-semana e feriados nacionais passam a ter
+  um fundo âmbar distinto em todos os calendários da aplicação (Ausências,
+  Agenda, Prazos e Controlos), reutilizando `isWorkingDay` — sem alterar as
+  restantes marcações (dots de eventos/urgência) já existentes em cada um.
+
 ## [0.5.31] — 2026-06-30
 
 ### Corrigido

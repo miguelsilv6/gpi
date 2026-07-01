@@ -9,6 +9,7 @@ import {
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
+import { isWorkingDay } from "@/lib/ferias"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
 
@@ -21,6 +22,8 @@ function Calendar({
   locale,
   formatters,
   components,
+  modifiers,
+  modifiersClassNames,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
@@ -30,6 +33,21 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      modifiers={{
+        // Fim de semana ou feriado nacional — para se distinguirem à vista
+        // em qualquer calendário da aplicação. Mesclado com os modifiers
+        // próprios de cada calendário (que usam outras chaves — dots de
+        // eventos, urgência, etc.), sem conflito de nomes.
+        naoUtil: (date: Date) => !isWorkingDay(date),
+        ...modifiers,
+      }}
+      modifiersClassNames={{
+        // data-[outside]: dias do mês anterior/seguinte mostrados no grid
+        // mantêm-se discretos (opacidade reduzida) mesmo quando calham num
+        // fim de semana ou feriado — o fundo âmbar não se aplica aí.
+        naoUtil: "bg-amber-50 dark:bg-amber-950/20 data-[outside]:bg-transparent",
+        ...modifiersClassNames,
+      }}
       className={cn(
         "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
