@@ -7,6 +7,14 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.41] — 2026-07-01
+
+### Removido
+- **Detalhe do inquérito — cartão "Linha do tempo de estados"**: era redundante
+  com a Cronologia (que já intercala as mudanças de estado com as restantes
+  fontes, incluindo autor e motivo de reabertura). A página fica só com a
+  Cronologia; nenhuma informação se perde.
+
 ## [0.5.39] — 2026-07-01
 
 ### Adicionado
