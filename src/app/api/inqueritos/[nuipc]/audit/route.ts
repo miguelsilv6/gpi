@@ -8,6 +8,7 @@ import {
 } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { slugToNuipc } from '@/lib/utils'
+import { resolveAuditDetalhesNames } from '@/lib/audit-resolve'
 import type { Role } from '@/generated/prisma/enums'
 
 export async function GET(
@@ -39,6 +40,11 @@ export async function GET(
       orderBy: { createdAt: 'desc' },
       take: limit,
     })
+
+    // Resolve FKs (crimeId, tribunalId, seccaoId, inspetorId, ...) guardados em
+    // `detalhes` para o nome da entidade — inclui entradas antigas gravadas
+    // antes deste resolver existir.
+    await resolveAuditDetalhesNames(logs)
 
     // Hydrate utilizador names in one go
     const userIds = Array.from(new Set(logs.map((l) => l.utilizadorId)))

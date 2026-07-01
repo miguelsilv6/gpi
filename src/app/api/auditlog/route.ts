@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { resolveAuditDetalhesNames } from '@/lib/audit-resolve'
 import type { Role } from '@/generated/prisma/enums'
 
 const PAGE_SIZE = 30
@@ -65,6 +66,11 @@ export async function GET(req: NextRequest) {
     ])
     const nuipcMap = Object.fromEntries(inqueritos.map((i) => [i.id, i.nuipc]))
     const emailMap = Object.fromEntries(utilizadoresEntity.map((u) => [u.id, u.email]))
+
+    // Resolve FKs (crimeId, tribunalId, seccaoId, inspetorId, ...) guardados em
+    // `detalhes` para o nome da entidade — inclui entradas antigas gravadas
+    // antes deste resolver existir.
+    await resolveAuditDetalhesNames(items)
 
     const enriched = items.map((l) => ({
       ...l,
