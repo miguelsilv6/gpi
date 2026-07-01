@@ -14,6 +14,7 @@
  * revelam inquéritos que o utilizador pode ler (buildInqueritoWhere).
  */
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@/generated/prisma/client'
 import { buildInqueritoWhere } from '@/lib/role-scope'
 import { nuipcToSlug } from '@/lib/utils'
 import type { Role } from '@/generated/prisma/enums'
@@ -79,29 +80,41 @@ export async function findConexoes(
   const email = normalizarEmail(criterios.email)
   if (!nif && !contacto && !email) return []
 
-  // Fase 1: candidatos por igualdade normalizada, direto em SQL (parametrizado).
-  // Passa-se sempre os três critérios; os nulos desligam o respetivo ramo.
+  // Fase 1: candidatos por igualdade normalizada, direto em SQL (parametrizado
+  // via Prisma.sql — só entram os ramos com critério, e o excludeId filtra-se
+  // na própria query para não consumir um slot do LIMIT).
   // '[^0-9]' em vez de '\D' — evita ambiguidade de escapes em tagged templates.
+  const condicoes: Prisma.Sql[] = []
+  if (nif) {
+    condicoes.push(
+      Prisma.sql`regexp_replace(coalesce("denuncianteNif", ''), '[^0-9]', '', 'g') = ${nif}`,
+    )
+  }
+  if (contacto) {
+    condicoes.push(
+      Prisma.sql`(length(regexp_replace(coalesce("denuncianteContacto", ''), '[^0-9]', '', 'g')) >= ${MIN_DIGITOS}
+        AND right(regexp_replace(coalesce("denuncianteContacto", ''), '[^0-9]', '', 'g'), 9) = ${contacto})`,
+    )
+  }
+  if (email) {
+    condicoes.push(Prisma.sql`lower(trim(coalesce("denuncianteEmail", ''))) = ${email}`)
+  }
+
+  const filtros: Prisma.Sql[] = [Prisma.sql`"deletedAt" IS NULL`]
+  if (excludeId) filtros.push(Prisma.sql`"id" <> ${excludeId}`)
+  filtros.push(Prisma.sql`(${Prisma.join(condicoes, ' OR ')})`)
+
   const rows = await prisma.$queryRaw<CandidateRow[]>`
     SELECT "id",
            "denuncianteNif"      AS "nif",
            "denuncianteContacto" AS "contacto",
            "denuncianteEmail"    AS "email"
     FROM "Inquerito"
-    WHERE "deletedAt" IS NULL
-      AND (
-        (${nif}::text IS NOT NULL
-          AND regexp_replace(coalesce("denuncianteNif", ''), '[^0-9]', '', 'g') = ${nif})
-        OR (${contacto}::text IS NOT NULL
-          AND length(regexp_replace(coalesce("denuncianteContacto", ''), '[^0-9]', '', 'g')) >= ${MIN_DIGITOS}
-          AND right(regexp_replace(coalesce("denuncianteContacto", ''), '[^0-9]', '', 'g'), 9) = ${contacto})
-        OR (${email}::text IS NOT NULL
-          AND lower(trim(coalesce("denuncianteEmail", ''))) = ${email})
-      )
+    WHERE ${Prisma.join(filtros, ' AND ')}
     LIMIT ${CANDIDATE_LIMIT}
   `
 
-  const candidateIds = rows.map((r) => r.id).filter((id) => id !== excludeId)
+  const candidateIds = rows.map((r) => r.id)
   if (candidateIds.length === 0) return []
 
   // Fase 2: revelar só o que está no âmbito do utilizador.
@@ -153,20 +166,26 @@ export async function getConexoesForInquerito(
   role: Role,
   userId: string,
   brigadaId: string | null,
+  /** Dados do denunciante já em memória (evita o findUnique redundante). */
+  denunciante?: { nif: string | null; contacto: string | null; email: string | null },
 ): Promise<ConexaoHit[]> {
-  const inq = await prisma.inquerito.findUnique({
-    where: { id: inqueritoId },
-    select: { denuncianteNif: true, denuncianteContacto: true, denuncianteEmail: true },
-  })
-  if (!inq) return []
+  let criterios: ConexaoCriterios
+  if (denunciante) {
+    criterios = denunciante
+  } else {
+    const inq = await prisma.inquerito.findUnique({
+      where: { id: inqueritoId },
+      select: { denuncianteNif: true, denuncianteContacto: true, denuncianteEmail: true },
+    })
+    if (!inq) return []
+    criterios = {
+      nif: inq.denuncianteNif,
+      contacto: inq.denuncianteContacto,
+      email: inq.denuncianteEmail,
+    }
+  }
 
-  const hits = await findConexoes(
-    { nif: inq.denuncianteNif, contacto: inq.denuncianteContacto, email: inq.denuncianteEmail },
-    inqueritoId,
-    role,
-    userId,
-    brigadaId,
-  )
+  const hits = await findConexoes(criterios, inqueritoId, role, userId, brigadaId)
   if (hits.length === 0) return []
 
   const hitIds = hits.map((h) => h.id)

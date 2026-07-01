@@ -44,6 +44,11 @@ export async function GET(req: NextRequest) {
     })
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
+    // Sem critérios não há nada para procurar — poupa o lookup do excludeNuipc.
+    if (!parsed.data.nif && !parsed.data.contacto && !parsed.data.email) {
+      return Response.json({ items: [] })
+    }
+
     let excludeId: string | null = null
     if (parsed.data.excludeNuipc) {
       const self = await prisma.inquerito.findFirst({

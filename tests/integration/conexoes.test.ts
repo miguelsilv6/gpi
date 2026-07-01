@@ -136,4 +136,19 @@ describe('getConexoesForInquerito', () => {
     const hits = await getConexoesForInquerito(s.inqA[0].id, 'INSPETOR', s.inspetorA.id, s.brigadaA.id)
     expect(hits).toEqual([])
   })
+
+  test('aceita denunciante já em memória (sem findUnique) com o mesmo resultado', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    await setDenunciante(s.inqA[0].id, { nif: '555666777' })
+    await setDenunciante(s.inqA[1].id, { nif: '555 666 777' })
+
+    const hits = await getConexoesForInquerito(
+      s.inqA[0].id,
+      'INSPETOR',
+      s.inspetorA.id,
+      s.brigadaA.id,
+      { nif: '555666777', contacto: null, email: null },
+    )
+    expect(hits.map((h) => h.nuipc)).toEqual(['A-002/22'])
+  })
 })

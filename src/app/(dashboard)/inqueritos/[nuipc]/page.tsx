@@ -369,7 +369,12 @@ export default async function InqueritoDetailPage({
   // (NIF/contacto/email) — os já formalmente relacionados não repetem lá.
   const [relacoes, conexoes] = await Promise.all([
     getRelacoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId),
-    getConexoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId),
+    getConexoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId, {
+      // Já em memória — evita o findUnique redundante dentro da lib.
+      nif: inquerito.denuncianteNif,
+      contacto: inquerito.denuncianteContacto,
+      email: inquerito.denuncianteEmail,
+    }),
   ])
 
   const canReopen = hasPermission(role, 'inquerito:reopen')

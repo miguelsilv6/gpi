@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Link2 } from 'lucide-react'
 import type { ConexaoHit } from '@/lib/conexoes'
@@ -25,7 +25,6 @@ interface Props {
 
 export function ConexoesAviso({ nif, contacto, email, excludeNuipc }: Props) {
   const [hits, setHits] = useState<ConexaoHit[]>([])
-  const abortRef = useRef<AbortController | null>(null)
 
   // Só valores com potencial de match disparam a consulta (evita ruído e
   // pedidos por cada tecla nos primeiros carateres).
@@ -41,10 +40,11 @@ export function ConexoesAviso({ nif, contacto, email, excludeNuipc }: Props) {
       setHits([])
       return
     }
+    // O controller vive no scope do effect: o cleanup aborta o fetch pendente
+    // tanto em re-runs (novo valor digitado) como no unmount — sem respostas
+    // obsoletas a sobrepor as recentes nem setState após desmontagem.
+    const controller = new AbortController()
     const timer = setTimeout(async () => {
-      abortRef.current?.abort()
-      const controller = new AbortController()
-      abortRef.current = controller
       try {
         const params = new URLSearchParams()
         if (nifQ) params.set('nif', nifQ)
@@ -58,10 +58,14 @@ export function ConexoesAviso({ nif, contacto, email, excludeNuipc }: Props) {
         const data = (await res.json()) as { items: ConexaoHit[] }
         setHits(data.items ?? [])
       } catch {
-        // Silencioso — o aviso é oportunista, nunca interfere com o formulário.
+        // Silencioso (inclui AbortError) — o aviso é oportunista, nunca
+        // interfere com o formulário.
       }
     }, DEBOUNCE_MS)
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [nifQ, contactoQ, emailQ, excludeNuipc])
 
   if (hits.length === 0) return null
