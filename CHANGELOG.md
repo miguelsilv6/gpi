@@ -7,6 +7,17 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.35] — 2026-07-01
+
+### Segurança
+- **Assets de branding (SVG)**: os ficheiros servidos em `/branding/*` passam a
+  incluir uma `Content-Security-Policy` própria (`default-src 'none'; sandbox`)
+  e `X-Content-Type-Options: nosniff`. Um logo SVG (upload só-admin) servido na
+  mesma origem poderia executar script se fosse navegado diretamente; a CSP do
+  middleware já cobria este caminho, mas a política local ao recurso é defesa em
+  profundidade que não depende do matcher do middleware. Não afeta a
+  renderização do logo como `<img>` — só o acesso direto ao ficheiro.
+
 ## [0.5.33] — 2026-07-01
 
 ### Corrigido

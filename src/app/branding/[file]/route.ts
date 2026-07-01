@@ -12,7 +12,17 @@ export const runtime = 'nodejs'
  * Cache: 5 min com revalidation. O cliente faz cache-bust adicionando
  * `?v=<brandUpdatedAt>` à URL — sempre que o admin altera o brand, o
  * número muda e o browser refetch.
+ *
+ * Segurança: os logos aceitam SVG (upload só-admin). Um SVG servido
+ * same-origin pode conter script se for NAVEGADO diretamente. A CSP do
+ * middleware já cobre este caminho, mas repetimos aqui uma CSP `sandbox`
+ * mínima ao nível do próprio recurso — defesa em profundidade que não
+ * depende do matcher do middleware. Isto NÃO afeta a renderização como
+ * `<img>` (a CSP de um recurso não se aplica quando embebido, e o contexto
+ * de imagem já desativa scripts), só o acesso direto ao ficheiro.
  */
+const ASSET_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ file: string }> }) {
   const { file } = await ctx.params
   const fullPath = resolveBrandingPath(file)
@@ -25,6 +35,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ file: stri
       headers: {
         'Content-Type': mimeFromExtension(ext),
         'Cache-Control': 'public, max-age=300, must-revalidate',
+        'Content-Security-Policy': ASSET_CSP,
+        'X-Content-Type-Options': 'nosniff',
       },
     })
   } catch {
