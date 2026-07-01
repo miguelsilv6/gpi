@@ -17,6 +17,8 @@ import { TarefasSection, type TarefaItem } from '@/components/inqueritos/tarefas
 import { RelacoesSection } from '@/components/inqueritos/relacoes-section'
 import { getRelacoesForInquerito } from '@/lib/relacoes'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
+import { mergeTimelineEvents } from '@/lib/inquerito-timeline'
+import { CronologiaSection } from '@/components/inqueritos/cronologia-section'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
@@ -218,6 +220,85 @@ export default async function InqueritoDetailPage({
         },
       })
     : []
+
+  // Cronologia unificada — as fontes de secção (notas/documentos/tarefas)
+  // reutilizam-se tal como a página as mostra (mesmo âmbito, por construção);
+  // as atividades da secção são paginadas, por isso vai-se buscar o conjunto
+  // completo em versão mínima, e as diligências não têm secção própria aqui.
+  // Quem consegue abrir a página já passou o scope do inquérito — todas as
+  // diligências deste inquérito são visíveis (igual a buildDiligenciaWhere).
+  const [atividadesTimeline, diligenciasTimeline] = await Promise.all([
+    prisma.atividade.findMany({
+      where: { inqueritoid: inquerito.id },
+      orderBy: { dataRealizacao: 'desc' },
+      take: 500,
+      select: {
+        id: true,
+        descricao: true,
+        dataRealizacao: true,
+        quantidade: true,
+        realizadaPor: { select: { nome: true } },
+      },
+    }),
+    prisma.diligencia.findMany({
+      where: { inqueritoId: inquerito.id },
+      orderBy: { dataInicio: 'desc' },
+      take: 200,
+      select: {
+        id: true,
+        titulo: true,
+        dataInicio: true,
+        local: true,
+        criadoPor: { select: { nome: true } },
+      },
+    }),
+  ])
+
+  const timelineEvents = mergeTimelineEvents({
+    abertura: {
+      dataAbertura: inquerito.dataAbertura.toISOString(),
+      crimeNome: inquerito.crime?.nome ?? inquerito.natureza,
+    },
+    estados: estadoTimeline.map((t) => ({
+      at: t.at,
+      estadoNome: t.estadoNome,
+      porNome: t.porNome,
+      ...(t.motivo ? { motivo: t.motivo } : {}),
+    })),
+    atividades: atividadesTimeline.map((a) => ({
+      id: a.id,
+      descricao: a.descricao,
+      dataRealizacao: a.dataRealizacao.toISOString(),
+      quantidade: a.quantidade,
+      autorNome: a.realizadaPor?.nome ?? null,
+    })),
+    notas: notas.map((n) => ({
+      id: n.id,
+      titulo: n.titulo,
+      conteudo: n.conteudo,
+      createdAt: n.createdAt.toISOString(),
+      autorNome: n.autor.nome,
+    })),
+    documentos: documentos.map((d) => ({
+      id: d.id,
+      filename: d.filename,
+      createdAt: d.createdAt.toISOString(),
+      autorNome: d.uploadedBy?.nome ?? null,
+    })),
+    tarefas: tarefasRaw.map((t) => ({
+      id: t.id,
+      titulo: t.titulo,
+      createdAt: t.createdAt.toISOString(),
+      concluida: t.concluida,
+    })),
+    diligencias: diligenciasTimeline.map((d) => ({
+      id: d.id,
+      titulo: d.titulo,
+      dataInicio: d.dataInicio.toISOString(),
+      local: d.local,
+      autorNome: d.criadoPor?.nome ?? null,
+    })),
+  })
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
 
@@ -812,6 +893,8 @@ export default async function InqueritoDetailPage({
         currentUserId={session.user.id}
         isAdmin={hasPermission(role, 'inquerito:edit:all')}
       />
+
+      <CronologiaSection events={timelineEvents} />
 
       {canSeeAudit && <AuditHistory slug={inqSlug} />}
     </div>

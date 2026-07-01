@@ -7,6 +7,30 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.37] — 2026-07-01
+
+### Corrigido
+- **Calendários em modo escuro**: o fundo dos dias de fim-de-semana/feriado
+  (âmbar) era impercetível no tema escuro (âmbar-950 a 20% sobre fundo quase
+  preto). Passa a usar âmbar claro com transparência (âmbar-400 a 15%),
+  claramente visível sem ofuscar; os dias fora do mês continuam sem tinta
+  também no escuro.
+
+### Adicionado
+- **Cronologia do inquérito**: nova secção na página de detalhe que intercala,
+  numa única linha temporal agrupada por dia, a abertura, as mudanças de
+  estado, as atividades (com quantidade), as notas (excerto), os documentos
+  anexados, as tarefas pessoais e as diligências do inquérito — do mais
+  recente para o mais antigo. Reutiliza exatamente os dados/âmbitos que a
+  página já mostra em secções separadas; inquéritos longos colapsam os dias
+  mais antigos num "Mostrar mais".
+- **"O meu dia" no dashboard**: bloco com os eventos de hoje e de amanhã
+  (prazos de inquérito, atividades com prazo, controlos e diligências — mesma
+  semântica e âmbito da Agenda), as tarefas pessoais em aberto (prioridade
+  mais alta primeiro) e um aviso com o total de atrasados (prazos vencidos,
+  atividades e controlos em atraso) com atalho para Prazos e Controlos.
+  Oculto para o perfil Estatística (sem permissões operacionais).
+
 ## [0.5.35] — 2026-07-01
 
 ### Corrigido

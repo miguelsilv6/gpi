@@ -34,6 +34,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      # Fuso horário de TODO o processamento/formatacão de datas da app —
+      # sem isto o container corre em UTC e as horas aparecem desfasadas.
+      TZ: ${TZ:-Europe/Lisbon}
       DATABASE_URL: postgresql://gpi_user:${POSTGRES_PASSWORD:-gpi_password}@postgres:5432/gpi_db
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
@@ -67,6 +70,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      # Fuso horário de TODO o processamento/formatacão de datas da app —
+      # sem isto o container corre em UTC e as horas aparecem desfasadas.
+      TZ: ${TZ:-Europe/Lisbon}
       DATABASE_URL: postgresql://gpi_user:${POSTGRES_PASSWORD:-gpi_password}@postgres:5432/gpi_db
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       SMTP_HOST: mailhog
