@@ -4,7 +4,7 @@ import {
   type TimelineEvent,
   type TimelineEventTipo,
 } from '@/lib/inquerito-timeline'
-import { formatDate, formatDateTime, cn } from '@/lib/utils'
+import { formatDate, formatTime, cn } from '@/lib/utils'
 import {
   Clock,
   FolderPlus,
@@ -37,12 +37,9 @@ const TIPO_META: Record<TimelineEventTipo, { label: string; icon: LucideIcon; do
 const INITIAL_DAYS = 10
 
 function horaOf(ev: TimelineEvent): string | null {
+  // O dia está no cabeçalho do grupo — aqui só a hora.
   if (ev.dateOnly) return null
-  // formatDateTime devolve "dd/mm/aaaa às hh:mm" — só queremos a hora aqui
-  // (o dia está no cabeçalho do grupo).
-  const dt = formatDateTime(ev.at)
-  const idx = dt.indexOf(' às ')
-  return idx >= 0 ? dt.slice(idx + 4) : null
+  return formatTime(ev.at)
 }
 
 function DayGroup({ day, events }: { day: string; events: TimelineEvent[] }) {

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { PRIORIDADE_LABEL, PRIORIDADE_COLOR } from '@/components/tarefas/tarefa-shared'
 import type { MeuDiaData } from '@/lib/meu-dia'
 import type { AgendaEvent, AgendaEventTipo } from '@/lib/agenda'
-import { cn, formatDateTime } from '@/lib/utils'
+import { cn, formatTime } from '@/lib/utils'
 import {
   Sun,
   AlertTriangle,
@@ -31,11 +31,11 @@ const TIPO_META: Record<AgendaEventTipo, { label: string; icon: LucideIcon }> = 
 
 function horaOf(ev: AgendaEvent): string | null {
   // Só as diligências têm hora marcada com significado; prazos/atividades/
-  // controlos são datas de calendário.
+  // controlos são datas de calendário. Meia-noite exata = "sem hora marcada"
+  // (mesma convenção da Agenda).
   if (ev.tipo !== 'diligencia') return null
-  const dt = formatDateTime(ev.data)
-  const idx = dt.indexOf(' às ')
-  return idx >= 0 ? dt.slice(idx + 4) : null
+  const hora = formatTime(ev.data)
+  return hora === '00:00' ? null : hora
 }
 
 function EventRow({ ev }: { ev: AgendaEvent }) {
