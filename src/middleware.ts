@@ -95,5 +95,13 @@ export default auth((req) => {
 export const config = {
   // Corre em todas as rotas HTML (inclui /login e /password-reset, para a CSP
   // com nonce as cobrir). Exclui APIs, assets estáticos e imagens.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
+  //
+  // `branding/` fica de fora: os logos são públicos (a página de login lê-os
+  // antes de qualquer sessão). Sem esta exclusão, um asset não-`.png` (SVG,
+  // WebP, JPG, ICO) era apanhado pelo middleware e redirecionado para /login
+  // por falta de sessão — o logo não carregava no ecrã de login. A proteção
+  // anti-XSS do SVG servido diretamente é garantida pela CSP `sandbox`
+  // definida na própria rota (src/app/branding/[file]/route.ts), não pela CSP
+  // do middleware.
+  matcher: ['/((?!api|branding/|_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
 }
