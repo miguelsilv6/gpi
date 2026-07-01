@@ -55,7 +55,7 @@ const FIELD_RESOLVERS: Record<string, Resolver> = {
 const SUB_OBJECT_KEYS = ['before', 'after'] as const
 
 function collectIds(obj: unknown, idsByField: Map<string, Set<string>>): void {
-  if (!obj || typeof obj !== 'object') return
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return
   const rec = obj as Record<string, unknown>
   for (const field of Object.keys(FIELD_RESOLVERS)) {
     const v = rec[field]
@@ -67,7 +67,7 @@ function collectIds(obj: unknown, idsByField: Map<string, Set<string>>): void {
 }
 
 function rewriteIds(obj: unknown, nameMapByField: Map<string, Map<string, string>>): void {
-  if (!obj || typeof obj !== 'object') return
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return
   const rec = obj as Record<string, unknown>
   for (const field of Object.keys(FIELD_RESOLVERS)) {
     const v = rec[field]
