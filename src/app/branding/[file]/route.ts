@@ -7,19 +7,20 @@ export const runtime = 'nodejs'
 
 /**
  * Serve um asset de branding do BRANDING_DIR. Público (no auth) — a
- * página de login precisa de ler o logo antes de qualquer sessão.
+ * página de login precisa de ler o logo antes de qualquer sessão, pelo que
+ * `branding/` está excluído do matcher do middleware (ver src/middleware.ts).
  *
  * Cache: 5 min com revalidation. O cliente faz cache-bust adicionando
  * `?v=<brandUpdatedAt>` à URL — sempre que o admin altera o brand, o
  * número muda e o browser refetch.
  *
  * Segurança: os logos aceitam SVG (upload só-admin). Um SVG servido
- * same-origin pode conter script se for NAVEGADO diretamente. A CSP do
- * middleware já cobre este caminho, mas repetimos aqui uma CSP `sandbox`
- * mínima ao nível do próprio recurso — defesa em profundidade que não
- * depende do matcher do middleware. Isto NÃO afeta a renderização como
- * `<img>` (a CSP de um recurso não se aplica quando embebido, e o contexto
- * de imagem já desativa scripts), só o acesso direto ao ficheiro.
+ * same-origin pode conter script se for NAVEGADO diretamente. Como o
+ * middleware não corre nesta rota, é a CSP `sandbox` definida aqui — ao nível
+ * do próprio recurso — que garante essa proteção (o `sandbox` neutraliza
+ * scripts na navegação direta). Isto NÃO afeta a renderização como `<img>`
+ * (a CSP de um recurso não se aplica quando embebido, e o contexto de imagem
+ * já desativa scripts), só o acesso direto ao ficheiro.
  */
 const ASSET_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
 
