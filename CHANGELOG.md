@@ -7,6 +7,22 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.39] — 2026-07-01
+
+### Adicionado
+- **Possíveis conexões entre inquéritos (pelo denunciante)**: quando dois
+  inquéritos partilham o NIF, o contacto telefónico ou o email do denunciante,
+  a ligação passa a ser detetada automaticamente. O matching é tolerante a
+  formatação ("123 456 789" ≡ "123456789"; "+351 912 345 678" ≡ "912345678";
+  emails sem distinção de maiúsculas). Aparece em dois sítios:
+  - **Detalhe do inquérito** — nova secção "Possíveis conexões" com os
+    inquéritos coincidentes (e o campo que coincide); os já formalmente
+    relacionados não repetem aqui.
+  - **Formulário de criação/edição** — aviso não-bloqueante ao preencher o
+    denunciante quando os dados já constam noutro inquérito.
+  A visibilidade respeita o âmbito de leitura de cada perfil (um inspetor não
+  vê coincidências fora do seu âmbito; chefe vê a brigada; coordenador tudo).
+
 ## [0.5.37] — 2026-07-01
 
 ### Corrigido

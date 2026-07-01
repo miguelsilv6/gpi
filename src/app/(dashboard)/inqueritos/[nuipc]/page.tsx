@@ -16,6 +16,8 @@ import { NotasSection } from '@/components/inqueritos/notas-section'
 import { TarefasSection, type TarefaItem } from '@/components/inqueritos/tarefas-section'
 import { RelacoesSection } from '@/components/inqueritos/relacoes-section'
 import { getRelacoesForInquerito } from '@/lib/relacoes'
+import { getConexoesForInquerito } from '@/lib/conexoes'
+import { ConexoesSection } from '@/components/inqueritos/conexoes-section'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
 import { mergeTimelineEvents } from '@/lib/inquerito-timeline'
 import { CronologiaSection } from '@/components/inqueritos/cronologia-section'
@@ -363,12 +365,12 @@ export default async function InqueritoDetailPage({
   })
 
   // Inquéritos relacionados (apensos/conexões) — simétrico e com scope aplicado.
-  const relacoes = await getRelacoesForInquerito(
-    inquerito.id,
-    role,
-    session.user.id,
-    session.user.brigadaId,
-  )
+  // Em paralelo, deteção automática de possíveis conexões pelo denunciante
+  // (NIF/contacto/email) — os já formalmente relacionados não repetem lá.
+  const [relacoes, conexoes] = await Promise.all([
+    getRelacoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId),
+    getConexoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId),
+  ])
 
   const canReopen = hasPermission(role, 'inquerito:reopen')
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
@@ -845,6 +847,8 @@ export default async function InqueritoDetailPage({
         relacoes={relacoes}
         canEdit={canEdit}
       />
+
+      <ConexoesSection conexoes={conexoes} />
 
       <AtividadesSection
         atividades={atividadeItems}
