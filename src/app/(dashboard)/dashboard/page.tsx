@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission, ROLE_LABELS } from '@/lib/rbac'
 import { getInqueritoCounters } from '@/lib/estatisticas-counters'
+import { getMeuDia } from '@/lib/meu-dia'
+import { MeuDiaCard } from '@/components/dashboard/meu-dia-card'
 import type { Role } from '@/generated/prisma/enums'
 import {
   FolderOpen,
@@ -98,8 +100,15 @@ export default async function DashboardPage() {
     ]
   }
 
-  const [cards, recentes] = await Promise.all([
+  // "O meu dia" é um bloco operacional — a ESTATISTICA (sem permissões de
+  // prazos/tarefas) não o vê.
+  const showMeuDia = hasPermission(role, 'prazo:read:own')
+
+  const [cards, meuDia, recentes] = await Promise.all([
     buildCards(),
+    showMeuDia
+      ? getMeuDia(role, session.user.id, session.user.brigadaId)
+      : Promise.resolve(null),
     prisma.inquerito.findMany({
       where: baseWhere,
       orderBy: { updatedAt: 'desc' },
@@ -147,6 +156,8 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {meuDia && <MeuDiaCard dia={meuDia} />}
 
       {/* Recent inquiries */}
       <Card>
