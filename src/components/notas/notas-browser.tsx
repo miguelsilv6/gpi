@@ -103,31 +103,46 @@ export function NotasBrowser({ notas, total, truncated }: Props) {
           {groups.map((g) => {
             const isOpen = isSearching || expanded.has(g.nuipc)
             const maisRecente = g.notas[0]?.updatedAt
+            const headerContent = (
+              <>
+                {!isSearching && (
+                  isOpen ? (
+                    <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  )
+                )}
+                <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="truncate">{g.nuipc}</span>
+                {g.natureza && (
+                  <span className="truncate text-xs font-normal text-muted-foreground">· {g.natureza}</span>
+                )}
+                <span className="ml-auto shrink-0 text-xs font-normal text-muted-foreground">
+                  {g.notas.length} {g.notas.length === 1 ? 'nota' : 'notas'}
+                  {maisRecente && ` · ${formatDateTime(maisRecente)}`}
+                </span>
+              </>
+            )
             return (
             <Card key={g.nuipc}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleExpand(g.nuipc)}
-                    className="flex flex-1 items-center gap-2 min-w-0 text-left"
-                    aria-expanded={isOpen}
-                  >
-                    {isOpen ? (
-                      <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    )}
-                    <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{g.nuipc}</span>
-                    {g.natureza && (
-                      <span className="truncate text-xs font-normal text-muted-foreground">· {g.natureza}</span>
-                    )}
-                    <span className="ml-auto shrink-0 text-xs font-normal text-muted-foreground">
-                      {g.notas.length} {g.notas.length === 1 ? 'nota' : 'notas'}
-                      {maisRecente && ` · ${formatDateTime(maisRecente)}`}
-                    </span>
-                  </button>
+                  {isSearching ? (
+                    // Pesquisa ativa força o grupo aberto — sem botão/chevron
+                    // (nada aqui teria efeito visível, o que confundiria).
+                    <div className="flex flex-1 items-center gap-2 min-w-0 text-left">
+                      {headerContent}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(g.nuipc)}
+                      className="flex flex-1 items-center gap-2 min-w-0 text-left"
+                      aria-expanded={isOpen}
+                    >
+                      {headerContent}
+                    </button>
+                  )}
                   <Link
                     href={`/inqueritos/${g.slug}`}
                     className="flex shrink-0 items-center gap-1 text-xs font-normal text-primary hover:underline"

@@ -42,7 +42,10 @@ function Calendar({
         ...modifiers,
       }}
       modifiersClassNames={{
-        naoUtil: "bg-amber-50 dark:bg-amber-950/20",
+        // data-[outside]: dias do mês anterior/seguinte mostrados no grid
+        // mantêm-se discretos (opacidade reduzida) mesmo quando calham num
+        // fim de semana ou feriado — o fundo âmbar não se aplica aí.
+        naoUtil: "bg-amber-50 dark:bg-amber-950/20 data-[outside]:bg-transparent",
         ...modifiersClassNames,
       }}
       className={cn(
