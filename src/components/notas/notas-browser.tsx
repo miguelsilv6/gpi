@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/ui/markdown'
-import { Search, StickyNote, FolderOpen, ArrowUpRight } from 'lucide-react'
+import { Search, StickyNote, FolderOpen, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 
 export interface NotaBrowserItem {
@@ -27,6 +27,21 @@ interface Props {
 
 export function NotasBrowser({ notas, total, truncated }: Props) {
   const [query, setQuery] = useState('')
+  // Colapsado por padrão — só mostra o NUIPC; expande ao clicar para ver as
+  // notas desse inquérito. Durante uma pesquisa ativa, os grupos (já
+  // filtrados pelo termo) mostram-se sempre expandidos, para não esconder o
+  // próprio resultado da pesquisa.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const isSearching = query.trim().length > 0
+
+  function toggleExpand(nuipc: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(nuipc)) next.delete(nuipc)
+      else next.add(nuipc)
+      return next
+    })
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -85,17 +100,34 @@ export function NotasBrowser({ notas, total, truncated }: Props) {
         </div>
       ) : (
         <div className="space-y-4">
-          {groups.map((g) => (
+          {groups.map((g) => {
+            const isOpen = isSearching || expanded.has(g.nuipc)
+            const maisRecente = g.notas[0]?.updatedAt
+            return (
             <Card key={g.nuipc}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(g.nuipc)}
+                    className="flex flex-1 items-center gap-2 min-w-0 text-left"
+                    aria-expanded={isOpen}
+                  >
+                    {isOpen ? (
+                      <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
                     <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="truncate">{g.nuipc}</span>
                     {g.natureza && (
                       <span className="truncate text-xs font-normal text-muted-foreground">· {g.natureza}</span>
                     )}
-                  </span>
+                    <span className="ml-auto shrink-0 text-xs font-normal text-muted-foreground">
+                      {g.notas.length} {g.notas.length === 1 ? 'nota' : 'notas'}
+                      {maisRecente && ` · ${formatDateTime(maisRecente)}`}
+                    </span>
+                  </button>
                   <Link
                     href={`/inqueritos/${g.slug}`}
                     className="flex shrink-0 items-center gap-1 text-xs font-normal text-primary hover:underline"
@@ -104,31 +136,34 @@ export function NotasBrowser({ notas, total, truncated }: Props) {
                   </Link>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {g.notas.map((n) => {
-                  const wasEdited = n.updatedAt !== n.createdAt
-                  return (
-                    <div key={n.id} className="rounded-lg border bg-muted/20 px-3 py-2.5">
-                      {n.titulo && <p className="text-sm font-semibold break-words mb-1">{n.titulo}</p>}
-                      <Markdown content={n.conteudo} />
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {n.autorNome} · {formatDateTime(n.createdAt)}
-                        {wasEdited && (
-                          <span className="italic">
-                            {' · editado'}
-                            {n.editadoPorNome && n.editadoPorNome !== n.autorNome
-                              ? ` por ${n.editadoPorNome}`
-                              : ''}{' '}
-                            {formatDateTime(n.updatedAt)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )
-                })}
-              </CardContent>
+              {isOpen && (
+                <CardContent className="space-y-3">
+                  {g.notas.map((n) => {
+                    const wasEdited = n.updatedAt !== n.createdAt
+                    return (
+                      <div key={n.id} className="rounded-lg border bg-muted/20 px-3 py-2.5">
+                        {n.titulo && <p className="text-sm font-semibold break-words mb-1">{n.titulo}</p>}
+                        <Markdown content={n.conteudo} />
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          {n.autorNome} · {formatDateTime(n.createdAt)}
+                          {wasEdited && (
+                            <span className="italic">
+                              {' · editado'}
+                              {n.editadoPorNome && n.editadoPorNome !== n.autorNome
+                                ? ` por ${n.editadoPorNome}`
+                                : ''}{' '}
+                              {formatDateTime(n.updatedAt)}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </CardContent>
+              )}
             </Card>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

@@ -311,8 +311,8 @@ export default async function InqueritoDetailPage({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <CopyNuipcButton nuipc={inquerito.nuipc} />
             {inquerito.cartaPrecatoria && (
@@ -375,7 +375,7 @@ export default async function InqueritoDetailPage({
             <EtiquetaList etiquetas={inquerito.etiquetas} max={inquerito.etiquetas.length} />
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
           {canExport && (
             <>
               <Button size="sm" variant="outline">
