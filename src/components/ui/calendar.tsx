@@ -45,7 +45,10 @@ function Calendar({
         // data-[outside]: dias do mês anterior/seguinte mostrados no grid
         // mantêm-se discretos (opacidade reduzida) mesmo quando calham num
         // fim de semana ou feriado — o fundo âmbar não se aplica aí.
-        naoUtil: "bg-amber-50 dark:bg-amber-950/20 data-[outside]:bg-transparent",
+        // Em dark o tom tem de ser âmbar CLARO com alfa baixo (amber-400/15):
+        // amber-950 sobre o fundo quase preto era impercetível.
+        naoUtil:
+          "bg-amber-50 dark:bg-amber-400/15 data-[outside]:bg-transparent dark:data-[outside]:bg-transparent",
         ...modifiersClassNames,
       }}
       className={cn(

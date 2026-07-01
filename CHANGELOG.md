@@ -9,6 +9,13 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [0.5.37] — 2026-07-01
 
+### Corrigido
+- **Calendários em modo escuro**: o fundo dos dias de fim-de-semana/feriado
+  (âmbar) era impercetível no tema escuro (âmbar-950 a 20% sobre fundo quase
+  preto). Passa a usar âmbar claro com transparência (âmbar-400 a 15%),
+  claramente visível sem ofuscar; os dias fora do mês continuam sem tinta
+  também no escuro.
+
 ### Adicionado
 - **Cronologia do inquérito**: nova secção na página de detalhe que intercala,
   numa única linha temporal agrupada por dia, a abertura, as mudanças de
