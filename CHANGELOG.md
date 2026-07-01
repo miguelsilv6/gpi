@@ -9,14 +9,24 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [0.5.35] — 2026-07-01
 
+### Corrigido
+- **Logo não-PNG na página de login**: o matcher do middleware só excluía os
+  assets `.png`, pelo que um logo em SVG/WebP/JPG/ICO servido em `/branding/*`
+  era apanhado pelo middleware e, por falta de sessão, redirecionado para
+  `/login` — o logo não carregava no ecrã de login para utilizadores não
+  autenticados. O matcher passa a excluir `branding/` por completo (os logos
+  são públicos por definição). A proteção anti-XSS do SVG servido diretamente
+  passa a ser garantida pela CSP `sandbox` da própria rota (abaixo), já que o
+  middleware deixa de a cobrir.
+
 ### Segurança
 - **Assets de branding (SVG)**: os ficheiros servidos em `/branding/*` passam a
   incluir uma `Content-Security-Policy` própria (`default-src 'none'; sandbox`)
   e `X-Content-Type-Options: nosniff`. Um logo SVG (upload só-admin) servido na
-  mesma origem poderia executar script se fosse navegado diretamente; a CSP do
-  middleware já cobria este caminho, mas a política local ao recurso é defesa em
-  profundidade que não depende do matcher do middleware. Não afeta a
-  renderização do logo como `<img>` — só o acesso direto ao ficheiro.
+  mesma origem poderia executar script se fosse navegado diretamente. Com o
+  `branding/` fora do middleware, esta política local ao recurso é agora a
+  proteção primária desse caminho. Não afeta a renderização do logo como
+  `<img>` — só o acesso direto ao ficheiro.
 
 ## [0.5.33] — 2026-07-01
 
