@@ -16,6 +16,7 @@ import { inqueritoSchema, type InqueritoFormData } from '@/lib/validations/inque
 import { nuipcToSlug } from '@/lib/utils'
 import { EtiquetaInput } from './etiqueta-input'
 import { CrimeInput } from './crime-input'
+import { ConexoesAviso } from './conexoes-aviso'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { Loader2, MapPin, Phone, Mail, Plus } from 'lucide-react'
 
@@ -908,6 +909,12 @@ export function InqueritoForm({
               {...register('denuncianteNotas')}
             />
           </div>
+          <ConexoesAviso
+            nif={watch('denuncianteNif')}
+            contacto={watch('denuncianteContacto')}
+            email={watch('denuncianteEmail')}
+            excludeNuipc={mode === 'edit' && nuipcOriginal ? nuipcToSlug(nuipcOriginal) : undefined}
+          />
         </CardContent>
       </Card>
 
