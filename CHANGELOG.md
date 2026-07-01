@@ -7,6 +7,18 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.31] — 2026-06-30
+
+### Corrigido
+- **Histórico de alterações — nomes em vez de IDs**: no histórico de um
+  inquérito (e na página global de auditoria), campos de referência como
+  **Crime**, **Tribunal / M.P.** e **Secção** (e outros: Inspetor, Brigada,
+  Comarca) passam a mostrar o **nome** da entidade em vez do id em bruto
+  (ex.: `cmpnzvpd4004i01qf2lye5nn0`). A resolução é feita na leitura, por isso
+  também corrige entradas já registadas anteriormente (não só as novas). Os
+  campos "Tribunal" e "Secção" também ganharam rótulo — antes apareciam como
+  `tribunalId`/`seccaoId` em vez do nome do campo.
+
 ## [0.5.29] — 2026-06-30
 
 ### Adicionado
