@@ -18,6 +18,8 @@ import { RelacoesSection } from '@/components/inqueritos/relacoes-section'
 import { getRelacoesForInquerito } from '@/lib/relacoes'
 import { getConexoesForInquerito } from '@/lib/conexoes'
 import { ConexoesSection } from '@/components/inqueritos/conexoes-section'
+import { getChecklistForInquerito } from '@/lib/checklist'
+import { ChecklistSection } from '@/components/inqueritos/checklist-section'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
 import { mergeTimelineEvents } from '@/lib/inquerito-timeline'
 import { CronologiaSection } from '@/components/inqueritos/cronologia-section'
@@ -25,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, History, Mail, MonitorCog, Paperclip } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, Mail, MonitorCog, Paperclip } from 'lucide-react'
 import { DocumentacaoPendenteToggle } from '@/components/inqueritos/documentacao-pendente-toggle'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
@@ -169,7 +171,7 @@ export default async function InqueritoDetailPage({
   const totalAtividades = inquerito._count.atividades
   const totalAtivPages = Math.ceil(totalAtividades / ATIVIDADES_PAGE_SIZE)
 
-  // Linha do tempo de estados reconstruída a partir do AuditLog.
+  // Mudanças de estado reconstruídas do AuditLog — alimentam a Cronologia.
   const estadoTimeline = await getEstadoTimeline(inquerito.id)
 
   // Documentos anexados (provas, relatórios, ofícios) — só quando o módulo Anexos
@@ -367,7 +369,7 @@ export default async function InqueritoDetailPage({
   // Inquéritos relacionados (apensos/conexões) — simétrico e com scope aplicado.
   // Em paralelo, deteção automática de possíveis conexões pelo denunciante
   // (NIF/contacto/email) — os já formalmente relacionados não repetem lá.
-  const [relacoes, conexoes] = await Promise.all([
+  const [relacoes, conexoes, checklist] = await Promise.all([
     getRelacoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId),
     getConexoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId, {
       // Já em memória — evita o findUnique redundante dentro da lib.
@@ -375,6 +377,7 @@ export default async function InqueritoDetailPage({
       contacto: inquerito.denuncianteContacto,
       email: inquerito.denuncianteEmail,
     }),
+    getChecklistForInquerito(inquerito.crimeId, inquerito.id),
   ])
 
   const canReopen = hasPermission(role, 'inquerito:reopen')
@@ -778,37 +781,6 @@ export default async function InqueritoDetailPage({
         </Card>
       )}
 
-      {/* Linha do tempo de estados (reconstruída do AuditLog) */}
-      {estadoTimeline.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
-              <History className="h-4 w-4" />
-              Linha do tempo de estados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-3">
-              {estadoTimeline.map((t, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm">
-                  <span className="mt-1.5 h-2 w-2 rounded-full bg-muted-foreground/40 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{t.estadoNome}</span>
-                      <span className="text-xs text-muted-foreground">{formatDate(new Date(t.at))}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {t.porNome ? `por ${t.porNome}` : 'automático'}
-                      {t.motivo ? ` — ${t.motivo}` : ''}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Activity count by type — uses aggregated groupBy across ALL activities */}
       {summary.length > 0 && (
         <Card>
@@ -854,6 +826,8 @@ export default async function InqueritoDetailPage({
       />
 
       <ConexoesSection conexoes={conexoes} />
+
+      <ChecklistSection checklist={checklist} />
 
       <AtividadesSection
         atividades={atividadeItems}

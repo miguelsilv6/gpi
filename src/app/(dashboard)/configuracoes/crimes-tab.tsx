@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Loader2, Plus, Pencil, Trash2, Check, X, ListChecks } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 
 interface Crime {
@@ -23,6 +24,12 @@ interface Crime {
   descricao: string | null
   ordem: number
   ativo: boolean
+}
+
+interface PadraoOption {
+  id: string
+  nome: string
+  ativa: boolean
 }
 
 const EMPTY_NEW = {
@@ -42,6 +49,55 @@ export function CrimesTab() {
   const [edit, setEdit] = useState({ nome: '', descricao: '', ordem: 0 })
   const [deleteCandidate, setDeleteCandidate] = useState<Crime | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // Checklist por crime — diálogo com as atividades-padrão esperadas.
+  const [checklistCrime, setChecklistCrime] = useState<Crime | null>(null)
+  const [padroes, setPadroes] = useState<PadraoOption[] | null>(null)
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  const [checklistLoading, setChecklistLoading] = useState(false)
+  const [checklistSaving, setChecklistSaving] = useState(false)
+
+  async function openChecklist(c: Crime) {
+    setChecklistCrime(c)
+    setChecklistLoading(true)
+    try {
+      const [padroesRes, atualRes] = await Promise.all([
+        padroes ? Promise.resolve(null) : fetch('/api/atividades-padrao'),
+        fetch(`/api/crimes/${c.id}/checklist`),
+      ])
+      if (padroesRes) {
+        if (!padroesRes.ok) throw new Error()
+        setPadroes(await padroesRes.json())
+      }
+      if (!atualRes.ok) throw new Error()
+      const atual = (await atualRes.json()) as { items: { atividadePadraoId: string }[] }
+      setSelecionados(new Set(atual.items.map((i) => i.atividadePadraoId)))
+    } catch {
+      toast.error('Não foi possível carregar a checklist')
+      setChecklistCrime(null)
+    } finally {
+      setChecklistLoading(false)
+    }
+  }
+
+  async function handleChecklistSave() {
+    if (!checklistCrime || !padroes) return
+    setChecklistSaving(true)
+    // A ordem gravada segue a ordem de apresentação das atividades-padrão.
+    const ids = padroes.filter((p) => selecionados.has(p.id)).map((p) => p.id)
+    const res = await fetch(`/api/crimes/${checklistCrime.id}/checklist`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ atividadePadraoIds: ids }),
+    })
+    setChecklistSaving(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      toast.error(data?.error ?? 'Erro ao guardar a checklist')
+      return
+    }
+    toast.success(`Checklist de «${checklistCrime.nome}» guardada (${ids.length} itens)`)
+    setChecklistCrime(null)
+  }
 
   async function load() {
     setLoading(true)
@@ -314,6 +370,14 @@ export function CrimesTab() {
                       {c.ativo ? 'Ativo' : 'Inativo'}
                     </button>
                     <button
+                      onClick={() => openChecklist(c)}
+                      title="Checklist de diligências esperadas"
+                      aria-label={`Checklist de ${c.nome}`}
+                      className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+                    >
+                      <ListChecks className="h-3.5 w-3.5" />
+                    </button>
+                    <button
                       onClick={() => startEdit(c)}
                       className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
                       aria-label={`Editar ${c.nome}`}
@@ -335,6 +399,73 @@ export function CrimesTab() {
           ))}
         </div>
       )}
+
+      <Dialog
+        open={!!checklistCrime}
+        onOpenChange={(open) => !open && setChecklistCrime(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Checklist — {checklistCrime?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-xs text-muted-foreground">
+              Diligências-padrão esperadas em inquéritos deste crime. No detalhe
+              do inquérito, cada item fica feito automaticamente quando existe
+              uma atividade registada com esse nome.
+            </p>
+            {checklistLoading || !padroes ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : padroes.filter((p) => p.ativa || selecionados.has(p.id)).length === 0 ? (
+              <p className="text-muted-foreground">
+                Sem atividades-padrão configuradas — crie-as primeiro no separador
+                de Atividades.
+              </p>
+            ) : (
+              <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
+                {padroes
+                  .filter((p) => p.ativa || selecionados.has(p.id))
+                  .map((p) => (
+                    <label
+                      key={p.id}
+                      className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selecionados.has(p.id)}
+                        onCheckedChange={(checked) => {
+                          setSelecionados((prev) => {
+                            const next = new Set(prev)
+                            if (checked) next.add(p.id)
+                            else next.delete(p.id)
+                            return next
+                          })
+                        }}
+                      />
+                      <span className={cn('min-w-0 break-words', !p.ativa && 'opacity-60')}>
+                        {p.nome}
+                        {!p.ativa && ' (inativa)'}
+                      </span>
+                    </label>
+                  ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {selecionados.size} {selecionados.size === 1 ? 'item selecionado' : 'itens selecionados'}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChecklistCrime(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleChecklistSave} disabled={checklistSaving || checklistLoading}>
+              {checklistSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={!!deleteCandidate}

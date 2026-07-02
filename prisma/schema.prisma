@@ -333,8 +333,30 @@ model Crime {
 
   inqueritos          Inquerito[] @relation("CrimePrincipal")
   inqueritoAssociados Inquerito[] @relation("CrimesAssociados")
+  checklist           CrimeChecklistItem[]
 
   @@index([ativo, ordem])
+}
+
+// Checklist por tipo de crime: as atividades-padrão que se ESPERAM num
+// inquérito deste crime (ex.: burla informática → pedido à operadora,
+// preservação de dados, exame ao equipamento). A completude não guarda
+// estado próprio — calcula-se contra as atividades já registadas no
+// inquérito (existe atividade com o nome do padrão → item feito).
+model CrimeChecklistItem {
+  id      String @id @default(cuid())
+  crime   Crime  @relation(fields: [crimeId], references: [id], onDelete: Cascade)
+  crimeId String
+
+  atividadePadrao   AtividadePadrao @relation(fields: [atividadePadraoId], references: [id], onDelete: Cascade)
+  atividadePadraoId String
+
+  ordem     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([crimeId, atividadePadraoId])
+  @@index([crimeId])
+  @@index([atividadePadraoId])
 }
 
 model Comarca {
@@ -707,6 +729,8 @@ model AtividadePadrao {
   categoriaDashboard String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  checklistItems CrimeChecklistItem[]
 
   @@index([transicaoEstadoId])
   @@index([transicaoEstadoConclusaoId])
