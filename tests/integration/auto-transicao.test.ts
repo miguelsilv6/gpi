@@ -105,6 +105,55 @@ describe('runAutoTransicoes', () => {
     expect(notif!.inqueritoid).toBe(parado.id)
   })
 
+  test('deteta mudança manual de estado via UPDATE_INQUERITO (changed é array) e não arquiva prematuramente', async () => {
+    const { brigada, origem, destino } = await setupCenario()
+
+    // Inquérito criado há muito, mas com uma alteração MANUAL de estado
+    // recente (UPDATE_INQUERITO). O `detalhes.changed` é um ARRAY de nomes de
+    // campos (formato do helper diff()) — o predicado @> tem de o apanhar,
+    // senão arquivaria prematuramente.
+    const inq = await prisma.inquerito.create({
+      data: { nuipc: 'G/MANUAL', natureza: 'x', dataAbertura: monthsAgo(20), createdAt: monthsAgo(20), estadoId: origem.id, brigadaId: brigada.id },
+    })
+    await prisma.auditLog.create({
+      data: {
+        acao: 'UPDATE_INQUERITO',
+        entidade: 'Inquerito',
+        entidadeId: inq.id,
+        utilizadorId: '__test__',
+        detalhes: {
+          changed: ['estadoCodigo', 'nome'],
+          before: { estadoCodigo: 'EM_INVESTIGACAO' },
+          after: { estadoCodigo: 'SUSPENSO' },
+        } as never,
+        createdAt: monthsAgo(2), // entrou no estado há só 2 meses (manualmente)
+      },
+    })
+
+    const result = await runAutoTransicoes()
+    expect(result.transitados).toBe(0)
+    expect((await prisma.inquerito.findUnique({ where: { id: inq.id } }))!.estadoId).toBe(origem.id)
+
+    // Contraprova: um UPDATE que NÃO mexeu no estado não conta como entrada —
+    // se for a única referência, o fallback (createdAt, há 20 meses) arquiva.
+    const inq2 = await prisma.inquerito.create({
+      data: { nuipc: 'H/SEM_ESTADO', natureza: 'x', dataAbertura: monthsAgo(20), createdAt: monthsAgo(20), estadoId: origem.id, brigadaId: brigada.id },
+    })
+    await prisma.auditLog.create({
+      data: {
+        acao: 'UPDATE_INQUERITO',
+        entidade: 'Inquerito',
+        entidadeId: inq2.id,
+        utilizadorId: '__test__',
+        detalhes: { changed: ['nome'], before: { nome: 'a' }, after: { nome: 'b' } } as never,
+        createdAt: monthsAgo(1),
+      },
+    })
+    const result2 = await runAutoTransicoes()
+    expect(result2.transitados).toBe(1)
+    expect((await prisma.inquerito.findUnique({ where: { id: inq2.id } }))!.estadoId).toBe(destino.id)
+  })
+
   test('fallback sem audit: usa o createdAt do inquérito', async () => {
     const { brigada, origem, destino } = await setupCenario()
 

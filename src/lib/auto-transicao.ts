@@ -23,8 +23,6 @@ const log = childLogger({ subsystem: 'auto-transicao' })
 
 // Sentinela de sistema para o AuditLog (mesma convenção do backup/cron).
 const SYSTEM_USER = '__system__'
-// Teto de candidatos processados por regra/corrida — mantém a corrida limitada.
-const CANDIDATE_CAP = 1000
 
 /** Data-limite: instantes ANTES desta contam como "há mais de `meses` meses". */
 export function cutoffDate(now: Date, meses: number): Date {
@@ -144,10 +142,12 @@ export async function runAutoTransicoes(now: Date = new Date()): Promise<AutoTra
 
     const cutoff = cutoffDate(now, regra.meses)
 
+    // Todos os candidatos do estado de origem — sem teto: um cap por
+    // updatedAt causaria starvation (os mesmos N a bloquear a fila todos os
+    // dias). O volume por estado é limitado neste domínio e o select é estreito.
     const candidatos = await prisma.inquerito.findMany({
       where: { deletedAt: null, estadoId: regra.origem.id },
       orderBy: { updatedAt: 'asc' },
-      take: CANDIDATE_CAP,
       select: {
         id: true,
         nuipc: true,
@@ -174,21 +174,19 @@ export async function runAutoTransicoes(now: Date = new Date()): Promise<AutoTra
     for (const inq of elegiveis) {
       try {
         await prisma.$transaction(async (tx) => {
-          // Re-verifica dentro da transação que ainda está no estado de origem
-          // (evita corrida com uma alteração manual concorrente).
-          const atual = await tx.inquerito.findUnique({
-            where: { id: inq.id },
-            select: { estadoId: true },
-          })
-          if (!atual || atual.estadoId !== regra.origem.id) return
-
-          await tx.inquerito.update({
-            where: { id: inq.id },
+          // Guarda o estado de origem no próprio UPDATE (atómico) — se uma
+          // alteração manual concorrente já tiver mudado o estado, o WHERE não
+          // coincide, `count` é 0 e não se transita nem audita. Elimina a
+          // corrida read-then-write sob READ COMMITTED e poupa uma query.
+          const affected = await tx.inquerito.updateMany({
+            where: { id: inq.id, estadoId: regra.origem.id },
             data: {
               estadoId: regra.destino.id,
               ...(regra.destino.terminal && { dataConclusao: now }),
             },
           })
+          if (affected.count === 0) return
+
           await tx.auditLog.create({
             data: {
               acao: 'AUTO_TRANSITION_INQUERITO',

@@ -102,7 +102,12 @@ export function TransicoesTab() {
   }
 
   async function handleMeses(r: Regra, meses: number) {
-    if (meses < 1 || meses > 120 || meses === r.meses) return
+    if (meses < 1 || meses > 120) {
+      toast.error('O prazo deve ser entre 1 e 120 meses')
+      load() // repõe o valor válido no input (via key dinâmica)
+      return
+    }
+    if (meses === r.meses) return
     if (await patchRegra(r.id, { meses })) {
       toast.success('Prazo atualizado')
       load()
@@ -218,6 +223,9 @@ export function TransicoesTab() {
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="flex items-center gap-1.5">
                       <Input
+                        // key liga o input ao valor do servidor: ao recarregar
+                        // (ex.: após rejeição), remonta com o valor correto.
+                        key={`${r.id}-${r.meses}`}
                         type="number"
                         min={1}
                         max={120}
