@@ -7,6 +7,24 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.42] — 2026-07-02
+
+### Adicionado
+- **Checklist por tipo de crime**: cada crime pode ter uma lista de
+  diligências-padrão esperadas (configura-se na gestão de crimes, botão de
+  checklist). No detalhe do inquérito aparece o cartão "Checklist do crime"
+  com a completude (ex.: 1/3) — um item fica feito automaticamente quando
+  existe uma atividade registada com o nome desse padrão, sem estado próprio
+  nem duplicação. Alterações à checklist ficam no audit log.
+- **Vista Kanban dos inquéritos** (`/inqueritos/kanban`, botão na lista):
+  colunas pelos estados ativos (com a cor do catálogo e contagem), cartões
+  com NUIPC, crime, inspetor e prazo (vencidos a vermelho; máx. 40 por
+  coluna, com atalho para a lista filtrada). Arrastar um cartão muda o
+  estado pelo fluxo já validado e auditado (`BULK_CHANGESTATE`) — disponível
+  para Inspetor-Chefe (brigada), Coordenador e Administração; o Inspetor
+  consulta em leitura. Estados terminais não recebem cartões (concluir exige
+  data de conclusão; reabrir tem fluxo próprio com motivo).
+
 ## [0.5.41] — 2026-07-01
 
 ### Removido

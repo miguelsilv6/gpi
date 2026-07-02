@@ -18,6 +18,8 @@ import { RelacoesSection } from '@/components/inqueritos/relacoes-section'
 import { getRelacoesForInquerito } from '@/lib/relacoes'
 import { getConexoesForInquerito } from '@/lib/conexoes'
 import { ConexoesSection } from '@/components/inqueritos/conexoes-section'
+import { getChecklistForInquerito } from '@/lib/checklist'
+import { ChecklistSection } from '@/components/inqueritos/checklist-section'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
 import { mergeTimelineEvents } from '@/lib/inquerito-timeline'
 import { CronologiaSection } from '@/components/inqueritos/cronologia-section'
@@ -367,7 +369,7 @@ export default async function InqueritoDetailPage({
   // Inquéritos relacionados (apensos/conexões) — simétrico e com scope aplicado.
   // Em paralelo, deteção automática de possíveis conexões pelo denunciante
   // (NIF/contacto/email) — os já formalmente relacionados não repetem lá.
-  const [relacoes, conexoes] = await Promise.all([
+  const [relacoes, conexoes, checklist] = await Promise.all([
     getRelacoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId),
     getConexoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId, {
       // Já em memória — evita o findUnique redundante dentro da lib.
@@ -375,6 +377,7 @@ export default async function InqueritoDetailPage({
       contacto: inquerito.denuncianteContacto,
       email: inquerito.denuncianteEmail,
     }),
+    getChecklistForInquerito(inquerito.crimeId, inquerito.id),
   ])
 
   const canReopen = hasPermission(role, 'inquerito:reopen')
@@ -823,6 +826,8 @@ export default async function InqueritoDetailPage({
       />
 
       <ConexoesSection conexoes={conexoes} />
+
+      <ChecklistSection checklist={checklist} />
 
       <AtividadesSection
         atividades={atividadeItems}

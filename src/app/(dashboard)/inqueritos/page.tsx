@@ -9,7 +9,7 @@ import { InqueritoFilters } from '@/components/inqueritos/inquerito-filters'
 import { InqueritoTable } from '@/components/inqueritos/inquerito-table'
 import { ExportButton } from '@/components/inqueritos/export-button'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
-import { Plus, Upload } from 'lucide-react'
+import { Plus, Upload, Columns3 } from 'lucide-react'
 import Link from 'next/link'
 import { listEstados } from '@/lib/estados'
 import { listEtiquetasEmUso } from '@/lib/etiquetas'
@@ -227,6 +227,12 @@ export default async function InqueritosPage({
         </HelpButton>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="outline">
+          <Link href="/inqueritos/kanban" className="flex items-center gap-1.5">
+            <Columns3 className="h-4 w-4" />
+            Kanban
+          </Link>
+        </Button>
         <Suspense fallback={null}>
           <ExportButton />
         </Suspense>
