@@ -7,6 +7,14 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.46] — 2026-07-02
+
+### Corrigido
+- **Transições automáticas — selects mostravam o ID**: nos seletores de estado
+  de origem/destino da configuração, depois de escolher, o campo apresentava o
+  identificador interno em vez do nome do estado. O `SelectValue` passa a
+  resolver o id para o nome (mesmo padrão dos restantes seletores da app).
+
 ## [0.5.44] — 2026-07-02
 
 ### Adicionado
