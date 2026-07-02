@@ -23,6 +23,7 @@ export const NOTIFICATION_TIPO_LABELS: Record<TipoNotificacao, string> = {
   ATUALIZACAO_CONCLUIDA: 'Atualização do sistema concluída',
   BUGREPORT_CRIADO: 'Novo relatório de bug',
   CONTROLO_APROXIMANDO: 'Controlo a aproximar-se',
+  TRANSICAO_AUTOMATICA: 'Transição automática de estado',
 }
 
 /**
@@ -42,6 +43,7 @@ export const NOTIFICATION_TIPO_DESCRIPTIONS: Record<TipoNotificacao, string> = {
   ATUALIZACAO_CONCLUIDA: 'Disparada quando uma atualização automática do sistema termina com sucesso. Sem destinatário natural — só envia para os roles CC configurados.',
   BUGREPORT_CRIADO: 'Disparada quando um utilizador submete um novo relatório de bug. Sem destinatário natural — só envia para os roles CC configurados (por defeito, ADMINISTRACAO).',
   CONTROLO_APROXIMANDO: 'Disparada quando um controlo periódico está prestes a vencer (configurable via alertaDias no controlo).',
+  TRANSICAO_AUTOMATICA: 'Disparada quando um inquérito é movido automaticamente de estado por inatividade prolongada, segundo as regras de transição automática (Configurações → Transições). Notifica o inspetor do inquérito.',
 }
 
 /**
@@ -65,6 +67,7 @@ export const NOTIFICATION_TIPO_HAS_NATURAL: Record<TipoNotificacao, boolean> = {
   ATUALIZACAO_CONCLUIDA: false,
   BUGREPORT_CRIADO: false,
   CONTROLO_APROXIMANDO: true,
+  TRANSICAO_AUTOMATICA: true,
 }
 
 /**

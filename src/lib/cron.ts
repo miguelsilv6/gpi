@@ -13,6 +13,7 @@ import { spawn } from 'child_process'
 import { fetchLatestRelease, isNewerVersion } from '@/lib/updates/github'
 import { reconcileFromStatusFile, processAvailableUpdates } from '@/lib/updates/orchestrator'
 import { isTerminal, type UpdateState } from '@/lib/updates/state-machine'
+import { runAutoTransicoes } from '@/lib/auto-transicao'
 import { APP_VERSION } from '@/lib/version'
 
 const log = childLogger({ subsystem: 'cron' })
@@ -36,6 +37,19 @@ export function startCronJobs() {
       await runDeadlineCheck()
     } catch (err) {
       log.error({ err }, 'Deadline check failed')
+    }
+  })
+
+  // Transições automáticas de estado por inatividade — uma corrida diária
+  // (07:30, antes do deadline check). As regras/tempos são parametrizados em
+  // /configurações → Transições.
+  cron.schedule('30 7 * * *', async () => {
+    log.info('Running auto-transições')
+    try {
+      const r = await runAutoTransicoes()
+      if (r.transitados > 0) log.info({ transitados: r.transitados }, 'Auto-transições OK')
+    } catch (err) {
+      log.error({ err }, 'Auto-transições failed')
     }
   })
 
@@ -69,7 +83,7 @@ export function startCronJobs() {
   })
 
   log.info(
-    'Jobs registered: deadline check @ 08:00 daily; backup (DB-driven, auto-reload @ 1 min); update check @ 30 min; update reconciler @ 5s; update dispatcher @ 10s',
+    'Jobs registered: auto-transições @ 07:30 daily; deadline check @ 08:00 daily; backup (DB-driven, auto-reload @ 1 min); update check @ 30 min; update reconciler @ 5s; update dispatcher @ 10s',
   )
 }
 

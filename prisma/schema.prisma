@@ -32,6 +32,7 @@ enum TipoNotificacao {
   ATUALIZACAO_CONCLUIDA
   BUGREPORT_CRIADO
   CONTROLO_APROXIMANDO
+  TRANSICAO_AUTOMATICA
 }
 
 enum SeveridadeBug {
@@ -318,8 +319,34 @@ model EstadoInquerito {
   inqueritos                            Inquerito[]
   atividadesPadraoQueTransitam          AtividadePadrao[] @relation("AtividadePadraoTransicao")
   atividadesPadraoQueTransitamConclusao AtividadePadrao[] @relation("AtividadePadraoTransicaoConclusao")
+  regrasComoOrigem                      RegraTransicaoAutomatica[] @relation("RegraTransicaoOrigem")
+  regrasComoDestino                     RegraTransicaoAutomatica[] @relation("RegraTransicaoDestino")
 
   @@index([ativo, ordem])
+}
+
+// Regra de transição automática por inatividade: um inquérito que esteja no
+// estado `origem` há mais de `meses` meses SEM qualquer atividade nem mudança
+// de estado nesse período é movido automaticamente para `destino` (pelo cron),
+// notificando o inspetor. O tempo é parametrizado pelo administrador.
+// Uma regra por estado de origem (@@unique) para não haver ambiguidade.
+model RegraTransicaoAutomatica {
+  id String @id @default(cuid())
+
+  origem   EstadoInquerito @relation("RegraTransicaoOrigem", fields: [origemId], references: [id], onDelete: Cascade)
+  origemId String          @unique
+
+  destino   EstadoInquerito @relation("RegraTransicaoDestino", fields: [destinoId], references: [id], onDelete: Cascade)
+  destinoId String
+
+  meses Int     // meses de inatividade no estado de origem antes de transitar
+  ativa Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([destinoId])
+  @@index([ativa])
 }
 
 model Crime {
