@@ -153,7 +153,7 @@ export function TransicoesTab() {
                 <Select value={neu.origemId} onValueChange={(v) => setNeu({ ...neu, origemId: v ?? '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Escolher…">
-                      {(v: string) => estados.find((e) => e.id === v)?.nome ?? 'Escolher…'}
+                      {(v: string | null) => (v ? estados.find((e) => e.id === v)?.nome ?? 'Escolher…' : 'Escolher…')}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -168,7 +168,8 @@ export function TransicoesTab() {
                 <Select value={neu.destinoId} onValueChange={(v) => setNeu({ ...neu, destinoId: v ?? '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Escolher…">
-                      {(v: string) => {
+                      {(v: string | null) => {
+                        if (!v) return 'Escolher…'
                         const d = estados.find((e) => e.id === v)
                         return d ? `${d.nome}${d.terminal ? ' (terminal)' : ''}` : 'Escolher…'
                       }}
