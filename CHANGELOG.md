@@ -7,6 +7,26 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.44] — 2026-07-02
+
+### Adicionado
+- **Transições automáticas de estado por inatividade**: um inquérito parado
+  num estado de origem há mais do que um número de meses **parametrizável pelo
+  administrador** — sem qualquer atividade nem mudança de estado nesse período
+  — passa automaticamente para um estado de destino, notificando o inspetor
+  (ex.: "Enviado" → "Arquivado" ao fim de 12 meses sem devolução/atividade).
+  - Configura-se em **Configurações → Transições** (nova secção): origem
+    (estado não-terminal), destino e meses de inatividade, com toggle ativa/
+    inativa. Uma regra por estado de origem; respeita a máquina de estados.
+  - A referência de inatividade é o mais recente de: a entrada no estado atual
+    (reconstruída do histórico) e a última atividade (criação, realização ou
+    devolução) — nunca arquiva algo com trabalho recente.
+  - Corre numa **rotina diária** (worker às 07:30; também disponível via
+    `POST /api/cron/auto-transicao` para cron externo). A transição fica no
+    histórico do inquérito (Cronologia) e ao entrar num estado terminal
+    regista a data de conclusão. Notificação nova: "Transição automática de
+    estado" (configurável na tab Notificações).
+
 ## [0.5.42] — 2026-07-02
 
 ### Adicionado

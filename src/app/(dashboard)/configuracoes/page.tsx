@@ -27,6 +27,7 @@ import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
 import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
+import { TransicoesTab } from './transicoes-tab'
 import { CrimesTab } from './crimes-tab'
 import { ComarcasTab } from './comarcas-tab'
 import { TribunaisTab } from './tribunais-tab'
@@ -817,7 +818,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
+type Tab = 'sistema' | 'estados' | 'transicoes' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -1320,7 +1321,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'transicoes', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1335,6 +1336,8 @@ export default function ConfiguracoesPage() {
               ? 'Sistema'
               : t === 'estados'
                 ? 'Estados'
+                : t === 'transicoes'
+                  ? 'Transições'
                 : t === 'crimes'
                   ? 'Crimes'
                   : t === 'etiquetas'
@@ -1962,6 +1965,9 @@ export default function ConfiguracoesPage() {
 
       {/* Estados tab */}
       {tab === 'estados' && <EstadosTab />}
+
+      {/* Transições automáticas tab */}
+      {tab === 'transicoes' && <TransicoesTab />}
 
       {/* Crimes tab */}
       {tab === 'crimes' && <CrimesTab />}
