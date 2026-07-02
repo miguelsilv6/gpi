@@ -151,7 +151,11 @@ export function TransicoesTab() {
               <div className="space-y-1">
                 <Label className="text-xs">Estado de origem</Label>
                 <Select value={neu.origemId} onValueChange={(v) => setNeu({ ...neu, origemId: v ?? '' })}>
-                  <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolher…">
+                      {(v: string) => estados.find((e) => e.id === v)?.nome ?? 'Escolher…'}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {origensDisponiveis.map((e) => (
                       <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
@@ -162,7 +166,14 @@ export function TransicoesTab() {
               <div className="space-y-1">
                 <Label className="text-xs">Estado de destino</Label>
                 <Select value={neu.destinoId} onValueChange={(v) => setNeu({ ...neu, destinoId: v ?? '' })}>
-                  <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolher…">
+                      {(v: string) => {
+                        const d = estados.find((e) => e.id === v)
+                        return d ? `${d.nome}${d.terminal ? ' (terminal)' : ''}` : 'Escolher…'
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {estadosAtivos
                       .filter((e) => e.id !== neu.origemId)
