@@ -123,6 +123,9 @@ model Utilizador {
   // (guardados como codigos, estáveis a renomeações). Quando não vazio,
   // sobrepõe-se ao default global (ConfiguracaoSistema.inqueritoFiltroEstadosDefault).
   inqueritoFiltroEstadosDefault String[] @default([])
+  // Nº de inquéritos por página pré-definido na listagem. Null = usa o default
+  // do sistema (20). Restrito a valores conhecidos (20/50/100/250) na validação.
+  inqueritoPageSizeDefault Int?
   viaturas             Viatura[]
   ausencias            Ausencia[]    @relation("AusenciasInspetor")
   notificacaoPreferencias NotificacaoPreferencia[]

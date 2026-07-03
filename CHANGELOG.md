@@ -7,6 +7,19 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.50] — 2026-07-03
+
+### Adicionado
+- **Inquéritos por página**: na listagem de inquéritos, um seletor no fundo da
+  página permite escolher quantos inquéritos são mostrados de cada vez — **20,
+  50, 100 ou 250**. A escolha vai no URL (`?perPage=`), preserva os filtros
+  ativos e repõe a 1ª página.
+- **Perfil → Inquéritos por página**: cada utilizador pode **predefinir** o
+  número de inquéritos por página, usado por defeito na listagem quando não há
+  escolha explícita no seletor (recai em 20 se não for definido). Novo campo
+  `Utilizador.inqueritoPageSizeDefault` (migração incluída), gravado via
+  `/api/perfil` e auditado.
+
 ## [0.5.48] — 2026-07-03
 
 ### Alterado

@@ -4,6 +4,7 @@ import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit, diff } from '@/lib/audit'
 import { isModuloAjudasAtivo } from '@/lib/ajudas-module'
 import { z } from 'zod'
+import { isInqueritoPageSize } from '@/lib/pagination'
 import { hash, compare } from 'bcryptjs'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -13,6 +14,12 @@ const updateSchema = z.object({
   ajudasVencimentoBase: z.number().positive().nullable().optional(),
   ajudasTaxaIRS: z.number().min(0).max(1).nullable().optional(),
   inqueritoFiltroEstadosDefault: z.array(z.string()).max(50).optional(),
+  inqueritoPageSizeDefault: z
+    .number()
+    .int()
+    .refine(isInqueritoPageSize, 'Tamanho de página inválido')
+    .nullable()
+    .optional(),
 })
 
 const passwordSchema = z.object({
@@ -37,6 +44,7 @@ export async function GET() {
           ajudasVencimentoBase: true,
           ajudasTaxaIRS: true,
           inqueritoFiltroEstadosDefault: true,
+          inqueritoPageSizeDefault: true,
         },
       }),
       prisma.estadoInquerito.findMany({
@@ -62,7 +70,7 @@ export async function PUT(req: NextRequest) {
 
     const existing = await prisma.utilizador.findUnique({
       where: { id: session.user.id },
-      select: { nome: true, email: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true, inqueritoFiltroEstadosDefault: true },
+      select: { nome: true, email: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true, inqueritoFiltroEstadosDefault: true, inqueritoPageSizeDefault: true },
     })
     if (!existing) return apiError('Utilizador não encontrado', 404)
 
@@ -101,14 +109,17 @@ export async function PUT(req: NextRequest) {
         ...(parsed.data.inqueritoFiltroEstadosDefault !== undefined && {
           inqueritoFiltroEstadosDefault: parsed.data.inqueritoFiltroEstadosDefault,
         }),
+        ...('inqueritoPageSizeDefault' in parsed.data && {
+          inqueritoPageSizeDefault: parsed.data.inqueritoPageSizeDefault,
+        }),
       },
-      select: { id: true, nome: true, email: true, role: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true, inqueritoFiltroEstadosDefault: true },
+      select: { id: true, nome: true, email: true, role: true, ajudasVencimentoBase: true, ajudasTaxaIRS: true, inqueritoFiltroEstadosDefault: true, inqueritoPageSizeDefault: true },
     })
 
-    const scalarKeys = ['nome', 'email', 'ajudasVencimentoBase', 'ajudasTaxaIRS'] as const
+    const scalarKeys = ['nome', 'email', 'ajudasVencimentoBase', 'ajudasTaxaIRS', 'inqueritoPageSizeDefault'] as const
     const changes = diff(
-      { nome: existing.nome, email: existing.email, ajudasVencimentoBase: existing.ajudasVencimentoBase, ajudasTaxaIRS: existing.ajudasTaxaIRS },
-      { nome: updated.nome, email: updated.email, ajudasVencimentoBase: updated.ajudasVencimentoBase, ajudasTaxaIRS: updated.ajudasTaxaIRS },
+      { nome: existing.nome, email: existing.email, ajudasVencimentoBase: existing.ajudasVencimentoBase, ajudasTaxaIRS: existing.ajudasTaxaIRS, inqueritoPageSizeDefault: existing.inqueritoPageSizeDefault },
+      { nome: updated.nome, email: updated.email, ajudasVencimentoBase: updated.ajudasVencimentoBase, ajudasTaxaIRS: updated.ajudasTaxaIRS, inqueritoPageSizeDefault: updated.inqueritoPageSizeDefault },
       scalarKeys,
     )
 
