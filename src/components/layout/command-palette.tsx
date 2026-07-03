@@ -174,6 +174,7 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
       <CommandDialog
         open={open}
         onOpenChange={onOpenChange}
+        className="sm:max-w-3xl"
         title="Pesquisa global"
         description="Pesquisar inquéritos, notas, atividades e documentos, ou navegar entre páginas"
       >

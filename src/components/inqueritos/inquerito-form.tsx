@@ -370,7 +370,7 @@ export function InqueritoForm({
               value={selectedCrimeId || ''}
               onValueChange={(v) => setValue('crimeId', v ?? '', { shouldDirty: true })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecionar crime">
                   {(v: string) =>
                     crimesForSelect.find((c) => c.id === v)?.nome ?? 'Selecionar crime'
@@ -420,49 +420,6 @@ export function InqueritoForm({
             <p className="text-xs text-muted-foreground">
               Escreva e prima Enter para criar uma etiqueta. Nomes repetidos são unificados.
             </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Estado e Prazos</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Estado *</Label>
-              <Select
-                value={watch('estadoId') || ''}
-                onValueChange={(v) => setValue('estadoId', v ?? '', { shouldDirty: true })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar estado">
-                    {(v: string) =>
-                      estados.find((e) => e.id === v)?.nome ?? 'Selecionar estado'
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {estados.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.estadoId && (
-                <p className="text-xs text-red-600">{errors.estadoId.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="dataPrazo">Prazo</Label>
-              <Input id="dataPrazo" type="date" {...register('dataPrazo')} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="dataConclusao">Data de conclusão</Label>
-              <Input id="dataConclusao" type="date" {...register('dataConclusao')} />
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -539,6 +496,55 @@ export function InqueritoForm({
             {errors.dataDistribuicao && (
               <p className="text-xs text-red-600">{errors.dataDistribuicao.message as string}</p>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Estado e Prazos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Estado *</Label>
+              <Select
+                value={watch('estadoId') || ''}
+                onValueChange={(v) => setValue('estadoId', v ?? '', { shouldDirty: true })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecionar estado">
+                    {(v: string) =>
+                      estados.find((e) => e.id === v)?.nome ?? 'Selecionar estado'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {estados.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.estadoId && (
+                <p className="text-xs text-red-600">{errors.estadoId.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dataPrazo">Prazo</Label>
+              <Input id="dataPrazo" type="date" {...register('dataPrazo')} />
+              {errors.dataPrazo && (
+                <p className="text-xs text-red-600">{errors.dataPrazo.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dataConclusao">Data de conclusão</Label>
+              <Input id="dataConclusao" type="date" {...register('dataConclusao')} />
+              {errors.dataConclusao && (
+                <p className="text-xs text-red-600">{errors.dataConclusao.message}</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
