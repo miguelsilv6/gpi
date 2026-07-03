@@ -34,7 +34,9 @@ export function PageSizeSelect({
   return (
     <Select value={String(value)} onValueChange={onChange}>
       <SelectTrigger size="sm" className="w-[4.5rem]" aria-label="Inquéritos por página">
-        <SelectValue>{(v: string | null) => v ?? String(value)}</SelectValue>
+        {/* value === label (o número), por isso o valor cru já é o que queremos
+            mostrar — dispensa função de render. */}
+        <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {INQUERITO_PAGE_SIZES.map((n) => (

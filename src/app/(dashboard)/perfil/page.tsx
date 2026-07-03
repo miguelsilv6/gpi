@@ -635,7 +635,8 @@ export default function PerfilPage() {
           </p>
           <Select value={String(pageSize)} onValueChange={(v) => v && setPageSize(Number(v))}>
             <SelectTrigger className="w-32">
-              <SelectValue>{(v: string | null) => v ?? String(pageSize)}</SelectValue>
+              {/* value === label (o número) ⇒ o valor cru já é o texto certo. */}
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {INQUERITO_PAGE_SIZES.map((n) => (
