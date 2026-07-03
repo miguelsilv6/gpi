@@ -7,6 +7,24 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.48] — 2026-07-03
+
+### Alterado
+- **Formulário de inquérito**: o seletor de **Crime** passa a ocupar a largura
+  total do painel (igual ao campo "Crimes associados"), em vez de se ajustar ao
+  conteúdo.
+- **Formulário de inquérito**: o painel **Atribuição** passa a surgir antes do
+  painel **Estado e Prazos**.
+- **Pesquisa global (Ctrl/⌘ + K)**: a caixa de pesquisa passa a ter o dobro da
+  largura em ecrã (de `max-w-sm` para `max-w-3xl`), mostrando mais resultados
+  sem truncar.
+
+### Removido
+- **Minha estatística**: removido o gráfico **"Atividades realizadas"** (top de
+  atividades registadas pelo inspetor no período). O detalhe por atividade
+  continua disponível em **Estatísticas** (cartão "Atividades do Inspetor") ao
+  filtrar por inspetor.
+
 ## [0.5.46] — 2026-07-02
 
 ### Corrigido
