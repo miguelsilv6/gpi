@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save, ListFilter } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save, ListFilter, List } from 'lucide-react'
+import { INQUERITO_PAGE_SIZES, DEFAULT_INQUERITO_PAGE_SIZE } from '@/lib/pagination'
 import { ROLE_LABELS } from '@/lib/rbac'
 import { NOTIFICATION_TIPO_LABELS, NOTIFICATION_TIPO_DESCRIPTIONS } from '@/lib/notification-labels'
 import type { Role } from '@/generated/prisma/enums'
@@ -266,6 +268,7 @@ interface UserProfile {
   ajudasTaxaIRS: number | null
   moduloAjudasAtivo: boolean
   inqueritoFiltroEstadosDefault: string[]
+  inqueritoPageSizeDefault: number | null
   estadosDisponiveis: EstadoOption[]
 }
 
@@ -278,6 +281,9 @@ export default function PerfilPage() {
   const [filtroEstados, setFiltroEstados] = useState<string[]>([])
   const [filtroEstadosOriginal, setFiltroEstadosOriginal] = useState<string[]>([])
   const [savingFiltros, setSavingFiltros] = useState(false)
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_INQUERITO_PAGE_SIZE)
+  const [pageSizeOriginal, setPageSizeOriginal] = useState<number>(DEFAULT_INQUERITO_PAGE_SIZE)
+  const [savingPageSize, setSavingPageSize] = useState(false)
 
   const profileForm = useForm<ProfileData>({ resolver: zodResolver(profileSchema) })
   const passwordForm = useForm<PasswordData>({ resolver: zodResolver(passwordSchema) })
@@ -298,6 +304,8 @@ export default function PerfilPage() {
         setAjudasIRS(data.ajudasTaxaIRS != null ? String(+(data.ajudasTaxaIRS * 100).toFixed(4)) : '')
         setFiltroEstados(data.inqueritoFiltroEstadosDefault ?? [])
         setFiltroEstadosOriginal(data.inqueritoFiltroEstadosDefault ?? [])
+        setPageSize(data.inqueritoPageSizeDefault ?? DEFAULT_INQUERITO_PAGE_SIZE)
+        setPageSizeOriginal(data.inqueritoPageSizeDefault ?? DEFAULT_INQUERITO_PAGE_SIZE)
         setLoading(false)
       })
       .catch(() => {
@@ -410,6 +418,34 @@ export default function PerfilPage() {
       toast.error('Erro ao guardar')
     } finally {
       setSavingFiltros(false)
+    }
+  }
+
+  const pageSizeDirty = pageSize !== pageSizeOriginal
+
+  async function onPageSizeSave() {
+    setSavingPageSize(true)
+    try {
+      const res = await fetch('/api/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inqueritoPageSizeDefault: pageSize }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      const updated = await res.json()
+      const saved: number = updated.inqueritoPageSizeDefault ?? pageSize
+      setPageSize(saved)
+      setPageSizeOriginal(saved)
+      setUser((prev) => (prev ? { ...prev, inqueritoPageSizeDefault: saved } : prev))
+      toast.success('Inquéritos por página guardado')
+    } catch {
+      toast.error('Erro ao guardar')
+    } finally {
+      setSavingPageSize(false)
     }
   }
 
@@ -581,6 +617,40 @@ export default function PerfilPage() {
             {savingFiltros ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Nº de inquéritos por página (default pessoal na listagem) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+            <List className="h-4 w-4" />
+            Inquéritos por página
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Número de inquéritos mostrados por página, por defeito, na listagem.
+            Pode sempre alterá-lo pontualmente no seletor no fundo da lista.
+          </p>
+          <Select value={String(pageSize)} onValueChange={(v) => v && setPageSize(Number(v))}>
+            <SelectTrigger className="w-32">
+              <SelectValue>{(v: string | null) => v ?? String(pageSize)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {INQUERITO_PAGE_SIZES.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div>
+            <Button size="sm" onClick={onPageSizeSave} disabled={!pageSizeDirty || savingPageSize}>
+              {savingPageSize ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Guardar
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

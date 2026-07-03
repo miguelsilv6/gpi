@@ -14,9 +14,15 @@ import Link from 'next/link'
 import { listEstados } from '@/lib/estados'
 import { listEtiquetasEmUso } from '@/lib/etiquetas'
 import type { Role } from '@/generated/prisma/enums'
+import { PageSizeSelect } from '@/components/inqueritos/page-size-select'
+import { normalizeInqueritoPageSize, DEFAULT_INQUERITO_PAGE_SIZE } from '@/lib/pagination'
 
 interface SearchParams {
+  // Index signature: os parâmetros de pesquisa são todos `string | undefined`,
+  // o que permite passar o objeto tal-e-qual ao seletor de página (client).
+  [key: string]: string | undefined
   page?: string
+  perPage?: string
   search?: string
   estado?: string
   crimeId?: string
@@ -51,7 +57,6 @@ export default async function InqueritosPage({
   const sp = await searchParams
   const role = session.user.role as Role
   const page = Math.max(1, parseInt(sp.page ?? '1'))
-  const limit = 20
 
   const sort = sp.sort && ALLOWED_SORT[sp.sort] ? sp.sort : 'updatedAt'
   const order = sp.order === 'asc' ? 'asc' : 'desc'
@@ -70,7 +75,7 @@ export default async function InqueritosPage({
     }),
     prisma.utilizador.findUnique({
       where: { id: session.user.id },
-      select: { inqueritoFiltroEstadosDefault: true },
+      select: { inqueritoFiltroEstadosDefault: true, inqueritoPageSizeDefault: true },
     }),
   ])
   const estadosDefaultUtilizador = currentUser?.inqueritoFiltroEstadosDefault ?? []
@@ -78,6 +83,18 @@ export default async function InqueritosPage({
     estadosDefaultUtilizador.length > 0
       ? estadosDefaultUtilizador
       : config?.inqueritoFiltroEstadosDefault ?? []
+
+  // Tamanho de página: `?perPage=` (seletor) tem prioridade; senão o default do
+  // perfil do utilizador; senão o default do sistema. Valores fora do conjunto
+  // permitido (20/50/100/250) recaem no fallback seguinte.
+  const pageSizeDefault = normalizeInqueritoPageSize(
+    currentUser?.inqueritoPageSizeDefault,
+    DEFAULT_INQUERITO_PAGE_SIZE,
+  )
+  const limit =
+    sp.perPage !== undefined
+      ? normalizeInqueritoPageSize(sp.perPage, pageSizeDefault)
+      : pageSizeDefault
 
   let estadoCodigos: string[] = []
   if (sp.estado === undefined) {
@@ -279,29 +296,38 @@ export default async function InqueritosPage({
         estados={estados}
       />
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            Página {page} de {totalPages}
-          </span>
-          <div className="flex gap-2">
-            {page > 1 && (
-              <Link
-                href={buildPageUrl(page - 1)}
-                className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
-              >
-                Anterior
-              </Link>
-            )}
-            {page < totalPages && (
-              <Link
-                href={buildPageUrl(page + 1)}
-                className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
-              >
-                Próxima
-              </Link>
-            )}
+      {total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span>Mostrar</span>
+            <PageSizeSelect value={limit} currentParams={sp} />
+            <span>por página</span>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-3">
+              <span className="text-muted-foreground">
+                Página {page} de {totalPages}
+              </span>
+              <div className="flex gap-2">
+                {page > 1 && (
+                  <Link
+                    href={buildPageUrl(page - 1)}
+                    className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
+                  >
+                    Anterior
+                  </Link>
+                )}
+                {page < totalPages && (
+                  <Link
+                    href={buildPageUrl(page + 1)}
+                    className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
+                  >
+                    Próxima
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
