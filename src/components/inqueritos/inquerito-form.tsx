@@ -512,7 +512,7 @@ export function InqueritoForm({
                 value={watch('estadoId') || ''}
                 onValueChange={(v) => setValue('estadoId', v ?? '', { shouldDirty: true })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecionar estado">
                     {(v: string) =>
                       estados.find((e) => e.id === v)?.nome ?? 'Selecionar estado'
@@ -533,11 +533,17 @@ export function InqueritoForm({
             <div className="space-y-1.5">
               <Label htmlFor="dataPrazo">Prazo</Label>
               <Input id="dataPrazo" type="date" {...register('dataPrazo')} />
+              {errors.dataPrazo && (
+                <p className="text-xs text-red-600">{errors.dataPrazo.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="dataConclusao">Data de conclusão</Label>
               <Input id="dataConclusao" type="date" {...register('dataConclusao')} />
+              {errors.dataConclusao && (
+                <p className="text-xs text-red-600">{errors.dataConclusao.message}</p>
+              )}
             </div>
           </div>
         </CardContent>
