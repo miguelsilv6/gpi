@@ -7,6 +7,16 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.56] — 2026-07-04
+
+### Corrigido
+- **Diálogos de interceções em ecrãs baixos (mobile)**: nos diálogos de
+  alvo, linha e produto de interesse, o cabeçalho e o rodapé (Guardar /
+  Cancelar / fechar) passam a ficar **fixos**, com o corpo do formulário a
+  **rolar internamente** — em vez de o diálogo ultrapassar o ecrã e arrastar a
+  página de fundo. Corrige o caso em que o botão "Guardar" ficava inacessível
+  no registo/edição de produtos de interesse em telemóveis.
+
 ## [0.5.54] — 2026-07-04
 
 ### Adicionado

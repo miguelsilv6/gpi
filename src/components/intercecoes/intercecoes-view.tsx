@@ -412,11 +412,11 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
 
       {/* Dialog alvo */}
       <Dialog open={alvoDialog !== null} onOpenChange={(o) => !o && setAlvoDialog(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
           <DialogHeader>
             <DialogTitle>{alvoDialog?.mode === 'edit' ? 'Editar alvo' : 'Novo alvo'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-1">
+          <div className="space-y-3 py-1 min-h-0 overflow-y-auto -mx-4 px-4">
             <div className="space-y-1.5">
               <Label htmlFor="alvoNome">Suspeito *</Label>
               <Input
@@ -474,10 +474,12 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
 
       {/* Dialog linha */}
       <Dialog open={linhaDialog !== null} onOpenChange={(o) => !o && setLinhaDialog(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
           <DialogHeader>
             <DialogTitle>{linhaDialog?.mode === 'edit' ? 'Editar linha' : 'Nova linha intercetada'}</DialogTitle>
           </DialogHeader>
+          {/* Corpo rolável: cabeçalho e rodapé (Guardar/X) ficam fixos em mobile. */}
+          <div className="min-h-0 overflow-y-auto -mx-4 px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-1">
             <div className="space-y-1.5">
               <Label>Tipo *</Label>
@@ -583,6 +585,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
             Deixar um aviso em branco desliga-o. Alterar a data de fim (ex.: renovação)
             reativa os avisos automaticamente.
           </p>
+          </div>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setLinhaDialog(null)}>
               Cancelar
