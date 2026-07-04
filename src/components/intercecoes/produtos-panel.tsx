@@ -355,11 +355,12 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
 
       {/* Dialog produto */}
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]">
           <DialogHeader>
             <DialogTitle>{dialog?.mode === 'edit' ? 'Editar produto' : 'Registar produto de interesse'}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-1">
+          {/* Corpo rolável: cabeçalho e rodapé (Guardar/X) ficam fixos em mobile. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-1 min-h-0 overflow-y-auto -mx-4 px-4">
             <div className="space-y-1.5">
               <Label>Tipo de produto *</Label>
               <Select
