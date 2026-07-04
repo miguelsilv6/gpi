@@ -81,7 +81,7 @@ export async function GET(
     })
 
     const safeNuipc = ctx.inquerito.nuipc.replace(/[^A-Za-z0-9._-]+/g, '_')
-    return new Response(buffer as ArrayBuffer, {
+    return new Response(buffer, {
       headers: {
         'Content-Type':
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
