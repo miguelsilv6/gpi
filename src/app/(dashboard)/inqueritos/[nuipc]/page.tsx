@@ -5,6 +5,9 @@ import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
 import { isModuloAnexosAtivo } from '@/lib/anexos-module'
+import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
+import { getIntercecoesResumo } from '@/lib/intercecoes'
+import { IntercecoesSection } from '@/components/intercecoes/intercecoes-section'
 import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { AuditHistory } from '@/components/inqueritos/audit-history'
 import { AccessDenied } from '@/components/access-denied'
@@ -177,6 +180,8 @@ export default async function InqueritoDetailPage({
   // Documentos anexados (provas, relatórios, ofícios) — só quando o módulo Anexos
   // está ativo para o role do utilizador.
   const anexosAtivo = await isModuloAnexosAtivo(role)
+  const intercecoesAtivo = await isModuloIntercecoesAtivo(role)
+  const intercecoesResumo = intercecoesAtivo ? await getIntercecoesResumo(inquerito.id) : null
   const documentos = anexosAtivo
     ? await prisma.documento.findMany({
         where: { inqueritoid: inquerito.id },
@@ -838,6 +843,10 @@ export default async function InqueritoDetailPage({
         terminal={terminal}
         editLocked={editLocked}
       />
+
+      {intercecoesAtivo && intercecoesResumo && (
+        <IntercecoesSection nuipcSlug={inqSlug} resumo={intercecoesResumo} />
+      )}
 
       {anexosAtivo && (
         <DocumentosSection

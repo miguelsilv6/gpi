@@ -34,9 +34,10 @@ interface HeaderProps {
   moduloBugReportsAtivo?: boolean
   moduloToolboxAtivo?: boolean
   moduloAgendaAtivo?: boolean
+  moduloIntercecoesAtivo?: boolean
 }
 
-export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, moduloAgendaAtivo = true }: HeaderProps) {
+export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, moduloAgendaAtivo = true, moduloIntercecoesAtivo = true }: HeaderProps) {
   const initials = user.nome
     .split(' ')
     .map((n) => n[0])
@@ -56,13 +57,13 @@ export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = tru
             <span className="sr-only">Menu</span>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
-            <SidebarNav role={user.role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} onNavigate={() => setMobileOpen(false)} />
+            <SidebarNav role={user.role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
 
         <CommandPalette
           role={user.role}
-          modules={{ moduloAjudasAtivo, moduloFeriasAtivo, moduloBugReportsAtivo, moduloToolboxAtivo, moduloAgendaAtivo }}
+          modules={{ moduloAjudasAtivo, moduloFeriasAtivo, moduloBugReportsAtivo, moduloToolboxAtivo, moduloAgendaAtivo, moduloIntercecoesAtivo }}
         />
 
         <div className="flex-1" />

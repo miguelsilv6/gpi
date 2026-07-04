@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip, RadioTower } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { TransicoesTab } from './transicoes-tab'
@@ -838,7 +838,10 @@ export default function ConfiguracoesPage() {
   const [moduloAnexosRoles, setModuloAnexosRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloAgendaAtivo, setModuloAgendaAtivo] = useState(true)
   const [moduloAgendaRoles, setModuloAgendaRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [moduloIntercecoesAtivo, setModuloIntercecoesAtivo] = useState(true)
+  const [moduloIntercecoesRoles, setModuloIntercecoesRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [savingModuloAgenda, setSavingModuloAgenda] = useState(false)
+  const [savingModuloIntercecoes, setSavingModuloIntercecoes] = useState(false)
   const [savingModuloAnexos, setSavingModuloAnexos] = useState(false)
   const [emailNotificacoesAtivo, setEmailNotificacoesAtivo] = useState(true)
   const [savingEmailNotificacoes, setSavingEmailNotificacoes] = useState(false)
@@ -904,6 +907,8 @@ export default function ConfiguracoesPage() {
         setModuloAnexosRoles((d.moduloAnexosRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloAgendaAtivo(d.moduloAgendaAtivo ?? true)
         setModuloAgendaRoles((d.moduloAgendaRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setModuloIntercecoesAtivo(d.moduloIntercecoesAtivo ?? true)
+        setModuloIntercecoesRoles((d.moduloIntercecoesRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setToolboxIaAtivo(d.toolboxIaAtivo ?? false)
         setToolboxIaModelo(d.toolboxIaModelo ?? 'qwen3:4b')
         setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
@@ -1252,6 +1257,31 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function toggleModuloIntercecoes() {
+    const next = !moduloIntercecoesAtivo
+    setSavingModuloIntercecoes(true)
+    setModuloIntercecoesAtivo(next)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduloIntercecoesAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setModuloIntercecoesAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Módulo Interceções ativado' : 'Módulo Interceções desativado')
+    } catch {
+      setModuloIntercecoesAtivo(!next)
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingModuloIntercecoes(false)
+    }
+  }
+
   async function toggleEmailNotificacoes() {
     const next = !emailNotificacoesAtivo
     setSavingEmailNotificacoes(true)
@@ -1277,7 +1307,7 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos' | 'agenda', role: string) {
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos' | 'agenda' | 'intercecoes', role: string) {
     const configMap = {
       ajudas:     { roles: moduloAjudasRoles,     setter: setModuloAjudasRoles,     key: 'moduloAjudasRoles' },
       ferias:     { roles: moduloFeriasRoles,     setter: setModuloFeriasRoles,     key: 'moduloFeriasRoles' },
@@ -1285,6 +1315,7 @@ export default function ConfiguracoesPage() {
       toolbox:    { roles: moduloToolboxRoles,    setter: setModuloToolboxRoles,    key: 'moduloToolboxRoles' },
       anexos:     { roles: moduloAnexosRoles,     setter: setModuloAnexosRoles,     key: 'moduloAnexosRoles' },
       agenda:     { roles: moduloAgendaRoles,     setter: setModuloAgendaRoles,     key: 'moduloAgendaRoles' },
+      intercecoes: { roles: moduloIntercecoesRoles, setter: setModuloIntercecoesRoles, key: 'moduloIntercecoesRoles' },
     } as const
     const { roles: current, setter, key } = configMap[modulo]
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
@@ -1920,6 +1951,49 @@ export default function ConfiguracoesPage() {
                   roles={moduloAgendaRoles}
                   disabled={savingRoles}
                   onToggle={(r) => toggleModuloRole('agenda', r)}
+                />
+              )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloIntercecoesAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <RadioTower className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Interceções</p>
+                    <p className="text-xs text-muted-foreground">
+                      Controlo de interceções de comunicações (escutas): alvos, linhas SIM/IMEI, produtos e alertas de fim
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleModuloIntercecoes}
+                  disabled={savingModuloIntercecoes}
+                  aria-label={moduloIntercecoesAtivo ? 'Desativar módulo Interceções' : 'Ativar módulo Interceções'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloIntercecoesAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloIntercecoesAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloIntercecoesAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloIntercecoesRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('intercecoes', r)}
                 />
               )}
             </div>
