@@ -50,6 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
         nome: parsed.data.nome,
         codigo: parsed.data.codigo,
         observacoes: parsed.data.observacoes ?? null,
+        notas: parsed.data.notas ?? null,
         inqueritoid: ctx.inquerito.id,
       },
     })

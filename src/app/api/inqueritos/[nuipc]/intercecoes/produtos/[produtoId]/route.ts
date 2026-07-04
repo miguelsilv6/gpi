@@ -71,6 +71,8 @@ export async function PUT(
         ...(data !== undefined && { data }),
         ...(d.horaInicio !== undefined && { horaInicio: d.horaInicio || null }),
         ...(d.horaFim !== undefined && { horaFim: d.horaFim || null }),
+        ...(d.duracao !== undefined && { duracao: d.duracao || null }),
+        ...(d.paraTranscricao !== undefined && { paraTranscricao: d.paraTranscricao }),
         ...(d.de !== undefined && { de: d.de.trim() || null }),
         ...(d.para !== undefined && { para: d.para.trim() || null }),
         ...(d.resumo !== undefined && { resumo: d.resumo }),
@@ -78,10 +80,10 @@ export async function PUT(
       },
     })
 
-    const keys = ['tipo', 'numeroProduto', 'direcao', 'data', 'horaInicio', 'horaFim', 'de', 'para', 'resumo', 'comentarios', 'linhaId'] as const
+    const keys = ['tipo', 'numeroProduto', 'direcao', 'data', 'horaInicio', 'horaFim', 'duracao', 'paraTranscricao', 'de', 'para', 'resumo', 'comentarios', 'linhaId'] as const
     const changes = diff(
-      Object.fromEntries(keys.map((k) => [k, produto[k]])) as Record<string, string | Date | null>,
-      Object.fromEntries(keys.map((k) => [k, updated[k]])) as Record<string, string | Date | null>,
+      Object.fromEntries(keys.map((k) => [k, produto[k]])) as Record<string, string | Date | boolean | null>,
+      Object.fromEntries(keys.map((k) => [k, updated[k]])) as Record<string, string | Date | boolean | null>,
       keys,
     )
     if (changes) {

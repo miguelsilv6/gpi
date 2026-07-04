@@ -48,13 +48,14 @@ export async function PUT(
         ...(d.codigo !== undefined && { codigo: d.codigo }),
         // '' limpa o campo; omitido mantém.
         ...(d.observacoes !== undefined && { observacoes: d.observacoes.trim() || null }),
+        ...(d.notas !== undefined && { notas: d.notas.trim() || null }),
       },
     })
 
     const changes = diff(
-      { nome: alvo.nome, codigo: alvo.codigo, observacoes: alvo.observacoes },
-      { nome: updated.nome, codigo: updated.codigo, observacoes: updated.observacoes },
-      ['nome', 'codigo', 'observacoes'],
+      { nome: alvo.nome, codigo: alvo.codigo, observacoes: alvo.observacoes, notas: alvo.notas },
+      { nome: updated.nome, codigo: updated.codigo, observacoes: updated.observacoes, notas: updated.notas },
+      ['nome', 'codigo', 'observacoes', 'notas'],
     )
     if (changes) {
       await writeAudit({

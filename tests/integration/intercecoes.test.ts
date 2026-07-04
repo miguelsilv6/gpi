@@ -211,6 +211,65 @@ describe('checkIntercecoesATerminar', () => {
   })
 })
 
+describe('v2 — renovação, duração/transcrição, notas', () => {
+  test('renovar: renovações++ e flags repostos (como a rota)', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const { linha } = await makeAlvoComLinha({ inqueritoid: s.inqB[0].id, dataFim: daysFromNow(5) })
+
+    // 1.ª corrida marca o 1.º aviso.
+    await checkIntercecoesATerminar()
+    const before = await prisma.intercecaoLinha.findUnique({ where: { id: linha.id } })
+    expect(before!.renovacoes).toBe(0)
+    expect(before!.alerta1Enviado).toBe(true)
+
+    // Renovação (o que o POST .../renovar faz): novo fim + increment + reset.
+    const novaDataFim = daysFromNow(40)
+    const reset = resetAlertFlagsOnUpdate(
+      { dataFim: before!.dataFim, alertaDias1: before!.alertaDias1, alertaDias2: before!.alertaDias2 },
+      { dataFim: novaDataFim },
+    )
+    const after = await prisma.intercecaoLinha.update({
+      where: { id: linha.id },
+      data: { dataFim: novaDataFim, renovacoes: { increment: 1 }, ...reset },
+    })
+    expect(after.renovacoes).toBe(1)
+    expect(after.alerta1Enviado).toBe(false)
+    expect(after.alerta2Enviado).toBe(false)
+  })
+
+  test('produto persiste duração e paraTranscricao', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const { alvo } = await makeAlvoComLinha({ inqueritoid: s.inqB[0].id, dataFim: daysFromNow(20) })
+    const produto = await prisma.intercecaoProduto.create({
+      data: {
+        alvoId: alvo.id,
+        tipo: 'CHAMADA',
+        data: new Date(),
+        resumo: 'Chamada a transcrever',
+        duracao: '03:45',
+        paraTranscricao: true,
+        criadoPorId: s.inspetorB.id,
+      },
+    })
+    const read = await prisma.intercecaoProduto.findUnique({ where: { id: produto.id } })
+    expect(read!.duracao).toBe('03:45')
+    expect(read!.paraTranscricao).toBe(true)
+  })
+
+  test('produto: paraTranscricao default false; alvo: notas opcional', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const alvo = await prisma.intercecaoAlvo.create({
+      data: { nome: 'X', codigo: '999', inqueritoid: s.inqB[0].id, notas: 'nota relevante' },
+    })
+    expect(alvo.notas).toBe('nota relevante')
+    const produto = await prisma.intercecaoProduto.create({
+      data: { alvoId: alvo.id, tipo: 'SMS', data: new Date(), resumo: 'r', criadoPorId: s.inspetorB.id },
+    })
+    expect(produto.paraTranscricao).toBe(false)
+    expect(produto.duracao).toBeNull()
+  })
+})
+
 describe('cascade e integridade', () => {
   test('apagar o alvo remove linhas e produtos; apagar linha mantém produto (SetNull)', async () => {
     const s = await scenarioTwoBrigadas(prisma)

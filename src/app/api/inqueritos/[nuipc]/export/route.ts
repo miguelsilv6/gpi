@@ -269,15 +269,21 @@ export async function GET(
       'Rede',
       'Data Início',
       'Data Fim',
+      'Renovações',
       '1.º aviso (dias)',
       '2.º aviso (dias)',
       'Observações',
+      'Notas do alvo',
     ]
     lines.push(intHeaders.map(escapeCSV).join(','))
     for (const alvo of inquerito.intercecaoAlvos) {
       if (alvo.linhas.length === 0) {
         // Alvo sem linhas: uma linha só com o suspeito/código.
-        lines.push([alvo.nome, alvo.codigo, '', '', '', '', '', '', '', alvo.observacoes ?? ''].map(escapeCSV).join(','))
+        lines.push(
+          [alvo.nome, alvo.codigo, '', '', '', '', '', '', '', '', alvo.observacoes ?? '', alvo.notas ?? '']
+            .map(escapeCSV)
+            .join(','),
+        )
         continue
       }
       for (const l of alvo.linhas) {
@@ -290,9 +296,11 @@ export async function GET(
             l.rede ?? '',
             fmtDate(l.dataInicio),
             fmtDate(l.dataFim),
+            l.renovacoes,
             l.alertaDias1 ?? '',
             l.alertaDias2 ?? '',
             l.observacoes ?? '',
+            alvo.notas ?? '',
           ]
             .map(escapeCSV)
             .join(','),
@@ -313,9 +321,11 @@ export async function GET(
       'Data',
       'Hora Início',
       'Hora Fim',
+      'Duração',
       'De',
       'Para',
       'Resumo',
+      'Transcrição',
       'Comentários',
       'Registado por',
     ]
@@ -332,9 +342,11 @@ export async function GET(
             fmtDate(p.data),
             p.horaInicio ?? '',
             p.horaFim ?? '',
+            p.duracao ?? '',
             p.de ?? '',
             p.para ?? '',
             p.resumo,
+            p.paraTranscricao ? 'Sim' : '',
             p.comentarios ?? '',
             p.criadoPor.nome,
           ]

@@ -7,6 +7,30 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.54] — 2026-07-04
+
+### Adicionado
+- **Interceções — melhorias no controlo de escutas** (a partir do módulo da
+  0.5.52):
+  - **Marcar produtos para transcrição**: cada produto de interesse passa a ter
+    uma opção "Marcar para transcrição" — na tabela mostra-se um selo
+    "Transcr." e o estado acompanha o produto nas exportações.
+  - **Duração do produto**: novo campo de duração (formato `mm:ss` ou
+    `hh:mm:ss`), sobretudo útil para chamadas, apresentado junto às horas.
+  - **Renovar a data de fim**: botão dedicado por linha que prorroga o prazo,
+    conta o número de renovações (selo "N× renov.") e **reativa os avisos de
+    fim** automaticamente para o novo prazo.
+  - **Exportar em Excel (.xlsx)**: novo botão na subpágina de interceções que
+    gera o ficheiro no formato do modelo de controlo de escutas — folha
+    **"Alvos"** (um registo por linha) e uma folha **por código de alvo** com os
+    produtos de interesse, incluindo as novas colunas (renovações, notas,
+    duração, transcrição).
+  - **Notas por alvo**: campo de notas livres do inspetor em cada alvo,
+    distinto das observações, destacado no cartão do alvo.
+  - A exportação CSV do inquérito passa a incluir as novas colunas (renovações
+    e notas nos alvos/linhas; duração e transcrição nos produtos). As novas
+    operações (renovação e exportação Excel) ficam no registo de auditoria.
+
 ## [0.5.52] — 2026-07-03
 
 ### Adicionado

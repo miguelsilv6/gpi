@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   TIPO_PRODUTO_LABEL,
   TIPO_PRODUTO_VALUES,
@@ -18,7 +19,7 @@ import {
   TIPO_LINHA_LABEL,
 } from '@/lib/validations/intercecao'
 import { formatDate, cn, iconButtonClasses } from '@/lib/utils'
-import { ChevronDown, ChevronRight, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Loader2, Plus, Pencil, Trash2, FileText, Timer } from 'lucide-react'
 import type {
   TipoProdutoIntercecao,
   DirecaoProdutoIntercecao,
@@ -39,6 +40,8 @@ interface ProdutoItem {
   data: string
   horaInicio: string | null
   horaFim: string | null
+  duracao: string | null
+  paraTranscricao: boolean
   de: string | null
   para: string | null
   resumo: string
@@ -63,6 +66,8 @@ interface ProdutoForm {
   data: string
   horaInicio: string
   horaFim: string
+  duracao: string
+  paraTranscricao: boolean
   de: string
   para: string
   resumo: string
@@ -76,6 +81,8 @@ const EMPTY_PRODUTO: ProdutoForm = {
   data: '',
   horaInicio: '',
   horaFim: '',
+  duracao: '',
+  paraTranscricao: false,
   de: '',
   para: '',
   resumo: '',
@@ -142,6 +149,8 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
       data: pItem.data.slice(0, 10),
       horaInicio: pItem.horaInicio ?? '',
       horaFim: pItem.horaFim ?? '',
+      duracao: pItem.duracao ?? '',
+      paraTranscricao: pItem.paraTranscricao,
       de: pItem.de ?? '',
       para: pItem.para ?? '',
       resumo: pItem.resumo,
@@ -253,6 +262,15 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                               {pItem.horaInicio ?? '?'}–{pItem.horaFim ?? '?'}
                             </span>
                           )}
+                          {pItem.duracao && (
+                            <span
+                              className="text-xs text-muted-foreground ml-1 inline-flex items-center gap-0.5"
+                              title="Duração"
+                            >
+                              <Timer className="h-3 w-3" />
+                              {pItem.duracao}
+                            </span>
+                          )}
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap">
                           <span className={cn('inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium', TIPO_PRODUTO_BADGE[pItem.tipo])}>
@@ -270,9 +288,19 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                           {pItem.de || pItem.para ? `${pItem.de ?? '?'} → ${pItem.para ?? '?'}` : '—'}
                         </td>
                         <td className="py-2 pr-3 max-w-[320px]">
-                          <span className="block truncate" title={pItem.resumo}>
-                            {pItem.resumo}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {pItem.paraTranscricao && (
+                              <span
+                                className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                                title="Marcado para transcrição"
+                              >
+                                <FileText className="h-3 w-3" /> Transcr.
+                              </span>
+                            )}
+                            <span className="block truncate" title={pItem.resumo}>
+                              {pItem.resumo}
+                            </span>
+                          </div>
                         </td>
                         {canEdit && (
                           <td className="py-2 whitespace-nowrap">
@@ -444,6 +472,17 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
               </div>
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="prodDuracao">Duração</Label>
+              <Input
+                id="prodDuracao"
+                className="font-mono"
+                placeholder="mm:ss (ex.: chamada)"
+                value={form.duracao}
+                onChange={(e) => setForm({ ...form, duracao: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground">Formato mm:ss ou hh:mm:ss.</p>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="prodDe">De</Label>
               <Input
                 id="prodDe"
@@ -470,6 +509,16 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                 onChange={(e) => setForm({ ...form, resumo: e.target.value })}
               />
             </div>
+            <label className="sm:col-span-2 flex items-center gap-2.5 rounded-md border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 px-3 py-2.5 cursor-pointer">
+              <Checkbox
+                checked={form.paraTranscricao}
+                onCheckedChange={(v) => setForm({ ...form, paraTranscricao: v === true })}
+              />
+              <span className="flex items-center gap-1.5 text-sm">
+                <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                Marcar para transcrição
+              </span>
+            </label>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="prodComentarios">Comentários</Label>
               <Textarea

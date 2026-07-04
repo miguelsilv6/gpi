@@ -20,7 +20,7 @@ import {
   estadoLinha,
 } from '@/lib/validations/intercecao'
 import { formatDate, cn, iconButtonClasses } from '@/lib/utils'
-import { Loader2, Plus, Pencil, Trash2, RadioTower, Target } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, RadioTower, Target, CalendarPlus, StickyNote } from 'lucide-react'
 import type { TipoLinhaIntercecao } from '@/generated/prisma/enums'
 
 export interface LinhaDTO {
@@ -32,6 +32,7 @@ export interface LinhaDTO {
   dataFim: string
   alertaDias1: number | null
   alertaDias2: number | null
+  renovacoes: number
   observacoes: string | null
 }
 
@@ -40,6 +41,7 @@ export interface AlvoDTO {
   nome: string
   codigo: string
   observacoes: string | null
+  notas: string | null
   linhas: LinhaDTO[]
   produtos: number
 }
@@ -56,8 +58,9 @@ interface AlvoForm {
   nome: string
   codigo: string
   observacoes: string
+  notas: string
 }
-const EMPTY_ALVO: AlvoForm = { nome: '', codigo: '', observacoes: '' }
+const EMPTY_ALVO: AlvoForm = { nome: '', codigo: '', observacoes: '', notas: '' }
 
 interface LinhaForm {
   tipo: TipoLinhaIntercecao
@@ -96,6 +99,9 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
     { mode: 'create'; alvoId: string } | { mode: 'edit'; alvoId: string; id: string } | null
   >(null)
   const [linhaForm, setLinhaForm] = useState<LinhaForm>(EMPTY_LINHA)
+  // Dialog de renovação (prorrogação da data de fim)
+  const [renovarDialog, setRenovarDialog] = useState<LinhaDTO | null>(null)
+  const [novaDataFim, setNovaDataFim] = useState('')
   const [saving, setSaving] = useState(false)
 
   function openCreateAlvo() {
@@ -103,7 +109,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
     setAlvoDialog({ mode: 'create' })
   }
   function openEditAlvo(a: AlvoDTO) {
-    setAlvoForm({ nome: a.nome, codigo: a.codigo, observacoes: a.observacoes ?? '' })
+    setAlvoForm({ nome: a.nome, codigo: a.codigo, observacoes: a.observacoes ?? '', notas: a.notas ?? '' })
     setAlvoDialog({ mode: 'edit', id: a.id })
   }
   function openCreateLinha(alvoId: string) {
@@ -150,7 +156,12 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
 
   async function handleAlvoSubmit() {
     if (!alvoDialog) return
-    const payload = { nome: alvoForm.nome, codigo: alvoForm.codigo, observacoes: alvoForm.observacoes }
+    const payload = {
+      nome: alvoForm.nome,
+      codigo: alvoForm.codigo,
+      observacoes: alvoForm.observacoes,
+      notas: alvoForm.notas,
+    }
     const ok =
       alvoDialog.mode === 'create'
         ? await submit(base, 'POST', payload)
@@ -208,6 +219,24 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
     }
   }
 
+  function openRenovar(l: LinhaDTO) {
+    // Pré-preenche com o dia seguinte ao fim atual (a nova data tem de ser posterior).
+    const d = new Date(l.dataFim)
+    d.setDate(d.getDate() + 1)
+    setNovaDataFim(d.toISOString().slice(0, 10))
+    setRenovarDialog(l)
+  }
+
+  async function handleRenovar() {
+    if (!renovarDialog) return
+    const ok = await submit(`${base}/linhas/${renovarDialog.id}/renovar`, 'POST', { novaDataFim })
+    if (ok) {
+      toast.success('Interceção renovada')
+      setRenovarDialog(null)
+      router.refresh()
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -261,6 +290,12 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
             {alvo.observacoes && (
               <p className="text-xs text-muted-foreground mt-1">{alvo.observacoes}</p>
             )}
+            {alvo.notas && (
+              <div className="mt-1.5 flex items-start gap-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 px-2 py-1.5">
+                <StickyNote className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-900 dark:text-amber-200 whitespace-pre-wrap">{alvo.notas}</p>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-3">
             {alvo.linhas.length === 0 ? (
@@ -289,7 +324,17 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                           <td className="py-2 pr-3 font-mono whitespace-nowrap">{l.identificador}</td>
                           <td className="py-2 pr-3 whitespace-nowrap">{l.rede ?? '—'}</td>
                           <td className="py-2 pr-3 whitespace-nowrap">{formatDate(l.dataInicio)}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{formatDate(l.dataFim)}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {formatDate(l.dataFim)}
+                            {l.renovacoes > 0 && (
+                              <span
+                                className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
+                                title={`Renovada ${l.renovacoes} ${l.renovacoes === 1 ? 'vez' : 'vezes'}`}
+                              >
+                                {l.renovacoes}× renov.
+                              </span>
+                            )}
+                          </td>
                           <td className="py-2 pr-3 whitespace-nowrap">
                             {terminada ? (
                               <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
@@ -310,6 +355,14 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                           {canEdit && (
                             <td className="py-2 whitespace-nowrap">
                               <div className="flex items-center gap-1 justify-end">
+                                <button
+                                  onClick={() => openRenovar(l)}
+                                  className={cn(iconButtonClasses, 'text-muted-foreground hover:bg-indigo-100 hover:text-indigo-700 dark:hover:bg-indigo-900/30')}
+                                  title="Renovar (prorrogar data de fim)"
+                                  aria-label={`Renovar linha ${l.identificador}`}
+                                >
+                                  <CalendarPlus className="h-3.5 w-3.5" />
+                                </button>
                                 <button
                                   onClick={() => openEditLinha(alvo.id, l)}
                                   className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
@@ -391,6 +444,19 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                 rows={2}
                 value={alvoForm.observacoes}
                 onChange={(e) => setAlvoForm({ ...alvoForm, observacoes: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="alvoNotas" className="flex items-center gap-1.5">
+                <StickyNote className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                Notas do inspetor
+              </Label>
+              <Textarea
+                id="alvoNotas"
+                rows={3}
+                placeholder="Informação relevante sobre o alvo (livre)."
+                value={alvoForm.notas}
+                onChange={(e) => setAlvoForm({ ...alvoForm, notas: e.target.value })}
               />
             </div>
           </div>
@@ -528,6 +594,56 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
             >
               {saving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog renovar (prorrogação) */}
+      <Dialog open={renovarDialog !== null} onOpenChange={(o) => !o && setRenovarDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Renovar interceção</DialogTitle>
+          </DialogHeader>
+          {renovarDialog && (
+            <div className="space-y-3 py-1">
+              <p className="text-sm text-muted-foreground">
+                {TIPO_LINHA_LABEL[renovarDialog.tipo]}{' '}
+                <span className="font-mono">{renovarDialog.identificador}</span> — fim atual{' '}
+                <span className="font-medium text-foreground">{formatDate(renovarDialog.dataFim)}</span>
+                {renovarDialog.renovacoes > 0 && ` · ${renovarDialog.renovacoes} renovação(ões)`}
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="renovarData">Nova data de fim *</Label>
+                <Input
+                  id="renovarData"
+                  type="date"
+                  value={novaDataFim}
+                  min={toDateInput(renovarDialog.dataFim)}
+                  onChange={(e) => setNovaDataFim(e.target.value)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A nova data tem de ser posterior à atual. Os avisos de fim são reativados
+                automaticamente para o novo prazo.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setRenovarDialog(null)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleRenovar}
+              disabled={
+                saving ||
+                !novaDataFim ||
+                (renovarDialog != null && novaDataFim <= toDateInput(renovarDialog.dataFim))
+              }
+            >
+              {saving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Renovar
             </Button>
           </DialogFooter>
         </DialogContent>
