@@ -4,11 +4,14 @@ import {
   intercecaoAlvoUpdateSchema,
   intercecaoLinhaCreateSchema,
   intercecaoProdutoCreateSchema,
+  intercecaoProdutoUpdateSchema,
+  intercecaoRenovarSchema,
   TIPO_LINHA_LABEL,
   TIPO_PRODUTO_LABEL,
   TIPO_PRODUTO_BADGE,
   DIRECAO_LABEL,
   HORA_REGEX,
+  DURACAO_REGEX,
   estadoLinha,
   alertasDevidos,
   resetAlertFlagsOnUpdate,
@@ -93,6 +96,49 @@ describe('schemas', () => {
     expect(HORA_REGEX.test('23:59')).toBe(true)
     expect(HORA_REGEX.test('24:00')).toBe(false)
     expect(HORA_REGEX.test('12:60')).toBe(false)
+  })
+
+  test('DURACAO_REGEX: mm:ss e hh:mm:ss; segundos 00-59', () => {
+    expect(DURACAO_REGEX.test('03:45')).toBe(true)
+    expect(DURACAO_REGEX.test('00:00')).toBe(true)
+    expect(DURACAO_REGEX.test('120:30')).toBe(true) // minutos podem exceder 60
+    expect(DURACAO_REGEX.test('1:02:03')).toBe(true)
+    expect(DURACAO_REGEX.test('03:60')).toBe(false) // segundos inválidos
+    expect(DURACAO_REGEX.test('3m45s')).toBe(false)
+    expect(DURACAO_REGEX.test('45')).toBe(false)
+  })
+
+  test('produto create: duração válida; "" → undefined; paraTranscricao booleano', () => {
+    const base = { tipo: 'CHAMADA', data: '2026-05-05', resumo: 'ok' }
+    expect(intercecaoProdutoCreateSchema.safeParse({ ...base, duracao: '02:15' }).success).toBe(true)
+    expect(intercecaoProdutoCreateSchema.safeParse({ ...base, duracao: 'xpto' }).success).toBe(false)
+    const ok = intercecaoProdutoCreateSchema.safeParse({ ...base, duracao: '', paraTranscricao: true })
+    expect(ok.success).toBe(true)
+    if (ok.success) {
+      expect(ok.data.duracao).toBeUndefined()
+      expect(ok.data.paraTranscricao).toBe(true)
+    }
+  })
+
+  test('produto update: duração e paraTranscricao opcionais', () => {
+    expect(intercecaoProdutoUpdateSchema.safeParse({ paraTranscricao: false }).success).toBe(true)
+    expect(intercecaoProdutoUpdateSchema.safeParse({ duracao: '10:00' }).success).toBe(true)
+    expect(intercecaoProdutoUpdateSchema.safeParse({ duracao: 'nope' }).success).toBe(false)
+  })
+
+  test('alvo create/update: notas', () => {
+    const created = intercecaoAlvoCreateSchema.safeParse({ nome: 'X', codigo: '1', notas: '' })
+    expect(created.success).toBe(true)
+    if (created.success) expect(created.data.notas).toBeUndefined()
+    // update mantém "" (limpar) vs omitido
+    const upd = intercecaoAlvoUpdateSchema.safeParse({ notas: 'relevante' })
+    expect(upd.success).toBe(true)
+    if (upd.success) expect(upd.data.notas).toBe('relevante')
+  })
+
+  test('renovar: novaDataFim obrigatória', () => {
+    expect(intercecaoRenovarSchema.safeParse({ novaDataFim: '' }).success).toBe(false)
+    expect(intercecaoRenovarSchema.safeParse({ novaDataFim: '2026-08-01' }).success).toBe(true)
   })
 })
 

@@ -29,6 +29,7 @@ export const INTERCECAO_LINHA_SELECT = {
   dataFim: true,
   alertaDias1: true,
   alertaDias2: true,
+  renovacoes: true,
   observacoes: true,
 } as const
 
@@ -42,6 +43,7 @@ export async function getIntercecoesTree(inqueritoId: string) {
       nome: true,
       codigo: true,
       observacoes: true,
+      notas: true,
       linhas: { orderBy: { dataFim: 'asc' }, select: INTERCECAO_LINHA_SELECT },
       _count: { select: { produtos: true } },
     },

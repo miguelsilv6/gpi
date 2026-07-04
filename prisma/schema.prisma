@@ -1101,6 +1101,8 @@ model IntercecaoAlvo {
   nome        String  // suspeito
   codigo      String  // código do alvo no sistema de interceção (ex.: "123")
   observacoes String?
+  // Notas livres do inspetor sobre o alvo (informação considerada relevante).
+  notas       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1129,6 +1131,8 @@ model IntercecaoLinha {
   alertaDias2   Int?     @default(3)
   alerta1Enviado Boolean @default(false)
   alerta2Enviado Boolean @default(false)
+  // Nº de renovações (prorrogações) da autorização — incrementado ao renovar.
+  renovacoes    Int      @default(0)
   observacoes   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1153,6 +1157,9 @@ model IntercecaoProduto {
   data          DateTime
   horaInicio    String?  // "HH:mm"
   horaFim       String?  // "HH:mm"
+  duracao       String?  // duração (mm:ss ou hh:mm:ss), sobretudo para chamadas
+  // Marcado pelo inspetor como candidato a transcrição.
+  paraTranscricao Boolean @default(false)
   de            String?
   para          String?
   resumo        String

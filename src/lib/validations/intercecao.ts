@@ -61,6 +61,12 @@ const horaSchema = z
   .string()
   .regex(HORA_REGEX, 'Hora inválida (formato HH:mm)')
 
+// Duração "mm:ss" ou "hh:mm:ss" (sobretudo para chamadas).
+export const DURACAO_REGEX = /^\d{1,3}:[0-5]\d(:[0-5]\d)?$/
+const duracaoSchema = z.string().regex(DURACAO_REGEX, 'Duração inválida (mm:ss ou hh:mm:ss)')
+
+export const INTERCECAO_NOTAS_MAX = 4000
+
 const alertaDiasSchema = z
   .number()
   .int('Os dias de alerta têm de ser um número inteiro')
@@ -86,6 +92,12 @@ export const intercecaoAlvoCreateSchema = z.object({
     .max(INTERCECAO_OBS_MAX)
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
+  notas: z
+    .string()
+    .trim()
+    .max(INTERCECAO_NOTAS_MAX)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
 })
 
 // No update, os campos opcionais são mantidos "crus" (sem transformar '' em
@@ -94,6 +106,7 @@ export const intercecaoAlvoUpdateSchema = z.object({
   nome: z.string().trim().min(1, 'O nome do suspeito é obrigatório').max(INTERCECAO_NOME_MAX).optional(),
   codigo: z.string().trim().min(1, 'O código do alvo é obrigatório').max(INTERCECAO_CODIGO_MAX).optional(),
   observacoes: z.string().max(INTERCECAO_OBS_MAX).optional(),
+  notas: z.string().max(INTERCECAO_NOTAS_MAX).optional(),
 })
 
 // ── Linha ────────────────────────────────────────────────────────────────────
@@ -150,6 +163,12 @@ export const intercecaoLinhaUpdateSchema = z.object({
   observacoes: z.string().max(INTERCECAO_OBS_MAX).optional(),
 })
 
+// Renovação (prorrogação): a nova data de fim é validada na rota (posterior
+// à atual). Reutiliza o mesmo reset de flags de alerta que a edição.
+export const intercecaoRenovarSchema = z.object({
+  novaDataFim: z.string().min(1, 'A nova data de fim é obrigatória'),
+})
+
 // ── Produto ──────────────────────────────────────────────────────────────────
 
 export const intercecaoProdutoCreateSchema = z.object({
@@ -177,6 +196,11 @@ export const intercecaoProdutoCreateSchema = z.object({
     .union([horaSchema, z.literal('')])
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
+  duracao: z
+    .union([duracaoSchema, z.literal('')])
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  paraTranscricao: z.boolean().optional(),
   de: z
     .string()
     .trim()
@@ -210,6 +234,8 @@ export const intercecaoProdutoUpdateSchema = z.object({
   data: z.string().min(1).optional(),
   horaInicio: z.union([horaSchema, z.literal('')]).optional(),
   horaFim: z.union([horaSchema, z.literal('')]).optional(),
+  duracao: z.union([duracaoSchema, z.literal('')]).optional(),
+  paraTranscricao: z.boolean().optional(),
   de: z.string().max(INTERCECAO_IDENTIFICADOR_MAX).optional(),
   para: z.string().max(INTERCECAO_IDENTIFICADOR_MAX).optional(),
   resumo: z.string().trim().min(1, 'O resumo é obrigatório').max(INTERCECAO_RESUMO_MAX).optional(),
