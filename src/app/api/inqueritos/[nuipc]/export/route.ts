@@ -10,6 +10,7 @@ import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { slugToNuipc } from '@/lib/utils'
 import { TIPO_DILIGENCIA_LABEL } from '@/lib/validations/diligencia'
+import { TIPO_LINHA_LABEL, TIPO_PRODUTO_LABEL, DIRECAO_LABEL } from '@/lib/validations/intercecao'
 import type { Role } from '@/generated/prisma/enums'
 
 function escapeCSV(value: unknown): string {
@@ -76,6 +77,19 @@ export async function GET(
           orderBy: { dataInicio: 'desc' },
           include: { criadoPor: { select: { nome: true } } },
         },
+        intercecaoAlvos: {
+          orderBy: { codigo: 'asc' },
+          include: {
+            linhas: { orderBy: { dataInicio: 'asc' } },
+            produtos: {
+              orderBy: { data: 'asc' },
+              include: {
+                criadoPor: { select: { nome: true } },
+                linha: { select: { identificador: true } },
+              },
+            },
+          },
+        },
       },
     })
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
@@ -91,6 +105,9 @@ export async function GET(
         atividades: inquerito.atividades.length,
         controlos: inquerito.controlos.length,
         diligencias: inquerito.diligencias.length,
+        intercecaoAlvos: inquerito.intercecaoAlvos.length,
+        intercecaoLinhas: inquerito.intercecaoAlvos.reduce((n, a) => n + a.linhas.length, 0),
+        intercecaoProdutos: inquerito.intercecaoAlvos.reduce((n, a) => n + a.produtos.length, 0),
       },
     })
 
@@ -238,6 +255,93 @@ export async function GET(
           .map(escapeCSV)
           .join(','),
       )
+    }
+
+    // Spacer + interceções (alvos/linhas) section
+    const totalLinhas = inquerito.intercecaoAlvos.reduce((n, a) => n + a.linhas.length, 0)
+    lines.push('')
+    lines.push(`Interceções — Alvos/Linhas (${totalLinhas})`)
+    const intHeaders = [
+      'Suspeito',
+      'Código',
+      'Tipo',
+      'N.º Telefone / IMEI',
+      'Rede',
+      'Data Início',
+      'Data Fim',
+      '1.º aviso (dias)',
+      '2.º aviso (dias)',
+      'Observações',
+    ]
+    lines.push(intHeaders.map(escapeCSV).join(','))
+    for (const alvo of inquerito.intercecaoAlvos) {
+      if (alvo.linhas.length === 0) {
+        // Alvo sem linhas: uma linha só com o suspeito/código.
+        lines.push([alvo.nome, alvo.codigo, '', '', '', '', '', '', '', alvo.observacoes ?? ''].map(escapeCSV).join(','))
+        continue
+      }
+      for (const l of alvo.linhas) {
+        lines.push(
+          [
+            alvo.nome,
+            alvo.codigo,
+            TIPO_LINHA_LABEL[l.tipo] ?? l.tipo,
+            l.identificador,
+            l.rede ?? '',
+            fmtDate(l.dataInicio),
+            fmtDate(l.dataFim),
+            l.alertaDias1 ?? '',
+            l.alertaDias2 ?? '',
+            l.observacoes ?? '',
+          ]
+            .map(escapeCSV)
+            .join(','),
+        )
+      }
+    }
+
+    // Spacer + interceções (produtos) section
+    const totalProdutos = inquerito.intercecaoAlvos.reduce((n, a) => n + a.produtos.length, 0)
+    lines.push('')
+    lines.push(`Interceções — Produtos (${totalProdutos})`)
+    const prodHeaders = [
+      'Alvo (código)',
+      'Linha',
+      'Tipo de Produto',
+      'N.º Produto',
+      'Direção',
+      'Data',
+      'Hora Início',
+      'Hora Fim',
+      'De',
+      'Para',
+      'Resumo',
+      'Comentários',
+      'Registado por',
+    ]
+    lines.push(prodHeaders.map(escapeCSV).join(','))
+    for (const alvo of inquerito.intercecaoAlvos) {
+      for (const p of alvo.produtos) {
+        lines.push(
+          [
+            `${alvo.nome} (${alvo.codigo})`,
+            p.linha?.identificador ?? '',
+            TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo,
+            p.numeroProduto ?? '',
+            p.direcao ? DIRECAO_LABEL[p.direcao] : '',
+            fmtDate(p.data),
+            p.horaInicio ?? '',
+            p.horaFim ?? '',
+            p.de ?? '',
+            p.para ?? '',
+            p.resumo,
+            p.comentarios ?? '',
+            p.criadoPor.nome,
+          ]
+            .map(escapeCSV)
+            .join(','),
+        )
+      }
     }
 
     // UTF-8 BOM so Excel detects the encoding correctly

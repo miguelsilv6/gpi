@@ -24,6 +24,7 @@ export const NOTIFICATION_TIPO_LABELS: Record<TipoNotificacao, string> = {
   BUGREPORT_CRIADO: 'Novo relatório de bug',
   CONTROLO_APROXIMANDO: 'Controlo a aproximar-se',
   TRANSICAO_AUTOMATICA: 'Transição automática de estado',
+  INTERCECAO_A_TERMINAR: 'Interceção a terminar',
 }
 
 /**
@@ -44,6 +45,7 @@ export const NOTIFICATION_TIPO_DESCRIPTIONS: Record<TipoNotificacao, string> = {
   BUGREPORT_CRIADO: 'Disparada quando um utilizador submete um novo relatório de bug. Sem destinatário natural — só envia para os roles CC configurados (por defeito, ADMINISTRACAO).',
   CONTROLO_APROXIMANDO: 'Disparada quando um controlo periódico está prestes a vencer (configurable via alertaDias no controlo).',
   TRANSICAO_AUTOMATICA: 'Disparada quando um inquérito é movido automaticamente de estado por inatividade prolongada, segundo as regras de transição automática (Configurações → Transições). Notifica o inspetor do inquérito.',
+  INTERCECAO_A_TERMINAR: 'Disparada quando uma linha de interceção (escuta) se aproxima da data de fim — até 2 avisos com dias configuráveis por linha (por defeito 10 e 3 dias). Notifica o inspetor do inquérito.',
 }
 
 /**
@@ -68,6 +70,7 @@ export const NOTIFICATION_TIPO_HAS_NATURAL: Record<TipoNotificacao, boolean> = {
   BUGREPORT_CRIADO: false,
   CONTROLO_APROXIMANDO: true,
   TRANSICAO_AUTOMATICA: true,
+  INTERCECAO_A_TERMINAR: true,
 }
 
 /**

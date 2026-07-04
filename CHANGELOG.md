@@ -7,6 +7,34 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.52] — 2026-07-03
+
+### Adicionado
+- **Módulo Interceções (controlo de escutas)** — substitui o controlo em Excel:
+  - **Por inquérito** (novo cartão no detalhe + subpágina "Controlo de
+    Interceções"): registo de **alvos** (suspeito + código), **linhas
+    intercetadas** (SIM/IMEI/outro, n.º telefone ou IMEI, operadora, datas de
+    início e fim) e **produtos de interesse** (tipo — chamada, SMS, MMS, dados,
+    localização, outro —, n.º de produto, direção, data e horas, de/para,
+    resumo e comentários), com o registo paginado por alvo.
+  - **Alertas de fim de prazo**: até **2 avisos por linha** (dias
+    parametrizáveis; por defeito 10 e 3 dias antes do fim), verificados pela
+    rotina diária, com notificação ao inspetor do inquérito (novo tipo
+    "Interceção a terminar", configurável em Configurações → Notificações).
+    Alterar a data de fim (ex.: renovação) ou os dias de aviso **reativa os
+    alertas** automaticamente; linhas já vencidas sem aviso alertam uma vez.
+  - **Página global "Interceções"** na navegação: todas as linhas dos
+    inquéritos no âmbito do utilizador, com filtros (ativas / a expirar em 10
+    dias / todas), urgência e ligação direta ao inquérito.
+  - **Módulo opcional**: ativável/desativável em Configurações → Sistema →
+    Módulos, com perfis com acesso configuráveis (ADMINISTRACAO tem sempre).
+  - Exportação CSV do inquérito passa a incluir as secções "Interceções —
+    Alvos/Linhas" e "Interceções — Produtos"; todas as operações ficam no
+    registo de auditoria. O acesso segue o âmbito do inquérito (inspetor/
+    brigada/coordenação). A página de impressão **não** inclui interceções
+    (dados sensíveis — decisão deliberada); "contactos relevantes" e importação
+    do Excel ficam para versões futuras.
+
 ## [0.5.50] — 2026-07-03
 
 ### Adicionado

@@ -33,6 +33,7 @@ enum TipoNotificacao {
   BUGREPORT_CRIADO
   CONTROLO_APROXIMANDO
   TRANSICAO_AUTOMATICA
+  INTERCECAO_A_TERMINAR
 }
 
 enum SeveridadeBug {
@@ -68,6 +69,31 @@ enum TipoDiligencia {
   RECONSTITUICAO
   REUNIAO
   OUTRA
+}
+
+// ── Interceções de comunicações (escutas) ────────────────────────────────────
+
+// Tipo da linha intercetada (o que está sob escuta).
+enum TipoLinhaIntercecao {
+  SIM
+  IMEI
+  OUTRO
+}
+
+// Tipo de produto de interesse registado numa interceção.
+enum TipoProdutoIntercecao {
+  CHAMADA
+  SMS
+  MMS
+  DADOS
+  LOCALIZACAO
+  OUTRO
+}
+
+// Direção do produto relativamente ao alvo.
+enum DirecaoProdutoIntercecao {
+  EFETUADA
+  RECEBIDA
 }
 
 model Brigada {
@@ -138,6 +164,7 @@ model Utilizador {
   tarefasInquerito     TarefaInquerito[]
   relacoesInqueritoCriadas InqueritoRelacao[] @relation("RelacaoCriador")
   diligenciasCriadas   Diligencia[]  @relation("DiligenciaCriador")
+  intercecaoProdutosCriados IntercecaoProduto[] @relation("IntercecaoProdutoCriador")
 
   @@index([brigadaId])
   @@index([role])
@@ -238,6 +265,7 @@ model Inquerito {
   relacoesDestino InqueritoRelacao[] @relation("RelacaoDestino")
 
   diligencias     Diligencia[]
+  intercecaoAlvos IntercecaoAlvo[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -643,6 +671,10 @@ model ConfiguracaoSistema {
   // Comma-separated list of Role values allowed to use the Agenda when the
   // module is active. ADMINISTRACAO always has access and is never stored here.
   moduloAgendaRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // Módulo Interceções (controlo de escutas): quando desativado, a navegação
+  // esconde a página e as rotas API devolvem 503. ADMINISTRACAO tem sempre acesso.
+  moduloIntercecoesAtivo          Boolean  @default(true)
+  moduloIntercecoesRoles          String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Explicações por IA na Toolbox (LLM local via Ollama). Opt-in: o admin só
   // deve ativar depois de descarregar o modelo no container Ollama.
   toolboxIaAtivo                  Boolean  @default(false)
@@ -1056,4 +1088,88 @@ model Diligencia {
   @@index([inqueritoId])
   @@index([criadoPorId])
   @@index([dataInicio])
+}
+
+// ── Interceções de comunicações (escutas) ────────────────────────────────────
+// Espelha o documento de controlo em Excel: um ALVO (suspeito com código) tem
+// LINHAS intercetadas (SIM/IMEI com datas de autorização e alertas de fim) e
+// um registo de PRODUTOS de interesse (sessões relevantes). Dados do inquérito
+// — o acesso segue o scope do inquérito, não o criador.
+
+model IntercecaoAlvo {
+  id          String  @id @default(cuid())
+  nome        String  // suspeito
+  codigo      String  // código do alvo no sistema de interceção (ex.: "123")
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String
+
+  linhas   IntercecaoLinha[]
+  produtos IntercecaoProduto[]
+
+  @@unique([inqueritoid, codigo])
+  @@index([inqueritoid])
+}
+
+// Uma linha intercetada (cartão SIM, equipamento IMEI, …) com o período
+// autorizado. Até 2 alertas antes do fim (dias por linha, padrão Atividade);
+// os flags *Enviado garantem idempotência e são REPOSTOS quando dataFim ou os
+// dias de alerta mudam (ao contrário do padrão antigo, adiar o fim re-alerta).
+model IntercecaoLinha {
+  id            String   @id @default(cuid())
+  tipo          TipoLinhaIntercecao
+  identificador String   // nº de telefone ou IMEI
+  rede          String?  // operadora (MEO, Vodafone, NOS, …)
+  dataInicio    DateTime
+  dataFim       DateTime
+  alertaDias1   Int?     @default(10)
+  alertaDias2   Int?     @default(3)
+  alerta1Enviado Boolean @default(false)
+  alerta2Enviado Boolean @default(false)
+  observacoes   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  alvo   IntercecaoAlvo @relation(fields: [alvoId], references: [id], onDelete: Cascade)
+  alvoId String
+
+  produtos IntercecaoProduto[]
+
+  @@index([alvoId])
+  @@index([dataFim])
+}
+
+// Produto de interesse (sessão relevante) registado manualmente — espelha as
+// colunas da folha por alvo do Excel. `linha` é opcional: apagar a linha não
+// apaga o registo (SetNull).
+model IntercecaoProduto {
+  id            String   @id @default(cuid())
+  tipo          TipoProdutoIntercecao
+  numeroProduto String?  // nº do produto/sessão no sistema de interceção
+  direcao       DirecaoProdutoIntercecao?
+  data          DateTime
+  horaInicio    String?  // "HH:mm"
+  horaFim       String?  // "HH:mm"
+  de            String?
+  para          String?
+  resumo        String
+  comentarios   String?
+  createdAt     DateTime @default(now())
+
+  alvo   IntercecaoAlvo @relation(fields: [alvoId], references: [id], onDelete: Cascade)
+  alvoId String
+
+  linha   IntercecaoLinha? @relation(fields: [linhaId], references: [id], onDelete: SetNull)
+  linhaId String?
+
+  criadoPor   Utilizador @relation("IntercecaoProdutoCriador", fields: [criadoPorId], references: [id])
+  criadoPorId String
+
+  @@index([alvoId, data])
+  @@index([alvoId])
+  @@index([linhaId])
+  @@index([criadoPorId])
 }

@@ -56,6 +56,15 @@ export const ACAO_LABELS: Record<string, string> = {
   DELETE_TAREFA_INQUERITO: 'Tarefa eliminada',
   CREATE_CONFIG_SISTEMA: 'Configurações do sistema criadas',
   UPDATE_CONFIG_SISTEMA: 'Configurações do sistema alteradas',
+  CREATE_INTERCECAO_ALVO: 'Alvo de interceção criado',
+  UPDATE_INTERCECAO_ALVO: 'Alvo de interceção alterado',
+  DELETE_INTERCECAO_ALVO: 'Alvo de interceção eliminado',
+  CREATE_INTERCECAO_LINHA: 'Linha de interceção criada',
+  UPDATE_INTERCECAO_LINHA: 'Linha de interceção alterada',
+  DELETE_INTERCECAO_LINHA: 'Linha de interceção eliminada',
+  CREATE_INTERCECAO_PRODUTO: 'Produto de interceção registado',
+  UPDATE_INTERCECAO_PRODUTO: 'Produto de interceção alterado',
+  DELETE_INTERCECAO_PRODUTO: 'Produto de interceção eliminado',
 }
 
 /** Cor categórica para os badges de acao em listas. */
@@ -167,6 +176,25 @@ export const FIELD_LABELS: Record<string, string> = {
   moduloBugReportsRoles: 'Perfis com acesso (Reportar Bug)',
   moduloAnexosAtivo: 'Módulo Anexos',
   moduloAnexosRoles: 'Perfis com acesso (Anexos)',
+  moduloIntercecoesAtivo: 'Módulo Interceções',
+  moduloIntercecoesRoles: 'Perfis com acesso (Interceções)',
+  // Interceções
+  nome: 'Nome',
+  codigo: 'Código',
+  tipo: 'Tipo',
+  identificador: 'N.º telefone / IMEI',
+  rede: 'Rede',
+  dataInicio: 'Data de início',
+  dataFim: 'Data de fim',
+  data: 'Data',
+  numeroProduto: 'N.º produto',
+  direcao: 'Direção',
+  horaInicio: 'Hora de início',
+  horaFim: 'Hora de fim',
+  de: 'De',
+  para: 'Para',
+  resumo: 'Resumo',
+  comentarios: 'Comentários',
   // Bulk markers
   __bulk__: '(lote)',
   __bulk_export__: '(exportação)',
@@ -177,6 +205,9 @@ export const DATE_FIELDS = new Set([
   'dataPrazo',
   'dataConclusao',
   'dataRealizacao',
+  'dataInicio',
+  'dataFim',
+  'data',
 ])
 export const DATETIME_FIELDS = new Set(['concluidaEm', 'concluidoEm', 'createdAt'])
 

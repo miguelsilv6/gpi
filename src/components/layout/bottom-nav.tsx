@@ -13,9 +13,10 @@ interface BottomNavProps {
   moduloBugReportsAtivo?: boolean
   moduloToolboxAtivo?: boolean
   moduloAgendaAtivo?: boolean
+  moduloIntercecoesAtivo?: boolean
 }
 
-export function BottomNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, moduloAgendaAtivo = true }: BottomNavProps) {
+export function BottomNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, moduloAgendaAtivo = true, moduloIntercecoesAtivo = true }: BottomNavProps) {
   const pathname = usePathname()
   const items = filterNavItems(role, {
     moduloAjudasAtivo,
@@ -23,6 +24,7 @@ export function BottomNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = 
     moduloBugReportsAtivo,
     moduloToolboxAtivo,
     moduloAgendaAtivo,
+    moduloIntercecoesAtivo,
   }).slice(0, 5)
 
   return (

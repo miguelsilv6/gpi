@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { timingSafeEqual, createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createNotification, notifyAtividadePrazo, escalateOverdueToChefes, escalateUrgentToChefes } from '@/lib/notifications'
+import { checkIntercecoesATerminar } from '@/lib/intercecoes'
 import { childLogger } from '@/lib/logger'
 
 const log = childLogger({ subsystem: 'cron/deadline-check' })
@@ -163,10 +164,14 @@ export async function POST(req: NextRequest) {
 
     await Promise.allSettled(jobs)
 
+    // Interceções: alertas de fim de linha (paridade com o worker interno).
+    const intercecoes = await checkIntercecoesATerminar(now)
+
     return Response.json({
       inqueritos: { approaching: approaching.length, overdue: overdue.length },
       atividades: atividadesComPrazo.length,
-      notified: jobs.length,
+      intercecoes: intercecoes.alertas,
+      notified: jobs.length + intercecoes.alertas,
     })
   } catch (error) {
     log.error({ err: error }, 'deadline-check route failed')

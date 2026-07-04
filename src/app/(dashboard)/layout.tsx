@@ -32,6 +32,8 @@ export default async function DashboardLayout({
       moduloToolboxRoles: true,
       moduloAgendaAtivo: true,
       moduloAgendaRoles: true,
+      moduloIntercecoesAtivo: true,
+      moduloIntercecoesRoles: true,
       sessaoTimeoutMinutos: true,
     },
   })
@@ -66,12 +68,13 @@ export default async function DashboardLayout({
   const moduloBugReportsAtivo = checkModuloAcesso(sysConfig?.moduloBugReportsAtivo, sysConfig?.moduloBugReportsRoles)
   const moduloToolboxAtivo = checkModuloAcesso(sysConfig?.moduloToolboxAtivo, sysConfig?.moduloToolboxRoles)
   const moduloAgendaAtivo = checkModuloAcesso(sysConfig?.moduloAgendaAtivo, sysConfig?.moduloAgendaRoles)
+  const moduloIntercecoesAtivo = checkModuloAcesso(sysConfig?.moduloIntercecoesAtivo, sysConfig?.moduloIntercecoesRoles)
 
   return (
     <div className="flex h-screen bg-muted/30">
       {/* Sidebar — desktop only */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-background shrink-0">
-        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} />
+        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} />
       </aside>
 
       {/* Main content */}
@@ -87,6 +90,7 @@ export default async function DashboardLayout({
           moduloBugReportsAtivo={moduloBugReportsAtivo}
           moduloToolboxAtivo={moduloToolboxAtivo}
           moduloAgendaAtivo={moduloAgendaAtivo}
+          moduloIntercecoesAtivo={moduloIntercecoesAtivo}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
@@ -95,7 +99,7 @@ export default async function DashboardLayout({
       </div>
 
       {/* Bottom nav — mobile only */}
-      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} />
+      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} />
 
       <IdleTimeoutGuard timeoutMinutes={sysConfig?.sessaoTimeoutMinutos ?? 0} />
     </div>

@@ -14,6 +14,7 @@ import { fetchLatestRelease, isNewerVersion } from '@/lib/updates/github'
 import { reconcileFromStatusFile, processAvailableUpdates } from '@/lib/updates/orchestrator'
 import { isTerminal, type UpdateState } from '@/lib/updates/state-machine'
 import { runAutoTransicoes } from '@/lib/auto-transicao'
+import { checkIntercecoesATerminar } from '@/lib/intercecoes'
 import { APP_VERSION } from '@/lib/version'
 
 const log = childLogger({ subsystem: 'cron' })
@@ -500,12 +501,17 @@ export async function runDeadlineCheck() {
   }
 
   await Promise.allSettled(jobs)
+
+  // Interceções: alertas de fim de linha (aguarda internamente os envios).
+  const intercecoes = await checkIntercecoesATerminar(new Date())
+
   log.info(
     {
       approaching: approaching.length,
       overdue: overdue.length,
       urgent: urgentCount,
       controlos: controlosAlertas,
+      intercecoes: intercecoes.alertas,
     },
     'Deadline check completed',
   )
