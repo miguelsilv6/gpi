@@ -64,6 +64,7 @@ export const ACAO_LABELS: Record<string, string> = {
   DELETE_INTERCECAO_LINHA: 'Linha de interceção eliminada',
   RENOVAR_INTERCECAO_LINHA: 'Interceção renovada',
   EXPORT_INTERCECOES_XLSX: 'Interceções exportadas (Excel)',
+  EXPORT_TRANSCRICOES_XLSX: 'Produtos para transcrição exportados (Excel)',
   CREATE_INTERCECAO_PRODUTO: 'Produto de interceção registado',
   UPDATE_INTERCECAO_PRODUTO: 'Produto de interceção alterado',
   DELETE_INTERCECAO_PRODUTO: 'Produto de interceção eliminado',

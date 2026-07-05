@@ -198,3 +198,62 @@ export function buildIntercecoesWorkbook(data: XlsxData): ExcelJS.Workbook {
 
   return wb
 }
+
+export interface TranscricaoData {
+  nuipc: string
+  alvos: Array<{ nome: string; codigo: string; produtos: XlsxProduto[] }>
+}
+
+/**
+ * Relatório dos produtos marcados para transcrição — uma folha plana com todos
+ * os produtos com `paraTranscricao` do inquérito (worklist do transcritor).
+ * Puro/testável. Produtos não marcados são ignorados.
+ */
+export function buildTranscricaoWorkbook(data: TranscricaoData): ExcelJS.Workbook {
+  const wb = new ExcelJS.Workbook()
+  wb.creator = 'GPI'
+  wb.created = new Date()
+
+  const ws = wb.addWorksheet('Para transcrição')
+  ws.columns = [
+    { header: 'Alvo', key: 'alvo', width: 26 },
+    { header: 'Código', key: 'codigo', width: 12 },
+    { header: 'Linha', key: 'linha', width: 20 },
+    { header: 'Tipo de Produto', key: 'tipo', width: 16 },
+    { header: 'Nº Produto', key: 'numeroProduto', width: 14 },
+    { header: 'Direção', key: 'direcao', width: 12 },
+    { header: 'Data', key: 'data', width: 14 },
+    { header: 'Hora Início', key: 'horaInicio', width: 12 },
+    { header: 'Hora Fim', key: 'horaFim', width: 12 },
+    { header: 'Duração', key: 'duracao', width: 12 },
+    { header: 'De', key: 'de', width: 18 },
+    { header: 'Para', key: 'para', width: 18 },
+    { header: 'Descrição/Resumo', key: 'resumo', width: 60 },
+    { header: 'Comentários', key: 'comentarios', width: 34 },
+  ]
+  for (const alvo of data.alvos) {
+    for (const p of alvo.produtos) {
+      if (!p.paraTranscricao) continue
+      const row = ws.addRow({
+        alvo: alvo.nome,
+        codigo: alvo.codigo,
+        linha: p.linha?.identificador ?? '',
+        tipo: TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo,
+        numeroProduto: p.numeroProduto ?? '',
+        direcao: p.direcao ? DIRECAO_LABEL[p.direcao] : '',
+        data: fmtData(p.data),
+        horaInicio: p.horaInicio ?? '',
+        horaFim: p.horaFim ?? '',
+        duracao: p.duracao ?? '',
+        de: p.de ?? '',
+        para: p.para ?? '',
+        resumo: p.resumo,
+        comentarios: p.comentarios ?? '',
+      })
+      row.getCell('resumo').alignment = { wrapText: true, vertical: 'top' }
+      row.getCell('comentarios').alignment = { wrapText: true, vertical: 'top' }
+    }
+  }
+  styleHeader(ws)
+  return wb
+}

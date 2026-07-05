@@ -7,6 +7,22 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.58] — 2026-07-05
+
+### Adicionado
+- **Interceções — relatório de transcrição**: novo botão "Transcrições" na
+  subpágina de interceções que exporta em Excel **apenas os produtos marcados
+  para transcrição** (worklist do transcritor), numa folha única com alvo,
+  linha, data/hora, duração, de/para e descrição.
+- **Página global "Interceções" agrupada por inquérito**: as linhas passam a
+  estar organizadas por **inquérito** (NUIPC) e, dentro deste, **por alvo**, em
+  vez de uma tabela plana.
+
+### Corrigido
+- **Horas de início/fim (mobile)**: no formulário de produto de interesse, os
+  campos "Hora início" e "Hora fim" passam a **empilhar** (um por baixo do
+  outro) em ecrãs estreitos, ficando lado a lado apenas a partir de tablets.
+
 ## [0.5.56] — 2026-07-04
 
 ### Corrigido
