@@ -9,7 +9,7 @@ import { isTerminal } from '@/lib/inquerito-state'
 import { slugToNuipc } from '@/lib/utils'
 import { AccessDenied } from '@/components/access-denied'
 import { IntercecoesView, type AlvoDTO } from '@/components/intercecoes/intercecoes-view'
-import { ChevronLeft, FileSpreadsheet } from 'lucide-react'
+import { ChevronLeft, FileSpreadsheet, FileText } from 'lucide-react'
 import type { Role } from '@/generated/prisma/enums'
 
 export const dynamic = 'force-dynamic'
@@ -85,6 +85,12 @@ export default async function IntercecoesInqueritoPage({
   }))
 
   const temAlvos = alvos.length > 0
+  // Produtos marcados para transcrição (para o botão de relatório dedicado).
+  const transcricoesCount = temAlvos
+    ? await prisma.intercecaoProduto.count({
+        where: { alvo: { inqueritoid: inquerito.id }, paraTranscricao: true },
+      })
+    : 0
 
   // Como nas atividades: edição bloqueada em estados terminais.
   const canEdit =
@@ -110,13 +116,25 @@ export default async function IntercecoesInqueritoPage({
           </p>
         </div>
         {temAlvos && (
-          <a
-            href={`/api/inqueritos/${slug}/intercecoes/export`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground shrink-0"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Exportar Excel
-          </a>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <a
+              href={`/api/inqueritos/${slug}/intercecoes/export`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar Excel
+            </a>
+            {transcricoesCount > 0 && (
+              <a
+                href={`/api/inqueritos/${slug}/intercecoes/export-transcricao`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-amber-100 dark:hover:bg-amber-950/50"
+                title="Exportar apenas os produtos marcados para transcrição"
+              >
+                <FileText className="h-4 w-4" />
+                Transcrições ({transcricoesCount})
+              </a>
+            )}
+          </div>
         )}
       </div>
 

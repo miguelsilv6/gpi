@@ -1,5 +1,10 @@
 import { describe, test, expect } from 'vitest'
-import { buildIntercecoesWorkbook, type XlsxData } from '@/lib/intercecoes-xlsx'
+import {
+  buildIntercecoesWorkbook,
+  buildTranscricaoWorkbook,
+  type XlsxData,
+  type TranscricaoData,
+} from '@/lib/intercecoes-xlsx'
 
 function sampleData(): XlsxData {
   return {
@@ -135,5 +140,62 @@ describe('buildIntercecoesWorkbook', () => {
     const wb = buildIntercecoesWorkbook(data)
     const sheet = wb.worksheets[1]
     expect(sheet.name.length).toBeLessThanOrEqual(31)
+  })
+})
+
+describe('buildTranscricaoWorkbook', () => {
+  function mkProduto(paraTranscricao: boolean, resumo: string): TranscricaoData['alvos'][number]['produtos'][number] {
+    return {
+      tipo: 'CHAMADA',
+      numeroProduto: null,
+      direcao: 'EFETUADA',
+      data: new Date('2026-05-06T00:00:00Z'),
+      horaInicio: '09:30',
+      horaFim: '09:45',
+      duracao: '15:00',
+      paraTranscricao,
+      de: '911',
+      para: '922',
+      resumo,
+      comentarios: null,
+      linha: { identificador: '912345678' },
+    }
+  }
+
+  test('inclui apenas os produtos marcados para transcrição', () => {
+    const data: TranscricaoData = {
+      nuipc: '1/24',
+      alvos: [
+        { nome: 'Alvo A', codigo: '111', produtos: [mkProduto(true, 'transcrever-1'), mkProduto(false, 'ignorar')] },
+        { nome: 'Alvo B', codigo: '222', produtos: [mkProduto(true, 'transcrever-2')] },
+      ],
+    }
+    const wb = buildTranscricaoWorkbook(data)
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['Para transcrição'])
+
+    const ws = wb.getWorksheet('Para transcrição')!
+    // Cabeçalho + 2 produtos marcados.
+    expect(ws.rowCount).toBe(3)
+    const header = ws.getRow(1).values as unknown[]
+    expect(header).toContain('Alvo')
+    expect(header).toContain('Duração')
+    expect(header).not.toContain('Transcrição') // implícito — todos são para transcrever
+
+    const resumos: unknown[] = []
+    ws.eachRow((r, n) => {
+      if (n > 1) resumos.push(r.getCell(13).value)
+    })
+    expect(resumos).toContain('transcrever-1')
+    expect(resumos).toContain('transcrever-2')
+    expect(resumos).not.toContain('ignorar')
+  })
+
+  test('sem produtos marcados → folha só com cabeçalho', () => {
+    const data: TranscricaoData = {
+      nuipc: 'x',
+      alvos: [{ nome: 'A', codigo: '1', produtos: [mkProduto(false, 'x')] }],
+    }
+    const ws = buildTranscricaoWorkbook(data).getWorksheet('Para transcrição')!
+    expect(ws.rowCount).toBe(1)
   })
 })

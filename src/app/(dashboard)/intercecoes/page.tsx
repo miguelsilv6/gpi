@@ -66,6 +66,40 @@ export default async function IntercecoesPage({
     return qs ? `/intercecoes?${qs}` : '/intercecoes'
   }
 
+  // Agrupa as linhas por inquérito → alvo, preservando a ordem (data de fim asc).
+  type LinhaItem = (typeof items)[number]
+  const grupos: Array<{
+    nuipc: string
+    slug: string
+    inspetor: string | null
+    alvos: Array<{ id: string; nome: string; codigo: string; linhas: LinhaItem[] }>
+  }> = []
+  const grupoPorNuipc = new Map<string, number>()
+  const alvoPorChave = new Map<string, number>()
+  for (const l of items) {
+    const nuipc = l.alvo.inquerito.nuipc
+    let gi = grupoPorNuipc.get(nuipc)
+    if (gi === undefined) {
+      gi = grupos.length
+      grupoPorNuipc.set(nuipc, gi)
+      grupos.push({
+        nuipc,
+        slug: nuipcToSlug(nuipc),
+        inspetor: l.alvo.inquerito.inspetor?.nome ?? null,
+        alvos: [],
+      })
+    }
+    const g = grupos[gi]
+    const chave = `${nuipc}|${l.alvo.id}`
+    let ai = alvoPorChave.get(chave)
+    if (ai === undefined) {
+      ai = g.alvos.length
+      alvoPorChave.set(chave, ai)
+      g.alvos.push({ id: l.alvo.id, nome: l.alvo.nome, codigo: l.alvo.codigo, linhas: [] })
+    }
+    g.alvos[ai].linhas.push(l)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -121,65 +155,75 @@ export default async function IntercecoesPage({
           {EMPTY_TEXT[estado]}
         </div>
       ) : (
-        <div className="rounded-xl border bg-background overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">Suspeito</th>
-                <th className="px-4 py-2.5 font-medium">Inquérito</th>
-                <th className="px-4 py-2.5 font-medium">Linha</th>
-                <th className="px-4 py-2.5 font-medium">Rede</th>
-                <th className="px-4 py-2.5 font-medium">Início</th>
-                <th className="px-4 py-2.5 font-medium">Fim</th>
-                <th className="px-4 py-2.5 font-medium">Prazo</th>
-                <th className="px-4 py-2.5 font-medium">Inspetor</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {items.map((l) => {
-                const terminada = estadoLinha(l.dataFim) === 'terminada'
-                const slug = nuipcToSlug(l.alvo.inquerito.nuipc)
-                return (
-                  <tr key={l.id} className={cn(terminada && 'opacity-60')}>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      <span className="font-medium">{l.alvo.nome}</span>{' '}
-                      <span className="text-[11px] font-mono text-muted-foreground">({l.alvo.codigo})</span>
-                    </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      <Link
-                        href={`/inqueritos/${slug}/intercecoes`}
-                        className="font-mono text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        {l.alvo.inquerito.nuipc}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      {TIPO_LINHA_LABEL[l.tipo]}{' '}
-                      <span className="font-mono">{l.identificador}</span>
-                    </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{l.rede ?? '—'}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{formatDate(l.dataInicio)}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{formatDate(l.dataFim)}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      {terminada ? (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                          Terminada
-                        </span>
-                      ) : (
-                        <PrazoUrgencyBadge
-                          dataPrazo={l.dataFim}
-                          alertaDias={l.alertaDias1 ?? INTERCECAO_ALERTA1_DEFAULT}
-                        />
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground">
-                      {l.alvo.inquerito.inspetor?.nome ?? '—'}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          {grupos.map((g) => (
+            <div key={g.nuipc} className="rounded-xl border bg-background overflow-hidden">
+              <div className="flex items-center justify-between gap-3 flex-wrap border-b bg-muted/50 px-4 py-2.5">
+                <Link
+                  href={`/inqueritos/${g.slug}/intercecoes`}
+                  className="font-mono text-sm text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {g.nuipc}
+                </Link>
+                <span className="text-xs text-muted-foreground">
+                  {g.inspetor ?? 'Sem inspetor'} · {g.alvos.length} alvo{g.alvos.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="divide-y">
+                {g.alvos.map((a) => (
+                  <div key={a.id} className="px-4 py-3">
+                    <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                      <span className="font-medium text-sm truncate">{a.nome}</span>
+                      <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted shrink-0">
+                        código {a.codigo}
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="text-left text-xs text-muted-foreground">
+                          <tr>
+                            <th className="py-1 pr-3 font-medium">Linha</th>
+                            <th className="py-1 pr-3 font-medium">Rede</th>
+                            <th className="py-1 pr-3 font-medium">Início</th>
+                            <th className="py-1 pr-3 font-medium">Fim</th>
+                            <th className="py-1 pr-3 font-medium">Prazo</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {a.linhas.map((l) => {
+                            const terminada = estadoLinha(l.dataFim) === 'terminada'
+                            return (
+                              <tr key={l.id} className={cn(terminada && 'opacity-60')}>
+                                <td className="py-1.5 pr-3 whitespace-nowrap">
+                                  {TIPO_LINHA_LABEL[l.tipo]}{' '}
+                                  <span className="font-mono">{l.identificador}</span>
+                                </td>
+                                <td className="py-1.5 pr-3 whitespace-nowrap">{l.rede ?? '—'}</td>
+                                <td className="py-1.5 pr-3 whitespace-nowrap">{formatDate(l.dataInicio)}</td>
+                                <td className="py-1.5 pr-3 whitespace-nowrap">{formatDate(l.dataFim)}</td>
+                                <td className="py-1.5 pr-3 whitespace-nowrap">
+                                  {terminada ? (
+                                    <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                                      Terminada
+                                    </span>
+                                  ) : (
+                                    <PrazoUrgencyBadge
+                                      dataPrazo={l.dataFim}
+                                      alertaDias={l.alertaDias1 ?? INTERCECAO_ALERTA1_DEFAULT}
+                                    />
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
