@@ -72,7 +72,7 @@ export default async function IntercecoesPage({
     nuipc: string
     slug: string
     inspetor: string | null
-    alvos: Array<{ id: string; nome: string; codigo: string; linhas: LinhaItem[] }>
+    alvos: Array<{ id: string; nome: string; linhas: LinhaItem[] }>
   }> = []
   const grupoPorNuipc = new Map<string, number>()
   const alvoPorChave = new Map<string, number>()
@@ -95,7 +95,7 @@ export default async function IntercecoesPage({
     if (ai === undefined) {
       ai = g.alvos.length
       alvoPorChave.set(chave, ai)
-      g.alvos.push({ id: l.alvo.id, nome: l.alvo.nome, codigo: l.alvo.codigo, linhas: [] })
+      g.alvos.push({ id: l.alvo.id, nome: l.alvo.nome, linhas: [] })
     }
     g.alvos[ai].linhas.push(l)
   }
@@ -174,15 +174,13 @@ export default async function IntercecoesPage({
                   <div key={a.id} className="px-4 py-3">
                     <div className="flex items-center gap-2 mb-1.5 min-w-0">
                       <span className="font-medium text-sm truncate">{a.nome}</span>
-                      <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted shrink-0">
-                        código {a.codigo}
-                      </span>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead className="text-left text-xs text-muted-foreground">
                           <tr>
                             <th className="py-1 pr-3 font-medium">Linha</th>
+                            <th className="py-1 pr-3 font-medium">Código</th>
                             <th className="py-1 pr-3 font-medium">Rede</th>
                             <th className="py-1 pr-3 font-medium">Início</th>
                             <th className="py-1 pr-3 font-medium">Fim</th>
@@ -198,6 +196,7 @@ export default async function IntercecoesPage({
                                   {TIPO_LINHA_LABEL[l.tipo]}{' '}
                                   <span className="font-mono">{l.identificador}</span>
                                 </td>
+                                <td className="py-1.5 pr-3 whitespace-nowrap font-mono text-xs">{l.codigo}</td>
                                 <td className="py-1.5 pr-3 whitespace-nowrap">{l.rede ?? '—'}</td>
                                 <td className="py-1.5 pr-3 whitespace-nowrap">{formatDate(l.dataInicio)}</td>
                                 <td className="py-1.5 pr-3 whitespace-nowrap">{formatDate(l.dataFim)}</td>

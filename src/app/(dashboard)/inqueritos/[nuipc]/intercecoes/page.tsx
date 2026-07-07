@@ -73,9 +73,9 @@ export default async function IntercecoesInqueritoPage({
   const alvos: AlvoDTO[] = alvosRaw.map((a) => ({
     id: a.id,
     nome: a.nome,
-    codigo: a.codigo,
     observacoes: a.observacoes,
     notas: a.notas,
+    acompanhamento: a.acompanhamento,
     produtos: a._count.produtos,
     linhas: a.linhas.map((l) => ({
       ...l,
@@ -99,7 +99,8 @@ export default async function IntercecoesInqueritoPage({
     !isTerminal(inquerito.estado)
 
   return (
-    <div className="space-y-4 max-w-4xl">
+    // Desktop: painel com o dobro da largura anterior (max-w-4xl → 112rem).
+    <div className="space-y-4 max-w-4xl xl:max-w-[112rem]">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <Link

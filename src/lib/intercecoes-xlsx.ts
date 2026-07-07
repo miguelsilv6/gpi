@@ -1,9 +1,10 @@
 /**
  * Exportação de interceções para Excel (.xlsx), fiel ao modelo de controlo de
  * escutas usado em papel: uma folha **"Alvos"** (um registo por linha SIM/IMEI)
- * e uma folha **por código de alvo** com os produtos de interesse. Acrescenta
- * as colunas da v2 — Notas (por alvo), Renovações (por linha), Duração e
- * Transcrição (por produto).
+ * e uma folha **por alvo** (nome do suspeito) com os produtos de interesse.
+ * O código pertence a cada LINHA (não ao alvo — cada tipo de interceção tem o
+ * seu próprio código no sistema). Acrescenta as colunas da v2 — Notas (por
+ * alvo), Renovações (por linha), Duração e Transcrição (por produto).
  *
  * `buildIntercecoesWorkbook` é puro (recebe dados simples, devolve o workbook),
  * portanto testável sem base de dados nem rota HTTP.
@@ -21,6 +22,7 @@ import type {
 } from '@/generated/prisma/enums'
 
 export interface XlsxLinha {
+  codigo: string
   tipo: TipoLinhaIntercecao
   identificador: string
   rede: string | null
@@ -43,12 +45,11 @@ export interface XlsxProduto {
   para: string | null
   resumo: string
   comentarios: string | null
-  linha: { identificador: string } | null
+  linha: { identificador: string; codigo: string } | null
 }
 
 export interface XlsxAlvo {
   nome: string
-  codigo: string
   observacoes: string | null
   notas: string | null
   linhas: XlsxLinha[]
@@ -125,10 +126,10 @@ export function buildIntercecoesWorkbook(data: XlsxData): ExcelJS.Workbook {
   ]
   for (const alvo of data.alvos) {
     if (alvo.linhas.length === 0) {
-      // Alvo sem linhas: registo só com suspeito/código e as notas do alvo.
+      // Alvo sem linhas: registo só com suspeito e as notas do alvo (sem
+      // código — o código pertence a cada linha, que ainda não existe).
       alvosSheet.addRow({
         suspeito: alvo.nome,
-        codigo: alvo.codigo,
         observacoes: alvo.observacoes ?? '',
         notas: alvo.notas ?? '',
       })
@@ -137,7 +138,7 @@ export function buildIntercecoesWorkbook(data: XlsxData): ExcelJS.Workbook {
     for (const l of alvo.linhas) {
       alvosSheet.addRow({
         suspeito: alvo.nome,
-        codigo: alvo.codigo,
+        codigo: l.codigo,
         tipo: TIPO_LINHA_LABEL[l.tipo] ?? l.tipo,
         identificador: l.identificador,
         rede: l.rede ?? '',
@@ -151,15 +152,16 @@ export function buildIntercecoesWorkbook(data: XlsxData): ExcelJS.Workbook {
   }
   styleHeader(alvosSheet)
 
-  // ── Uma folha por código de alvo (produtos de interesse) ────────────────────
+  // ── Uma folha por alvo (nome do suspeito) com os produtos de interesse ─────
   const usedNames = new Set<string>(['alvos'])
   for (const alvo of data.alvos) {
-    const ws = wb.addWorksheet(safeSheetName(alvo.codigo, usedNames))
+    const ws = wb.addWorksheet(safeSheetName(alvo.nome, usedNames))
     ws.columns = [
       { header: 'Tipo de Produto', key: 'tipo', width: 18 },
       { header: 'Nº Produto', key: 'numeroProduto', width: 14 },
       { header: 'Direção', key: 'direcao', width: 12 },
       { header: 'Alvo', key: 'alvo', width: 20 },
+      { header: 'Código', key: 'codigo', width: 14 },
       { header: 'Data', key: 'data', width: 14 },
       { header: 'Hora Início', key: 'horaInicio', width: 12 },
       { header: 'Hora Fim', key: 'horaFim', width: 12 },
@@ -176,6 +178,7 @@ export function buildIntercecoesWorkbook(data: XlsxData): ExcelJS.Workbook {
         numeroProduto: p.numeroProduto ?? '',
         direcao: p.direcao ? DIRECAO_LABEL[p.direcao] : '',
         alvo: p.linha?.identificador ?? '',
+        codigo: p.linha?.codigo ?? '',
         data: fmtData(p.data),
         horaInicio: p.horaInicio ?? '',
         horaFim: p.horaFim ?? '',
@@ -201,7 +204,7 @@ export function buildIntercecoesWorkbook(data: XlsxData): ExcelJS.Workbook {
 
 export interface TranscricaoData {
   nuipc: string
-  alvos: Array<{ nome: string; codigo: string; produtos: XlsxProduto[] }>
+  alvos: Array<{ nome: string; produtos: XlsxProduto[] }>
 }
 
 /**
@@ -236,7 +239,7 @@ export function buildTranscricaoWorkbook(data: TranscricaoData): ExcelJS.Workboo
       if (!p.paraTranscricao) continue
       const row = ws.addRow({
         alvo: alvo.nome,
-        codigo: alvo.codigo,
+        codigo: p.linha?.codigo ?? '',
         linha: p.linha?.identificador ?? '',
         tipo: TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo,
         numeroProduto: p.numeroProduto ?? '',

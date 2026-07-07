@@ -22,6 +22,7 @@ const log = childLogger({ subsystem: 'intercecoes' })
 
 export const INTERCECAO_LINHA_SELECT = {
   id: true,
+  codigo: true,
   tipo: true,
   identificador: true,
   rede: true,
@@ -37,13 +38,13 @@ export const INTERCECAO_LINHA_SELECT = {
 export async function getIntercecoesTree(inqueritoId: string) {
   return prisma.intercecaoAlvo.findMany({
     where: { inqueritoid: inqueritoId },
-    orderBy: { codigo: 'asc' },
+    orderBy: { nome: 'asc' },
     select: {
       id: true,
       nome: true,
-      codigo: true,
       observacoes: true,
       notas: true,
+      acompanhamento: true,
       linhas: { orderBy: { dataFim: 'asc' }, select: INTERCECAO_LINHA_SELECT },
       _count: { select: { produtos: true } },
     },
@@ -123,7 +124,6 @@ export async function getLinhasGlobal(opts: {
           select: {
             id: true,
             nome: true,
-            codigo: true,
             inquerito: { select: { nuipc: true, inspetor: { select: { nome: true } } } },
           },
         },
@@ -159,6 +159,7 @@ export async function checkIntercecoesATerminar(now: Date = new Date()): Promise
     },
     select: {
       id: true,
+      codigo: true,
       tipo: true,
       identificador: true,
       dataFim: true,
@@ -169,7 +170,6 @@ export async function checkIntercecoesATerminar(now: Date = new Date()): Promise
       alvo: {
         select: {
           nome: true,
-          codigo: true,
           inquerito: { select: { id: true, nuipc: true, inspetorId: true } },
         },
       },
@@ -198,7 +198,7 @@ export async function checkIntercecoesATerminar(now: Date = new Date()): Promise
         applyPolicy({
           tipo: 'INTERCECAO_A_TERMINAR',
           titulo: `Interceção a terminar — ${inquerito.nuipc}`,
-          mensagem: `A interceção ${TIPO_LINHA_LABEL[linha.tipo as TipoLinhaIntercecao]} ${linha.identificador} (alvo «${linha.alvo.nome}», código ${linha.alvo.codigo}) ${quando}. ${n}.º aviso.`,
+          mensagem: `A interceção ${TIPO_LINHA_LABEL[linha.tipo as TipoLinhaIntercecao]} ${linha.identificador} (alvo «${linha.alvo.nome}», código ${linha.codigo}) ${quando}. ${n}.º aviso.`,
           inqueritoid: inquerito.id,
           naturalUserId: inquerito.inspetorId ?? null,
         })

@@ -7,6 +7,23 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.61] — 2026-07-07
+
+### Alterado
+- **Interceções — código por linha, não por alvo**: um alvo pode ter várias
+  interceções (SIM, IMEI, ...), cada uma com o seu próprio código — deixou
+  de existir um único código por alvo. O código é agora um campo obrigatório
+  de cada linha (único dentro do alvo), aparece numa coluna própria nas
+  tabelas e nas folhas Excel, e passa a estar ausente dos diálogos de alvo.
+- **Painel de interceções (desktop)**: a subpágina de controlo por inquérito
+  passa a ocupar o dobro da largura em ecrãs largos (`xl`).
+
+### Adicionado
+- **Acompanhamento por alvo**: cada alvo tem agora um campo de texto livre,
+  sempre visível no cartão (sem precisar de abrir um diálogo), para o
+  inspetor registar até onde já reviu as interceções e retomar dali na
+  próxima vez. Grava-se de forma independente das restantes edições do alvo.
+
 ## [0.5.60] — 2026-07-07
 
 ### Corrigido

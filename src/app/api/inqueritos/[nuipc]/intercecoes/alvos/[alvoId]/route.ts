@@ -31,31 +31,31 @@ export async function PUT(
     }
     const d = parsed.data
 
-    if (d.codigo !== undefined && d.codigo !== alvo.codigo) {
-      const duplicado = await prisma.intercecaoAlvo.findFirst({
-        where: { inqueritoid: ctx.inquerito.id, codigo: d.codigo, id: { not: alvo.id } },
-        select: { id: true },
-      })
-      if (duplicado) {
-        return apiError('Já existe um alvo com este código neste inquérito', 409)
-      }
-    }
-
     const updated = await prisma.intercecaoAlvo.update({
       where: { id: alvo.id },
       data: {
         ...(d.nome !== undefined && { nome: d.nome }),
-        ...(d.codigo !== undefined && { codigo: d.codigo }),
         // '' limpa o campo; omitido mantém.
         ...(d.observacoes !== undefined && { observacoes: d.observacoes.trim() || null }),
         ...(d.notas !== undefined && { notas: d.notas.trim() || null }),
+        ...(d.acompanhamento !== undefined && { acompanhamento: d.acompanhamento.trim() || null }),
       },
     })
 
     const changes = diff(
-      { nome: alvo.nome, codigo: alvo.codigo, observacoes: alvo.observacoes, notas: alvo.notas },
-      { nome: updated.nome, codigo: updated.codigo, observacoes: updated.observacoes, notas: updated.notas },
-      ['nome', 'codigo', 'observacoes', 'notas'],
+      {
+        nome: alvo.nome,
+        observacoes: alvo.observacoes,
+        notas: alvo.notas,
+        acompanhamento: alvo.acompanhamento,
+      },
+      {
+        nome: updated.nome,
+        observacoes: updated.observacoes,
+        notas: updated.notas,
+        acompanhamento: updated.acompanhamento,
+      },
+      ['nome', 'observacoes', 'notas', 'acompanhamento'],
     )
     if (changes) {
       await writeAudit({
@@ -103,7 +103,6 @@ export async function DELETE(
       detalhes: {
         nuipc: ctx.inquerito.nuipc,
         nome: alvo.nome,
-        codigo: alvo.codigo,
         linhas: alvo._count.linhas,
         produtos: alvo._count.produtos,
       },

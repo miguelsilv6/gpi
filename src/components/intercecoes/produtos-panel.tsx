@@ -28,6 +28,7 @@ import type {
 
 interface LinhaRef {
   id: string
+  codigo: string
   tipo: TipoLinhaIntercecao
   identificador: string
 }
@@ -404,7 +405,7 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                     {(v: string | null) => {
                       if (!v || v === NONE) return '—'
                       const l = linhas.find((x) => x.id === v)
-                      return l ? `${TIPO_LINHA_LABEL[l.tipo]} ${l.identificador}` : '—'
+                      return l ? `${TIPO_LINHA_LABEL[l.tipo]} ${l.identificador} (código ${l.codigo})` : '—'
                     }}
                   </SelectValue>
                 </SelectTrigger>
@@ -412,7 +413,7 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                   <SelectItem value={NONE}>—</SelectItem>
                   {linhas.map((l) => (
                     <SelectItem key={l.id} value={l.id}>
-                      {TIPO_LINHA_LABEL[l.tipo]} {l.identificador}
+                      {TIPO_LINHA_LABEL[l.tipo]} {l.identificador} (código {l.codigo})
                     </SelectItem>
                   ))}
                 </SelectContent>

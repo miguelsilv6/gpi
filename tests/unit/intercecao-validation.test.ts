@@ -49,9 +49,8 @@ describe('mapas de labels — exaustivos contra os enums', () => {
 
 describe('schemas', () => {
   test('alvo create: obrigatórios + "" → undefined nas observações', () => {
-    expect(intercecaoAlvoCreateSchema.safeParse({ nome: '', codigo: '1' }).success).toBe(false)
-    expect(intercecaoAlvoCreateSchema.safeParse({ nome: 'X', codigo: '' }).success).toBe(false)
-    const ok = intercecaoAlvoCreateSchema.safeParse({ nome: 'X', codigo: '123', observacoes: '' })
+    expect(intercecaoAlvoCreateSchema.safeParse({ nome: '' }).success).toBe(false)
+    const ok = intercecaoAlvoCreateSchema.safeParse({ nome: 'X', observacoes: '' })
     expect(ok.success).toBe(true)
     if (ok.success) expect(ok.data.observacoes).toBeUndefined()
   })
@@ -66,7 +65,7 @@ describe('schemas', () => {
   })
 
   test('linha create: dataFim >= dataInicio (refine)', () => {
-    const base = { tipo: 'SIM', identificador: '912345678' }
+    const base = { codigo: '1', tipo: 'SIM', identificador: '912345678' }
     expect(
       intercecaoLinhaCreateSchema.safeParse({ ...base, dataInicio: '2026-07-10', dataFim: '2026-07-01' }).success,
     ).toBe(false)
@@ -75,8 +74,15 @@ describe('schemas', () => {
     ).toBe(true)
   })
 
+  test('linha create: código obrigatório (cada linha tem o seu próprio código)', () => {
+    const base = { tipo: 'SIM', identificador: '912345678', dataInicio: '2026-01-01', dataFim: '2026-06-01' }
+    expect(intercecaoLinhaCreateSchema.safeParse(base).success).toBe(false) // codigo omitido
+    expect(intercecaoLinhaCreateSchema.safeParse({ ...base, codigo: '' }).success).toBe(false)
+    expect(intercecaoLinhaCreateSchema.safeParse({ ...base, codigo: '1' }).success).toBe(true)
+  })
+
   test('linha create: alertaDias fora de 0..365 é rejeitado; null é aceite (desligado)', () => {
-    const base = { tipo: 'IMEI', identificador: 'x', dataInicio: '2026-01-01', dataFim: '2026-06-01' }
+    const base = { codigo: '1', tipo: 'IMEI', identificador: 'x', dataInicio: '2026-01-01', dataFim: '2026-06-01' }
     expect(intercecaoLinhaCreateSchema.safeParse({ ...base, alertaDias1: -1 }).success).toBe(false)
     expect(intercecaoLinhaCreateSchema.safeParse({ ...base, alertaDias1: 366 }).success).toBe(false)
     expect(intercecaoLinhaCreateSchema.safeParse({ ...base, alertaDias1: null, alertaDias2: 0 }).success).toBe(true)
@@ -140,13 +146,26 @@ describe('schemas', () => {
   })
 
   test('alvo create/update: notas', () => {
-    const created = intercecaoAlvoCreateSchema.safeParse({ nome: 'X', codigo: '1', notas: '' })
+    const created = intercecaoAlvoCreateSchema.safeParse({ nome: 'X', notas: '' })
     expect(created.success).toBe(true)
     if (created.success) expect(created.data.notas).toBeUndefined()
     // update mantém "" (limpar) vs omitido
     const upd = intercecaoAlvoUpdateSchema.safeParse({ notas: 'relevante' })
     expect(upd.success).toBe(true)
     if (upd.success) expect(upd.data.notas).toBe('relevante')
+  })
+
+  test('alvo create/update: acompanhamento', () => {
+    const created = intercecaoAlvoCreateSchema.safeParse({ nome: 'X', acompanhamento: '' })
+    expect(created.success).toBe(true)
+    if (created.success) expect(created.data.acompanhamento).toBeUndefined()
+    // update mantém "" (limpar) vs omitido
+    const upd = intercecaoAlvoUpdateSchema.safeParse({ acompanhamento: 'revisto até 05/06, retomar produto #12' })
+    expect(upd.success).toBe(true)
+    if (upd.success) expect(upd.data.acompanhamento).toBe('revisto até 05/06, retomar produto #12')
+    const omitted = intercecaoAlvoUpdateSchema.safeParse({})
+    expect(omitted.success).toBe(true)
+    if (omitted.success) expect(omitted.data.acompanhamento).toBeUndefined()
   })
 
   test('renovar: novaDataFim obrigatória', () => {

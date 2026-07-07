@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -20,11 +20,12 @@ import {
   estadoLinha,
 } from '@/lib/validations/intercecao'
 import { formatDate, cn, iconButtonClasses } from '@/lib/utils'
-import { Loader2, Plus, Pencil, Trash2, RadioTower, Target, CalendarPlus, StickyNote } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, RadioTower, Target, CalendarPlus, StickyNote, Bookmark } from 'lucide-react'
 import type { TipoLinhaIntercecao } from '@/generated/prisma/enums'
 
 export interface LinhaDTO {
   id: string
+  codigo: string
   tipo: TipoLinhaIntercecao
   identificador: string
   rede: string | null
@@ -39,9 +40,9 @@ export interface LinhaDTO {
 export interface AlvoDTO {
   id: string
   nome: string
-  codigo: string
   observacoes: string | null
   notas: string | null
+  acompanhamento: string | null
   linhas: LinhaDTO[]
   produtos: number
 }
@@ -56,13 +57,13 @@ interface Props {
 
 interface AlvoForm {
   nome: string
-  codigo: string
   observacoes: string
   notas: string
 }
-const EMPTY_ALVO: AlvoForm = { nome: '', codigo: '', observacoes: '', notas: '' }
+const EMPTY_ALVO: AlvoForm = { nome: '', observacoes: '', notas: '' }
 
 interface LinhaForm {
+  codigo: string
   tipo: TipoLinhaIntercecao
   identificador: string
   rede: string
@@ -73,6 +74,7 @@ interface LinhaForm {
   observacoes: string
 }
 const EMPTY_LINHA: LinhaForm = {
+  codigo: '',
   tipo: 'SIM',
   identificador: '',
   rede: '',
@@ -85,6 +87,90 @@ const EMPTY_LINHA: LinhaForm = {
 
 function toDateInput(iso: string): string {
   return iso.slice(0, 10)
+}
+
+/**
+ * Acompanhamento por alvo — até onde o inspetor já reviu as interceções, para
+ * saber onde recomeçar numa próxima sessão. Sempre visível (não fica atrás de
+ * um diálogo) e edita-se diretamente no cartão, com guardar independente das
+ * restantes ações do alvo.
+ */
+function AcompanhamentoField({
+  base,
+  alvoId,
+  initial,
+  canEdit,
+  onSaved,
+}: {
+  base: string
+  alvoId: string
+  initial: string
+  canEdit: boolean
+  onSaved: () => void
+}) {
+  const [value, setValue] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  useEffect(() => setValue(initial), [initial])
+  const dirty = value !== initial
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const res = await fetch(`${base}/alvos/${alvoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acompanhamento: value }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success('Acompanhamento guardado')
+      onSaved()
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!canEdit) {
+    return (
+      <div className="rounded-md border bg-muted/20 px-3 py-2">
+        <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Bookmark className="h-3.5 w-3.5" /> Acompanhamento
+        </Label>
+        <p className="text-sm mt-1 whitespace-pre-wrap">
+          {initial || <span className="text-muted-foreground">Sem acompanhamento registado.</span>}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-md border bg-muted/20 px-3 py-2">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <Label htmlFor={`acompanhamento-${alvoId}`} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Bookmark className="h-3.5 w-3.5" /> Acompanhamento
+        </Label>
+        {dirty && (
+          <Button size="sm" className="h-6 text-xs px-2" onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+            Guardar
+          </Button>
+        )}
+      </div>
+      <Textarea
+        id={`acompanhamento-${alvoId}`}
+        rows={2}
+        placeholder="Até onde já acompanhaste as interceções deste alvo, para saberes onde recomeçar…"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="text-sm bg-background"
+      />
+    </div>
+  )
 }
 
 export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
@@ -109,7 +195,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
     setAlvoDialog({ mode: 'create' })
   }
   function openEditAlvo(a: AlvoDTO) {
-    setAlvoForm({ nome: a.nome, codigo: a.codigo, observacoes: a.observacoes ?? '', notas: a.notas ?? '' })
+    setAlvoForm({ nome: a.nome, observacoes: a.observacoes ?? '', notas: a.notas ?? '' })
     setAlvoDialog({ mode: 'edit', id: a.id })
   }
   function openCreateLinha(alvoId: string) {
@@ -118,6 +204,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
   }
   function openEditLinha(alvoId: string, l: LinhaDTO) {
     setLinhaForm({
+      codigo: l.codigo,
       tipo: l.tipo,
       identificador: l.identificador,
       rede: l.rede ?? '',
@@ -158,7 +245,6 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
     if (!alvoDialog) return
     const payload = {
       nome: alvoForm.nome,
-      codigo: alvoForm.codigo,
       observacoes: alvoForm.observacoes,
       notas: alvoForm.notas,
     }
@@ -174,7 +260,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
   }
 
   async function handleDeleteAlvo(a: AlvoDTO) {
-    if (!confirm(`Eliminar o alvo «${a.nome}» (código ${a.codigo})? As linhas e os produtos associados são também eliminados.`)) return
+    if (!confirm(`Eliminar o alvo «${a.nome}»? As linhas e os produtos associados são também eliminados.`)) return
     if (await submit(`${base}/alvos/${a.id}`, 'DELETE')) {
       toast.success('Alvo eliminado')
       router.refresh()
@@ -191,6 +277,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
   async function handleLinhaSubmit() {
     if (!linhaDialog) return
     const payload = {
+      codigo: linhaForm.codigo,
       tipo: linhaForm.tipo,
       identificador: linhaForm.identificador,
       rede: linhaForm.rede,
@@ -212,7 +299,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
   }
 
   async function handleDeleteLinha(l: LinhaDTO) {
-    if (!confirm(`Eliminar a linha ${TIPO_LINHA_LABEL[l.tipo]} ${l.identificador}? Os produtos registados mantêm-se (sem linha associada).`)) return
+    if (!confirm(`Eliminar a linha ${TIPO_LINHA_LABEL[l.tipo]} ${l.identificador} (código ${l.codigo})? Os produtos registados mantêm-se (sem linha associada).`)) return
     if (await submit(`${base}/linhas/${l.id}`, 'DELETE')) {
       toast.success('Linha eliminada')
       router.refresh()
@@ -259,9 +346,6 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
               <div className="flex items-center gap-2 min-w-0">
                 <Target className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="font-semibold truncate">{alvo.nome}</span>
-                <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted shrink-0">
-                  código {alvo.codigo}
-                </span>
               </div>
               {canEdit && (
                 <div className="flex items-center gap-1 shrink-0">
@@ -298,6 +382,13 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
             )}
           </CardHeader>
           <CardContent className="space-y-3">
+            <AcompanhamentoField
+              base={base}
+              alvoId={alvo.id}
+              initial={alvo.acompanhamento ?? ''}
+              canEdit={canEdit}
+              onSaved={() => router.refresh()}
+            />
             {alvo.linhas.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem linhas intercetadas.</p>
             ) : (
@@ -306,6 +397,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                   <thead className="border-b text-left text-xs text-muted-foreground">
                     <tr>
                       <th className="py-1.5 pr-3 font-medium">Tipo</th>
+                      <th className="py-1.5 pr-3 font-medium">Código</th>
                       <th className="py-1.5 pr-3 font-medium">N.º telefone / IMEI</th>
                       <th className="py-1.5 pr-3 font-medium">Rede</th>
                       <th className="py-1.5 pr-3 font-medium">Início</th>
@@ -321,6 +413,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                       return (
                         <tr key={l.id} className={cn(terminada && 'opacity-60')}>
                           <td className="py-2 pr-3 whitespace-nowrap">{TIPO_LINHA_LABEL[l.tipo]}</td>
+                          <td className="py-2 pr-3 font-mono whitespace-nowrap">{l.codigo}</td>
                           <td className="py-2 pr-3 font-mono whitespace-nowrap">{l.identificador}</td>
                           <td className="py-2 pr-3 whitespace-nowrap">{l.rede ?? '—'}</td>
                           <td className="py-2 pr-3 whitespace-nowrap">{formatDate(l.dataInicio)}</td>
@@ -394,7 +487,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
               nuipcSlug={nuipcSlug}
               alvoId={alvo.id}
               totalInicial={alvo.produtos}
-              linhas={alvo.linhas.map((l) => ({ id: l.id, tipo: l.tipo, identificador: l.identificador }))}
+              linhas={alvo.linhas.map((l) => ({ id: l.id, codigo: l.codigo, tipo: l.tipo, identificador: l.identificador }))}
               canEdit={canEdit}
             />
           </CardContent>
@@ -428,16 +521,6 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="alvoCodigo">Código do alvo *</Label>
-              <Input
-                id="alvoCodigo"
-                placeholder="ex.: 123"
-                className="font-mono"
-                value={alvoForm.codigo}
-                onChange={(e) => setAlvoForm({ ...alvoForm, codigo: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
               <Label htmlFor="alvoObs">Observações</Label>
               <Textarea
                 id="alvoObs"
@@ -464,7 +547,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
             <Button variant="ghost" size="sm" onClick={() => setAlvoDialog(null)}>
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleAlvoSubmit} disabled={saving || !alvoForm.nome.trim() || !alvoForm.codigo.trim()}>
+            <Button size="sm" onClick={handleAlvoSubmit} disabled={saving || !alvoForm.nome.trim()}>
               {saving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               Guardar
             </Button>
@@ -502,6 +585,16 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="linhaCodigo">Código *</Label>
+              <Input
+                id="linhaCodigo"
+                placeholder="ex.: 123"
+                className="font-mono"
+                value={linhaForm.codigo}
+                onChange={(e) => setLinhaForm({ ...linhaForm, codigo: e.target.value })}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="linhaIdent">N.º telefone / IMEI *</Label>
@@ -593,7 +686,9 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
             <Button
               size="sm"
               onClick={handleLinhaSubmit}
-              disabled={saving || !linhaForm.identificador.trim() || !linhaForm.dataInicio || !linhaForm.dataFim}
+              disabled={
+                saving || !linhaForm.codigo.trim() || !linhaForm.identificador.trim() || !linhaForm.dataInicio || !linhaForm.dataFim
+              }
             >
               {saving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               Guardar

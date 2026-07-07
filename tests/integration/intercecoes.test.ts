@@ -33,13 +33,13 @@ async function makeAlvoComLinha(args: {
   const alvo = await prisma.intercecaoAlvo.create({
     data: {
       nome: args.nome ?? 'Suspeito Teste',
-      codigo: args.codigo ?? '123',
       inqueritoid: args.inqueritoid,
     },
   })
   const linha = await prisma.intercecaoLinha.create({
     data: {
       alvoId: alvo.id,
+      codigo: args.codigo ?? '123',
       tipo: 'SIM',
       identificador: '912345678',
       rede: 'MEO',
@@ -259,7 +259,7 @@ describe('v2 — renovação, duração/transcrição, notas', () => {
   test('produto: paraTranscricao default false; alvo: notas opcional', async () => {
     const s = await scenarioTwoBrigadas(prisma)
     const alvo = await prisma.intercecaoAlvo.create({
-      data: { nome: 'X', codigo: '999', inqueritoid: s.inqB[0].id, notas: 'nota relevante' },
+      data: { nome: 'X', inqueritoid: s.inqB[0].id, notas: 'nota relevante' },
     })
     expect(alvo.notas).toBe('nota relevante')
     const produto = await prisma.intercecaoProduto.create({
@@ -296,18 +296,24 @@ describe('cascade e integridade', () => {
     expect(await prisma.intercecaoProduto.count()).toBe(0)
   })
 
-  test('código de alvo é único por inquérito mas repetível entre inquéritos', async () => {
+  test('código de linha é único por alvo mas repetível entre alvos (mesmo inquérito ou não)', async () => {
     const s = await scenarioTwoBrigadas(prisma)
-    await prisma.intercecaoAlvo.create({
-      data: { nome: 'X', codigo: '123', inqueritoid: s.inqB[0].id },
-    })
-    // Mesmo código noutro inquérito: OK.
+    const alvo1 = await prisma.intercecaoAlvo.create({ data: { nome: 'X', inqueritoid: s.inqB[0].id } })
+    const alvo2 = await prisma.intercecaoAlvo.create({ data: { nome: 'Y', inqueritoid: s.inqB[0].id } })
+    const linhaBase = {
+      tipo: 'SIM' as const,
+      identificador: '912345678',
+      dataInicio: daysFromNow(-10),
+      dataFim: daysFromNow(30),
+    }
+    await prisma.intercecaoLinha.create({ data: { ...linhaBase, alvoId: alvo1.id, codigo: '123' } })
+    // Mesmo código, alvo diferente (mesmo inquérito): OK.
     await expect(
-      prisma.intercecaoAlvo.create({ data: { nome: 'Y', codigo: '123', inqueritoid: s.inqB[1].id } }),
+      prisma.intercecaoLinha.create({ data: { ...linhaBase, alvoId: alvo2.id, codigo: '123' } }),
     ).resolves.toBeTruthy()
-    // Duplicado no mesmo inquérito: viola o @@unique.
+    // Duplicado no mesmo alvo: viola o @@unique([alvoId, codigo]).
     await expect(
-      prisma.intercecaoAlvo.create({ data: { nome: 'Z', codigo: '123', inqueritoid: s.inqB[0].id } }),
+      prisma.intercecaoLinha.create({ data: { ...linhaBase, alvoId: alvo1.id, codigo: '123' } }),
     ).rejects.toThrow()
   })
 })

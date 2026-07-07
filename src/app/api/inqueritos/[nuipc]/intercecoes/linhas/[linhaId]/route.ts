@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 async function loadLinha(linhaId: string, inqueritoId: string) {
   const linha = await prisma.intercecaoLinha.findUnique({
     where: { id: linhaId },
-    include: { alvo: { select: { id: true, codigo: true, inqueritoid: true } } },
+    include: { alvo: { select: { id: true, nome: true, inqueritoid: true } } },
   })
   if (!linha || linha.alvo.inqueritoid !== inqueritoId) return null
   return linha
@@ -59,6 +59,17 @@ export async function PUT(
       return apiError('A data de fim não pode ser anterior à de início', 400)
     }
 
+    // Pré-verificação para mensagem PT amigável; o @@unique é o backstop.
+    if (d.codigo !== undefined && d.codigo !== linha.codigo) {
+      const duplicado = await prisma.intercecaoLinha.findFirst({
+        where: { alvoId: linha.alvoId, codigo: d.codigo, id: { not: linha.id } },
+        select: { id: true },
+      })
+      if (duplicado) {
+        return apiError('Já existe uma linha com este código neste alvo', 409)
+      }
+    }
+
     // Reposição dos flags: mudar o fim reabre os 2 avisos; mudar os dias de um
     // aviso reabre esse aviso (senão, adiar o fim nunca voltaria a alertar).
     const reset = resetAlertFlagsOnUpdate(
@@ -69,6 +80,7 @@ export async function PUT(
     const updated = await prisma.intercecaoLinha.update({
       where: { id: linha.id },
       data: {
+        ...(d.codigo !== undefined && { codigo: d.codigo }),
         ...(d.tipo !== undefined && { tipo: d.tipo }),
         ...(d.identificador !== undefined && { identificador: d.identificador }),
         ...(d.rede !== undefined && { rede: d.rede.trim() || null }),
@@ -81,7 +93,7 @@ export async function PUT(
       },
     })
 
-    const keys = ['tipo', 'identificador', 'rede', 'dataInicio', 'dataFim', 'alertaDias1', 'alertaDias2', 'observacoes'] as const
+    const keys = ['codigo', 'tipo', 'identificador', 'rede', 'dataInicio', 'dataFim', 'alertaDias1', 'alertaDias2', 'observacoes'] as const
     const changes = diff(
       Object.fromEntries(keys.map((k) => [k, linha[k]])) as Record<string, string | number | Date | null>,
       Object.fromEntries(keys.map((k) => [k, updated[k]])) as Record<string, string | number | Date | null>,
@@ -94,7 +106,7 @@ export async function PUT(
         entidade: 'IntercecaoLinha',
         entidadeId: linha.id,
         utilizadorId: ctx.userId,
-        detalhes: { nuipc: ctx.inquerito.nuipc, alvoCodigo: linha.alvo.codigo, ...changes } as never,
+        detalhes: { nuipc: ctx.inquerito.nuipc, alvoNome: linha.alvo.nome, ...changes } as never,
       })
     }
 
@@ -127,7 +139,8 @@ export async function DELETE(
       utilizadorId: ctx.userId,
       detalhes: {
         nuipc: ctx.inquerito.nuipc,
-        alvoCodigo: linha.alvo.codigo,
+        alvoNome: linha.alvo.nome,
+        codigo: linha.codigo,
         tipo: linha.tipo,
         identificador: linha.identificador,
       },

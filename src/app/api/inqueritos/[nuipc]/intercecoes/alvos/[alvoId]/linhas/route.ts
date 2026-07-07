@@ -24,7 +24,7 @@ export async function POST(
 
     const alvo = await prisma.intercecaoAlvo.findUnique({
       where: { id: alvoId },
-      select: { id: true, codigo: true, inqueritoid: true },
+      select: { id: true, nome: true, inqueritoid: true },
     })
     if (!alvo || alvo.inqueritoid !== ctx.inquerito.id) {
       return apiError('Alvo não encontrado', 404)
@@ -44,9 +44,19 @@ export async function POST(
       return apiError('A data de fim não pode ser anterior à de início', 400)
     }
 
+    // Pré-verificação para mensagem PT amigável; o @@unique é o backstop.
+    const duplicado = await prisma.intercecaoLinha.findFirst({
+      where: { alvoId: alvo.id, codigo: d.codigo },
+      select: { id: true },
+    })
+    if (duplicado) {
+      return apiError('Já existe uma linha com este código neste alvo', 409)
+    }
+
     const linha = await prisma.intercecaoLinha.create({
       data: {
         alvoId: alvo.id,
+        codigo: d.codigo,
         tipo: d.tipo,
         identificador: d.identificador,
         rede: d.rede ?? null,
@@ -67,7 +77,8 @@ export async function POST(
       utilizadorId: ctx.userId,
       detalhes: {
         nuipc: ctx.inquerito.nuipc,
-        alvoCodigo: alvo.codigo,
+        alvoNome: alvo.nome,
+        codigo: linha.codigo,
         tipo: linha.tipo,
         identificador: linha.identificador,
         dataInicio: linha.dataInicio.toISOString(),

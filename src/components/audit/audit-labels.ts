@@ -183,7 +183,9 @@ export const FIELD_LABELS: Record<string, string> = {
   moduloIntercecoesRoles: 'Perfis com acesso (Interceções)',
   // Interceções
   nome: 'Nome',
+  alvoNome: 'Alvo',
   codigo: 'Código',
+  acompanhamento: 'Acompanhamento',
   tipo: 'Tipo',
   identificador: 'N.º telefone / IMEI',
   rede: 'Rede',
