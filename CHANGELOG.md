@@ -7,6 +7,14 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.60] — 2026-07-07
+
+### Corrigido
+- **Registar produto de interesse**: os campos "Hora início" e "Hora fim"
+  passam a incluir os segundos (`HH:mm:ss`), útil para registar a duração
+  exata de chamadas. Os campos "De" e "Para" ficam sempre na mesma linha
+  (lado a lado), com "De" já não a cair para baixo em ecrãs estreitos.
+
 ## [0.5.58] — 2026-07-05
 
 ### Adicionado

@@ -55,11 +55,11 @@ export const DIRECAO_LABEL: Record<DirecaoProdutoIntercecao, string> = {
   RECEBIDA: 'Recebida',
 }
 
-// "HH:mm" com horas 00-23 e minutos 00-59.
-export const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
+// "HH:mm" ou "HH:mm:ss" com horas 00-23, minutos e segundos 00-59.
+export const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
 const horaSchema = z
   .string()
-  .regex(HORA_REGEX, 'Hora inválida (formato HH:mm)')
+  .regex(HORA_REGEX, 'Hora inválida (formato HH:mm ou HH:mm:ss)')
 
 // Duração "mm:ss" ou "hh:mm:ss" (sobretudo para chamadas).
 export const DURACAO_REGEX = /^\d{1,3}:[0-5]\d(:[0-5]\d)?$/

@@ -98,6 +98,19 @@ describe('schemas', () => {
     expect(HORA_REGEX.test('12:60')).toBe(false)
   })
 
+  test('HORA_REGEX: aceita segundos opcionais (HH:mm:ss)', () => {
+    expect(HORA_REGEX.test('14:30:00')).toBe(true)
+    expect(HORA_REGEX.test('23:59:59')).toBe(true)
+    expect(HORA_REGEX.test('14:30:60')).toBe(false)
+    expect(HORA_REGEX.test('24:00:00')).toBe(false)
+  })
+
+  test('produto create: hora com segundos é aceite', () => {
+    const base = { tipo: 'CHAMADA', data: '2026-05-05', resumo: 'ok' }
+    expect(intercecaoProdutoCreateSchema.safeParse({ ...base, horaInicio: '14:30:15' }).success).toBe(true)
+    expect(intercecaoProdutoCreateSchema.safeParse({ ...base, horaInicio: '14:30:60' }).success).toBe(false)
+  })
+
   test('DURACAO_REGEX: mm:ss e hh:mm:ss; segundos 00-59', () => {
     expect(DURACAO_REGEX.test('03:45')).toBe(true)
     expect(DURACAO_REGEX.test('00:00')).toBe(true)
