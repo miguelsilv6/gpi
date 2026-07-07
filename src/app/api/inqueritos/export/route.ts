@@ -76,12 +76,15 @@ export async function GET(req: NextRequest) {
       }),
       ...(cartaPrecatoriaParam === '1' && { cartaPrecatoria: true }),
       ...(cartaPrecatoriaParam === '0' && { cartaPrecatoria: false }),
-      // roleWhere LAST: garante que INSPETOR_CHEFE/INSPETOR não escapam ao
-      // scope via injecção de ?brigadaId/?inspetorId na URL.
-      ...roleWhere,
     }
+    // roleWhere via AND (nunca por spread ao mesmo nível): o scope do INSPETOR
+    // pode conter o seu próprio `OR` (colaborações), que colidiria com o `OR`
+    // da pesquisa ou o `AND` do filtro de crime. Compor por AND garante que o
+    // scope é sempre aplicado — INSPETOR_CHEFE/INSPETOR não escapam via
+    // ?brigadaId/?inspetorId na URL.
+    const scopedWhere = { AND: [where, roleWhere] }
 
-    const total = await prisma.inquerito.count({ where })
+    const total = await prisma.inquerito.count({ where: scopedWhere })
     if (total > EXPORT_LIMIT) {
       return apiError(
         `Limite de ${EXPORT_LIMIT} registos por exportação. Total filtrado: ${total}. Refine os filtros.`,
@@ -90,7 +93,7 @@ export async function GET(req: NextRequest) {
     }
 
     const inqueritos = await prisma.inquerito.findMany({
-      where,
+      where: scopedWhere,
       orderBy: { dataAbertura: 'desc' },
       take: EXPORT_LIMIT,
       select: {

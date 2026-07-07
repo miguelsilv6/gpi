@@ -15,9 +15,17 @@ import {
  */
 
 describe('buildInqueritoWhere', () => {
-  test('INSPETOR limita a inqueritos.inspetorId = user', () => {
+  test('INSPETOR: os seus próprios OU onde é colaborador ativo', () => {
     const where = buildInqueritoWhere('INSPETOR', 'user-id-1', 'brigada-1')
-    expect(where).toEqual({ inspetorId: 'user-id-1' })
+    // Disjunção: inspetorId próprio + colaboração ativa (sem prazo ou futura).
+    expect(where.OR).toBeDefined()
+    expect(where.OR).toContainEqual({ inspetorId: 'user-id-1' })
+    const colabClause = (where.OR as Array<Record<string, unknown>>).find((c) => 'colaboradores' in c)
+    expect(colabClause).toBeDefined()
+    // A cláusula de colaboração filtra pelo utilizador e por não-expirada.
+    const some = (colabClause!.colaboradores as { some: Record<string, unknown> }).some
+    expect(some.colaboradorId).toBe('user-id-1')
+    expect(some.OR).toBeDefined() // expiraEm null OU futura
   })
 
   test('INSPETOR_CHEFE limita à própria brigada', () => {

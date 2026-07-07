@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { buildInqueritoWhere, getInqueritoColumnsVisibility } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { InqueritoTable } from '@/components/inqueritos/inquerito-table'
+import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, MonitorCog } from 'lucide-react'
 import Link from 'next/link'
@@ -41,6 +42,7 @@ export default async function PedidosExamePage({
 
   const showBrigada = hasPermission(role, 'inquerito:read:all')
   const { showInspetor, showDenunciante, showPrazo } = getInqueritoColumnsVisibility(role)
+  const moduloIntercecoesAtivo = await isModuloIntercecoesAtivo(role)
 
   const inqueritos = nomes.length === 0
     ? []
@@ -62,7 +64,7 @@ export default async function PedidosExamePage({
           brigada: { select: { id: true, nome: true } },
           inspetor: { select: { id: true, nome: true } },
           etiquetas: { select: { id: true, nome: true }, orderBy: { nome: 'asc' } },
-          _count: { select: { atividades: true } },
+          _count: { select: { atividades: true, intercecaoAlvos: true } },
         },
       })
 
@@ -132,6 +134,7 @@ export default async function PedidosExamePage({
           showInspetor={showInspetor}
           showDenunciante={showDenunciante}
           showPrazo={showPrazo}
+          moduloIntercecoesAtivo={moduloIntercecoesAtivo}
           inspetores={[]}
           brigadas={[]}
           estados={[]}

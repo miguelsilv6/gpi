@@ -80,6 +80,19 @@ describe('hasPermission', () => {
     })
   })
 
+  describe('reabertura de inquéritos terminais', () => {
+    test('INSPETOR pode reabrir (o scope da rota limita aos seus próprios)', () => {
+      expect(hasPermission('INSPETOR', 'inquerito:reopen')).toBe(true)
+    })
+
+    test('INSPETOR_CHEFE não tem reabertura; COORDENADOR e ADMINISTRACAO têm', () => {
+      expect(hasPermission('INSPETOR_CHEFE', 'inquerito:reopen')).toBe(false)
+      expect(hasPermission('COORDENADOR', 'inquerito:reopen')).toBe(true)
+      expect(hasPermission('ADMINISTRACAO', 'inquerito:reopen')).toBe(true)
+      expect(hasPermission('ESTATISTICA', 'inquerito:reopen')).toBe(false)
+    })
+  })
+
   describe('permissions de relatório (introduzidos no Sprint Relatórios)', () => {
     test('INSPETOR não tem relatorio:read', () => {
       expect(hasPermission('INSPETOR', 'relatorio:read')).toBe(false)

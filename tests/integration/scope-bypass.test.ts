@@ -11,7 +11,11 @@ import { queryInqueritos } from '@/lib/relatorios/inqueritos'
  *   espalhado ANTES dos filtros do URL, pelo que as chaves do URL
  *   substituíam as do scope-locking.
  *
- *   Fix: spread `roleWhere` por último (último wins).
+ *   Fix (evoluído): o scope (`roleWhere`) é composto por AND com os filtros
+ *   do URL — nunca por spread ao mesmo nível. Isto é obrigatório desde que o
+ *   scope do INSPETOR passou a poder conter um `OR` (colaborações), que
+ *   colidiria com um spread. Efeito: um filtro fora do âmbito devolve vazio
+ *   (não os dados do próprio), o que é ainda mais restritivo — e seguro.
  *
  * Estes testes invocam o handler do relatório directamente com query strings
  * forjadas e validam que o scope nunca é furado, independentemente do que o
@@ -61,11 +65,12 @@ describe('Scope-bypass (regression for task #91)', () => {
       brigadaId: s.brigadaA.id,
     })
 
-    // O fix é "override-last": roleWhere ganha sobre o URL, pelo que o chefe
-    // vê os seus 2 inquéritos de A. Nenhum da B pode aparecer.
-    expect(result.rows.length).toBe(2)
+    // O scope é composto por AND (roleWhere sempre aplicado): um ?brigadaId
+    // fora do âmbito não é "override-last" para os próprios — passa a ser um
+    // filtro real DENTRO do scope, que aqui não interseta nada (brigada A ∩
+    // brigada B = ∅). Resultado seguro: 0 registos, nenhum da B.
     const nuipcs = result.rows.map((r) => r.nuipc)
-    expect(nuipcs.sort()).toEqual(['A-001/22', 'A-002/22'])
+    expect(result.rows.length).toBe(0)
     expect(nuipcs).not.toContain('B-001/22')
     expect(nuipcs).not.toContain('B-002/22')
     expect(nuipcs).not.toContain('B-003/22')
@@ -83,10 +88,12 @@ describe('Scope-bypass (regression for task #91)', () => {
       brigadaId: s.brigadaA.id,
     })
 
-    // Override-last: vê os seus 2 inquéritos, nenhum do outro inspetor.
-    expect(result.rows.length).toBe(2)
+    // Scope por AND: o ?inspetorId alheio é filtrado DENTRO do âmbito do
+    // inspetor (os seus + colaborações). Como não é titular nem colaborador
+    // de nada do inspetorB, o resultado é vazio — e nunca dados alheios.
+    expect(result.rows.length).toBe(0)
     const inspetores = new Set(result.rows.map((r) => r.inspetor))
-    expect(inspetores).toEqual(new Set(['Inspetor Alpha']))
+    expect(inspetores.has('Inspetor Bravo')).toBe(false)
   })
 
   test('INSPETOR vê apenas os próprios sem filtros', async () => {

@@ -165,6 +165,10 @@ model Utilizador {
   relacoesInqueritoCriadas InqueritoRelacao[] @relation("RelacaoCriador")
   diligenciasCriadas   Diligencia[]  @relation("DiligenciaCriador")
   intercecaoProdutosCriados IntercecaoProduto[] @relation("IntercecaoProdutoCriador")
+  // Colaborações autorizadas: inquéritos onde este utilizador é colaborador,
+  // e autorizações que este utilizador concedeu a outros.
+  colaboracoes           InqueritoColaborador[] @relation("ColaboradorInquerito")
+  colaboracoesConcedidas InqueritoColaborador[] @relation("ColaboradorConcedidoPor")
 
   @@index([brigadaId])
   @@index([role])
@@ -266,6 +270,7 @@ model Inquerito {
 
   diligencias     Diligencia[]
   intercecaoAlvos IntercecaoAlvo[]
+  colaboradores   InqueritoColaborador[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -1186,4 +1191,39 @@ model IntercecaoProduto {
   @@index([alvoId])
   @@index([linhaId])
   @@index([criadoPorId])
+}
+
+// Colaboração autorizada — um inspetor a quem o inquérito NÃO está distribuído
+// pode, mediante autorização do titular (ou da hierarquia), trabalhar no
+// processo (registar atividades, notas, documentos, controlos e interceções).
+// NÃO concede poder sobre o processo em si: o colaborador não altera estado/
+// prazo/titular, não apaga, e não pode re-delegar acesso a terceiros. A
+// autorização é por inquérito, revogável a qualquer momento e opcionalmente
+// com data de expiração (após a qual deixa de valer automaticamente).
+model InqueritoColaborador {
+  id        String  @id @default(cuid())
+  // Motivo/âmbito da autorização (livre) — para contexto no histórico.
+  motivo    String?
+  // Quando definido, a autorização deixa de valer a partir desta data/hora.
+  // Null = vale até ser revogada manualmente.
+  expiraEm  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String
+
+  // O inspetor autorizado a colaborar.
+  colaborador   Utilizador @relation("ColaboradorInquerito", fields: [colaboradorId], references: [id], onDelete: Cascade)
+  colaboradorId String
+
+  // Quem concedeu a autorização (titular ou hierarquia). SetNull para não
+  // apagar a autorização se o utilizador que a concedeu for removido.
+  concedidoPor   Utilizador? @relation("ColaboradorConcedidoPor", fields: [concedidoPorId], references: [id], onDelete: SetNull)
+  concedidoPorId String?
+
+  @@unique([inqueritoid, colaboradorId])
+  @@index([inqueritoid])
+  @@index([colaboradorId])
+  @@index([expiraEm])
 }

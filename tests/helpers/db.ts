@@ -51,6 +51,7 @@ export async function resetDatabase(prisma: PrismaClient = getTestPrisma()): Pro
       "Sessao",
       "VerificationToken",
       "Inquerito",
+      "InqueritoColaborador",
       "IntercecaoAlvo",
       "IntercecaoLinha",
       "IntercecaoProduto",

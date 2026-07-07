@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
 import { MarcarJuntaButton } from '@/components/inqueritos/marcar-junta-button'
+import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { nuipcToSlug, formatDate } from '@/lib/utils'
 import { Paperclip } from 'lucide-react'
 import Link from 'next/link'
@@ -49,6 +50,7 @@ export default async function DocumentacaoPendentePage() {
       nuipc: true,
       documentacaoPendenteNota: true,
       documentacaoPendenteDesde: true,
+      estado: { select: { codigo: true, nome: true, cor: true } },
       brigada: { select: { nome: true } },
       inspetor: { select: { nome: true } },
     },
@@ -78,6 +80,7 @@ export default async function DocumentacaoPendentePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>NUIPC</TableHead>
+                  <TableHead>Estado</TableHead>
                   {showBrigada && <TableHead>Brigada</TableHead>}
                   {showInspetor && <TableHead>Inspetor</TableHead>}
                   <TableHead>Falta juntar</TableHead>
@@ -95,6 +98,9 @@ export default async function DocumentacaoPendentePage() {
                         >
                           {inq.nuipc}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <EstadoBadge estado={inq.estado} />
                       </TableCell>
                       {showBrigada && (
                         <TableCell className="text-muted-foreground">
