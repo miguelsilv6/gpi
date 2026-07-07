@@ -44,8 +44,7 @@ export async function isColaboradorAtivo(
   const found = await prisma.inqueritoColaborador.findFirst({
     where: {
       inqueritoid,
-      colaboradorId: userId,
-      OR: [{ expiraEm: null }, { expiraEm: { gt: now } }],
+      ...colaboradorAtivoSomeWhere(userId, now),
     },
     select: { id: true },
   })

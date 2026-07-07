@@ -7,6 +7,16 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.70] — 2026-07-07
+
+### Alterado
+- **Colaboração autorizada — pequenos acertos de revisão**: no seletor de data
+  de expiração da autorização, o campo passa a impedir a escolha de uma data
+  no passado (atributo `min`), evitando um erro do servidor por já-expirada; a
+  validação no servidor mantém-se. Simplificação interna: `isColaboradorAtivo`
+  reutiliza o fragmento `colaboradorAtivoSomeWhere`, sem alteração de
+  comportamento.
+
 ## [0.5.68] — 2026-07-07
 
 ### Adicionado
