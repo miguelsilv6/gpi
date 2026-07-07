@@ -7,7 +7,7 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.65] — 2026-07-07
+## [0.5.66] — 2026-07-07
 
 ### Corrigido
 - **NUIPC com espaço em branco causava "Página não encontrada"**: o
