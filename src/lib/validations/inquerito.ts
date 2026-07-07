@@ -14,7 +14,7 @@ function parseDate(s: string | null | undefined): Date | null {
  */
 export const inqueritoSchema = z
   .object({
-    nuipc: z.string().min(1, 'NUIPC obrigatório'),
+    nuipc: z.string().trim().min(1, 'NUIPC obrigatório'),
     nai: z.string().max(100).optional().nullable(),
     crimeId: z.string().min(1, 'Crime obrigatório'),
     estadoId: z.string().min(1, 'Estado obrigatório'),
