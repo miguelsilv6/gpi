@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 async function loadLinha(linhaId: string, inqueritoId: string) {
   const linha = await prisma.intercecaoLinha.findUnique({
     where: { id: linhaId },
-    include: { alvo: { select: { id: true, codigo: true, inqueritoid: true } } },
+    include: { alvo: { select: { id: true, nome: true, inqueritoid: true } } },
   })
   if (!linha || linha.alvo.inqueritoid !== inqueritoId) return null
   return linha
@@ -69,7 +69,8 @@ export async function POST(
       utilizadorId: ctx.userId,
       detalhes: {
         nuipc: ctx.inquerito.nuipc,
-        alvoCodigo: linha.alvo.codigo,
+        alvoNome: linha.alvo.nome,
+        codigo: linha.codigo,
         identificador: linha.identificador,
         dataFim: { changed: true, before: linha.dataFim, after: novaDataFim },
         renovacoes: { changed: true, before: linha.renovacoes, after: updated.renovacoes },

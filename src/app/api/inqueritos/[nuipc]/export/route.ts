@@ -78,14 +78,14 @@ export async function GET(
           include: { criadoPor: { select: { nome: true } } },
         },
         intercecaoAlvos: {
-          orderBy: { codigo: 'asc' },
+          orderBy: { nome: 'asc' },
           include: {
             linhas: { orderBy: { dataInicio: 'asc' } },
             produtos: {
               orderBy: { data: 'asc' },
               include: {
                 criadoPor: { select: { nome: true } },
-                linha: { select: { identificador: true } },
+                linha: { select: { identificador: true, codigo: true } },
               },
             },
           },
@@ -278,9 +278,10 @@ export async function GET(
     lines.push(intHeaders.map(escapeCSV).join(','))
     for (const alvo of inquerito.intercecaoAlvos) {
       if (alvo.linhas.length === 0) {
-        // Alvo sem linhas: uma linha só com o suspeito/código.
+        // Alvo sem linhas: uma linha só com o suspeito (sem código — o
+        // código pertence a cada linha, que ainda não existe).
         lines.push(
-          [alvo.nome, alvo.codigo, '', '', '', '', '', '', '', '', alvo.observacoes ?? '', alvo.notas ?? '']
+          [alvo.nome, '', '', '', '', '', '', '', '', '', alvo.observacoes ?? '', alvo.notas ?? '']
             .map(escapeCSV)
             .join(','),
         )
@@ -290,7 +291,7 @@ export async function GET(
         lines.push(
           [
             alvo.nome,
-            alvo.codigo,
+            l.codigo,
             TIPO_LINHA_LABEL[l.tipo] ?? l.tipo,
             l.identificador,
             l.rede ?? '',
@@ -313,7 +314,8 @@ export async function GET(
     lines.push('')
     lines.push(`Interceções — Produtos (${totalProdutos})`)
     const prodHeaders = [
-      'Alvo (código)',
+      'Alvo',
+      'Código',
       'Linha',
       'Tipo de Produto',
       'N.º Produto',
@@ -334,7 +336,8 @@ export async function GET(
       for (const p of alvo.produtos) {
         lines.push(
           [
-            `${alvo.nome} (${alvo.codigo})`,
+            alvo.nome,
+            p.linha?.codigo ?? '',
             p.linha?.identificador ?? '',
             TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo,
             p.numeroProduto ?? '',

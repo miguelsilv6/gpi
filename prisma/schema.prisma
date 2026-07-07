@@ -1099,10 +1099,13 @@ model Diligencia {
 model IntercecaoAlvo {
   id          String  @id @default(cuid())
   nome        String  // suspeito
-  codigo      String  // código do alvo no sistema de interceção (ex.: "123")
   observacoes String?
   // Notas livres do inspetor sobre o alvo (informação considerada relevante).
   notas       String?
+  // Até onde o inspetor já acompanhou/reviu as interceções — para saber por
+  // onde recomeçar numa próxima sessão. Sempre visível na UI (não é um campo
+  // "escondido" atrás de um diálogo).
+  acompanhamento String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1112,7 +1115,6 @@ model IntercecaoAlvo {
   linhas   IntercecaoLinha[]
   produtos IntercecaoProduto[]
 
-  @@unique([inqueritoid, codigo])
   @@index([inqueritoid])
 }
 
@@ -1120,8 +1122,12 @@ model IntercecaoAlvo {
 // autorizado. Até 2 alertas antes do fim (dias por linha, padrão Atividade);
 // os flags *Enviado garantem idempotência e são REPOSTOS quando dataFim ou os
 // dias de alerta mudam (ao contrário do padrão antigo, adiar o fim re-alerta).
+// Cada linha tem o seu PRÓPRIO código de alvo (o alvo não tem um código
+// único — cada tipo de interceção associado ao alvo tem o seu código próprio
+// no sistema de interceção, ex.: SIM = "123-A", IMEI = "123-B").
 model IntercecaoLinha {
   id            String   @id @default(cuid())
+  codigo        String   // código do alvo associado a ESTA interceção (ex.: "123")
   tipo          TipoLinhaIntercecao
   identificador String   // nº de telefone ou IMEI
   rede          String?  // operadora (MEO, Vodafone, NOS, …)
@@ -1142,6 +1148,7 @@ model IntercecaoLinha {
 
   produtos IntercecaoProduto[]
 
+  @@unique([alvoId, codigo])
   @@index([alvoId])
   @@index([dataFim])
 }

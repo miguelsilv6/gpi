@@ -12,11 +12,11 @@ function sampleData(): XlsxData {
     alvos: [
       {
         nome: 'Nome 1',
-        codigo: '123',
         observacoes: 'obs do alvo',
         notas: 'nota livre do inspetor',
         linhas: [
           {
+            codigo: '123',
             tipo: 'SIM',
             identificador: '912345678',
             rede: 'MEO',
@@ -40,14 +40,13 @@ function sampleData(): XlsxData {
             para: '939999999',
             resumo: 'Conversa relevante',
             comentarios: null,
-            linha: { identificador: '912345678' },
+            linha: { identificador: '912345678', codigo: '123' },
           },
         ],
       },
       {
         // Alvo sem linhas nem produtos: deve na mesma gerar folha própria.
         nome: 'Nome 2',
-        codigo: '456',
         observacoes: null,
         notas: null,
         linhas: [],
@@ -58,12 +57,12 @@ function sampleData(): XlsxData {
 }
 
 describe('buildIntercecoesWorkbook', () => {
-  test('gera folha "Alvos" + uma folha por código', () => {
+  test('gera folha "Alvos" + uma folha por alvo (nome)', () => {
     const wb = buildIntercecoesWorkbook(sampleData())
     const names = wb.worksheets.map((w) => w.name)
     expect(names[0]).toBe('Alvos')
-    expect(names).toContain('123')
-    expect(names).toContain('456')
+    expect(names).toContain('Nome 1')
+    expect(names).toContain('Nome 2')
     expect(names).toHaveLength(3)
   })
 
@@ -93,33 +92,35 @@ describe('buildIntercecoesWorkbook', () => {
     expect(last.getCell(3).value ?? '').toBe('') // sem tipo
   })
 
-  test('folha do código: produto com duração e transcrição', () => {
+  test('folha do alvo: produto com código da linha, duração e transcrição', () => {
     const wb = buildIntercecoesWorkbook(sampleData())
-    const ws = wb.getWorksheet('123')!
+    const ws = wb.getWorksheet('Nome 1')!
     const header = ws.getRow(1).values as unknown[]
     expect(header).toContain('Tipo de Produto')
+    expect(header).toContain('Código')
     expect(header).toContain('Duração')
     expect(header).toContain('Transcrição')
 
     const row = ws.getRow(2)
     expect(row.getCell(1).value).toBe('Chamada')
-    expect(row.getCell(8).value).toBe('15:00') // duração
-    expect(row.getCell(12).value).toBe('Sim') // transcrição marcada
+    expect(row.getCell(5).value).toBe('123') // código (da linha)
+    expect(row.getCell(9).value).toBe('15:00') // duração
+    expect(row.getCell(13).value).toBe('Sim') // transcrição marcada
   })
 
   test('nomes de folha: sanitiza caracteres inválidos e resolve colisões', () => {
     const data: XlsxData = {
       nuipc: 'x',
       alvos: [
-        { nome: 'A', codigo: 'a/b:c', observacoes: null, notas: null, linhas: [], produtos: [] },
-        { nome: 'B', codigo: 'a b c', observacoes: null, notas: null, linhas: [], produtos: [] },
+        { nome: 'a/b:c', observacoes: null, notas: null, linhas: [], produtos: [] },
+        { nome: 'a b c', observacoes: null, notas: null, linhas: [], produtos: [] },
       ],
     }
     const wb = buildIntercecoesWorkbook(data)
     const names = wb.worksheets.map((w) => w.name)
     // Sem caracteres proibidos em nenhum nome de folha.
     for (const n of names) expect(n).not.toMatch(/[:\\/?*[\]]/)
-    // Os dois códigos colapsam para "a b c" → o segundo recebe sufixo único.
+    // Os dois nomes colapsam para "a b c" → o segundo recebe sufixo único.
     expect(new Set(names).size).toBe(names.length)
   })
 
@@ -128,8 +129,7 @@ describe('buildIntercecoesWorkbook', () => {
       nuipc: 'x',
       alvos: [
         {
-          nome: 'A',
-          codigo: 'X'.repeat(60),
+          nome: 'X'.repeat(60),
           observacoes: null,
           notas: null,
           linhas: [],
@@ -158,7 +158,7 @@ describe('buildTranscricaoWorkbook', () => {
       para: '922',
       resumo,
       comentarios: null,
-      linha: { identificador: '912345678' },
+      linha: { identificador: '912345678', codigo: '111' },
     }
   }
 
@@ -166,8 +166,8 @@ describe('buildTranscricaoWorkbook', () => {
     const data: TranscricaoData = {
       nuipc: '1/24',
       alvos: [
-        { nome: 'Alvo A', codigo: '111', produtos: [mkProduto(true, 'transcrever-1'), mkProduto(false, 'ignorar')] },
-        { nome: 'Alvo B', codigo: '222', produtos: [mkProduto(true, 'transcrever-2')] },
+        { nome: 'Alvo A', produtos: [mkProduto(true, 'transcrever-1'), mkProduto(false, 'ignorar')] },
+        { nome: 'Alvo B', produtos: [mkProduto(true, 'transcrever-2')] },
       ],
     }
     const wb = buildTranscricaoWorkbook(data)
@@ -193,7 +193,7 @@ describe('buildTranscricaoWorkbook', () => {
   test('sem produtos marcados → folha só com cabeçalho', () => {
     const data: TranscricaoData = {
       nuipc: 'x',
-      alvos: [{ nome: 'A', codigo: '1', produtos: [mkProduto(false, 'x')] }],
+      alvos: [{ nome: 'A', produtos: [mkProduto(false, 'x')] }],
     }
     const ws = buildTranscricaoWorkbook(data).getWorksheet('Para transcrição')!
     expect(ws.rowCount).toBe(1)

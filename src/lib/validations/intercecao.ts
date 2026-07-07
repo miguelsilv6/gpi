@@ -55,17 +55,18 @@ export const DIRECAO_LABEL: Record<DirecaoProdutoIntercecao, string> = {
   RECEBIDA: 'Recebida',
 }
 
-// "HH:mm" com horas 00-23 e minutos 00-59.
-export const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
+// "HH:mm" ou "HH:mm:ss" com horas 00-23, minutos e segundos 00-59.
+export const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
 const horaSchema = z
   .string()
-  .regex(HORA_REGEX, 'Hora inválida (formato HH:mm)')
+  .regex(HORA_REGEX, 'Hora inválida (formato HH:mm ou HH:mm:ss)')
 
 // Duração "mm:ss" ou "hh:mm:ss" (sobretudo para chamadas).
 export const DURACAO_REGEX = /^\d{1,3}:[0-5]\d(:[0-5]\d)?$/
 const duracaoSchema = z.string().regex(DURACAO_REGEX, 'Duração inválida (mm:ss ou hh:mm:ss)')
 
 export const INTERCECAO_NOTAS_MAX = 4000
+export const INTERCECAO_ACOMPANHAMENTO_MAX = 4000
 
 const alertaDiasSchema = z
   .number()
@@ -81,11 +82,6 @@ export const intercecaoAlvoCreateSchema = z.object({
     .trim()
     .min(1, 'O nome do suspeito é obrigatório')
     .max(INTERCECAO_NOME_MAX, `O nome não pode exceder ${INTERCECAO_NOME_MAX} caracteres`),
-  codigo: z
-    .string()
-    .trim()
-    .min(1, 'O código do alvo é obrigatório')
-    .max(INTERCECAO_CODIGO_MAX, `O código não pode exceder ${INTERCECAO_CODIGO_MAX} caracteres`),
   observacoes: z
     .string()
     .trim()
@@ -98,21 +94,32 @@ export const intercecaoAlvoCreateSchema = z.object({
     .max(INTERCECAO_NOTAS_MAX)
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
+  acompanhamento: z
+    .string()
+    .trim()
+    .max(INTERCECAO_ACOMPANHAMENTO_MAX)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
 })
 
 // No update, os campos opcionais são mantidos "crus" (sem transformar '' em
 // undefined): a rota distingue "omitido" (saltar) de "string vazia" (limpar).
 export const intercecaoAlvoUpdateSchema = z.object({
   nome: z.string().trim().min(1, 'O nome do suspeito é obrigatório').max(INTERCECAO_NOME_MAX).optional(),
-  codigo: z.string().trim().min(1, 'O código do alvo é obrigatório').max(INTERCECAO_CODIGO_MAX).optional(),
   observacoes: z.string().max(INTERCECAO_OBS_MAX).optional(),
   notas: z.string().max(INTERCECAO_NOTAS_MAX).optional(),
+  acompanhamento: z.string().max(INTERCECAO_ACOMPANHAMENTO_MAX).optional(),
 })
 
 // ── Linha ────────────────────────────────────────────────────────────────────
 
 export const intercecaoLinhaCreateSchema = z
   .object({
+    codigo: z
+      .string()
+      .trim()
+      .min(1, 'O código do alvo é obrigatório')
+      .max(INTERCECAO_CODIGO_MAX, `O código não pode exceder ${INTERCECAO_CODIGO_MAX} caracteres`),
     tipo: z.enum(TIPO_LINHA_VALUES),
     identificador: z
       .string()
@@ -148,6 +155,7 @@ export const intercecaoLinhaCreateSchema = z
   )
 
 export const intercecaoLinhaUpdateSchema = z.object({
+  codigo: z.string().trim().min(1, 'O código do alvo é obrigatório').max(INTERCECAO_CODIGO_MAX).optional(),
   tipo: z.enum(TIPO_LINHA_VALUES).optional(),
   identificador: z
     .string()

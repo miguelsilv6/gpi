@@ -36,21 +36,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
       return apiError(parsed.error.issues[0]?.message ?? 'Dados inválidos', 400)
     }
 
-    // Pré-verificação para mensagem PT amigável; o @@unique é o backstop.
-    const duplicado = await prisma.intercecaoAlvo.findFirst({
-      where: { inqueritoid: ctx.inquerito.id, codigo: parsed.data.codigo },
-      select: { id: true },
-    })
-    if (duplicado) {
-      return apiError('Já existe um alvo com este código neste inquérito', 409)
-    }
-
     const alvo = await prisma.intercecaoAlvo.create({
       data: {
         nome: parsed.data.nome,
-        codigo: parsed.data.codigo,
         observacoes: parsed.data.observacoes ?? null,
         notas: parsed.data.notas ?? null,
+        acompanhamento: parsed.data.acompanhamento ?? null,
         inqueritoid: ctx.inquerito.id,
       },
     })
@@ -61,7 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
       entidade: 'IntercecaoAlvo',
       entidadeId: alvo.id,
       utilizadorId: ctx.userId,
-      detalhes: { nuipc: ctx.inquerito.nuipc, nome: alvo.nome, codigo: alvo.codigo },
+      detalhes: { nuipc: ctx.inquerito.nuipc, nome: alvo.nome },
     })
 
     return Response.json(alvo)

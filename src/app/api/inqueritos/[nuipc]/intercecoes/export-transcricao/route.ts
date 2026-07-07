@@ -27,10 +27,9 @@ export async function GET(
         inqueritoid: ctx.inquerito.id,
         produtos: { some: { paraTranscricao: true } },
       },
-      orderBy: { codigo: 'asc' },
+      orderBy: { nome: 'asc' },
       select: {
         nome: true,
-        codigo: true,
         produtos: {
           where: { paraTranscricao: true },
           orderBy: { data: 'asc' },
@@ -47,7 +46,7 @@ export async function GET(
             para: true,
             resumo: true,
             comentarios: true,
-            linha: { select: { identificador: true } },
+            linha: { select: { identificador: true, codigo: true } },
           },
         },
       },

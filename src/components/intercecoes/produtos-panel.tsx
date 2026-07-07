@@ -28,6 +28,7 @@ import type {
 
 interface LinhaRef {
   id: string
+  codigo: string
   tipo: TipoLinhaIntercecao
   identificador: string
 }
@@ -404,7 +405,7 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                     {(v: string | null) => {
                       if (!v || v === NONE) return '—'
                       const l = linhas.find((x) => x.id === v)
-                      return l ? `${TIPO_LINHA_LABEL[l.tipo]} ${l.identificador}` : '—'
+                      return l ? `${TIPO_LINHA_LABEL[l.tipo]} ${l.identificador} (código ${l.codigo})` : '—'
                     }}
                   </SelectValue>
                 </SelectTrigger>
@@ -412,7 +413,7 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                   <SelectItem value={NONE}>—</SelectItem>
                   {linhas.map((l) => (
                     <SelectItem key={l.id} value={l.id}>
-                      {TIPO_LINHA_LABEL[l.tipo]} {l.identificador}
+                      {TIPO_LINHA_LABEL[l.tipo]} {l.identificador} (código {l.codigo})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -455,9 +456,11 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1.5">
                 <Label htmlFor="prodHoraInicio">Hora início</Label>
+                {/* step=1 ativa os segundos no seletor nativo (hh:mm:ss). */}
                 <Input
                   id="prodHoraInicio"
                   type="time"
+                  step={1}
                   value={form.horaInicio}
                   onChange={(e) => setForm({ ...form, horaInicio: e.target.value })}
                 />
@@ -467,6 +470,7 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                 <Input
                   id="prodHoraFim"
                   type="time"
+                  step={1}
                   value={form.horaFim}
                   onChange={(e) => setForm({ ...form, horaFim: e.target.value })}
                 />
@@ -483,23 +487,25 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
               />
               <p className="text-[11px] text-muted-foreground">Formato mm:ss ou hh:mm:ss.</p>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="prodDe">De</Label>
-              <Input
-                id="prodDe"
-                className="font-mono"
-                value={form.de}
-                onChange={(e) => setForm({ ...form, de: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="prodPara">Para</Label>
-              <Input
-                id="prodPara"
-                className="font-mono"
-                value={form.para}
-                onChange={(e) => setForm({ ...form, para: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="prodDe">De</Label>
+                <Input
+                  id="prodDe"
+                  className="font-mono"
+                  value={form.de}
+                  onChange={(e) => setForm({ ...form, de: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prodPara">Para</Label>
+                <Input
+                  id="prodPara"
+                  className="font-mono"
+                  value={form.para}
+                  onChange={(e) => setForm({ ...form, para: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="prodResumo">Descrição / resumo *</Label>

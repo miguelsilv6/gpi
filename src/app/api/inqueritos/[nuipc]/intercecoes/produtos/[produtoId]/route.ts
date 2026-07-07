@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 async function loadProduto(produtoId: string, inqueritoId: string) {
   const produto = await prisma.intercecaoProduto.findUnique({
     where: { id: produtoId },
-    include: { alvo: { select: { id: true, codigo: true, inqueritoid: true } } },
+    include: { alvo: { select: { id: true, nome: true, inqueritoid: true } } },
   })
   if (!produto || produto.alvo.inqueritoid !== inqueritoId) return null
   return produto
@@ -93,7 +93,7 @@ export async function PUT(
         entidade: 'IntercecaoProduto',
         entidadeId: produto.id,
         utilizadorId: ctx.userId,
-        detalhes: { nuipc: ctx.inquerito.nuipc, alvoCodigo: produto.alvo.codigo, ...changes } as never,
+        detalhes: { nuipc: ctx.inquerito.nuipc, alvoNome: produto.alvo.nome, ...changes } as never,
       })
     }
 
@@ -126,7 +126,7 @@ export async function DELETE(
       utilizadorId: ctx.userId,
       detalhes: {
         nuipc: ctx.inquerito.nuipc,
-        alvoCodigo: produto.alvo.codigo,
+        alvoNome: produto.alvo.nome,
         tipo: produto.tipo,
         resumoPreview: produto.resumo.slice(0, 120),
       },

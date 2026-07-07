@@ -26,13 +26,13 @@ const PRODUTO_SELECT = {
   comentarios: true,
   createdAt: true,
   criadoPor: { select: { id: true, nome: true } },
-  linha: { select: { id: true, tipo: true, identificador: true } },
+  linha: { select: { id: true, codigo: true, tipo: true, identificador: true } },
 } as const
 
 async function loadAlvo(alvoId: string, inqueritoId: string) {
   const alvo = await prisma.intercecaoAlvo.findUnique({
     where: { id: alvoId },
-    select: { id: true, codigo: true, inqueritoid: true },
+    select: { id: true, nome: true, inqueritoid: true },
   })
   if (!alvo || alvo.inqueritoid !== inqueritoId) return null
   return alvo
@@ -139,7 +139,7 @@ export async function POST(
       utilizadorId: ctx.userId,
       detalhes: {
         nuipc: ctx.inquerito.nuipc,
-        alvoCodigo: alvo.codigo,
+        alvoNome: alvo.nome,
         tipo: produto.tipo,
         resumoPreview: produto.resumo.slice(0, 120),
       },

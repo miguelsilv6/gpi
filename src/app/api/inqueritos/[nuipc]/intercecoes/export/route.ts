@@ -24,15 +24,15 @@ export async function GET(
 
     const alvos = await prisma.intercecaoAlvo.findMany({
       where: { inqueritoid: ctx.inquerito.id },
-      orderBy: { codigo: 'asc' },
+      orderBy: { nome: 'asc' },
       select: {
         nome: true,
-        codigo: true,
         observacoes: true,
         notas: true,
         linhas: {
           orderBy: { dataInicio: 'asc' },
           select: {
+            codigo: true,
             tipo: true,
             identificador: true,
             rede: true,
@@ -57,7 +57,7 @@ export async function GET(
             para: true,
             resumo: true,
             comentarios: true,
-            linha: { select: { identificador: true } },
+            linha: { select: { identificador: true, codigo: true } },
           },
         },
       },
