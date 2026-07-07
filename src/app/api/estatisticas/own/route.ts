@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { getComarcaBreakdown } from '@/lib/estatisticas-counters'
 import type { Role } from '@/generated/prisma/enums'
 
 const querySchema = z.object({
@@ -184,40 +185,7 @@ export async function GET(req: NextRequest) {
     })
     const estadoById = new Map(estados.map((e) => [e.id, e]))
 
-    // Comarca por tribunal (Inquerito não tem comarcaId direto) — mesma
-    // agregação em JS que /api/estatisticas.
-    const tribunalIds = porTribunalRaw
-      .map((r) => r.tribunalId)
-      .filter((id): id is string => id !== null)
-    const tribunais = tribunalIds.length
-      ? await prisma.tribunal.findMany({
-          where: { id: { in: tribunalIds } },
-          select: { id: true, comarcaId: true },
-        })
-      : []
-    const tribunalComarcaMap = new Map(tribunais.map((t) => [t.id, t.comarcaId ?? null]))
-    const comarcaCountMap = new Map<string, number>()
-    for (const r of porTribunalRaw) {
-      if (!r.tribunalId) continue
-      const comarcaId = tribunalComarcaMap.get(r.tribunalId)
-      if (!comarcaId) continue
-      comarcaCountMap.set(comarcaId, (comarcaCountMap.get(comarcaId) ?? 0) + r._count)
-    }
-    const comarcaIdsNeeded = Array.from(comarcaCountMap.keys())
-    const comarcasList = comarcaIdsNeeded.length
-      ? await prisma.comarca.findMany({
-          where: { id: { in: comarcaIdsNeeded } },
-          select: { id: true, nome: true },
-        })
-      : []
-    const comarcaNomesMap = new Map(comarcasList.map((c) => [c.id, c.nome]))
-    const porComarca = Array.from(comarcaCountMap.entries())
-      .map(([comarcaId, count]) => ({
-        comarcaId,
-        nome: comarcaNomesMap.get(comarcaId) ?? '—',
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
+    const porComarca = await getComarcaBreakdown(porTribunalRaw)
 
     return Response.json({
       total,

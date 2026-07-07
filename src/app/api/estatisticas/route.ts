@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
-import { getInqueritoCounters } from '@/lib/estatisticas-counters'
+import { getInqueritoCounters, getComarcaBreakdown } from '@/lib/estatisticas-counters'
 import type { Prisma } from '@/generated/prisma/client'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -248,30 +248,7 @@ export async function GET(req: NextRequest) {
     const inspetorNomes = Object.fromEntries(inspetores.map((u) => [u.id, u.nome]))
     const tribunalNomesMap = Object.fromEntries(tribunaisNomes.map((t) => [t.id, t.nome]))
 
-    // Aggregate tribunal counts by comarca in JS (Inquerito has no direct comarcaId).
-    const tribunalComarcaMap = new Map(tribunaisNomes.map((t) => [t.id, t.comarcaId ?? null]))
-    const comarcaCountMap = new Map<string, number>()
-    for (const r of porTribunalRaw) {
-      if (!r.tribunalId) continue
-      const comarcaId = tribunalComarcaMap.get(r.tribunalId)
-      if (!comarcaId) continue
-      comarcaCountMap.set(comarcaId, (comarcaCountMap.get(comarcaId) ?? 0) + r._count)
-    }
-    const comarcaIdsNeeded = Array.from(comarcaCountMap.keys())
-    const comarcasList = comarcaIdsNeeded.length
-      ? await prisma.comarca.findMany({
-          where: { id: { in: comarcaIdsNeeded } },
-          select: { id: true, nome: true },
-        })
-      : []
-    const comarcaNomesMap = new Map(comarcasList.map((c) => [c.id, c.nome]))
-    const porComarca = Array.from(comarcaCountMap.entries())
-      .map(([comarcaId, count]) => ({
-        comarcaId,
-        nome: comarcaNomesMap.get(comarcaId) ?? '—',
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
+    const porComarca = await getComarcaBreakdown(porTribunalRaw)
 
     return Response.json({
       total: counters.total,
