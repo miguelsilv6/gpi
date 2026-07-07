@@ -7,6 +7,21 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.64] — 2026-07-07
+
+### Corrigido
+- **CRÍTICO — arranque falhava (502) quando um alvo de interceção tinha mais
+  do que uma linha**: a migração da versão anterior (`código por linha`)
+  copiava o código do alvo para todas as suas linhas; se um alvo tivesse
+  mais do que uma (ex.: SIM + IMEI, o cenário que motivou a funcionalidade),
+  a criação do índice único falhava e a `prisma migrate deploy` ficava
+  bloqueada a meio — o `docker-entrypoint.sh` nunca chegava a arrancar o
+  Next.js, daí o "Bad Gateway". Nova migração idempotente desduplica os
+  códigos dentro do mesmo alvo (sufixo `-2`, `-3`, ...) e completa o que
+  tiver ficado por fazer, sem perda de dados. **Ver nota de recuperação no
+  corpo do PR** — instalações já bloqueadas precisam de um passo manual
+  único antes do próximo arranque.
+
 ## [0.5.63] — 2026-07-07
 
 ### Alterado
