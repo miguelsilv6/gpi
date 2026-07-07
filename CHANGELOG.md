@@ -7,6 +7,26 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.63] — 2026-07-07
+
+### Alterado
+- **Estatísticas — arquivados e concluídos ficam fora por defeito**: o total e
+  todas as repartições (estado, brigada, inspetor, natureza, ano, comarca,
+  tribunal) deixam de incluir inquéritos Arquivados ou Concluídos por
+  omissão — são "trabalho fechado" que poluía a análise de carga. Uma nova
+  checkbox "Incluir arquivados e concluídos" (nos dois painéis, geral e
+  pessoal) repõe-nos quando necessário. Os cartões-resumo "Arquivados" e
+  "Concluídos" continuam sempre a mostrar a contagem real, independentemente
+  do filtro.
+- **Select "Período" com o dobro da largura**: nos painéis de Estatísticas
+  (geral e pessoal), o texto "Período personalizado" deixa de aparecer
+  cortado em ecrãs desktop.
+
+### Adicionado
+- **Distribuição por Comarca no perfil de inspetor**: a página "Estatística"
+  pessoal (`/minha-estatistica`) ganha o mesmo gráfico + tabela "Por Comarca"
+  que já existia no painel geral.
+
 ## [0.5.61] — 2026-07-07
 
 ### Alterado

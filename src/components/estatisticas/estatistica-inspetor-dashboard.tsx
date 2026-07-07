@@ -12,10 +12,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   EstadoBarChart,
   NaturezaBarChart,
   AnoBarChart,
+  ComarcaBarChart,
+  StatsTable,
 } from './charts'
 import { FileText, MonitorCog, Send, Archive, CheckCircle2, X, Mail, AlertTriangle } from 'lucide-react'
 
@@ -30,6 +33,7 @@ interface Stats {
   porEstado: { estadoId: string; codigo: string; nome: string; cor: string | null; count: number }[]
   porNatureza: { natureza: string; count: number }[]
   porAno: { ano: string; count: number }[]
+  porComarca: { comarcaId: string; nome: string; count: number }[]
   atividadesInspetor: {
     descricao: string
     count: number
@@ -92,6 +96,7 @@ export function EstatisticaInspetorDashboard() {
   const [preset, setPreset] = useState<Preset>('custom')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  const [incluirTerminados, setIncluirTerminados] = useState(false)
 
   function applyPreset(p: Preset) {
     setPreset(p)
@@ -111,12 +116,13 @@ export function EstatisticaInspetorDashboard() {
     const params = new URLSearchParams()
     if (dataInicio) params.set('dataInicio', dataInicio)
     if (dataFim) params.set('dataFim', dataFim)
+    if (incluirTerminados) params.set('incluirTerminados', '1')
 
     const res = await fetch(`/api/estatisticas/own?${params}`)
     if (res.ok) setStats(await res.json())
     else setStats(null)
     setLoading(false)
-  }, [dataInicio, dataFim])
+  }, [dataInicio, dataFim, incluirTerminados])
 
   useEffect(() => { fetchStats() }, [fetchStats])
 
@@ -131,7 +137,10 @@ export function EstatisticaInspetorDashboard() {
     setPreset('custom')
     setDataInicio('')
     setDataFim('')
+    setIncluirTerminados(false)
   }
+
+  const hasAnyFilter = hasDateFilter || incluirTerminados
 
   return (
     <div className="space-y-4">
@@ -140,7 +149,7 @@ export function EstatisticaInspetorDashboard() {
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Período</Label>
           <Select value={preset} onValueChange={(v) => applyPreset(v as Preset)}>
-            <SelectTrigger className="h-9 w-full sm:w-[170px] text-sm">
+            <SelectTrigger className="h-9 w-full sm:w-[28rem] text-sm">
               <SelectValue placeholder="Período">
                 {(v: string) => PRESET_LABELS[v as Preset] ?? 'Período'}
               </SelectValue>
@@ -172,7 +181,15 @@ export function EstatisticaInspetorDashboard() {
           />
         </div>
 
-        {hasDateFilter && (
+        <label className="flex items-center gap-2 h-9 text-sm cursor-pointer">
+          <Checkbox
+            checked={incluirTerminados}
+            onCheckedChange={(v) => setIncluirTerminados(v === true)}
+          />
+          Incluir arquivados e concluídos
+        </label>
+
+        {hasAnyFilter && (
           <Button
             variant="ghost"
             size="sm"
@@ -329,6 +346,21 @@ export function EstatisticaInspetorDashboard() {
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* Comarca — full-width chart + table */}
+          {stats.porComarca.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Por Comarca</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <ComarcaBarChart data={stats.porComarca} />
+                  <StatsTable data={stats.porComarca} total={stats.total} />
+                </div>
+              </CardContent>
+            </Card>
           )}
 
         </>

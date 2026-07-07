@@ -234,3 +234,35 @@ export function TribunalBarChart({ data }: { data: PorTribunal[] }) {
   )
 }
 
+// Tabela genérica nome/contagem/% — usada a par dos gráficos de barras de
+// distribuição (Comarca, Tribunal) tanto no dashboard geral como no de
+// inspetor.
+export function StatsTable({ data, total }: { data: { nome: string; count: number }[]; total: number }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b text-muted-foreground text-xs">
+            <th className="text-left py-1.5 pr-3 font-medium w-6">#</th>
+            <th className="text-left py-1.5 pr-3 font-medium">Nome</th>
+            <th className="text-right py-1.5 pr-3 font-medium">Inquéritos</th>
+            <th className="text-right py-1.5 font-medium">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((r, i) => (
+            <tr key={r.nome} className="border-b last:border-0">
+              <td className="py-1.5 pr-3 text-muted-foreground text-xs">{i + 1}</td>
+              <td className="py-1.5 pr-3 truncate max-w-[200px]">{r.nome}</td>
+              <td className="py-1.5 pr-3 text-right tabular-nums font-medium">{r.count}</td>
+              <td className="py-1.5 text-right tabular-nums text-muted-foreground text-xs">
+                {total > 0 ? ((r.count / total) * 100).toFixed(1) + '%' : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+

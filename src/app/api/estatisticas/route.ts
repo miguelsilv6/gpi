@@ -12,6 +12,7 @@ const querySchema = z.object({
   inspetorId: z.string().optional(),
   dataInicio: z.string().date('dataInicio inválida').optional(),
   dataFim: z.string().date('dataFim inválida').optional(),
+  incluirTerminados: z.enum(['0', '1']).optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -29,10 +30,11 @@ export async function GET(req: NextRequest) {
       inspetorId: searchParams.get('inspetorId') ?? undefined,
       dataInicio: searchParams.get('dataInicio') ?? undefined,
       dataFim: searchParams.get('dataFim') ?? undefined,
+      incluirTerminados: searchParams.get('incluirTerminados') ?? undefined,
     })
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { brigadaId: requestedBrigadaId, inspetorId, dataInicio, dataFim } = parsed.data
+    const { brigadaId: requestedBrigadaId, inspetorId, dataInicio, dataFim, incluirTerminados } = parsed.data
 
     // INSPETOR_CHEFE is locked to their own brigada.
     const brigadaId =
@@ -56,6 +58,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Por defeito, estados terminais (Arquivado/Concluído) ficam fora do
+    // total e de todas as repartições — são "trabalho fechado" e poluem a
+    // análise de carga/distribuição. O checkbox "Incluir arquivados e
+    // concluídos" da UI reativa-os. Os contadores `arquivados`/`ativos`
+    // dentro de getInqueritoCounters sobrepõem `estado` com o seu próprio
+    // filtro, por isso continuam corretos independentemente desta flag.
     const where = {
       // Inquéritos soft-deleted não contam para estatística — alinhado com a
       // listagem /inqueritos (que filtra deletedAt: null). Sem isto, um
@@ -63,6 +71,7 @@ export async function GET(req: NextRequest) {
       deletedAt: null,
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
+      ...(incluirTerminados !== '1' && { estado: { terminal: false } }),
       ...(dataInicio || dataFim
         ? {
             dataAbertura: {
