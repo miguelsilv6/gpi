@@ -87,3 +87,51 @@ export async function getInqueritoCounters(
 
   return { total, cartaPrecatoria, ativos, semInspetor, distribuido, aguardaExames, enviados, arquivados }
 }
+
+export interface PorComarca {
+  comarcaId: string
+  nome: string
+  count: number
+}
+
+/**
+ * Agrega contagens por comarca a partir de um groupBy por tribunal — o
+ * Inquerito não tem `comarcaId` direto, só via `tribunal.comarcaId`.
+ * Partilhado por /api/estatisticas e /api/estatisticas/own.
+ */
+export async function getComarcaBreakdown(
+  porTribunalRaw: { tribunalId: string | null; _count: number }[],
+): Promise<PorComarca[]> {
+  const tribunalIds = porTribunalRaw
+    .map((r) => r.tribunalId)
+    .filter((id): id is string => id !== null)
+  const tribunais = tribunalIds.length
+    ? await prisma.tribunal.findMany({
+        where: { id: { in: tribunalIds } },
+        select: { id: true, comarcaId: true },
+      })
+    : []
+  const tribunalComarcaMap = new Map(tribunais.map((t) => [t.id, t.comarcaId ?? null]))
+  const comarcaCountMap = new Map<string, number>()
+  for (const r of porTribunalRaw) {
+    if (!r.tribunalId) continue
+    const comarcaId = tribunalComarcaMap.get(r.tribunalId)
+    if (!comarcaId) continue
+    comarcaCountMap.set(comarcaId, (comarcaCountMap.get(comarcaId) ?? 0) + r._count)
+  }
+  const comarcaIdsNeeded = Array.from(comarcaCountMap.keys())
+  const comarcasList = comarcaIdsNeeded.length
+    ? await prisma.comarca.findMany({
+        where: { id: { in: comarcaIdsNeeded } },
+        select: { id: true, nome: true },
+      })
+    : []
+  const comarcaNomesMap = new Map(comarcasList.map((c) => [c.id, c.nome]))
+  return Array.from(comarcaCountMap.entries())
+    .map(([comarcaId, count]) => ({
+      comarcaId,
+      nome: comarcaNomesMap.get(comarcaId) ?? '—',
+      count,
+    }))
+    .sort((a, b) => b.count - a.count)
+}

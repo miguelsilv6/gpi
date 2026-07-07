@@ -3,11 +3,13 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
+import { getComarcaBreakdown } from '@/lib/estatisticas-counters'
 import type { Role } from '@/generated/prisma/enums'
 
 const querySchema = z.object({
   dataInicio: z.string().date('dataInicio inválida').optional(),
   dataFim: z.string().date('dataFim inválida').optional(),
+  incluirTerminados: z.enum(['0', '1']).optional(),
 })
 
 // Estatísticas pessoais do INSPETOR — sempre filtradas pelo utilizador da sessão.
@@ -24,10 +26,11 @@ export async function GET(req: NextRequest) {
     const parsed = querySchema.safeParse({
       dataInicio: searchParams.get('dataInicio') ?? undefined,
       dataFim: searchParams.get('dataFim') ?? undefined,
+      incluirTerminados: searchParams.get('incluirTerminados') ?? undefined,
     })
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-    const { dataInicio, dataFim } = parsed.data
+    const { dataInicio, dataFim, incluirTerminados } = parsed.data
     const inspetorId = session.user.id
 
     // Base scope sem filtro de data — usada pelos contadores "actuais"
@@ -37,8 +40,14 @@ export async function GET(req: NextRequest) {
       deletedAt: null,
       inspetorId,
     }
+    // Por defeito exclui estados terminais (Arquivado/Concluído) do total e
+    // das repartições — o checkbox "Incluir arquivados e concluídos" da UI
+    // reativa-os. `arquivados`/`concluidos` abaixo sobrepõem `estado` com o
+    // seu próprio filtro, por isso continuam corretos independentemente
+    // desta flag.
     const where = {
       ...scopeWhere,
+      ...(incluirTerminados !== '1' && { estado: { terminal: false } }),
       ...(dataInicio || dataFim
         ? {
             dataAbertura: {
@@ -63,6 +72,7 @@ export async function GET(req: NextRequest) {
     const [
       porEstadoRaw,
       porNatureza,
+      porTribunalRaw,
       total,
       vencidos,
       cartasPrecatorias,
@@ -80,6 +90,7 @@ export async function GET(req: NextRequest) {
         orderBy: { _count: { natureza: 'desc' } },
         take: 10,
       }),
+      prisma.inquerito.groupBy({ by: ['tribunalId'], where, _count: true }),
       prisma.inquerito.count({ where }),
       prisma.inquerito.count({
         where: { ...where, dataPrazo: { lt: new Date() }, estado: { terminal: false } },
@@ -174,6 +185,8 @@ export async function GET(req: NextRequest) {
     })
     const estadoById = new Map(estados.map((e) => [e.id, e]))
 
+    const porComarca = await getComarcaBreakdown(porTribunalRaw)
+
     return Response.json({
       total,
       vencidos,
@@ -194,6 +207,7 @@ export async function GET(req: NextRequest) {
         }
       }),
       porNatureza: porNatureza.map((r) => ({ natureza: r.natureza, count: r._count })),
+      porComarca,
       atividadesInspetor,
       atividadesInspetorTotal: atividades.length,
     })

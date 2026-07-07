@@ -7,6 +7,41 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.64] — 2026-07-07
+
+### Corrigido
+- **CRÍTICO — arranque falhava (502) quando um alvo de interceção tinha mais
+  do que uma linha**: a migração da versão anterior (`código por linha`)
+  copiava o código do alvo para todas as suas linhas; se um alvo tivesse
+  mais do que uma (ex.: SIM + IMEI, o cenário que motivou a funcionalidade),
+  a criação do índice único falhava e a `prisma migrate deploy` ficava
+  bloqueada a meio — o `docker-entrypoint.sh` nunca chegava a arrancar o
+  Next.js, daí o "Bad Gateway". Nova migração idempotente desduplica os
+  códigos dentro do mesmo alvo (sufixo `-2`, `-3`, ...) e completa o que
+  tiver ficado por fazer, sem perda de dados. **Ver nota de recuperação no
+  corpo do PR** — instalações já bloqueadas precisam de um passo manual
+  único antes do próximo arranque.
+
+## [0.5.63] — 2026-07-07
+
+### Alterado
+- **Estatísticas — arquivados e concluídos ficam fora por defeito**: o total e
+  todas as repartições (estado, brigada, inspetor, natureza, ano, comarca,
+  tribunal) deixam de incluir inquéritos Arquivados ou Concluídos por
+  omissão — são "trabalho fechado" que poluía a análise de carga. Uma nova
+  checkbox "Incluir arquivados e concluídos" (nos dois painéis, geral e
+  pessoal) repõe-nos quando necessário. Os cartões-resumo "Arquivados" e
+  "Concluídos" continuam sempre a mostrar a contagem real, independentemente
+  do filtro.
+- **Select "Período" com o dobro da largura**: nos painéis de Estatísticas
+  (geral e pessoal), o texto "Período personalizado" deixa de aparecer
+  cortado em ecrãs desktop.
+
+### Adicionado
+- **Distribuição por Comarca no perfil de inspetor**: a página "Estatística"
+  pessoal (`/minha-estatistica`) ganha o mesmo gráfico + tabela "Por Comarca"
+  que já existia no painel geral.
+
 ## [0.5.61] — 2026-07-07
 
 ### Alterado
