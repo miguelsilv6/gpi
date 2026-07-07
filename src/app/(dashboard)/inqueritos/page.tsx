@@ -16,6 +16,7 @@ import { listEtiquetasEmUso } from '@/lib/etiquetas'
 import type { Role } from '@/generated/prisma/enums'
 import { PageSizeSelect } from '@/components/inqueritos/page-size-select'
 import { normalizeInqueritoPageSize, DEFAULT_INQUERITO_PAGE_SIZE } from '@/lib/pagination'
+import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 
 interface SearchParams {
   // Index signature: os parâmetros de pesquisa são todos `string | undefined`,
@@ -68,7 +69,7 @@ export default async function InqueritosPage({
   // (visita inicial). O default pessoal do utilizador (perfil) tem prioridade;
   // se este estiver vazio, recai no default global do sistema. Sentinela
   // `__none__` significa que o utilizador escolheu explicitamente "sem filtro".
-  const [config, currentUser] = await Promise.all([
+  const [config, currentUser, moduloIntercecoesAtivo] = await Promise.all([
     prisma.configuracaoSistema.findUnique({
       where: { id: 'singleton' },
       select: { inqueritoFiltroEstadosDefault: true },
@@ -77,6 +78,7 @@ export default async function InqueritosPage({
       where: { id: session.user.id },
       select: { inqueritoFiltroEstadosDefault: true, inqueritoPageSizeDefault: true },
     }),
+    isModuloIntercecoesAtivo(role),
   ])
   const estadosDefaultUtilizador = currentUser?.inqueritoFiltroEstadosDefault ?? []
   const estadosDefault =
@@ -140,10 +142,13 @@ export default async function InqueritosPage({
     }),
     ...(sp.cartaPrecatoria === '1' && { cartaPrecatoria: true }),
     ...(sp.cartaPrecatoria === '0' && { cartaPrecatoria: false }),
-    // roleWhere LAST: scope-locking não pode ser substituído por query string
-    // (INSPETOR_CHEFE/INSPETOR). Esta ordem é crítica para segurança.
-    ...roleWhere,
   }
+  // roleWhere via AND (nunca por spread ao mesmo nível): o scope pode conter o
+  // seu próprio `OR` (colaborações do INSPETOR) que colidiria com o `OR` da
+  // pesquisa ou o `AND` do filtro de crime. Compor por AND garante que o scope
+  // é sempre aplicado (não pode ser substituído por query string) sem apagar os
+  // filtros. Esta ordem é crítica para segurança.
+  const scopedWhere = { AND: [where, roleWhere] }
 
   const canCreate = hasPermission(role, 'inquerito:create')
   const canBulk = hasPermission(role, 'inquerito:bulk:brigade')
@@ -154,7 +159,7 @@ export default async function InqueritosPage({
 
   const [inqueritos, total, inspetores, brigadas, estados, crimes, inspetoresFilter, etiquetasFilter] = await Promise.all([
     prisma.inquerito.findMany({
-      where,
+      where: scopedWhere,
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { [sort]: order } as never,
@@ -164,10 +169,10 @@ export default async function InqueritosPage({
         brigada: { select: { id: true, nome: true } },
         inspetor: { select: { id: true, nome: true } },
         etiquetas: { select: { id: true, nome: true } },
-        _count: { select: { atividades: true } },
+        _count: { select: { atividades: true, intercecaoAlvos: true } },
       },
     }),
-    prisma.inquerito.count({ where }),
+    prisma.inquerito.count({ where: scopedWhere }),
     canBulk
       ? prisma.utilizador.findMany({
           where: { role: 'INSPETOR', ativo: true },
@@ -291,6 +296,7 @@ export default async function InqueritosPage({
         showInspetor={showInspetor}
         showDenunciante={showDenunciante}
         showPrazo={showPrazo}
+        moduloIntercecoesAtivo={moduloIntercecoesAtivo}
         inspetores={inspetores}
         brigadas={brigadas}
         estados={estados}

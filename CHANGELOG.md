@@ -7,6 +7,33 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.68] — 2026-07-07
+
+### Adicionado
+- **Colaboração autorizada em inquéritos**: um inspetor pode agora trabalhar
+  num inquérito que não lhe está distribuído, desde que autorizado. O titular
+  do inquérito — e a hierarquia (chefe da brigada, coordenação e administração)
+  — pode conceder autorização a outro inspetor, com um motivo opcional e uma
+  data de validade opcional. O colaborador autorizado passa a ver o inquérito e
+  a poder registar **trabalho operacional** (atividades, notas, documentos,
+  controlos e interceções), mas **não** pode alterar o estado, o prazo ou o
+  titular, nem eliminar o inquérito — essas ações continuam reservadas ao
+  titular e à hierarquia. As atividades ficam sempre atribuídas a quem as
+  registou. Conceder e revogar autorizações fica registado na auditoria. A
+  autorização pode ser revogada a qualquer momento e expira automaticamente na
+  data definida (se existir).
+- **Ícone de interceções junto ao NUIPC**: na listagem de inquéritos, os que
+  têm alvos de interceção passam a mostrar um ícone à frente do NUIPC (à
+  semelhança do ícone de carta precatória). Um inquérito pode apresentar vários
+  ícones em simultâneo.
+
+### Alterado
+- **Reabertura de inquéritos pelo inspetor**: o perfil de inspetor passa a poder
+  reabrir os seus próprios inquéritos que estejam num estado terminal
+  (Arquivado ou Concluído), sem depender da hierarquia.
+- **Documentação pendente mostra o estado**: a lista de documentação pendente
+  passa a incluir uma coluna com o estado atual de cada inquérito.
+
 ## [0.5.66] — 2026-07-07
 
 ### Corrigido

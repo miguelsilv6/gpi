@@ -54,6 +54,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     'inquerito:read:own',
     'inquerito:create',
     'inquerito:edit:own',
+    'inquerito:reopen',
     'inquerito:export',
     'inquerito:audit:read',
     'atividade:create:own',

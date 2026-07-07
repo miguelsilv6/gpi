@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
+import { isColaboradorAtivo } from '@/lib/colaboradores'
 import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import { getIntercecoesTree } from '@/lib/intercecoes'
 import { isTerminal } from '@/lib/inquerito-state'
@@ -92,11 +93,13 @@ export default async function IntercecoesInqueritoPage({
       })
     : 0
 
-  // Como nas atividades: edição bloqueada em estados terminais.
+  // Como nas atividades: edição bloqueada em estados terminais. Trabalho
+  // operacional inclui o colaborador autorizado (não só titular/hierarquia).
   const canEdit =
     role !== 'ESTATISTICA' &&
-    canEditInquerito(role, session.user.id, brigadaId, inquerito) &&
-    !isTerminal(inquerito.estado)
+    !isTerminal(inquerito.estado) &&
+    (canEditInquerito(role, session.user.id, brigadaId, inquerito) ||
+      (await isColaboradorAtivo(inquerito.id, session.user.id)))
 
   return (
     // Desktop: painel com o dobro da largura anterior (max-w-4xl → 112rem).

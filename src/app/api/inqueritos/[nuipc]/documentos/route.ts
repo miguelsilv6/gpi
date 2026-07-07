@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { canWorkOnInquerito } from '@/lib/colaboradores'
 import { isModuloAnexosAtivo } from '@/lib/anexos-module'
 import { writeAudit } from '@/lib/audit'
 import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
@@ -80,13 +81,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
     const inquerito = await findInqueritoWithAccess(nuipc, role, session.user.id, session.user.brigadaId ?? null)
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
 
-    // Upload segue a mesma regra de "quem pode adicionar atividades":
-    // ESTATISTICA nunca; INSPETOR só nos seus; CHEFE só na sua brigada.
-    const canUpload =
-      role === 'ESTATISTICA' ? false :
-      role === 'INSPETOR' ? inquerito.inspetorId === session.user.id :
-      role === 'INSPETOR_CHEFE' ? inquerito.brigadaId === session.user.brigadaId :
-      true
+    // Upload segue a mesma regra de "quem pode adicionar atividades" (inclui o
+    // fallback de colaborador autorizado): ESTATISTICA nunca; INSPETOR nos
+    // seus (ou onde é colaborador); CHEFE na sua brigada; superior em todos.
+    const canUpload = await canWorkOnInquerito(
+      role, session.user.id, session.user.brigadaId ?? null, inquerito,
+    )
     if (!canUpload) return apiError('Sem permissão para anexar documentos neste inquérito', 403)
 
     const limited = enforceRateLimit({

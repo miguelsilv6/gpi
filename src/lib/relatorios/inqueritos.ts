@@ -34,7 +34,7 @@ export const queryInqueritos: RelatorioHandler = async (filters, session) => {
         }
       : undefined
 
-  const where: Prisma.InqueritoWhereInput = {
+  const urlWhere: Prisma.InqueritoWhereInput = {
     deletedAt: null,
     ...(dataAberturaRange && { dataAbertura: dataAberturaRange }),
     ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
@@ -43,11 +43,14 @@ export const queryInqueritos: RelatorioHandler = async (filters, session) => {
       AND: [{ OR: [{ crimeId }, { crimesAssociados: { some: { id: crimeId } } }] }],
     }),
     ...(inspetorId && { inspetorId }),
-    // roleWhere LAST: garante que INSPETOR_CHEFE/INSPETOR não escapam ao
-    // scope da brigada/utilizador via injecção de ?brigadaId/?inspetorId
-    // na URL. Esta ordem é crítica para a segurança.
-    ...roleWhere,
   }
+  // roleWhere via AND (nunca por spread ao mesmo nível): o scope pode conter o
+  // seu próprio `OR` (colaborações do INSPETOR) que colidiria com o `AND` do
+  // filtro de crime ou com um `OR` do URL. Compor por AND garante que o scope
+  // é sempre aplicado — INSPETOR_CHEFE/INSPETOR não escapam via
+  // ?brigadaId/?inspetorId (um filtro fora do âmbito devolve vazio, não os
+  // dados do próprio). Esta ordem é crítica para a segurança.
+  const where: Prisma.InqueritoWhereInput = { AND: [urlWhere, roleWhere] }
 
   const total = await prisma.inquerito.count({ where })
   if (total > RELATORIO_ROW_LIMIT) {

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { canWorkOnInquerito } from '@/lib/colaboradores'
 import { writeAudit } from '@/lib/audit'
 import { enforceRateLimit, clientFingerprint } from '@/lib/rate-limit'
 import { slugToNuipc } from '@/lib/utils'
@@ -62,13 +63,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
     const inquerito = await findInqueritoWithAccess(nuipc, role, session.user.id, session.user.brigadaId ?? null)
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
 
-    // Mesma regra de quem pode adicionar atividades/documentos:
-    // ESTATISTICA nunca; INSPETOR só nos seus; CHEFE só na sua brigada.
-    const canAdd =
-      role === 'ESTATISTICA' ? false :
-      role === 'INSPETOR' ? inquerito.inspetorId === session.user.id :
-      role === 'INSPETOR_CHEFE' ? inquerito.brigadaId === session.user.brigadaId :
-      true
+    // Mesma regra de quem pode adicionar atividades/documentos (inclui o
+    // fallback de colaborador autorizado): ESTATISTICA nunca; INSPETOR nos
+    // seus (ou onde é colaborador); CHEFE na sua brigada; superior em todos.
+    const canAdd = await canWorkOnInquerito(
+      role, session.user.id, session.user.brigadaId ?? null, inquerito,
+    )
     if (!canAdd) return apiError('Sem permissão para adicionar notas neste inquérito', 403)
 
     const limited = enforceRateLimit({

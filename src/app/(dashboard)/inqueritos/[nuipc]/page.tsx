@@ -2,6 +2,8 @@ import { auth } from '@/auth'
 import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
+import { isColaboradorAtivo, canManageColaboradores } from '@/lib/colaboradores'
+import { ColaboradoresSection } from '@/components/inqueritos/colaboradores-section'
 import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
 import { isModuloAnexosAtivo } from '@/lib/anexos-module'
@@ -310,6 +312,14 @@ export default async function InqueritoDetailPage({
   })
 
   const canEdit = canEditInquerito(role, session.user.id, session.user.brigadaId, inquerito)
+  // `canWork` = trabalho operacional (atividades, notas, documentos, interceções):
+  // titular/hierarquia (canEdit) OU colaborador autorizado ativo. NÃO cobre
+  // edição de campos core (estado/prazo/titular), reabertura, doc-pendente ou
+  // apagar — essas continuam a exigir `canEdit`/permissões próprias. Só se
+  // consulta a BD quando `canEdit` é falso (evita query redundante).
+  const canWork =
+    canEdit ||
+    (role !== 'ESTATISTICA' && (await isColaboradorAtivo(inquerito.id, session.user.id)))
 
   // A marca de documentação pendente é privada do autor: badge e estado do
   // toggle só refletem a marca para quem a criou; aos outros aparece como
@@ -333,13 +343,13 @@ export default async function InqueritoDetailPage({
             ? 'prazo'
             : null
     const canMutate =
-      canEdit &&
+      canWork &&
       !terminal &&
       (role === 'INSPETOR' ? atv.realizadaPor.id === session.user.id : true)
     // Inspectors can conclude (confirm devolução/exame) activities created by
     // anyone — they don't need to be the creator to mark the outcome. Edit and
     // delete remain restricted to the creator via canMutate.
-    const canConclude = canEdit && !terminal
+    const canConclude = canWork && !terminal
     return {
       id: atv.id,
       descricao: atv.descricao,
@@ -384,6 +394,45 @@ export default async function InqueritoDetailPage({
     }),
     getChecklistForInquerito(inquerito.crimeId, inquerito.id),
   ])
+
+  // Colaboradores autorizados — quem pode gerir (titular/hierarquia) vê os
+  // controlos; a lista carrega-se sempre (leve) para todos com acesso.
+  const podeGerirColaboradores = canManageColaboradores(
+    role, session.user.id, session.user.brigadaId, inquerito,
+  )
+  const [colaboradoresRaw, inspetoresDisponiveis] = await Promise.all([
+    prisma.inqueritoColaborador.findMany({
+      where: { inqueritoid: inquerito.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        motivo: true,
+        expiraEm: true,
+        createdAt: true,
+        colaborador: { select: { id: true, nome: true, email: true } },
+        concedidoPor: { select: { id: true, nome: true } },
+      },
+    }),
+    podeGerirColaboradores
+      ? prisma.utilizador.findMany({
+          where: {
+            role: 'INSPETOR',
+            ativo: true,
+            ...(inquerito.inspetorId ? { NOT: { id: inquerito.inspetorId } } : {}),
+          },
+          orderBy: { nome: 'asc' },
+          select: { id: true, nome: true, email: true },
+        })
+      : Promise.resolve([]),
+  ])
+  const colaboradorItems = colaboradoresRaw.map((c) => ({
+    id: c.id,
+    motivo: c.motivo,
+    expiraEm: c.expiraEm ? c.expiraEm.toISOString() : null,
+    createdAt: c.createdAt.toISOString(),
+    colaborador: c.colaborador,
+    concedidoPor: c.concedidoPor,
+  }))
 
   const canReopen = hasPermission(role, 'inquerito:reopen')
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
@@ -832,6 +881,13 @@ export default async function InqueritoDetailPage({
 
       <ConexoesSection conexoes={conexoes} />
 
+      <ColaboradoresSection
+        nuipcSlug={inqSlug}
+        colaboradores={colaboradorItems}
+        inspetoresDisponiveis={inspetoresDisponiveis}
+        podeGerir={podeGerirColaboradores}
+      />
+
       <ChecklistSection checklist={checklist} />
 
       <AtividadesSection
@@ -852,7 +908,7 @@ export default async function InqueritoDetailPage({
         <DocumentosSection
           nuipcSlug={inqSlug}
           documentos={documentos.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() }))}
-          canUpload={canEdit && role !== 'ESTATISTICA'}
+          canUpload={canWork}
           currentUserId={session.user.id}
           isAdmin={hasPermission(role, 'inquerito:edit:all')}
         />
@@ -881,7 +937,7 @@ export default async function InqueritoDetailPage({
           createdAt: n.createdAt.toISOString(),
           updatedAt: n.updatedAt.toISOString(),
         }))}
-        canAdd={canEdit && role !== 'ESTATISTICA'}
+        canAdd={canWork}
         currentUserId={session.user.id}
         isAdmin={hasPermission(role, 'inquerito:edit:all')}
       />

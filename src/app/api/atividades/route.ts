@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
+import { canWorkOnInquerito } from '@/lib/colaboradores'
 import { hasPermission } from '@/lib/rbac'
 import { getRequestInfo } from '@/lib/request-info'
 import { applyAtividadeTransicao } from '@/lib/atividade-transicao'
@@ -66,11 +67,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const canAdd =
-      role === 'ESTATISTICA' ? false :
-      role === 'INSPETOR' ? inquerito.inspetorId === session.user.id :
-      role === 'INSPETOR_CHEFE' ? inquerito.brigadaId === session.user.brigadaId :
-      true
+    // ESTATISTICA nunca; INSPETOR nos seus (ou onde é colaborador autorizado);
+    // CHEFE na sua brigada; COORDENADOR/ADMINISTRACAO em todos.
+    const canAdd = await canWorkOnInquerito(
+      role, session.user.id, session.user.brigadaId ?? null, inquerito,
+    )
 
     if (!canAdd) return apiError('Sem permissão para adicionar atividade neste inquérito', 403)
 

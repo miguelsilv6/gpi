@@ -41,7 +41,24 @@ export function buildInqueritoWhere(
   brigadaId: string | null,
 ): Prisma.InqueritoWhereInput {
   if (role === 'INSPETOR') {
-    return { inspetorId: userId }
+    // O inspetor vê os seus próprios inquéritos E aqueles onde é colaborador
+    // autorizado ativo (autorização sem prazo, ou com prazo ainda no futuro).
+    // NOTA: isto devolve um `OR` no topo — os call-sites que combinam este
+    // scope com outros `OR`/`AND` no mesmo nível têm de o compor via `AND`
+    // (ver página/rota de listagem), nunca por spread ao mesmo nível.
+    return {
+      OR: [
+        { inspetorId: userId },
+        {
+          colaboradores: {
+            some: {
+              colaboradorId: userId,
+              OR: [{ expiraEm: null }, { expiraEm: { gt: new Date() } }],
+            },
+          },
+        },
+      ],
+    }
   }
   if (role === 'INSPETOR_CHEFE') {
     // Fail-closed: chefe sem brigada é um misconfig. Devolver os próprios

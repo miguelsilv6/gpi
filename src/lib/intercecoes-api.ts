@@ -6,7 +6,8 @@
  * try/catch com `handleApiError`, como nas restantes rotas da app.
  */
 import { prisma } from '@/lib/prisma'
-import { getSession, apiError, buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
+import { getSession, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
+import { canWorkOnInquerito } from '@/lib/colaboradores'
 import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import { slugToNuipc } from '@/lib/utils'
 import type { Role } from '@/generated/prisma/enums'
@@ -43,7 +44,8 @@ export async function loadIntercecaoContext(
   if (!inquerito) return apiError('Inquérito não encontrado', 404)
 
   if (opts.write) {
-    if (role === 'ESTATISTICA' || !canEditInquerito(role, session.user.id, brigadaId, inquerito)) {
+    // Trabalho operacional: titular, hierarquia, ou colaborador autorizado.
+    if (!(await canWorkOnInquerito(role, session.user.id, brigadaId, inquerito))) {
       return apiError('Sem permissão para alterar interceções neste inquérito', 403)
     }
   }

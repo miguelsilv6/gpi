@@ -7,7 +7,7 @@ import { InqueritoCard } from './inquerito-card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from './etiqueta-badge'
 import { formatDate, isOverdue, cn, nuipcToSlug } from '@/lib/utils'
-import { AlertTriangle, CheckSquare, X, Mail } from 'lucide-react'
+import { AlertTriangle, CheckSquare, X, Mail, RadioTower } from 'lucide-react'
 import Link from 'next/link'
 
 interface EstadoLike {
@@ -34,7 +34,7 @@ interface Inquerito {
   dataPrazo: Date | null
   inspetor: { id: string; nome: string } | null
   brigada: { id: string; nome: string } | null
-  _count: { atividades: number }
+  _count: { atividades: number; intercecaoAlvos: number }
 }
 
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
@@ -64,6 +64,9 @@ interface Props {
   showDenunciante: boolean
   /** Show the "Prazo" column. Off for INSPETOR_CHEFE. */
   showPrazo: boolean
+  /** Quando true, mostra o ícone de interceções junto ao NUIPC nos inquéritos
+   *  que têm alvos. Desligado quando o módulo está inativo para o perfil. */
+  moduloIntercecoesAtivo: boolean
   inspetores: Inspetor[]
   brigadas: Brigada[]
   estados: EstadoLike[]
@@ -76,11 +79,12 @@ interface RowProps {
   showInspetor: boolean
   showDenunciante: boolean
   showPrazo: boolean
+  moduloIntercecoesAtivo: boolean
   isSelected: boolean
   onToggle: (id: string) => void
 }
 
-const Row = memo(function Row({ inq, canBulk, showBrigada, showInspetor, showDenunciante, showPrazo, isSelected, onToggle }: RowProps) {
+const Row = memo(function Row({ inq, canBulk, showBrigada, showInspetor, showDenunciante, showPrazo, moduloIntercecoesAtivo, isSelected, onToggle }: RowProps) {
   const overdue = isOverdue(inq.dataPrazo) && !inq.estado.terminal
   return (
     <tr
@@ -108,6 +112,9 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, showInspetor, showDen
           {inq.nuipc}
           {inq.cartaPrecatoria && (
             <Mail className="h-3.5 w-3.5 text-orange-500 shrink-0" aria-label="Carta Precatória" />
+          )}
+          {moduloIntercecoesAtivo && inq._count.intercecaoAlvos > 0 && (
+            <RadioTower className="h-3.5 w-3.5 text-indigo-500 shrink-0" aria-label="Com interceções" />
           )}
         </Link>
         {inq.nai && (
@@ -152,7 +159,7 @@ const Row = memo(function Row({ inq, canBulk, showBrigada, showInspetor, showDen
   )
 })
 
-export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, showInspetor, showDenunciante, showPrazo, inspetores, brigadas, estados }: Props) {
+export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, showInspetor, showDenunciante, showPrazo, moduloIntercecoesAtivo, inspetores, brigadas, estados }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   // Mobile-only: indica se os cards estão em modo seleção. Activado por
   // long-press num card ou pelo botão explícito "Selecionar". Em desktop
@@ -250,6 +257,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
                   showInspetor={showInspetor}
                   showDenunciante={showDenunciante}
                   showPrazo={showPrazo}
+                  moduloIntercecoesAtivo={moduloIntercecoesAtivo}
                   isSelected={selected.has(inq.id)}
                   onToggle={toggle}
                 />
@@ -306,6 +314,7 @@ export function InqueritoTable({ inqueritos, canBulk, canTransfer, showBrigada, 
               nuipc={inq.nuipc}
               nai={inq.nai}
               cartaPrecatoria={inq.cartaPrecatoria}
+              temIntercecoes={moduloIntercecoesAtivo && inq._count.intercecaoAlvos > 0}
               natureza={inq.crime?.nome ?? inq.natureza}
               estado={inq.estado}
               etiquetas={inq.etiquetas}

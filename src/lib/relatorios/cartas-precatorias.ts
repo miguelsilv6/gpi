@@ -32,15 +32,16 @@ export const queryCartasPrecatorias: RelatorioHandler = async (filters, session)
         }
       : undefined
 
-  const where: Prisma.InqueritoWhereInput = {
+  const urlWhere: Prisma.InqueritoWhereInput = {
     deletedAt: null,
     cartaPrecatoria: true,
     ...(dataAberturaRange && { dataAbertura: dataAberturaRange }),
     ...(estadoCodigo && { estado: { codigo: estadoCodigo } }),
     ...(brigadaId && { brigadaId }),
     ...(inspetorId && { inspetorId }),
-    ...roleWhere,
   }
+  // roleWhere via AND (nunca por spread): ver nota em relatorios/inqueritos.ts.
+  const where: Prisma.InqueritoWhereInput = { AND: [urlWhere, roleWhere] }
 
   const total = await prisma.inquerito.count({ where })
   if (total > RELATORIO_ROW_LIMIT) {

@@ -68,6 +68,8 @@ export const ACAO_LABELS: Record<string, string> = {
   CREATE_INTERCECAO_PRODUTO: 'Produto de interceção registado',
   UPDATE_INTERCECAO_PRODUTO: 'Produto de interceção alterado',
   DELETE_INTERCECAO_PRODUTO: 'Produto de interceção eliminado',
+  CREATE_INQUERITO_COLABORADOR: 'Colaborador autorizado',
+  DELETE_INQUERITO_COLABORADOR: 'Autorização de colaborador revogada',
 }
 
 /** Cor categórica para os badges de acao em listas. */
@@ -204,6 +206,11 @@ export const FIELD_LABELS: Record<string, string> = {
   paraTranscricao: 'Para transcrição',
   renovacoes: 'Renovações',
   novaDataFim: 'Nova data de fim',
+  // Colaboradores autorizados
+  colaboradorNome: 'Colaborador',
+  colaboradorEmail: 'Colaborador (email)',
+  motivo: 'Motivo',
+  expiraEm: 'Expira em',
   // Bulk markers
   __bulk__: '(lote)',
   __bulk_export__: '(exportação)',
