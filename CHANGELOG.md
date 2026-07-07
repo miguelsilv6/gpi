@@ -7,7 +7,17 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.64] — 2026-07-07
+## [0.5.66] — 2026-07-07
+
+### Corrigido
+- **NUIPC com espaço em branco causava "Página não encontrada"**: o
+  formulário de criação/edição não removia espaços iniciais/finais do
+  NUIPC antes de gravar. Um NUIPC guardado com esse espaço continuava a
+  aparecer na pesquisa (que usa correspondência parcial), mas a página de
+  detalhe (que exige correspondência exata) deixava de o encontrar. O
+  schema passa agora a fazer `trim()` do NUIPC.
+
+
 
 ### Corrigido
 - **CRÍTICO — arranque falhava (502) quando um alvo de interceção tinha mais
