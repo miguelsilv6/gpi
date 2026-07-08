@@ -2,10 +2,13 @@ import { describe, test, expect, beforeEach, afterAll } from 'vitest'
 import { getTestPrisma, resetDatabase, disconnectTestPrisma } from '../helpers/db'
 import { scenarioTwoBrigadas } from '../helpers/fixtures'
 import { buildInqueritoWhere } from '@/lib/role-scope'
+import { invalidatePolicyCache } from '@/lib/notifications'
+import { TipoNotificacao } from '@/generated/prisma/enums'
 import {
   isColaboradorAtivo,
   canWorkOnInquerito,
   canManageColaboradores,
+  notifyColaboracaoAutorizada,
 } from '@/lib/colaboradores'
 
 /**
@@ -34,6 +37,14 @@ async function findInqueritosVisiveis(userId: string, brigadaId: string | null) 
 
 beforeEach(async () => {
   await resetDatabase(prisma)
+  // `applyPolicy` é fail-closed: sem policy não notifica. Semeamos in-app
+  // (sem email) para o teste de notificação de colaboração.
+  for (const tipo of Object.values(TipoNotificacao)) {
+    await prisma.notificationPolicy.create({
+      data: { tipo, inAppEnabled: true, emailEnabled: false, ccRoles: [] },
+    })
+  }
+  invalidatePolicyCache()
 })
 
 afterAll(async () => {
@@ -182,5 +193,48 @@ describe('canManageColaboradores — quem concede/revoga', () => {
     expect(canManageColaboradores('INSPETOR_CHEFE', 'chefeId', 'brigY', inq)).toBe(false)
     // Coordenador gere qualquer.
     expect(canManageColaboradores('COORDENADOR', 'coordId', null, inq)).toBe(true)
+  })
+})
+
+describe('notifyColaboracaoAutorizada — avisa o colaborador', () => {
+  test('cria uma notificação in-app COLABORACAO_AUTORIZADA para o colaborador', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const inqB = s.inqB[0]
+
+    await notifyColaboracaoAutorizada({
+      inqueritoid: inqB.id,
+      nuipc: inqB.nuipc,
+      colaboradorId: s.inspetorA.id,
+      expiraEm: daysFromNow(30),
+      motivo: 'Apoio na análise',
+    })
+
+    const notifs = await prisma.notificacao.findMany({
+      where: { tipo: 'COLABORACAO_AUTORIZADA' },
+    })
+    expect(notifs).toHaveLength(1)
+    expect(notifs[0].utilizadorId).toBe(s.inspetorA.id) // o autorizado, não o titular
+    expect(notifs[0].inqueritoid).toBe(inqB.id)
+    expect(notifs[0].mensagem).toContain(inqB.nuipc)
+  })
+
+  test('sem policy (fail-closed) não cria notificação nem lança', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const inqB = s.inqB[0]
+    await prisma.notificationPolicy.deleteMany({ where: { tipo: 'COLABORACAO_AUTORIZADA' } })
+    invalidatePolicyCache()
+
+    await expect(
+      notifyColaboracaoAutorizada({
+        inqueritoid: inqB.id,
+        nuipc: inqB.nuipc,
+        colaboradorId: s.inspetorA.id,
+        expiraEm: null,
+        motivo: null,
+      }),
+    ).resolves.toBeUndefined()
+
+    const notifs = await prisma.notificacao.findMany({ where: { tipo: 'COLABORACAO_AUTORIZADA' } })
+    expect(notifs).toHaveLength(0)
   })
 })

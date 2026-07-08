@@ -7,6 +7,33 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.70] — 2026-07-08
+
+### Corrigido
+- **Colaboração — colaborador não conseguia editar/eliminar/concluir as suas
+  atividades**: a UI mostrava os botões, mas a API de mutação de atividades
+  exigia ser o titular do inquérito, pelo que um colaborador autorizado (ou o
+  titular perante uma atividade registada por outro inspetor) recebia 403. O
+  gate passa a distinguir dois níveis, alinhado com a UI: **concluir** é
+  trabalho operacional (titular, hierarquia ou colaborador ativo podem concluir
+  qualquer atividade); **editar os dados ou eliminar** continua reservado ao
+  autor da entrada (ou à hierarquia).
+
+### Adicionado
+- **Notificação ao colaborador autorizado**: quando um inspetor é autorizado a
+  colaborar num inquérito, passa a receber uma notificação (in-app/email,
+  conforme a política) a informar do novo acesso — antes só ficava registado na
+  auditoria. Novo tipo de notificação "Colaboração autorizada", configurável em
+  Configurações → Notificações.
+
+### Alterado
+- **Colaboração autorizada — pequenos acertos de revisão**: no seletor de data
+  de expiração da autorização, o campo passa a impedir a escolha de uma data
+  no passado (atributo `min`), evitando um erro do servidor por já-expirada; a
+  validação no servidor mantém-se. Simplificação interna: `isColaboradorAtivo`
+  reutiliza o fragmento `colaboradorAtivoSomeWhere`, sem alteração de
+  comportamento.
+
 ## [0.5.68] — 2026-07-07
 
 ### Adicionado

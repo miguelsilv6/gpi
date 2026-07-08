@@ -68,6 +68,11 @@ export function ColaboradoresSection({ nuipcSlug, colaboradores, inspetoresDispo
   const jaAutorizados = new Set(colaboradores.map((c) => c.colaborador.id))
   const opcoes = inspetoresDisponiveis.filter((i) => !jaAutorizados.has(i.id))
 
+  // Data de hoje (local) em YYYY-MM-DD, para impedir escolher um prazo passado
+  // no seletor. O servidor valida na mesma; isto é só uma ajuda de UX.
+  const d = new Date()
+  const hojeISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   function resetForm() {
     setColaboradorId('')
     setMotivo('')
@@ -248,6 +253,7 @@ export function ColaboradoresSection({ nuipcSlug, colaboradores, inspetoresDispo
                 id="colabExpira"
                 type="date"
                 value={expiraEm}
+                min={hojeISO}
                 onChange={(e) => setExpiraEm(e.target.value)}
               />
               <p className="text-[11px] text-muted-foreground">Sem data = vale até ser revogada.</p>

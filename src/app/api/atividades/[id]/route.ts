@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
-import { hasPermission } from '@/lib/rbac'
+import { atividadeMutationAccess, isColaboradorAtivo } from '@/lib/colaboradores'
 import { writeAudit, diff } from '@/lib/audit'
 import { applyAtividadeTransicao } from '@/lib/atividade-transicao'
 import { nuipcToSlug } from '@/lib/utils'
@@ -28,27 +28,27 @@ const updateSchema = z.object({
   concluidaEm: z.string().datetime().nullable().optional(),
 })
 
-/** Returns true if `session.user` may edit/delete `atividade`. */
-function canMutate(
+/**
+ * Resolve os dois níveis de acesso à mutação de uma atividade (ver
+ * `atividadeMutationAccess`). Consulta a BD apenas quando é preciso saber se o
+ * INSPETOR não-titular é colaborador ativo.
+ */
+async function resolveAtividadeAccess(
   role: Role,
   userId: string,
   brigadaId: string | null,
   atividade: { utilizadorId: string },
-  inquerito: { inspetorId: string | null; brigadaId: string | null },
-): boolean {
-  // ESTATISTICA never writes atividades
-  if (role === 'ESTATISTICA') return false
-  // COORDENADOR / ADMINISTRACAO: anywhere
-  if (role === 'COORDENADOR' || role === 'ADMINISTRACAO') return true
-  // INSPETOR_CHEFE: anything in their brigada
-  if (role === 'INSPETOR_CHEFE') {
-    return !!brigadaId && inquerito.brigadaId === brigadaId
-  }
-  // INSPETOR: only their own atividades, on inquéritos they're assigned to
-  if (role === 'INSPETOR') {
-    return atividade.utilizadorId === userId && inquerito.inspetorId === userId
-  }
-  return false
+  inquerito: { id: string; inspetorId: string | null; brigadaId: string | null },
+): Promise<{ canWork: boolean; canEditEntry: boolean }> {
+  const isTitular = inquerito.inspetorId === userId
+  const colaboradorAtivo =
+    role === 'INSPETOR' && !isTitular ? await isColaboradorAtivo(inquerito.id, userId) : false
+  return atividadeMutationAccess(role, {
+    isCreator: atividade.utilizadorId === userId,
+    isTitular,
+    isColaboradorAtivo: colaboradorAtivo,
+    inBrigada: !!brigadaId && inquerito.brigadaId === brigadaId,
+  })
 }
 
 export async function PUT(
@@ -84,7 +84,12 @@ export async function PUT(
         409,
       )
     }
-    if (!canMutate(role, session.user.id, session.user.brigadaId, existing, existing.inquerito)) {
+    const { canWork, canEditEntry } = await resolveAtividadeAccess(
+      role, session.user.id, session.user.brigadaId, existing, existing.inquerito,
+    )
+    // Concluir (só `concluidaEm`) é trabalho operacional — basta `canWork`.
+    // Editar os metadados exige ser o autor (ou hierarquia) — `canEditEntry`.
+    if (!canWork) {
       return apiError('Sem permissão para editar esta atividade', 403)
     }
 
@@ -92,6 +97,18 @@ export async function PUT(
     const parsed = updateSchema.safeParse(body)
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
     const data = parsed.data
+
+    // `descricao` é imutável; alterá-la não conta como edição de metadados.
+    const touchesMetadata =
+      data.observacoes !== undefined ||
+      data.dataRealizacao !== undefined ||
+      data.quantidade !== undefined ||
+      data.dataPrazo !== undefined ||
+      data.alertaDias1 !== undefined ||
+      data.alertaDias2 !== undefined
+    if (touchesMetadata && !canEditEntry) {
+      return apiError('Só o autor da atividade pode editar os seus dados', 403)
+    }
 
     const updateData: Record<string, unknown> = {}
     if (data.observacoes !== undefined) {
@@ -244,7 +261,11 @@ export async function DELETE(
         409,
       )
     }
-    if (!canMutate(role, session.user.id, session.user.brigadaId, existing, existing.inquerito)) {
+    // Eliminar é uma ação de "dono da entrada": autor (INSPETOR) ou hierarquia.
+    const { canEditEntry } = await resolveAtividadeAccess(
+      role, session.user.id, session.user.brigadaId, existing, existing.inquerito,
+    )
+    if (!canEditEntry) {
       return apiError('Sem permissão para eliminar esta atividade', 403)
     }
 
