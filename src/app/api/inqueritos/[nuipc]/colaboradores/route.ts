@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError, buildInqueritoWhere } from '@/lib/auth-helpers'
-import { canManageColaboradores } from '@/lib/colaboradores'
+import { canManageColaboradores, notifyColaboracaoAutorizada } from '@/lib/colaboradores'
 import { writeAudit } from '@/lib/audit'
 import { slugToNuipc } from '@/lib/utils'
 import { colaboradorCreateSchema } from '@/lib/validations/colaborador'
@@ -135,6 +135,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
         expiraEm: expiraEm ? expiraEm.toISOString() : null,
       },
     }).catch(() => {})
+
+    // Notificar o inspetor autorizado — deve saber que passou a ter acesso.
+    await notifyColaboracaoAutorizada({
+      inqueritoid: inquerito.id,
+      nuipc: inquerito.nuipc,
+      colaboradorId: alvo.id,
+      expiraEm,
+      motivo: motivo ?? null,
+    })
 
     return Response.json(created, { status: 201 })
   } catch (error) {

@@ -25,6 +25,7 @@ export const NOTIFICATION_TIPO_LABELS: Record<TipoNotificacao, string> = {
   CONTROLO_APROXIMANDO: 'Controlo a aproximar-se',
   TRANSICAO_AUTOMATICA: 'Transição automática de estado',
   INTERCECAO_A_TERMINAR: 'Interceção a terminar',
+  COLABORACAO_AUTORIZADA: 'Colaboração autorizada',
 }
 
 /**
@@ -46,6 +47,7 @@ export const NOTIFICATION_TIPO_DESCRIPTIONS: Record<TipoNotificacao, string> = {
   CONTROLO_APROXIMANDO: 'Disparada quando um controlo periódico está prestes a vencer (configurable via alertaDias no controlo).',
   TRANSICAO_AUTOMATICA: 'Disparada quando um inquérito é movido automaticamente de estado por inatividade prolongada, segundo as regras de transição automática (Configurações → Transições). Notifica o inspetor do inquérito.',
   INTERCECAO_A_TERMINAR: 'Disparada quando uma linha de interceção (escuta) se aproxima da data de fim — até 2 avisos com dias configuráveis por linha (por defeito 10 e 3 dias). Notifica o inspetor do inquérito.',
+  COLABORACAO_AUTORIZADA: 'Disparada quando um inspetor é autorizado a colaborar num inquérito que não lhe está distribuído. Notifica o inspetor autorizado.',
 }
 
 /**
@@ -71,6 +73,7 @@ export const NOTIFICATION_TIPO_HAS_NATURAL: Record<TipoNotificacao, boolean> = {
   CONTROLO_APROXIMANDO: true,
   TRANSICAO_AUTOMATICA: true,
   INTERCECAO_A_TERMINAR: true,
+  COLABORACAO_AUTORIZADA: true,
 }
 
 /**
