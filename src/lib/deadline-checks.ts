@@ -209,7 +209,7 @@ export async function runDeadlineChecks(now: Date = new Date()): Promise<Deadlin
         utilizadorId: controlo.criadorId,
         tipo: 'CONTROLO_APROXIMANDO',
         titulo: `${realizacao.numero}.º Controlo a aproximar${nuipcLabel}`,
-        mensagem: `${controlo.descricao}: ${realizacao.numero}.º controlo previsto para ${new Date(realizacao.dataEsperada).toLocaleDateString('pt-PT', { timeZone: 'UTC' })}.`,
+        mensagem: `${controlo.descricao}: ${realizacao.numero}.º controlo previsto para ${dataEsperada.toLocaleDateString('pt-PT', { timeZone: 'UTC' })}.`,
         sendEmail: true,
         emailAddress: controlo.criador.email,
       }).then(() =>
