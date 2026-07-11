@@ -255,7 +255,7 @@ export async function PUT(req: NextRequest) {
               after: config.smtpPasswordEnc ? '***' : null,
             },
           }),
-        } as never,
+        },
       })
     }
 

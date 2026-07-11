@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
       entidade: 'AjudasConfig',
       entidadeId: 'default',
       utilizadorId: session.user.id,
-      detalhes: parsed.data as never,
+      detalhes: parsed.data,
     })
 
     return Response.json(config)

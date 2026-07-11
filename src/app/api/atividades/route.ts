@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
             descricao,
             quantidade: quantidade ?? null,
             dataPrazo: dataPrazo ?? null,
-          } as never,
+          },
         },
       })
 

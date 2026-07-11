@@ -62,7 +62,7 @@ export async function PATCH(
         entidade: 'BugReport',
         entidadeId: updated.id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: changes,
       })
     }
 

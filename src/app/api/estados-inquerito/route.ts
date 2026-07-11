@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       entidade: 'EstadoInquerito',
       entidadeId: created.id,
       utilizadorId: session.user.id,
-      detalhes: data as never,
+      detalhes: data,
     })
 
     revalidatePath('/inqueritos')

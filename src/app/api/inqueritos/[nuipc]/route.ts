@@ -380,7 +380,7 @@ export async function PUT(
           ...(changes ?? {}),
           ...(etiquetasMudaram && { etiquetasBefore, etiquetasAfter }),
           ...(crimesAssociadosMudaram && { crimesAssociadosBefore, crimesAssociadosAfter }),
-        } as never,
+        },
       })
     }
 

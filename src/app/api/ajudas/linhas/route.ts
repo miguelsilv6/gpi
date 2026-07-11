@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       entidade: 'AjudasLinha',
       entidadeId: linha.id,
       utilizadorId: session.user.id,
-      detalhes: { registoId } as never,
+      detalhes: { registoId },
     })
 
     // Return updated registo with totals (single query with include)

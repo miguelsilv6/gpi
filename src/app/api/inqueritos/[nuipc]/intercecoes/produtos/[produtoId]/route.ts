@@ -93,7 +93,7 @@ export async function PUT(
         entidade: 'IntercecaoProduto',
         entidadeId: produto.id,
         utilizadorId: ctx.userId,
-        detalhes: { nuipc: ctx.inquerito.nuipc, alvoNome: produto.alvo.nome, ...changes } as never,
+        detalhes: { nuipc: ctx.inquerito.nuipc, alvoNome: produto.alvo.nome, ...changes },
       })
     }
 

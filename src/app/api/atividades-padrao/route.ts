@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       entidade: 'AtividadePadrao',
       entidadeId: atividade.id,
       utilizadorId: session.user.id,
-      detalhes: parsed.data as never,
+      detalhes: parsed.data,
     })
 
     return Response.json(atividade, { status: 201 })

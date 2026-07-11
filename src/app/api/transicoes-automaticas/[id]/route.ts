@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       entidade: 'RegraTransicaoAutomatica',
       entidadeId: id,
       utilizadorId: session.user.id,
-      detalhes: { changed: parsed.data } as never,
+      detalhes: { changed: parsed.data },
     })
 
     return Response.json(updated)
@@ -98,7 +98,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       entidade: 'RegraTransicaoAutomatica',
       entidadeId: id,
       utilizadorId: session.user.id,
-      detalhes: { origem: regra.origem.codigo, destino: regra.destino.codigo } as never,
+      detalhes: { origem: regra.origem.codigo, destino: regra.destino.codigo },
     })
 
     return Response.json({ ok: true })

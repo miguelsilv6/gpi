@@ -134,7 +134,7 @@ export async function PUT(
         entidade: 'Interveniente',
         entidadeId: updated.id,
         utilizadorId: session.user.id,
-        detalhes: { nuipc: inquerito.nuipc, nome: updated.nome, ...delta } as never,
+        detalhes: { nuipc: inquerito.nuipc, nome: updated.nome, ...delta },
       }).catch(() => {})
     }
 

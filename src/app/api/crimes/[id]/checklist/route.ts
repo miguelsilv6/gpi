@@ -72,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         crimeNome: crime.nome,
         before: before.map((i) => i.nome),
         after: after.map((i) => i.nome),
-      } as never,
+      },
     })
 
     return Response.json({ items: after })

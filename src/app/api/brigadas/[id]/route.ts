@@ -80,7 +80,7 @@ export async function PUT(
         entidade: 'Brigada',
         entidadeId: id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: changes,
       })
     }
 

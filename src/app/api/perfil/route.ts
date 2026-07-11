@@ -150,7 +150,7 @@ export async function PUT(req: NextRequest) {
         entidade: 'Utilizador',
         entidadeId: session.user.id,
         utilizadorId: session.user.id,
-        detalhes: detalhes as never,
+        detalhes: detalhes,
       })
     }
 

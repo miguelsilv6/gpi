@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       entidade: 'ConfiguracaoSistema',
       entidadeId: 'singleton',
       utilizadorId: session.user.id,
-      detalhes: { kind: 'favicon', filename, size: buffer.length } as never,
+      detalhes: { kind: 'favicon', filename, size: buffer.length },
     })
 
     return Response.json({ filename, size: buffer.length })
@@ -117,7 +117,7 @@ export async function DELETE(req: NextRequest) {
       entidade: 'ConfiguracaoSistema',
       entidadeId: 'singleton',
       utilizadorId: session.user.id,
-      detalhes: { kind: 'favicon', action: 'removed' } as never,
+      detalhes: { kind: 'favicon', action: 'removed' },
     })
 
     return Response.json({ ok: true })

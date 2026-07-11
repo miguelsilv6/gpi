@@ -114,7 +114,7 @@ export async function POST(
               exitCode: result.status,
               durationMs: Date.now() - startedAt,
               stderr: stderr.slice(0, 2000),
-            } as never,
+            },
           },
         })
       } catch {}
@@ -138,7 +138,7 @@ export async function POST(
           filename,
           prerestoreFilename,
           durationMs: Date.now() - startedAt,
-        } as never,
+        },
       },
     })
 

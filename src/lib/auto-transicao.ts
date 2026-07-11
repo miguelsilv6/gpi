@@ -200,7 +200,7 @@ export async function runAutoTransicoes(now: Date = new Date()): Promise<AutoTra
                 estadoAnterior: regra.origem.codigo,
                 estadoNovo: regra.destino.codigo,
                 dataConclusaoSet: regra.destino.terminal ? now.toISOString() : null,
-              } as never,
+              },
             },
           })
           transitadosRegra++

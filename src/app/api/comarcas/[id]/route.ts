@@ -62,7 +62,7 @@ export async function PUT(
         entidade: 'Comarca',
         entidadeId: updated.id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: changes,
       })
     }
 

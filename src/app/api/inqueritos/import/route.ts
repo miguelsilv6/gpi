@@ -433,7 +433,7 @@ export async function POST(req: NextRequest) {
             brigadaId: v.brigadaId,
             inspetorId: v.inspetorId,
             source: 'bulk_import',
-          } as never,
+          },
         })),
       })
     })

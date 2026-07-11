@@ -39,7 +39,7 @@ export async function DELETE(
         entidade: 'Sistema',
         entidadeId: filename,
         utilizadorId: session.user.id,
-        detalhes: { filename, size } as never,
+        detalhes: { filename, size },
       },
     })
 

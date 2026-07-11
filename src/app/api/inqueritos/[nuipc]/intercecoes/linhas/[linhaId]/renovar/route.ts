@@ -74,7 +74,7 @@ export async function POST(
         identificador: linha.identificador,
         dataFim: { changed: true, before: linha.dataFim, after: novaDataFim },
         renovacoes: { changed: true, before: linha.renovacoes, after: updated.renovacoes },
-      } as never,
+      },
     })
 
     return Response.json(updated)

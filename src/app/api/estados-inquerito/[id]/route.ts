@@ -109,7 +109,7 @@ export async function PUT(
         entidade: 'EstadoInquerito',
         entidadeId: updated.id,
         utilizadorId: session.user.id,
-        detalhes: { codigo: existing.codigo, ...changes } as never,
+        detalhes: { codigo: existing.codigo, ...changes },
       })
     }
 

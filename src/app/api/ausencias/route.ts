@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
       entidade: 'Ausencia',
       entidadeId: ausencia.id,
       utilizadorId: session.user.id,
-      detalhes: { tipo, dataInicio: parsed.data.dataInicio, dataFim: parsed.data.dataFim } as never,
+      detalhes: { tipo, dataInicio: parsed.data.dataInicio, dataFim: parsed.data.dataFim },
     })
 
     return Response.json({ ausencia }, { status: 201 })

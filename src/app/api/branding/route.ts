@@ -95,7 +95,7 @@ export async function PUT(req: NextRequest) {
         entidade: 'ConfiguracaoSistema',
         entidadeId: 'singleton',
         utilizadorId: session.user.id,
-        detalhes: { ...d, defaults: BRAND_DEFAULTS } as never,
+        detalhes: { ...d, defaults: BRAND_DEFAULTS },
       })
     }
 

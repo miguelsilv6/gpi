@@ -39,7 +39,7 @@ export async function GET(
         entidade: 'Sistema',
         entidadeId: filename,
         utilizadorId: session.user.id,
-        detalhes: { filename, size } as never,
+        detalhes: { filename, size },
       },
     })
 
