@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
 import { isColaboradorAtivo, canManageColaboradores } from '@/lib/colaboradores'
 import { ColaboradoresSection } from '@/components/inqueritos/colaboradores-section'
+import { IntervenientesSection } from '@/components/inqueritos/intervenientes-section'
 import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
 import { isModuloAnexosAtivo } from '@/lib/anexos-module'
@@ -434,6 +435,18 @@ export default async function InqueritoDetailPage({
     concedidoPor: c.concedidoPor,
   }))
 
+  // Outros intervenientes (lesado, vítima, advogado, …) — mesma permissão de
+  // gestão do denunciante (canEdit: titular/hierarquia).
+  const intervenientesRaw = await prisma.interveniente.findMany({
+    where: { inqueritoid: inquerito.id },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true, tipo: true, tipoOutro: true, nome: true, tipoPessoa: true,
+      nif: true, morada: true, codPostal: true, localidade: true,
+      contacto: true, email: true, responsavel: true, notas: true,
+    },
+  })
+
   const canReopen = hasPermission(role, 'inquerito:reopen')
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
   const canDelete = hasPermission(role, 'inquerito:delete')
@@ -766,6 +779,12 @@ export default async function InqueritoDetailPage({
           </CardContent>
         </Card>
       )}
+
+      <IntervenientesSection
+        nuipcSlug={inqSlug}
+        intervenientes={intervenientesRaw}
+        podeGerir={canEdit}
+      />
 
       {(inquerito.tribunal ||
         inquerito.seccao ||

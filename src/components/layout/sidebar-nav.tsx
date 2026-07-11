@@ -92,6 +92,7 @@ export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo =
               key={item.href}
               href={item.href}
               onClick={onNavigate}
+              data-tour={`nav:${item.href}`}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
                 active

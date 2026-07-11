@@ -154,6 +154,7 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
+        data-tour="global-search"
         className="hidden md:flex items-center gap-2 h-9 w-56 lg:w-72 rounded-lg border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent"
       >
         <Search className="h-4 w-4 shrink-0" />

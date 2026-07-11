@@ -153,6 +153,10 @@ model Utilizador {
   // Nº de inquéritos por página pré-definido na listagem. Null = usa o default
   // do sistema (20). Restrito a valores conhecidos (20/50/100/250) na validação.
   inqueritoPageSizeDefault Int?
+  // Tour de boas-vindas: data em que o utilizador concluiu ou saltou a tour
+  // guiada. Null = ainda não a viu → arranca automaticamente no primeiro
+  // acesso. Pode ser reposta para voltar a ver ("Ver tour novamente" no Perfil).
+  tourConcluidaEm      DateTime?
   viaturas             Viatura[]
   ausencias            Ausencia[]    @relation("AusenciasInspetor")
   notificacaoPreferencias NotificacaoPreferencia[]
@@ -272,6 +276,7 @@ model Inquerito {
   diligencias     Diligencia[]
   intercecaoAlvos IntercecaoAlvo[]
   colaboradores   InqueritoColaborador[]
+  intervenientes  Interveniente[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -288,6 +293,49 @@ model Inquerito {
   @@index([cartaPrecatoria])
   @@index([documentacaoPendente])
   @@index([documentacaoPendentePorId])
+}
+
+// Papel de um interveniente no inquérito. Lista fixa + OUTRO (com texto livre
+// em `tipoOutro`). O denunciante continua a ser um campo próprio do Inquerito;
+// estes são intervenientes ADICIONAIS e opcionais.
+enum TipoInterveniente {
+  LESADO
+  VITIMA
+  TESTEMUNHA
+  ADVOGADO
+  ARGUIDO
+  PERITO
+  OUTRO
+}
+
+// Intervenientes adicionais de um inquérito (lesado, vítima, advogado, etc.),
+// para além do denunciante. Campos espelham o denunciante (pessoa singular ou
+// coletiva). Geridos ao nível do inquérito (mesma permissão do denunciante:
+// titular/hierarquia — não é trabalho operacional de colaborador).
+model Interveniente {
+  id          String            @id @default(cuid())
+  tipo        TipoInterveniente
+  // Descrição livre do papel quando `tipo` = OUTRO (ignorado nos outros casos).
+  tipoOutro   String?
+  nome        String
+  // 'SINGULAR' | 'COLETIVA' | 'ENTIDADE_PUBLICA' | 'OUTROS' (igual ao denunciante).
+  tipoPessoa  String?
+  nif         String?
+  morada      String?
+  codPostal   String?
+  localidade  String?
+  contacto    String?
+  email       String?
+  // Responsável/representante (para pessoas coletivas), igual ao denunciante.
+  responsavel String?
+  notas       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String
+
+  @@index([inqueritoid])
 }
 
 // Documentos/anexos de um inquérito (provas, relatórios, ofícios…).

@@ -11,6 +11,7 @@ import { writeAudit } from '@/lib/audit'
 import { slugToNuipc } from '@/lib/utils'
 import { TIPO_DILIGENCIA_LABEL } from '@/lib/validations/diligencia'
 import { TIPO_LINHA_LABEL, TIPO_PRODUTO_LABEL, DIRECAO_LABEL } from '@/lib/validations/intercecao'
+import { TIPO_INTERVENIENTE_LABEL, TIPO_PESSOA_LABEL } from '@/lib/validations/interveniente'
 import type { Role } from '@/generated/prisma/enums'
 
 function escapeCSV(value: unknown): string {
@@ -90,6 +91,7 @@ export async function GET(
             },
           },
         },
+        intervenientes: { orderBy: { createdAt: 'asc' } },
       },
     })
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
@@ -105,6 +107,7 @@ export async function GET(
         atividades: inquerito.atividades.length,
         controlos: inquerito.controlos.length,
         diligencias: inquerito.diligencias.length,
+        intervenientes: inquerito.intervenientes.length,
         intercecaoAlvos: inquerito.intercecaoAlvos.length,
         intercecaoLinhas: inquerito.intercecaoAlvos.reduce((n, a) => n + a.linhas.length, 0),
         intercecaoProdutos: inquerito.intercecaoAlvos.reduce((n, a) => n + a.produtos.length, 0),
@@ -157,6 +160,50 @@ export async function GET(
     ]
     for (const [campo, valor] of meta) {
       lines.push([campo, valor ?? ''].map(escapeCSV).join(','))
+    }
+
+    // Spacer + outros intervenientes section
+    lines.push('')
+    lines.push(`Outros intervenientes (${inquerito.intervenientes.length})`)
+    const intvHeaders = [
+      'Tipo',
+      'Nome / Designação',
+      'Natureza',
+      'NIF / NIPC',
+      'Morada',
+      'Código postal',
+      'Localidade',
+      'Contacto',
+      'Email',
+      'Responsável',
+      'Notas',
+    ]
+    lines.push(intvHeaders.map(escapeCSV).join(','))
+    for (const it of inquerito.intervenientes) {
+      const tipoLabel =
+        it.tipo === 'OUTRO'
+          ? it.tipoOutro || 'Outro'
+          : (TIPO_INTERVENIENTE_LABEL[it.tipo as keyof typeof TIPO_INTERVENIENTE_LABEL] ?? it.tipo)
+      const natureza = it.tipoPessoa
+        ? (TIPO_PESSOA_LABEL[it.tipoPessoa as keyof typeof TIPO_PESSOA_LABEL] ?? it.tipoPessoa)
+        : ''
+      lines.push(
+        [
+          tipoLabel,
+          it.nome,
+          natureza,
+          it.nif ?? '',
+          it.morada ?? '',
+          it.codPostal ?? '',
+          it.localidade ?? '',
+          it.contacto ?? '',
+          it.email ?? '',
+          it.responsavel ?? '',
+          it.notas ?? '',
+        ]
+          .map(escapeCSV)
+          .join(','),
+      )
     }
 
     // Spacer + atividades section
