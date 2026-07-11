@@ -71,11 +71,16 @@ export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = tru
         <ThemeToggle />
 
         {/* Notification bell */}
-        <NotificationBell />
+        <div data-tour="notifications" className="flex items-center">
+          <NotificationBell />
+        </div>
 
         {/* User menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <DropdownMenuTrigger
+            data-tour="user-menu"
+            className="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-blue-600 text-white text-xs">
                 {initials}

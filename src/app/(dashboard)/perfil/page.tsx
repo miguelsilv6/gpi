@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save, ListFilter, List } from 'lucide-react'
+import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save, ListFilter, List, Compass } from 'lucide-react'
+import { START_TOUR_EVENT } from '@/lib/tour-steps'
 import { INQUERITO_PAGE_SIZES, DEFAULT_INQUERITO_PAGE_SIZE } from '@/lib/pagination'
 import { ROLE_LABELS } from '@/lib/rbac'
 import { NOTIFICATION_TIPO_LABELS, NOTIFICATION_TIPO_DESCRIPTIONS } from '@/lib/notification-labels'
@@ -698,6 +699,30 @@ export default function PerfilPage() {
               Alterar password
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+            <Compass className="h-4 w-4" />
+            Visita guiada
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Uma visita rápida pelas principais funcionalidades da aplicação, adaptada ao teu
+            perfil. Mostra-se automaticamente no primeiro acesso — aqui podes voltar a vê-la
+            quando quiseres.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.dispatchEvent(new Event(START_TOUR_EVENT))}
+          >
+            <Compass className="mr-2 h-4 w-4" />
+            Ver visita guiada
+          </Button>
         </CardContent>
       </Card>
     </div>

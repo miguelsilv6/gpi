@@ -7,7 +7,23 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.70] — 2026-07-08
+## [0.5.72] — 2026-07-11
+
+### Adicionado
+- **Outros intervenientes no inquérito**: além do denunciante, é agora possível
+  registar outros intervenientes — lesado, vítima, testemunha,
+  advogado/mandatário, arguido/suspeito, perito ou "outro" (com descrição
+  livre). Cada interveniente tem os mesmos campos do denunciante (pessoa
+  singular ou coletiva, NIF/NIPC, morada, contactos, responsável e notas). São
+  opcionais e geridos ao nível do inquérito, com a mesma permissão do
+  denunciante (titular ou hierarquia). Aparecem numa secção própria no detalhe
+  do inquérito e são incluídos na exportação CSV. As ações ficam registadas na
+  auditoria.
+- **Visita guiada de boas-vindas**: no primeiro acesso, arranca automaticamente
+  uma visita guiada (em Português) que apresenta as principais funcionalidades,
+  **adaptada ao perfil** — só destaca os itens de menu e áreas a que o
+  utilizador tem acesso. Pode ser saltada a qualquer momento e voltar a ser
+  vista quando se quiser, a partir do **Perfil** → "Ver visita guiada".
 
 ### Corrigido
 - **Colaboração — colaborador não conseguia editar/eliminar/concluir as suas

@@ -5,6 +5,7 @@ import { SidebarNav } from '@/components/layout/sidebar-nav'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { Header } from '@/components/layout/header'
 import { IdleTimeoutGuard } from '@/components/idle-timeout-guard'
+import { WelcomeTour } from '@/components/tour/welcome-tour'
 import type { Role } from '@/generated/prisma/enums'
 import { Wrench } from 'lucide-react'
 
@@ -18,25 +19,31 @@ export default async function DashboardLayout({
 
   const role = session.user.role as Role
 
-  const sysConfig = await prisma.configuracaoSistema.findUnique({
-    where: { id: 'singleton' },
-    select: {
-      maintenanceMode: true,
-      moduloAjudasAtivo: true,
-      moduloAjudasRoles: true,
-      moduloFeriasAtivo: true,
-      moduloFeriasRoles: true,
-      moduloBugReportsAtivo: true,
-      moduloBugReportsRoles: true,
-      moduloToolboxAtivo: true,
-      moduloToolboxRoles: true,
-      moduloAgendaAtivo: true,
-      moduloAgendaRoles: true,
-      moduloIntercecoesAtivo: true,
-      moduloIntercecoesRoles: true,
-      sessaoTimeoutMinutos: true,
-    },
-  })
+  const [sysConfig, utilizador] = await Promise.all([
+    prisma.configuracaoSistema.findUnique({
+      where: { id: 'singleton' },
+      select: {
+        maintenanceMode: true,
+        moduloAjudasAtivo: true,
+        moduloAjudasRoles: true,
+        moduloFeriasAtivo: true,
+        moduloFeriasRoles: true,
+        moduloBugReportsAtivo: true,
+        moduloBugReportsRoles: true,
+        moduloToolboxAtivo: true,
+        moduloToolboxRoles: true,
+        moduloAgendaAtivo: true,
+        moduloAgendaRoles: true,
+        moduloIntercecoesAtivo: true,
+        moduloIntercecoesRoles: true,
+        sessaoTimeoutMinutos: true,
+      },
+    }),
+    prisma.utilizador.findUnique({
+      where: { id: session.user.id },
+      select: { tourConcluidaEm: true },
+    }),
+  ])
 
   // Maintenance mode gate — só ADMINISTRACAO passa enquanto o sistema está em
   // manutenção (e.g. durante um restauro). Outros utilizadores vêem uma
@@ -102,6 +109,19 @@ export default async function DashboardLayout({
       <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} />
 
       <IdleTimeoutGuard timeoutMinutes={sysConfig?.sessaoTimeoutMinutos ?? 0} />
+
+      <WelcomeTour
+        role={role}
+        done={utilizador?.tourConcluidaEm != null}
+        modules={{
+          moduloAjudasAtivo,
+          moduloFeriasAtivo,
+          moduloBugReportsAtivo,
+          moduloToolboxAtivo,
+          moduloAgendaAtivo,
+          moduloIntercecoesAtivo,
+        }}
+      />
     </div>
   )
 }
