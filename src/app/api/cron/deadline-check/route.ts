@@ -1,8 +1,6 @@
 import { NextRequest } from 'next/server'
 import { timingSafeEqual, createHash } from 'crypto'
-import { prisma } from '@/lib/prisma'
-import { createNotification, notifyAtividadePrazo, escalateOverdueToChefes, escalateUrgentToChefes } from '@/lib/notifications'
-import { checkIntercecoesATerminar } from '@/lib/intercecoes'
+import { runDeadlineChecks } from '@/lib/deadline-checks'
 import { childLogger } from '@/lib/logger'
 
 const log = childLogger({ subsystem: 'cron/deadline-check' })
@@ -20,158 +18,24 @@ function authorized(req: NextRequest) {
   }
 }
 
+/**
+ * Disparo manual/externo da verificação de prazos. Corre exatamente a mesma
+ * lógica que o worker agendado (`runDeadlineChecks` — inquéritos, atividades,
+ * controlos e interceções); ver src/lib/deadline-checks.ts.
+ */
 export async function POST(req: NextRequest) {
   if (!authorized(req)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const config = await prisma.configuracaoSistema.findUnique({ where: { id: 'singleton' } })
-    const alertDays = config?.prazoAlertaDias ?? 7
-
-    const threshold = new Date()
-    threshold.setDate(threshold.getDate() + alertDays)
-
-    const now = new Date()
-
-    // ── 1. Inquérito deadlines ─────────────────────────────────────────────────
-    const [approaching, overdue] = await Promise.all([
-      prisma.inquerito.findMany({
-        where: {
-          dataPrazo: { gte: now, lte: threshold },
-          estado: { terminal: false },
-          inspetorId: { not: null },
-        },
-        include: { inspetor: { select: { id: true, email: true } } },
-      }),
-      prisma.inquerito.findMany({
-        where: {
-          dataPrazo: { lt: now },
-          estado: { terminal: false },
-          inspetorId: { not: null },
-        },
-        include: { inspetor: { select: { id: true, email: true } } },
-      }),
-    ])
-
-    const jobs: Promise<unknown>[] = []
-
-    for (const inq of approaching) {
-      if (!inq.inspetorId || !inq.inspetor) continue
-      jobs.push(
-        createNotification({
-          utilizadorId: inq.inspetorId,
-          tipo: 'PRAZO_APROXIMANDO',
-          titulo: `Prazo a aproximar — ${inq.nuipc}`,
-          mensagem: `O prazo do inquérito ${inq.nuipc} vence em breve.`,
-          inqueritoid: inq.id,
-          sendEmail: true,
-          emailAddress: inq.inspetor.email,
-        }),
-      )
-    }
-
-    for (const inq of overdue) {
-      if (!inq.inspetorId || !inq.inspetor) continue
-      jobs.push(
-        createNotification({
-          utilizadorId: inq.inspetorId,
-          tipo: 'PRAZO_ULTRAPASSADO',
-          titulo: `Prazo ultrapassado — ${inq.nuipc}`,
-          mensagem: `O prazo do inquérito ${inq.nuipc} foi ultrapassado.`,
-          inqueritoid: inq.id,
-          sendEmail: true,
-          emailAddress: inq.inspetor.email,
-        }),
-      )
-    }
-
-    // Escalar os vencidos ao Inspetor-Chefe da brigada (para além do inspetor).
-    jobs.push(escalateOverdueToChefes(overdue))
-
-    // Limiar "urgente" opcional: prazos a aproximar-se ≤ urgentDays também são
-    // escalados ao Inspetor-Chefe da brigada.
-    const urgentDays = config?.prazoAlertaDiasUrgente ?? null
-    if (urgentDays != null) {
-      const urgentThreshold = new Date()
-      urgentThreshold.setDate(urgentThreshold.getDate() + urgentDays)
-      const urgent = approaching.filter((inq) => inq.dataPrazo && inq.dataPrazo <= urgentThreshold)
-      jobs.push(escalateUrgentToChefes(urgent))
-    }
-
-    // ── 2. Activity deadlines ──────────────────────────────────────────────────
-    const today = new Date(now)
-    today.setHours(0, 0, 0, 0)
-
-    // Only fetch activities with a deadline not yet passed, at least one alert set,
-    // and NOT already marked as completed (concluidaEm is null).
-    const atividadesComPrazo = await prisma.atividade.findMany({
-      where: {
-        dataPrazo: { not: null, gte: today },
-        concluidaEm: null,
-        // Não enviar alertas de prazos de atividades cujo inquérito foi
-        // apagado (soft delete) — o destinatário ficaria confuso.
-        inquerito: { deletedAt: null },
-        OR: [
-          { alertaDias1: { not: null }, alerta1Enviado: false },
-          { alertaDias2: { not: null }, alerta2Enviado: false },
-        ],
-      },
-      include: {
-        inquerito: { select: { id: true, nuipc: true } },
-        realizadaPor: { select: { id: true, email: true } },
-      },
-    })
-
-    for (const atv of atividadesComPrazo) {
-      if (!atv.dataPrazo) continue
-      const prazoDay = new Date(atv.dataPrazo)
-      prazoDay.setHours(0, 0, 0, 0)
-      const diasRestantes = Math.round((prazoDay.getTime() - today.getTime()) / 86_400_000)
-
-      // First alert
-      if (atv.alertaDias1 != null && !atv.alerta1Enviado && diasRestantes <= atv.alertaDias1) {
-        jobs.push(
-          notifyAtividadePrazo({
-            descricao: atv.descricao,
-            inqueritoid: atv.inquerito.id,
-            nuipc: atv.inquerito.nuipc,
-            utilizadorId: atv.realizadaPor.id,
-            diasRestantes,
-            alertaNum: 1,
-          }).then(() =>
-            prisma.atividade.update({ where: { id: atv.id }, data: { alerta1Enviado: true } })
-          )
-        )
-      }
-
-      // Second alert
-      if (atv.alertaDias2 != null && !atv.alerta2Enviado && diasRestantes <= atv.alertaDias2) {
-        jobs.push(
-          notifyAtividadePrazo({
-            descricao: atv.descricao,
-            inqueritoid: atv.inquerito.id,
-            nuipc: atv.inquerito.nuipc,
-            utilizadorId: atv.realizadaPor.id,
-            diasRestantes,
-            alertaNum: 2,
-          }).then(() =>
-            prisma.atividade.update({ where: { id: atv.id }, data: { alerta2Enviado: true } })
-          )
-        )
-      }
-    }
-
-    await Promise.allSettled(jobs)
-
-    // Interceções: alertas de fim de linha (paridade com o worker interno).
-    const intercecoes = await checkIntercecoesATerminar(now)
-
+    const summary = await runDeadlineChecks(new Date())
     return Response.json({
-      inqueritos: { approaching: approaching.length, overdue: overdue.length },
-      atividades: atividadesComPrazo.length,
-      intercecoes: intercecoes.alertas,
-      notified: jobs.length + intercecoes.alertas,
+      inqueritos: { approaching: summary.approaching, overdue: summary.overdue },
+      urgent: summary.urgent,
+      atividades: summary.atividades,
+      controlos: summary.controlos,
+      intercecoes: summary.intercecoes,
     })
   } catch (error) {
     log.error({ err: error }, 'deadline-check route failed')

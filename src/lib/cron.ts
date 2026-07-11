@@ -1,12 +1,9 @@
 import cron, { type ScheduledTask } from 'node-cron'
 import { prisma } from '@/lib/prisma'
 import {
-  createNotification,
   notifyBackupFailed,
   notifyUpdateFailed,
   notifyUpdateConcluida,
-  escalateOverdueToChefes,
-  escalateUrgentToChefes,
 } from '@/lib/notifications'
 import { childLogger } from '@/lib/logger'
 import { spawn } from 'child_process'
@@ -14,7 +11,7 @@ import { fetchLatestRelease, isNewerVersion } from '@/lib/updates/github'
 import { reconcileFromStatusFile, processAvailableUpdates } from '@/lib/updates/orchestrator'
 import { isTerminal, type UpdateState } from '@/lib/updates/state-machine'
 import { runAutoTransicoes } from '@/lib/auto-transicao'
-import { checkIntercecoesATerminar } from '@/lib/intercecoes'
+import { runDeadlineChecks } from '@/lib/deadline-checks'
 import { APP_VERSION } from '@/lib/version'
 
 const log = childLogger({ subsystem: 'cron' })
@@ -365,154 +362,8 @@ async function runUpdateReconciler(): Promise<void> {
 // Exportada para os testes de integração poderem exercitar o deadline-check
 // diretamente (sem agendar o worker).
 export async function runDeadlineCheck() {
-  const config = await prisma.configuracaoSistema.findUnique({ where: { id: 'singleton' } })
-  const alertDays = config?.prazoAlertaDias ?? 7
-
-  const threshold = new Date()
-  threshold.setDate(threshold.getDate() + alertDays)
-
-  // Find inquiries with deadline approaching (within alertDays) not yet completed
-  const approaching = await prisma.inquerito.findMany({
-    where: {
-      dataPrazo: { gte: new Date(), lte: threshold },
-      estado: { terminal: false },
-      inspetorId: { not: null },
-    },
-    include: { inspetor: { select: { id: true, email: true } } },
-  })
-
-  // Find overdue inquiries
-  const overdue = await prisma.inquerito.findMany({
-    where: {
-      dataPrazo: { lt: new Date() },
-      estado: { terminal: false },
-      inspetorId: { not: null },
-    },
-    include: { inspetor: { select: { id: true, email: true } } },
-  })
-
-  const jobs: Promise<unknown>[] = []
-
-  for (const inq of approaching) {
-    if (!inq.inspetorId || !inq.inspetor) continue
-    jobs.push(
-      createNotification({
-        utilizadorId: inq.inspetorId,
-        tipo: 'PRAZO_APROXIMANDO',
-        titulo: `Prazo a aproximar — ${inq.nuipc}`,
-        mensagem: `O prazo do inquérito ${inq.nuipc} vence em breve (${inq.dataPrazo?.toLocaleDateString('pt-PT')}).`,
-        inqueritoid: inq.id,
-        sendEmail: true,
-        emailAddress: inq.inspetor.email,
-      }),
-    )
-  }
-
-  for (const inq of overdue) {
-    if (!inq.inspetorId || !inq.inspetor) continue
-    jobs.push(
-      createNotification({
-        utilizadorId: inq.inspetorId,
-        tipo: 'PRAZO_ULTRAPASSADO',
-        titulo: `Prazo ultrapassado — ${inq.nuipc}`,
-        mensagem: `O prazo do inquérito ${inq.nuipc} foi ultrapassado.`,
-        inqueritoid: inq.id,
-        sendEmail: true,
-        emailAddress: inq.inspetor.email,
-      }),
-    )
-  }
-
-  // Escalar os vencidos ao Inspetor-Chefe da brigada (para além do inspetor).
-  jobs.push(escalateOverdueToChefes(overdue))
-
-  // Limiar "urgente" opcional: prazos a aproximar-se ainda mais (≤ urgentDays)
-  // são também escalados ao Inspetor-Chefe da brigada.
-  const urgentDays = config?.prazoAlertaDiasUrgente ?? null
-  let urgentCount = 0
-  if (urgentDays != null) {
-    const urgentThreshold = new Date()
-    urgentThreshold.setDate(urgentThreshold.getDate() + urgentDays)
-    const urgent = approaching.filter((inq) => inq.dataPrazo && inq.dataPrazo <= urgentThreshold)
-    urgentCount = urgent.length
-    jobs.push(escalateUrgentToChefes(urgent))
-  }
-
-  // ── Controlos: alert before each upcoming realizacao ──────────────────────
-  // No global threshold here — each controlo carries its own alertaDias, so
-  // we load all unalerted pending realizacoes and filter in-process.
-  // Cap the DB query at 90 days (max allowed alertaDias) so the result set
-  // stays bounded even with many future recurring realizacoes.
-  const maxThreshold = new Date()
-  maxThreshold.setDate(maxThreshold.getDate() + 90)
-
-  const pendingRealizacoes = await prisma.controloRealizacao.findMany({
-    where: {
-      dataRealizacao: null,
-      alertaEnviado: false,
-      dataEsperada: { lte: maxThreshold },
-      controlo: {
-        concluidoEm: null,
-        // Skip alerts for controlos linked to deleted or terminal inquiries
-        OR: [
-          { inqueritoid: null },
-          { inquerito: { deletedAt: null, estado: { terminal: false } } },
-        ],
-      },
-    },
-    include: {
-      controlo: {
-        include: {
-          criador: { select: { id: true, email: true, nome: true } },
-          inquerito: { select: { nuipc: true } },
-        },
-      },
-    },
-  })
-
-  const today = new Date()
-  let controlosAlertas = 0
-  for (const realizacao of pendingRealizacoes) {
-    const { controlo } = realizacao
-    // Use per-controlo alertaDias — each controlo can have a different lead time.
-    const threshold = new Date(today)
-    threshold.setDate(threshold.getDate() + controlo.alertaDias)
-    const dataEsperada = realizacao.dataEsperada instanceof Date
-      ? realizacao.dataEsperada
-      : new Date(realizacao.dataEsperada as string)
-    if (dataEsperada > threshold) continue
-    controlosAlertas++
-    const nuipcLabel = controlo.inquerito ? ` — ${controlo.inquerito.nuipc}` : ''
-    jobs.push(
-      createNotification({
-        utilizadorId: controlo.criadorId,
-        tipo: 'CONTROLO_APROXIMANDO',
-        titulo: `${realizacao.numero}.º Controlo a aproximar${nuipcLabel}`,
-        mensagem: `${controlo.descricao}: ${realizacao.numero}.º controlo previsto para ${new Date(realizacao.dataEsperada).toLocaleDateString('pt-PT', { timeZone: 'UTC' })}.`,
-        sendEmail: true,
-        emailAddress: controlo.criador.email,
-      }).then(() =>
-        prisma.controloRealizacao.update({
-          where: { id: realizacao.id },
-          data: { alertaEnviado: true },
-        }),
-      ),
-    )
-  }
-
-  await Promise.allSettled(jobs)
-
-  // Interceções: alertas de fim de linha (aguarda internamente os envios).
-  const intercecoes = await checkIntercecoesATerminar(new Date())
-
-  log.info(
-    {
-      approaching: approaching.length,
-      overdue: overdue.length,
-      urgent: urgentCount,
-      controlos: controlosAlertas,
-      intercecoes: intercecoes.alertas,
-    },
-    'Deadline check completed',
-  )
+  // Delega na verificação central partilhada com a rota /api/cron/deadline-check,
+  // para os dois caminhos nunca divergirem (ver src/lib/deadline-checks.ts).
+  const summary = await runDeadlineChecks(new Date())
+  log.info(summary, 'Deadline check completed')
 }

@@ -7,7 +7,21 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.72] — 2026-07-11
+## [0.5.74] — 2026-07-11
+
+### Corrigido
+- **Alertas de prazo de atividades não estavam a ser enviados** pelo processo
+  agendado. Existiam duas implementações do "deadline-check" que tinham
+  divergido: a verificação agendada (worker, diária) tratava prazos de
+  inquéritos, controlos e interceções, **mas não os prazos das atividades**;
+  a rota manual `/api/cron/deadline-check` tratava os prazos das atividades
+  mas **não os controlos**. Como o caminho realmente agendado é o worker, os
+  avisos (1.º/2.º) que os inspetores configuram nas atividades nunca
+  disparavam. A lógica foi unificada numa única função partilhada
+  (`runDeadlineChecks`) usada pelos dois caminhos — passam a correr exatamente
+  as mesmas verificações (inquéritos, atividades, controlos e interceções),
+  eliminando a divergência. Adicionados testes que cobrem o disparo dos
+  alertas de atividades no caminho do worker.
 
 ### Adicionado
 - **Outros intervenientes no inquérito**: além do denunciante, é agora possível

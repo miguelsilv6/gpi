@@ -218,3 +218,66 @@ describe('runDeadlineCheck — prazos de inquéritos', () => {
     expect(notifs).toHaveLength(1)
   })
 })
+
+describe('runDeadlineCheck — prazos de atividades', () => {
+  async function seedAtividadeComPrazo(prazoDias: number, alertaDias1 = 10) {
+    const brigada = await makeBrigada(prisma)
+    const estado = await makeEstado(prisma, { codigo: 'ABERTO' })
+    const inspetor = await makeUtilizador(prisma, { brigadaId: brigada.id })
+    const inq = await makeInquerito(prisma, {
+      estadoId: estado.id,
+      brigadaId: brigada.id,
+      inspetorId: inspetor.id,
+    })
+    const atividade = await prisma.atividade.create({
+      data: {
+        descricao: 'Pedido de perícia',
+        inqueritoid: inq.id,
+        utilizadorId: inspetor.id,
+        dataPrazo: daysFromNow(prazoDias),
+        alertaDias1,
+        alerta1Enviado: false,
+      },
+    })
+    return { inspetor, atividade }
+  }
+
+  test('alerta o inspetor quando o prazo da atividade cai dentro do alertaDias e marca o flag', async () => {
+    // Prazo a 2 dias, alerta a 10 → deve disparar o 1.º aviso.
+    const { inspetor, atividade } = await seedAtividadeComPrazo(2, 10)
+
+    await runDeadlineCheck()
+
+    const notifs = await prisma.notificacao.findMany({
+      where: { utilizadorId: inspetor.id, tipo: 'ATIVIDADE_PRAZO_APROXIMANDO' },
+    })
+    expect(notifs).toHaveLength(1)
+
+    const updated = await prisma.atividade.findUnique({ where: { id: atividade.id } })
+    expect(updated?.alerta1Enviado).toBe(true)
+  })
+
+  test('não volta a alertar numa 2.ª corrida (idempotente)', async () => {
+    const { inspetor } = await seedAtividadeComPrazo(2, 10)
+
+    await runDeadlineCheck()
+    await runDeadlineCheck()
+
+    const notifs = await prisma.notificacao.findMany({
+      where: { utilizadorId: inspetor.id, tipo: 'ATIVIDADE_PRAZO_APROXIMANDO' },
+    })
+    expect(notifs).toHaveLength(1)
+  })
+
+  test('não alerta quando o prazo está fora do alertaDias', async () => {
+    // Prazo a 20 dias, alerta a 3 → ainda não deve disparar.
+    const { inspetor } = await seedAtividadeComPrazo(20, 3)
+
+    await runDeadlineCheck()
+
+    const notifs = await prisma.notificacao.findMany({
+      where: { utilizadorId: inspetor.id, tipo: 'ATIVIDADE_PRAZO_APROXIMANDO' },
+    })
+    expect(notifs).toHaveLength(0)
+  })
+})
