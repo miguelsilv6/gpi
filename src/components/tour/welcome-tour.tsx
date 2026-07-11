@@ -29,12 +29,30 @@ async function marcarConcluida() {
  */
 export function WelcomeTour({ role, done, modules }: Props) {
   const runningRef = useRef(false)
+  // Desestruturar para depender de primitivos: `modules` é um novo literal a
+  // cada render do layout, e usá-lo diretamente nas deps recriaria o efeito
+  // (reiniciando o temporizador de arranque) sem necessidade.
+  const {
+    moduloAjudasAtivo,
+    moduloFeriasAtivo,
+    moduloBugReportsAtivo,
+    moduloToolboxAtivo,
+    moduloAgendaAtivo,
+    moduloIntercecoesAtivo,
+  } = modules
 
   useEffect(() => {
     function start() {
       if (runningRef.current) return
       runningRef.current = true
-      const steps = buildTourSteps(role, modules)
+      const steps = buildTourSteps(role, {
+        moduloAjudasAtivo,
+        moduloFeriasAtivo,
+        moduloBugReportsAtivo,
+        moduloToolboxAtivo,
+        moduloAgendaAtivo,
+        moduloIntercecoesAtivo,
+      })
       const d = driver({
         showProgress: true,
         allowClose: true,
@@ -66,7 +84,16 @@ export function WelcomeTour({ role, done, modules }: Props) {
       window.removeEventListener(START_TOUR_EVENT, start)
       if (timer) clearTimeout(timer)
     }
-  }, [done, role, modules])
+  }, [
+    done,
+    role,
+    moduloAjudasAtivo,
+    moduloFeriasAtivo,
+    moduloBugReportsAtivo,
+    moduloToolboxAtivo,
+    moduloAgendaAtivo,
+    moduloIntercecoesAtivo,
+  ])
 
   return null
 }

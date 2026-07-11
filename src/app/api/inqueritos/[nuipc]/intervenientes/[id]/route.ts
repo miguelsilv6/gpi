@@ -115,7 +115,12 @@ export async function PUT(
         localidade: d.localidade ?? null,
         contacto: d.contacto ?? null,
         email: d.email ?? null,
-        responsavel: d.responsavel ?? null,
+        // Responsável/representante só faz sentido para pessoa coletiva/pública;
+        // se a natureza mudar para singular, limpa-se (integridade dos dados).
+        responsavel:
+          d.tipoPessoa === 'COLETIVA' || d.tipoPessoa === 'ENTIDADE_PUBLICA'
+            ? (d.responsavel ?? null)
+            : null,
         notas: d.notas ?? null,
       },
       select: INTERVENIENTE_SELECT,

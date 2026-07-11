@@ -101,7 +101,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ nui
         localidade: d.localidade ?? null,
         contacto: d.contacto ?? null,
         email: d.email ?? null,
-        responsavel: d.responsavel ?? null,
+        // Responsável/representante só faz sentido para pessoa coletiva/pública.
+        responsavel:
+          d.tipoPessoa === 'COLETIVA' || d.tipoPessoa === 'ENTIDADE_PUBLICA'
+            ? (d.responsavel ?? null)
+            : null,
         notas: d.notas ?? null,
       },
       select: INTERVENIENTE_SELECT,
