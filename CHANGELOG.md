@@ -7,6 +7,16 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.78] — 2026-07-12
+
+### Alterado
+- **Interno (só testes)**: adicionada cobertura de integração às rotas de
+  intervenientes, exercitando os handlers HTTP contra a base de dados real —
+  gates de permissão (titular/hierarquia cria; inspetor de outra brigada 404;
+  colaborador autorizado lê mas não gere, 403), proteção contra IDs cruzados
+  (interveniente de outro inquérito → 404) e limpeza do `responsavel` ao mudar
+  a natureza para pessoa singular. Sem alteração de comportamento.
+
 ## [0.5.76] — 2026-07-11
 
 ### Alterado
