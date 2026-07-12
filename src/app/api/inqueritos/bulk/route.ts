@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
                 : (action === 'assign' && distribuidoEstado?.ativo && t.estado.codigo === 'ABERTO' && !t.inspetorId)
                   ? { ...updateData, estadoCodigo: distribuidoEstado.codigo }
                   : updateData,
-          } as never,
+          },
         })),
       })
     })

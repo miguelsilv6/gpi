@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         entidade: 'AtualizacaoSistema',
         entidadeId: id,
         utilizadorId: session.user.id,
-        detalhes: {} as never,
+        detalhes: {},
       },
     })
 

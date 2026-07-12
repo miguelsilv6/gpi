@@ -96,7 +96,7 @@ export async function PATCH(
             de: existing.documentacaoPendenteNota,
             para: updated.documentacaoPendenteNota,
           },
-        } as never,
+        },
       })
     }
 

@@ -209,7 +209,7 @@ export async function runBackup(opts: RunBackupOpts): Promise<string> {
             exitCode: result.status,
             durationMs,
             stderr: stderr.slice(0, 2000),
-          } as never,
+          },
         },
       })
     } catch {
@@ -242,7 +242,7 @@ export async function runBackup(opts: RunBackupOpts): Promise<string> {
           source: opts.source,
           filename,
           durationMs,
-        } as never,
+        },
       },
     })
   } catch {

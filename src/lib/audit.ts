@@ -45,7 +45,10 @@ interface WriteAuditOpts {
   entidade: string
   entidadeId: string
   utilizadorId: string
-  detalhes?: Prisma.InputJsonValue
+  // Saco livre de detalhes (serializado como JSON). Aceita qualquer objeto —
+  // o cast para o tipo JSON do Prisma é feito uma vez, aqui dentro, para os
+  // call-sites não precisarem de `as never`.
+  detalhes?: Record<string, unknown>
   tx?: Prisma.TransactionClient
 }
 
@@ -60,7 +63,7 @@ export async function writeAudit(opts: WriteAuditOpts) {
       utilizadorId: opts.utilizadorId,
       ip,
       userAgent,
-      detalhes: opts.detalhes,
+      detalhes: opts.detalhes as Prisma.InputJsonValue,
     },
   })
 }

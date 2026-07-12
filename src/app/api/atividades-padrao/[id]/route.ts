@@ -72,7 +72,7 @@ export async function PUT(
         entidade: 'AtividadePadrao',
         entidadeId: id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: changes,
       })
     }
 

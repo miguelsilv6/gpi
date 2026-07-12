@@ -67,7 +67,7 @@ export async function PUT(
         entidade: 'Crime',
         entidadeId: updated.id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: changes,
       })
     }
 

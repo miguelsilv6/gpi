@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       entidade: 'RegraTransicaoAutomatica',
       entidadeId: regra.id,
       utilizadorId: session.user.id,
-      detalhes: { origem: origem.codigo, destino: destino.codigo, meses } as never,
+      detalhes: { origem: origem.codigo, destino: destino.codigo, meses },
     })
 
     return Response.json(regra, { status: 201 })

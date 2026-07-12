@@ -100,7 +100,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             controloId,
             numero: realizacao.numero,
             dataRealizacao: dataRealizacaoDate.toISOString(),
-          } as never,
+          },
         },
       })
 

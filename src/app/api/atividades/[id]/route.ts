@@ -217,7 +217,7 @@ export async function PUT(
           atividadeId: id,
           descricao: existing.descricao,
           ...changes,
-        } as never,
+        },
       })
     }
 
@@ -282,7 +282,7 @@ export async function DELETE(
         descricao: existing.descricao,
         dataRealizacao: existing.dataRealizacao.toISOString(),
         quantidade: existing.quantidade,
-      } as never,
+      },
     })
 
     revalidatePath(`/inqueritos/${nuipcToSlug(existing.inquerito.nuipc)}`)

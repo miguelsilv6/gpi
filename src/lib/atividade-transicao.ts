@@ -107,7 +107,7 @@ export async function applyAtividadeTransicao({
           atividadePadraoId: padrao.id,
           atividadePadraoNome: padrao.nome,
           estadoAlvoId: targetEstadoId,
-        } as never,
+        },
       },
     })
     return { applied: false, skipped: true, reason: 'estado_alvo_invalido' }
@@ -131,7 +131,7 @@ export async function applyAtividadeTransicao({
           atividadePadraoNome: padrao.nome,
           estadoAnterior: inquerito.estado.codigo,
           estadoAlvo: targetEstado.codigo,
-        } as never,
+        },
       },
     })
     return { applied: false, skipped: true, reason: 'transicao_invalida' }
@@ -162,7 +162,7 @@ export async function applyAtividadeTransicao({
         estadoAnterior: inquerito.estado.codigo,
         estadoNovo: targetEstado.codigo,
         dataConclusaoSet: dataConclusaoSet?.toISOString() ?? null,
-      } as never,
+      },
     },
   })
 

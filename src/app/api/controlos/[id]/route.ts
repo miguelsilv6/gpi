@@ -122,7 +122,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         entidade: 'Controlo',
         entidadeId: id,
         utilizadorId: session.user.id,
-        detalhes: changes as never,
+        detalhes: changes,
       }).catch(() => {})
     }
 

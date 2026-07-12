@@ -7,7 +7,14 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.74] — 2026-07-11
+## [0.5.76] — 2026-07-11
+
+### Alterado
+- **Interno (sem impacto funcional)**: o registo de auditoria (`writeAudit`)
+  passa a aceitar os detalhes como `Record<string, unknown>`, com a conversão
+  para o tipo JSON do Prisma feita uma única vez na própria função. Removidos 61
+  casts `as never` espalhados por 48 ficheiros de rotas — menos ruído e deixa de
+  mascarar eventuais erros de tipo reais nos objetos de auditoria.
 
 ### Corrigido
 - **Alertas de prazo de atividades não estavam a ser enviados** pelo processo

@@ -228,7 +228,7 @@ export async function startUpdate(opts: {
       entidade: 'AtualizacaoSistema',
       entidadeId: row.id,
       utilizadorId: opts.userId,
-      detalhes: { fromVersion, toVersion, fromSha, requestId } as never,
+      detalhes: { fromVersion, toVersion, fromSha, requestId },
     },
   })
 
@@ -303,7 +303,7 @@ export async function processAvailableUpdates(): Promise<void> {
         entidade: 'AtualizacaoSistema',
         entidadeId: row.id,
         utilizadorId: row.iniciadoPorId,
-        detalhes: { phase: 'BACKING_UP', error: msg } as never,
+        detalhes: { phase: 'BACKING_UP', error: msg },
       },
     })
     return
@@ -353,7 +353,7 @@ async function updateState(
       entidade: 'AtualizacaoSistema',
       entidadeId: id,
       utilizadorId: '__system__',
-      detalhes: { from, to, ...extra } as never,
+      detalhes: { from, to, ...extra },
     },
   })
 }
@@ -408,7 +408,7 @@ export async function reconcileFromStatusFile(): Promise<void> {
       entidade: 'AtualizacaoSistema',
       entidadeId: row.id,
       utilizadorId: '__system__',
-      detalhes: { from: current, to: next, source: 'reconciler' } as never,
+      detalhes: { from: current, to: next, source: 'reconciler' },
     },
   })
 
@@ -499,7 +499,7 @@ async function syncDaemonLogs(updateId: string, requestId: string): Promise<void
       // `createdAt` uses the daemon timestamp so the log appears in
       // chronological order even when synced in a batch.
       createdAt: typeof e.t === 'string' ? new Date(e.t) : new Date(),
-      detalhes: { msg: typeof e.msg === 'string' ? e.msg : String(e.msg) } as never,
+      detalhes: { msg: typeof e.msg === 'string' ? e.msg : String(e.msg) },
     })),
   })
 }
@@ -549,7 +549,7 @@ export async function forceAbortUpdate(id: string, userId: string): Promise<void
       entidade: 'AtualizacaoSistema',
       entidadeId: id,
       utilizadorId: userId,
-      detalhes: { previousState: state } as never,
+      detalhes: { previousState: state },
     },
   })
 

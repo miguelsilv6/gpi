@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
           filename,
           size: buffer.length,
           originalName: file.name,
-        } as never,
+        },
       },
     })
 

@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
             to: { brigadaId, nome: brigadaDestino.nome },
             inspetorRemovido: inquerito.inspetorId,
             ...(distribuidoEstado?.ativo ? { estadoNovo: distribuidoEstado.codigo } : {}),
-          } as never,
+          },
         },
       })
       return u

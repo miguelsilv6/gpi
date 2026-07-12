@@ -29,7 +29,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       entidade: 'AtualizacaoSistema',
       entidadeId: id,
       utilizadorId: session.user.id,
-      detalhes: { fromVersion: row.fromVersion, toVersion: row.toVersion, state: row.state } as never,
+      detalhes: { fromVersion: row.fromVersion, toVersion: row.toVersion, state: row.state },
     })
 
     return new Response(null, { status: 204 })

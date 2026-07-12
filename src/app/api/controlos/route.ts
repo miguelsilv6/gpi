@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
             dataInicio,
             periodoDias: periodoDias ?? null,
             inqueritoid,
-          } as never,
+          },
         },
       })
 

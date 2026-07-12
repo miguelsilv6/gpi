@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       entidade: 'ConfiguracaoSistema',
       entidadeId: 'singleton',
       utilizadorId: session.user.id,
-      detalhes: { to } as never,
+      detalhes: { to },
     })
 
     return Response.json({ ok: true, to })
