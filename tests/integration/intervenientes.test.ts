@@ -30,6 +30,7 @@ function asUser(u: { id: string; role: string; brigadaId: string | null }) {
 function jsonReq(method: string, body?: unknown) {
   return new NextRequest('http://localhost/api', {
     method,
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   })
 }
@@ -43,6 +44,9 @@ const paramsId = (nuipc: string, id: string) => ({
 
 beforeEach(async () => {
   await resetDatabase(prisma)
+  // Evita fuga de estado do mock entre testes: um teste que não chame asUser()
+  // passa a falhar em falta de sessão (401), em vez de herdar a anterior.
+  authMock.mockReset()
 })
 
 afterAll(async () => {
@@ -92,6 +96,14 @@ describe('POST intervenientes — gate de criação', () => {
     asUser(s.inspetorA)
     const res = await POST(jsonReq('POST', { tipo: 'OUTRO', nome: 'X' }), params(s.inqA[0].nuipc))
     expect(res.status).toBe(400)
+  })
+
+  test('utilizador não autenticado: 401', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    authMock.mockResolvedValue(null) // sem sessão
+    const res = await POST(jsonReq('POST', { tipo: 'LESADO', nome: 'X' }), params(s.inqA[0].nuipc))
+    expect(res.status).toBe(401)
+    expect(await prisma.interveniente.count()).toBe(0)
   })
 })
 
