@@ -42,7 +42,10 @@ export function EmailTemplateTab() {
     let cancelled = false
     setLoading(true)
     fetch('/api/email-template')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then((data) => {
         if (cancelled) return
         if (data.template) {

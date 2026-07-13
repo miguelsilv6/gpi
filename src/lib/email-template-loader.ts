@@ -20,22 +20,24 @@ const TTL_MS = 60_000
 export async function getEmailTemplateContext(): Promise<{ tpl: EmailTemplate; appName: string }> {
   if (cache && cache.expiresAt > Date.now()) return cache.ctx
 
-  let tpl = normalizeEmailTemplate(null)
-  let appName: string = BRAND_DEFAULTS.appName
   try {
     const cfg = await prisma.configuracaoSistema.findUnique({
       where: { id: 'singleton' },
       select: { emailTemplate: true, appName: true },
     })
-    tpl = normalizeEmailTemplate(cfg?.emailTemplate ?? null)
-    appName = cfg?.appName ?? BRAND_DEFAULTS.appName
+    const ctx = {
+      tpl: normalizeEmailTemplate(cfg?.emailTemplate ?? null),
+      appName: cfg?.appName ?? BRAND_DEFAULTS.appName,
+    }
+    // Só cacheamos em caso de sucesso — assim uma falha transitória da BD não
+    // fixa os defaults durante 60s (a próxima chamada volta a tentar).
+    cache = { ctx, expiresAt: Date.now() + TTL_MS }
+    return ctx
   } catch {
-    // Falha de leitura → defaults (fail-safe: o e-mail sai na mesma).
+    // Falha de leitura → defaults, SEM cachear o estado de erro (fail-safe:
+    // o e-mail sai na mesma; a próxima tentativa relê da BD assim que recuperar).
+    return { tpl: normalizeEmailTemplate(null), appName: BRAND_DEFAULTS.appName }
   }
-
-  const ctx = { tpl, appName }
-  cache = { ctx, expiresAt: Date.now() + TTL_MS }
-  return ctx
 }
 
 export function invalidateEmailTemplateCache(): void {
