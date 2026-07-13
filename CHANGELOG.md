@@ -7,6 +7,20 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.86] — 2026-07-13
+
+### Alterado
+- **Exportação para PDF do inquérito passa a ser uma visão global completa** —
+  a vista de impressão (botão “PDF” no detalhe do inquérito) deixa de mostrar
+  apenas as atividades e passa a incluir tudo o que foi feito no inquérito:
+  **inquéritos relacionados, outros intervenientes, controlos, diligências,
+  interceções (alvos e linhas, com contagem de produtos), apreensões, perícias
+  e documentos anexados**, para além da identificação, atribuição, denunciante,
+  tribunal/M.P. e notas que já constavam. Cada secção só aparece quando tem
+  registos, em tabelas otimizadas para impressão. (O detalhe dos produtos de
+  interceção e o conteúdo dos ficheiros continuam nas exportações dedicadas; o
+  histórico de auditoria mantém-se fora deste documento.)
+
 ## [0.5.84] — 2026-07-13
 
 ### Adicionado

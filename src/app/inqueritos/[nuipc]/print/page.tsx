@@ -8,9 +8,24 @@ import { headers } from 'next/headers'
 import { slugToNuipc, formatDate, formatDateTime, formatDateTimeWithSeconds } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/version'
 import { getBrand } from '@/lib/brand'
+import { getRelacoesForInquerito } from '@/lib/relacoes'
+import { TIPO_RELACAO_LABEL } from '@/lib/validations/inquerito-relacao'
+import { TIPO_INTERVENIENTE_LABEL, TIPO_PESSOA_LABEL } from '@/lib/validations/interveniente'
+import { TIPO_DILIGENCIA_LABEL } from '@/lib/validations/diligencia'
+import { TIPO_LINHA_LABEL } from '@/lib/validations/intercecao'
+import { ESTADO_APREENSAO_LABEL } from '@/lib/validations/apreensao'
+import { apreensaoTipoLabel } from '@/lib/apreensoes'
+import { ESTADO_PERICIA_LABEL } from '@/lib/validations/pericia'
+import { periciaTipoLabel } from '@/lib/pericias'
 import type { Metadata } from 'next'
 import type { Role } from '@/generated/prisma/enums'
 import { PrintButton } from './print-button'
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
 
 export const metadata: Metadata = {
   title: 'Inquérito — exportação',
@@ -54,9 +69,45 @@ export default async function InqueritoPrintPage({
         orderBy: { createdAt: 'desc' },
         include: { realizadaPor: { select: { nome: true } } },
       },
+      intervenientes: { orderBy: { createdAt: 'asc' } },
+      controlos: {
+        orderBy: { dataInicio: 'desc' },
+        include: {
+          criador: { select: { nome: true } },
+          realizacoes: { orderBy: { numero: 'asc' } },
+        },
+      },
+      diligencias: {
+        orderBy: { dataInicio: 'desc' },
+        include: { criadoPor: { select: { nome: true } } },
+      },
+      intercecaoAlvos: {
+        orderBy: { nome: 'asc' },
+        include: {
+          linhas: { orderBy: { dataInicio: 'asc' } },
+          _count: { select: { produtos: true } },
+        },
+      },
+      apreensoes: { orderBy: [{ dataApreensao: 'desc' }, { createdAt: 'desc' }] },
+      pericias: {
+        orderBy: [{ dataPedido: 'desc' }, { createdAt: 'desc' }],
+        include: { apreensao: { select: { descricao: true } } },
+      },
+      documentos: {
+        orderBy: { createdAt: 'desc' },
+        include: { uploadedBy: { select: { nome: true } } },
+      },
     },
   })
   if (!inquerito) notFound()
+
+  // Inquéritos relacionados (simétrico, com o scope do utilizador aplicado).
+  const relacoes = await getRelacoesForInquerito(
+    inquerito.id,
+    role,
+    session.user.id,
+    session.user.brigadaId,
+  )
 
   try {
     const h = await headers()
@@ -72,7 +123,18 @@ export default async function InqueritoPrintPage({
       entidade: 'Inquerito',
       entidadeId: inquerito.id,
       utilizadorId: session.user.id,
-      detalhes: { nuipc: inquerito.nuipc, atividades: inquerito.atividades.length },
+      detalhes: {
+        nuipc: inquerito.nuipc,
+        atividades: inquerito.atividades.length,
+        intervenientes: inquerito.intervenientes.length,
+        controlos: inquerito.controlos.length,
+        diligencias: inquerito.diligencias.length,
+        intercecaoAlvos: inquerito.intercecaoAlvos.length,
+        apreensoes: inquerito.apreensoes.length,
+        pericias: inquerito.pericias.length,
+        documentos: inquerito.documentos.length,
+        relacoes: relacoes.length,
+      },
     })
   } catch {
     // never block the print on an audit failure
@@ -132,6 +194,22 @@ export default async function InqueritoPrintPage({
     .gpi-print .atividade .meta { font-size: 9.5pt; color: #555; margin-top: 2pt; }
     .gpi-print .atividade .obs { margin-top: 3pt; font-size: 10pt; }
     .gpi-print .empty { color: #777; font-style: italic; }
+    .gpi-print table.tbl {
+      width: 100%; border-collapse: collapse; margin: 4pt 0 2pt 0;
+      font-size: 9.5pt;
+    }
+    .gpi-print table.tbl th, .gpi-print table.tbl td {
+      border: 0.5pt solid #ccc; padding: 3pt 5pt; text-align: left;
+      vertical-align: top;
+    }
+    .gpi-print table.tbl th {
+      background: #f2f2f2; font-weight: 600; font-size: 9pt;
+    }
+    .gpi-print table.tbl tr { page-break-inside: avoid; }
+    .gpi-print .subitem { margin: 6pt 0; page-break-inside: avoid; }
+    .gpi-print .subitem .subhead { font-weight: 600; }
+    .gpi-print .subitem .subnote { font-size: 9.5pt; color: #555; }
+    .gpi-print .count { color: #666; font-weight: normal; font-size: 10pt; }
     .gpi-print .footer {
       margin-top: 24pt; padding-top: 6pt;
       border-top: 0.5pt solid #ccc;
@@ -298,6 +376,64 @@ export default async function InqueritoPrintPage({
           </>
         )}
 
+        {relacoes.length > 0 && (
+          <>
+            <h2>Inquéritos relacionados <span className="count">({relacoes.length})</span></h2>
+            <table className="tbl">
+              <thead>
+                <tr><th>Tipo</th><th>NUIPC</th><th>Crime</th><th>Estado</th><th>Nota</th></tr>
+              </thead>
+              <tbody>
+                {relacoes.map((r) => (
+                  <tr key={r.relacaoId}>
+                    <td>{TIPO_RELACAO_LABEL[r.tipo]}</td>
+                    <td>{r.inquerito.nuipc}</td>
+                    <td>{r.inquerito.crimeNome}</td>
+                    <td>{r.inquerito.estadoNome}</td>
+                    <td>{r.nota ?? ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {inquerito.intervenientes.length > 0 && (
+          <>
+            <h2>Outros intervenientes <span className="count">({inquerito.intervenientes.length})</span></h2>
+            <table className="tbl">
+              <thead>
+                <tr><th>Tipo</th><th>Nome / Designação</th><th>NIF / NIPC</th><th>Contacto</th><th>Notas</th></tr>
+              </thead>
+              <tbody>
+                {inquerito.intervenientes.map((it) => {
+                  const tipoLabel =
+                    it.tipo === 'OUTRO'
+                      ? it.tipoOutro || 'Outro'
+                      : (TIPO_INTERVENIENTE_LABEL[it.tipo as keyof typeof TIPO_INTERVENIENTE_LABEL] ?? it.tipo)
+                  const natureza = it.tipoPessoa
+                    ? (TIPO_PESSOA_LABEL[it.tipoPessoa as keyof typeof TIPO_PESSOA_LABEL] ?? it.tipoPessoa)
+                    : null
+                  const contacto = [it.contacto, it.email].filter(Boolean).join(' · ')
+                  return (
+                    <tr key={it.id}>
+                      <td>{tipoLabel}</td>
+                      <td>
+                        {it.nome}
+                        {natureza && <div className="subnote">{natureza}</div>}
+                        {it.responsavel && <div className="subnote">Resp.: {it.responsavel}</div>}
+                      </td>
+                      <td>{it.nif ?? ''}</td>
+                      <td>{contacto}</td>
+                      <td>{it.notas ?? ''}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
+
         {inquerito.notas && (
           <>
             <h2>Notas</h2>
@@ -332,6 +468,183 @@ export default async function InqueritoPrintPage({
               {a.observacoes && <div className="obs pre">{a.observacoes}</div>}
             </div>
           ))
+        )}
+
+        {inquerito.controlos.length > 0 && (
+          <>
+            <h2>Controlos <span className="count">({inquerito.controlos.length})</span></h2>
+            <table className="tbl">
+              <thead>
+                <tr><th>Descrição</th><th>Início</th><th>Period. (dias)</th><th>Realizações</th><th>Próxima esperada</th><th>Concluído</th><th>Criado por</th></tr>
+              </thead>
+              <tbody>
+                {inquerito.controlos.map((c) => {
+                  const total = c.realizacoes.length
+                  const feitas = c.realizacoes.filter((r) => r.dataRealizacao).length
+                  const proxima = c.realizacoes
+                    .filter((r) => !r.dataRealizacao)
+                    .sort((a, b) => a.dataEsperada.getTime() - b.dataEsperada.getTime())[0]
+                  return (
+                    <tr key={c.id}>
+                      <td>{c.descricao}{c.observacoes && <div className="subnote">{c.observacoes}</div>}</td>
+                      <td>{formatDate(c.dataInicio)}</td>
+                      <td>{c.periodoDias ?? '—'}</td>
+                      <td>{feitas}/{total}</td>
+                      <td>{proxima ? formatDate(proxima.dataEsperada) : '—'}</td>
+                      <td>{c.concluidoEm ? formatDate(c.concluidoEm) : '—'}</td>
+                      <td>{c.criador.nome}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {inquerito.diligencias.length > 0 && (
+          <>
+            <h2>Diligências <span className="count">({inquerito.diligencias.length})</span></h2>
+            <table className="tbl">
+              <thead>
+                <tr><th>Tipo</th><th>Título</th><th>Início</th><th>Fim</th><th>Local</th><th>Estado</th><th>Criado por</th></tr>
+              </thead>
+              <tbody>
+                {inquerito.diligencias.map((d) => (
+                  <tr key={d.id}>
+                    <td>{TIPO_DILIGENCIA_LABEL[d.tipo] ?? d.tipo}</td>
+                    <td>{d.titulo}{d.observacoes && <div className="subnote">{d.observacoes}</div>}</td>
+                    <td>{formatDateTime(d.dataInicio)}</td>
+                    <td>{d.dataFim ? formatDateTime(d.dataFim) : '—'}</td>
+                    <td>{d.local ?? '—'}</td>
+                    <td>{d.concluida ? 'Concluída' : 'Agendada'}</td>
+                    <td>{d.criadoPor.nome}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {inquerito.intercecaoAlvos.length > 0 && (
+          <>
+            <h2>
+              Interceções{' '}
+              <span className="count">
+                ({inquerito.intercecaoAlvos.length} alvo{inquerito.intercecaoAlvos.length !== 1 ? 's' : ''})
+              </span>
+            </h2>
+            {inquerito.intercecaoAlvos.map((alvo) => (
+              <div key={alvo.id} className="subitem">
+                <div className="subhead">
+                  {alvo.nome}{' '}
+                  <span className="subnote">· {alvo._count.produtos} produto(s) registado(s)</span>
+                </div>
+                {alvo.linhas.length > 0 && (
+                  <table className="tbl">
+                    <thead>
+                      <tr><th>Código</th><th>Tipo</th><th>Nº / IMEI</th><th>Rede</th><th>Início</th><th>Fim</th><th>Renov.</th></tr>
+                    </thead>
+                    <tbody>
+                      {alvo.linhas.map((l) => (
+                        <tr key={l.id}>
+                          <td>{l.codigo}</td>
+                          <td>{TIPO_LINHA_LABEL[l.tipo]}</td>
+                          <td>{l.identificador}</td>
+                          <td>{l.rede ?? '—'}</td>
+                          <td>{formatDate(l.dataInicio)}</td>
+                          <td>{formatDate(l.dataFim)}</td>
+                          <td>{l.renovacoes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            ))}
+            <div className="subnote">
+              O detalhe dos produtos de interceção está disponível na exportação dedicada.
+            </div>
+          </>
+        )}
+
+        {inquerito.apreensoes.length > 0 && (
+          <>
+            <h2>Apreensões <span className="count">({inquerito.apreensoes.length})</span></h2>
+            <table className="tbl">
+              <thead>
+                <tr><th>Objeto</th><th>Tipo</th><th>Nº auto</th><th>Data</th><th>Apreendido a</th><th>Custódia</th><th>Estado</th><th>Destino</th></tr>
+              </thead>
+              <tbody>
+                {inquerito.apreensoes.map((a) => (
+                  <tr key={a.id}>
+                    <td>
+                      {a.descricao}
+                      {a.quantidade && <div className="subnote">Qtd.: {a.quantidade}</div>}
+                      {a.observacoes && <div className="subnote">{a.observacoes}</div>}
+                    </td>
+                    <td>{apreensaoTipoLabel(a.tipo, a.tipoOutro)}</td>
+                    <td>{a.numeroAuto ?? '—'}</td>
+                    <td>{formatDate(a.dataApreensao)}</td>
+                    <td>{a.apreendidoA ?? '—'}</td>
+                    <td>{a.localCustodia ?? '—'}</td>
+                    <td>{ESTADO_APREENSAO_LABEL[a.estado as keyof typeof ESTADO_APREENSAO_LABEL] ?? a.estado}</td>
+                    <td>{a.dataDestino ? formatDate(a.dataDestino) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {inquerito.pericias.length > 0 && (
+          <>
+            <h2>Perícias <span className="count">({inquerito.pericias.length})</span></h2>
+            <table className="tbl">
+              <thead>
+                <tr><th>Perícia</th><th>Tipo</th><th>Entidade</th><th>Ref.</th><th>Pedido</th><th>Prevista</th><th>Estado</th><th>Conclusão</th></tr>
+              </thead>
+              <tbody>
+                {inquerito.pericias.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      {p.descricao}
+                      {p.apreensao && <div className="subnote">Sobre: {p.apreensao.descricao}</div>}
+                      {p.resultado && <div className="subnote">Resultado: {p.resultado}</div>}
+                    </td>
+                    <td>{periciaTipoLabel(p.tipo, p.tipoOutro)}</td>
+                    <td>{p.entidade ?? '—'}</td>
+                    <td>{p.numeroReferencia ?? '—'}</td>
+                    <td>{formatDate(p.dataPedido)}</td>
+                    <td>{p.dataPrevista ? formatDate(p.dataPrevista) : '—'}</td>
+                    <td>{ESTADO_PERICIA_LABEL[p.estado as keyof typeof ESTADO_PERICIA_LABEL] ?? p.estado}</td>
+                    <td>{p.dataConclusao ? formatDate(p.dataConclusao) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {inquerito.documentos.length > 0 && (
+          <>
+            <h2>Documentos anexados <span className="count">({inquerito.documentos.length})</span></h2>
+            <table className="tbl">
+              <thead>
+                <tr><th>Ficheiro</th><th>Tipo</th><th>Tamanho</th><th>Anexado em</th><th>Por</th></tr>
+              </thead>
+              <tbody>
+                {inquerito.documentos.map((doc) => (
+                  <tr key={doc.id}>
+                    <td>{doc.filename}</td>
+                    <td>{doc.mimeType}</td>
+                    <td>{fmtBytes(doc.tamanho)}</td>
+                    <td>{formatDateTime(doc.createdAt)}</td>
+                    <td>{doc.uploadedBy.nome}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
 
         <div className="footer">
