@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       controlos: summary.controlos,
       intercecoes: summary.intercecoes,
       apreensoes: summary.apreensoes,
+      pericias: summary.pericias,
     })
   } catch (error) {
     log.error({ err: error }, 'deadline-check route failed')

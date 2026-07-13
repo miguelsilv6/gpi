@@ -7,6 +7,7 @@ import {
 } from '@/lib/notifications'
 import { checkIntercecoesATerminar } from '@/lib/intercecoes'
 import { checkApreensoesParadas } from '@/lib/apreensoes'
+import { checkPericiasAtrasadas } from '@/lib/pericias'
 
 export interface DeadlineCheckSummary {
   approaching: number
@@ -16,6 +17,7 @@ export interface DeadlineCheckSummary {
   controlos: number
   intercecoes: number
   apreensoes: number
+  pericias: number
 }
 
 /**
@@ -231,6 +233,9 @@ export async function runDeadlineChecks(now: Date = new Date()): Promise<Deadlin
   // ── 5. Apreensões paradas (objetos há muito por dar destino) ────────────────
   const apreensoes = await checkApreensoesParadas(now)
 
+  // ── 6. Perícias atrasadas (data prevista passou sem conclusão) ──────────────
+  const pericias = await checkPericiasAtrasadas(now)
+
   return {
     approaching: approaching.length,
     overdue: overdue.length,
@@ -239,5 +244,6 @@ export async function runDeadlineChecks(now: Date = new Date()): Promise<Deadlin
     controlos: controlosAlertas,
     intercecoes: intercecoes.alertas,
     apreensoes: apreensoes.alertas,
+    pericias: pericias.alertas,
   }
 }

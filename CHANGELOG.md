@@ -7,6 +7,34 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.82] — 2026-07-13
+
+### Adicionado
+- **Novo módulo "Perícias"** — registo e acompanhamento dos exames técnicos e
+  científicos pedidos a entidades externas (LPC, INML, …), companheiro do módulo
+  de Apreensões:
+  - **Registo por perícia**: tipo (balística, ADN/genética, informática forense,
+    documental, toxicológica, dactiloscópica, médico-legal, financeira, avaliação
+    ou outra), entidade, nº de referência, data do pedido, data prevista de
+    conclusão, estado (solicitada, em curso, concluída, cancelada), data de
+    conclusão, resultado e observações.
+  - **Ligação opcional a um objeto apreendido** — a perícia pode referenciar a
+    apreensão examinada (do mesmo inquérito); ao apagar a apreensão, a perícia
+    mantém-se e apenas fica sem ligação.
+  - **Gestão dentro do inquérito** (secção própria no detalhe) com o mesmo gate
+    operacional das atividades/apreensões — titular, hierarquia e colaboradores
+    autorizados podem registar.
+  - **Página global "Perícias"** com filtros por estado (pendentes / concluídas /
+    todas), agrupada por NUIPC, com as datas previstas em atraso destacadas.
+  - **Alerta de "perícia atrasada"**: quando a data prevista de conclusão passa e
+    a perícia continua por concluir, o inspetor titular recebe um lembrete
+    automático (ligado ao mesmo motor de prazos do worker e da rota de cron).
+  - **Módulo opcional** ativável por perfil nas Configurações, com as perícias a
+    constarem também do CSV de detalhe do inquérito.
+  - Cobertura de testes: validação (unitários) e integração das rotas (gates,
+    proteção contra IDs cruzados, validação da apreensão ligada) e do motor do
+    alerta (dispara uma vez, é idempotente e respeita estado/data/soft-delete).
+
 ## [0.5.80] — 2026-07-13
 
 ### Adicionado

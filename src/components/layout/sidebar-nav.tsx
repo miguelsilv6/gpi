@@ -20,10 +20,11 @@ interface SidebarNavProps {
   moduloAgendaAtivo?: boolean
   moduloIntercecoesAtivo?: boolean
   moduloApreensoesAtivo?: boolean
+  moduloPericiasAtivo?: boolean
   onNavigate?: () => void
 }
 
-export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, moduloAgendaAtivo = true, moduloIntercecoesAtivo = true, moduloApreensoesAtivo = true, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo = true, moduloBugReportsAtivo = true, moduloToolboxAtivo = true, moduloAgendaAtivo = true, moduloIntercecoesAtivo = true, moduloApreensoesAtivo = true, moduloPericiasAtivo = true, onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
   const items = filterNavItems(role, {
     moduloAjudasAtivo,
@@ -33,6 +34,7 @@ export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo =
     moduloAgendaAtivo,
     moduloIntercecoesAtivo,
     moduloApreensoesAtivo,
+    moduloPericiasAtivo,
   })
   const brand = useBrand()
   const lightLogo = useBrandAssetUrl('light')
