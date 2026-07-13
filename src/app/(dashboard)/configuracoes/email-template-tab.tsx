@@ -120,8 +120,9 @@ export function EmailTemplateTab() {
         <p>
           Este template é aplicado a <strong>todos os e-mails de notificação</strong>. O título e a
           mensagem de cada notificação entram no corpo — aqui defines a apresentação (cabeçalho,
-          cor, saudação, rodapé). O envio de e-mail tem ainda de estar ativo em{' '}
-          <strong>Sistema</strong> (SMTP) e por tipo em <strong>Notificações</strong>. Podes usar{' '}
+          cor, saudação, rodapé). O envio de e-mail tem ainda de estar ativo no{' '}
+          <strong>servidor SMTP</strong> e no interruptor acima, e por tipo no separador{' '}
+          <strong>Notificações</strong>. Podes usar{' '}
           <code>{'{appName}'}</code> na saudação, rodapé, aviso legal e prefixo.
         </p>
       </div>

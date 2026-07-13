@@ -819,7 +819,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'transicoes' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'email-template' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
+type Tab = 'sistema' | 'estados' | 'transicoes' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'email' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -1451,7 +1451,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'transicoes', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'email-template', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'transicoes', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'email', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1482,8 +1482,8 @@ export default function ConfiguracoesPage() {
                           ? 'Atividades'
                           : t === 'notificacoes'
                             ? 'Notificações'
-                            : t === 'email-template'
-                              ? 'Template E-mail'
+                            : t === 'email'
+                              ? 'Email'
                             : t === 'backups'
                               ? 'Backups'
                               : t === 'atualizacoes'
@@ -1637,7 +1637,7 @@ export default function ConfiguracoesPage() {
         </form>
       )}
 
-      {tab === 'sistema' && (
+      {tab === 'email' && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Servidor de email (SMTP)</CardTitle>
@@ -1709,6 +1709,51 @@ export default function ConfiguracoesPage() {
                 {testingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
                 Enviar email de teste
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {tab === 'email' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Notificações por email</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'flex items-center justify-center w-9 h-9 rounded-lg',
+                  emailNotificacoesAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                )}>
+                  <Mail className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Ativar envio por email</p>
+                  <p className="text-xs text-muted-foreground">
+                    Envio de emails para notificações do sistema. Requer o servidor SMTP
+                    configurado acima; o envio por tipo de notificação define-se no separador
+                    “Notificações”.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={toggleEmailNotificacoes}
+                disabled={savingEmailNotificacoes}
+                aria-label={emailNotificacoesAtivo ? 'Desativar notificações por email' : 'Ativar notificações por email'}
+                className={cn(
+                  'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                  emailNotificacoesAtivo ? 'bg-green-600' : 'bg-input',
+                )}
+              >
+                <span
+                  className={cn(
+                    'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                    emailNotificacoesAtivo ? 'translate-x-5' : 'translate-x-0',
+                  )}
+                />
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -2212,42 +2257,6 @@ export default function ConfiguracoesPage() {
                 />
               )}
             </div>
-
-            <div className="border-t pt-3 space-y-2">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    'flex items-center justify-center w-9 h-9 rounded-lg',
-                    emailNotificacoesAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
-                  )}>
-                    <Mail className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Notificações por email</p>
-                    <p className="text-xs text-muted-foreground">
-                      Envio de emails para notificações do sistema (em fase de testes)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleEmailNotificacoes}
-                  disabled={savingEmailNotificacoes}
-                  aria-label={emailNotificacoesAtivo ? 'Desativar notificações por email' : 'Ativar notificações por email'}
-                  className={cn(
-                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-                    emailNotificacoesAtivo ? 'bg-green-600' : 'bg-input',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
-                      emailNotificacoesAtivo ? 'translate-x-5' : 'translate-x-0',
-                    )}
-                  />
-                </button>
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}
@@ -2279,7 +2288,7 @@ export default function ConfiguracoesPage() {
       {/* Notificações tab */}
       {tab === 'notificacoes' && <NotificacoesTab />}
 
-      {tab === 'email-template' && <EmailTemplateTab />}
+      {tab === 'email' && <EmailTemplateTab />}
 
       {/* Backups tab */}
       {tab === 'backups' && <BackupsTab />}
