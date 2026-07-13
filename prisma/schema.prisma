@@ -182,10 +182,28 @@ model Utilizador {
   colaboracoesConcedidas InqueritoColaborador[] @relation("ColaboradorConcedidoPor")
   apreensoesRegistadas   Apreensao[]  @relation("ApreensaoRegistador")
   periciasRegistadas     Pericia[]    @relation("PericiaRegistador")
+  pushSubscriptions      PushSubscription[]
 
   @@index([brigadaId])
   @@index([role])
   @@index([brigadaId, role])
+}
+
+/// Subscrição de Web Push (browser Push API). Um utilizador pode ter várias
+/// (uma por dispositivo/browser). `endpoint` é único — re-subscrever o mesmo
+/// browser faz upsert na mesma linha. Enviar push a um endpoint que devolva
+/// 404/410 remove a linha (subscrição expirada).
+model PushSubscription {
+  id           String     @id @default(cuid())
+  utilizador   Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+  utilizadorId String
+  endpoint     String     @unique
+  p256dh       String
+  auth         String
+  userAgent    String?
+  createdAt    DateTime   @default(now())
+
+  @@index([utilizadorId])
 }
 
 model Inquerito {

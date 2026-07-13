@@ -17,6 +17,7 @@ import { START_TOUR_EVENT } from '@/lib/tour-steps'
 import { INQUERITO_PAGE_SIZES, DEFAULT_INQUERITO_PAGE_SIZE } from '@/lib/pagination'
 import { ROLE_LABELS } from '@/lib/rbac'
 import { NOTIFICATION_TIPO_LABELS, NOTIFICATION_TIPO_DESCRIPTIONS } from '@/lib/notification-labels'
+import { PushToggle } from '@/components/push/push-toggle'
 import type { Role } from '@/generated/prisma/enums'
 
 interface ViaturaItem { id: string; nome: string; matricula: string | null }
@@ -661,6 +662,19 @@ export default function PerfilPage() {
 
       {/* Notification email preferences */}
       <NotificacoesPreferencias />
+
+      {/* Push notifications (per device) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+            <Bell className="h-4 w-4" />
+            Notificações push
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PushToggle />
+        </CardContent>
+      </Card>
 
       {/* Password change */}
       <Card>

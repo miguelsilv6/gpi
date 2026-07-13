@@ -31,6 +31,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // `server-only` é um marcador do Next sem resolução fora do bundler.
+      // Nos testes (node) mapeia-se para um stub vazio.
+      'server-only': path.resolve(__dirname, './tests/stubs/server-only.ts'),
     },
   },
 })

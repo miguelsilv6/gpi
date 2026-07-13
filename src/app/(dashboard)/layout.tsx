@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/layout/bottom-nav'
 import { Header } from '@/components/layout/header'
 import { IdleTimeoutGuard } from '@/components/idle-timeout-guard'
 import { WelcomeTour } from '@/components/tour/welcome-tour'
+import { ServiceWorkerRegister } from '@/components/push/service-worker-register'
 import type { Role } from '@/generated/prisma/enums'
 import { Wrench } from 'lucide-react'
 
@@ -132,6 +133,8 @@ export default async function DashboardLayout({
           moduloPericiasAtivo,
         }}
       />
+
+      <ServiceWorkerRegister />
     </div>
   )
 }

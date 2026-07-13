@@ -7,7 +7,24 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.90] — 2026-07-13
+## [0.5.92] — 2026-07-13
+
+### Adicionado
+- **Notificações push (Web Push) e service worker.** A aplicação passa a poder
+  enviar notificações push para o dispositivo, mesmo com o separador fechado —
+  primeiro passo para uma experiência tipo *app* sem app nativa:
+  - **Opt-in por dispositivo** no **Perfil** (“Notificações push”): pede a
+    permissão do browser, subscreve e regista a subscrição no servidor. No iOS,
+    requer a app adicionada ao ecrã principal (limitação da plataforma).
+  - **Service worker** (`/sw.js`) que mostra a notificação e, ao clicar, foca a
+    app e navega para o inquérito relacionado (ou para as notificações).
+  - O envio é um **canal adicional ao in-app**: sempre que é criada uma
+    notificação in-app, é também enviada por push aos dispositivos subscritos do
+    destinatário. Subscrições expiradas são removidas automaticamente.
+  - **Configuração por chaves VAPID** (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`
+    / `VAPID_SUBJECT`). Sem chaves, o push fica simplesmente desativado — a app
+    funciona na mesma. O service worker **não** guarda dados de inquérito em
+    cache (dados sensíveis não ficam em repouso no dispositivo).
 
 ### Alterado
 - **Administração de e-mail reunida num único separador “Email”** nas
