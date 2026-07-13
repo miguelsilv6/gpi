@@ -35,6 +35,7 @@ enum TipoNotificacao {
   TRANSICAO_AUTOMATICA
   INTERCECAO_A_TERMINAR
   COLABORACAO_AUTORIZADA
+  APREENSAO_PARADA
 }
 
 enum SeveridadeBug {
@@ -174,6 +175,7 @@ model Utilizador {
   // e autorizações que este utilizador concedeu a outros.
   colaboracoes           InqueritoColaborador[] @relation("ColaboradorInquerito")
   colaboracoesConcedidas InqueritoColaborador[] @relation("ColaboradorConcedidoPor")
+  apreensoesRegistadas   Apreensao[]  @relation("ApreensaoRegistador")
 
   @@index([brigadaId])
   @@index([role])
@@ -277,6 +279,7 @@ model Inquerito {
   intercecaoAlvos IntercecaoAlvo[]
   colaboradores   InqueritoColaborador[]
   intervenientes  Interveniente[]
+  apreensoes      Apreensao[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -336,6 +339,61 @@ model Interveniente {
   inqueritoid String
 
   @@index([inqueritoid])
+}
+
+// ── Apreensões (cadeia de custódia de objetos apreendidos) ───────────────────
+
+// Categoria do objeto apreendido (lista fixa + OUTRO com texto livre).
+enum TipoApreensao {
+  ARMA
+  VEICULO
+  DINHEIRO
+  DROGA
+  EQUIPAMENTO_INFORMATICO
+  DOCUMENTO
+  OUTRO
+}
+
+// Situação/destino do objeto na cadeia de custódia.
+enum EstadoApreensao {
+  EM_CUSTODIA
+  A_AGUARDAR_EXAME
+  DEVOLVIDO
+  PERDIDO_A_FAVOR_ESTADO
+  DESTRUIDO
+}
+
+// Objeto apreendido num inquérito, com a sua cadeia de custódia. Trabalho
+// operacional do inquérito (o acesso segue o scope do inquérito, e a escrita a
+// mesma regra das atividades — inclui colaboradores autorizados).
+model Apreensao {
+  id           String          @id @default(cuid())
+  descricao    String          // o que foi apreendido
+  tipo         TipoApreensao   @default(OUTRO)
+  tipoOutro    String?         // descrição livre quando tipo = OUTRO
+  quantidade   String?         // ex.: "3 unidades", "250 g" — texto livre
+  numeroAuto   String?         // nº do auto de apreensão
+  dataApreensao DateTime
+  local        String?         // onde foi apreendido
+  apreendidoA  String?         // a quem foi apreendido (texto livre)
+  localCustodia String?        // onde está guardado (cofre/depósito)
+  estado       EstadoApreensao @default(EM_CUSTODIA)
+  dataDestino  DateTime?       // data da devolução / perda / destruição
+  observacoes  String?
+  // Idempotência do alerta "apreensão parada" (objeto há muito por dar destino).
+  alertaParadaEnviado Boolean  @default(false)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  inquerito    Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid  String
+
+  registadoPor   Utilizador @relation("ApreensaoRegistador", fields: [registadoPorId], references: [id])
+  registadoPorId String
+
+  @@index([inqueritoid])
+  @@index([estado])
+  @@index([dataApreensao])
 }
 
 // Documentos/anexos de um inquérito (provas, relatórios, ofícios…).
@@ -729,6 +787,12 @@ model ConfiguracaoSistema {
   // esconde a página e as rotas API devolvem 503. ADMINISTRACAO tem sempre acesso.
   moduloIntercecoesAtivo          Boolean  @default(true)
   moduloIntercecoesRoles          String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // Módulo Apreensões (cadeia de custódia de objetos apreendidos).
+  moduloApreensoesAtivo           Boolean  @default(true)
+  moduloApreensoesRoles           String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  // Dias em custódia após os quais um objeto ainda por devolver/dar destino
+  // gera um lembrete (APREENSAO_PARADA) ao inspetor. null/0 = desligado.
+  apreensaoAlertaDias             Int?     @default(180)
   // Explicações por IA na Toolbox (LLM local via Ollama). Opt-in: o admin só
   // deve ativar depois de descarregar o modelo no container Ollama.
   toolboxIaAtivo                  Boolean  @default(false)

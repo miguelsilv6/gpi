@@ -6,6 +6,7 @@ import {
   escalateUrgentToChefes,
 } from '@/lib/notifications'
 import { checkIntercecoesATerminar } from '@/lib/intercecoes'
+import { checkApreensoesParadas } from '@/lib/apreensoes'
 
 export interface DeadlineCheckSummary {
   approaching: number
@@ -14,6 +15,7 @@ export interface DeadlineCheckSummary {
   atividades: number
   controlos: number
   intercecoes: number
+  apreensoes: number
 }
 
 /**
@@ -226,6 +228,9 @@ export async function runDeadlineChecks(now: Date = new Date()): Promise<Deadlin
   // ── 4. Interceções: fim de linhas (aguarda internamente os envios) ──────────
   const intercecoes = await checkIntercecoesATerminar(now)
 
+  // ── 5. Apreensões paradas (objetos há muito por dar destino) ────────────────
+  const apreensoes = await checkApreensoesParadas(now)
+
   return {
     approaching: approaching.length,
     overdue: overdue.length,
@@ -233,5 +238,6 @@ export async function runDeadlineChecks(now: Date = new Date()): Promise<Deadlin
     atividades: atividadesComPrazo.length,
     controlos: controlosAlertas,
     intercecoes: intercecoes.alertas,
+    apreensoes: apreensoes.alertas,
   }
 }

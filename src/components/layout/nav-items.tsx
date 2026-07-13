@@ -21,6 +21,7 @@ import {
   ListTodo,
   Paperclip,
   RadioTower,
+  Boxes,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -78,6 +79,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Interceções',
     href: '/intercecoes',
     icon: RadioTower,
+    roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
+  },
+  {
+    label: 'Apreensões',
+    href: '/apreensoes',
+    icon: Boxes,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
@@ -173,6 +180,7 @@ export interface NavModuleFlags {
   moduloToolboxAtivo?: boolean
   moduloAgendaAtivo?: boolean
   moduloIntercecoesAtivo?: boolean
+  moduloApreensoesAtivo?: boolean
 }
 
 /**
@@ -190,6 +198,7 @@ export function filterNavItems(role: Role, modules: NavModuleFlags = {}): NavIte
     moduloToolboxAtivo = true,
     moduloAgendaAtivo = true,
     moduloIntercecoesAtivo = true,
+    moduloApreensoesAtivo = true,
   } = modules
   return NAV_ITEMS.filter((item) => {
     if (!item.roles.includes(role)) return false
@@ -199,6 +208,7 @@ export function filterNavItems(role: Role, modules: NavModuleFlags = {}): NavIte
     if (item.href === '/toolbox' && !moduloToolboxAtivo && role !== 'ADMINISTRACAO') return false
     if (item.href === '/agenda' && !moduloAgendaAtivo && role !== 'ADMINISTRACAO') return false
     if (item.href === '/intercecoes' && !moduloIntercecoesAtivo && role !== 'ADMINISTRACAO') return false
+    if (item.href === '/apreensoes' && !moduloApreensoesAtivo && role !== 'ADMINISTRACAO') return false
     return true
   })
 }
