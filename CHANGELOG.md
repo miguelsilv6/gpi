@@ -7,7 +7,18 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.88] — 2026-07-13
+## [0.5.90] — 2026-07-13
+
+### Alterado
+- **Administração de e-mail reunida num único separador “Email”** nas
+  Configurações (perfil de Administração). Passa a concentrar, por esta ordem,
+  o **servidor SMTP** (com botão de envio de e-mail de teste), o **interruptor
+  de notificações por e-mail** e a **personalização do template** — antes
+  dispersos entre o separador “Sistema” (SMTP + interruptor) e o separador
+  “Template E-mail”. O separador “Notificações” (políticas por tipo:
+  in-app / e-mail / cópias por perfil) mantém-se autónomo, por também governar
+  as notificações in-app. Sem alterações de comportamento nem de dados — apenas
+  reorganização da interface.
 
 ### Adicionado
 - **Último acesso de cada utilizador na lista de utilizadores** (perfil de
