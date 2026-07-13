@@ -38,6 +38,8 @@ export default async function DashboardLayout({
         moduloIntercecoesRoles: true,
         moduloApreensoesAtivo: true,
         moduloApreensoesRoles: true,
+        moduloPericiasAtivo: true,
+        moduloPericiasRoles: true,
         sessaoTimeoutMinutos: true,
       },
     }),
@@ -79,12 +81,13 @@ export default async function DashboardLayout({
   const moduloAgendaAtivo = checkModuloAcesso(sysConfig?.moduloAgendaAtivo, sysConfig?.moduloAgendaRoles)
   const moduloIntercecoesAtivo = checkModuloAcesso(sysConfig?.moduloIntercecoesAtivo, sysConfig?.moduloIntercecoesRoles)
   const moduloApreensoesAtivo = checkModuloAcesso(sysConfig?.moduloApreensoesAtivo, sysConfig?.moduloApreensoesRoles)
+  const moduloPericiasAtivo = checkModuloAcesso(sysConfig?.moduloPericiasAtivo, sysConfig?.moduloPericiasRoles)
 
   return (
     <div className="flex h-screen bg-muted/30">
       {/* Sidebar — desktop only */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-background shrink-0">
-        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} moduloApreensoesAtivo={moduloApreensoesAtivo} />
+        <SidebarNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} moduloApreensoesAtivo={moduloApreensoesAtivo} moduloPericiasAtivo={moduloPericiasAtivo} />
       </aside>
 
       {/* Main content */}
@@ -102,6 +105,7 @@ export default async function DashboardLayout({
           moduloAgendaAtivo={moduloAgendaAtivo}
           moduloIntercecoesAtivo={moduloIntercecoesAtivo}
           moduloApreensoesAtivo={moduloApreensoesAtivo}
+          moduloPericiasAtivo={moduloPericiasAtivo}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
@@ -110,7 +114,7 @@ export default async function DashboardLayout({
       </div>
 
       {/* Bottom nav — mobile only */}
-      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} moduloApreensoesAtivo={moduloApreensoesAtivo} />
+      <BottomNav role={role} moduloAjudasAtivo={moduloAjudasAtivo} moduloFeriasAtivo={moduloFeriasAtivo} moduloBugReportsAtivo={moduloBugReportsAtivo} moduloToolboxAtivo={moduloToolboxAtivo} moduloAgendaAtivo={moduloAgendaAtivo} moduloIntercecoesAtivo={moduloIntercecoesAtivo} moduloApreensoesAtivo={moduloApreensoesAtivo} moduloPericiasAtivo={moduloPericiasAtivo} />
 
       <IdleTimeoutGuard timeoutMinutes={sysConfig?.sessaoTimeoutMinutos ?? 0} />
 
@@ -124,6 +128,8 @@ export default async function DashboardLayout({
           moduloToolboxAtivo,
           moduloAgendaAtivo,
           moduloIntercecoesAtivo,
+          moduloApreensoesAtivo,
+          moduloPericiasAtivo,
         }}
       />
     </div>

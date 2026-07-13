@@ -36,6 +36,7 @@ enum TipoNotificacao {
   INTERCECAO_A_TERMINAR
   COLABORACAO_AUTORIZADA
   APREENSAO_PARADA
+  PERICIA_ATRASADA
 }
 
 enum SeveridadeBug {
@@ -176,6 +177,7 @@ model Utilizador {
   colaboracoes           InqueritoColaborador[] @relation("ColaboradorInquerito")
   colaboracoesConcedidas InqueritoColaborador[] @relation("ColaboradorConcedidoPor")
   apreensoesRegistadas   Apreensao[]  @relation("ApreensaoRegistador")
+  periciasRegistadas     Pericia[]    @relation("PericiaRegistador")
 
   @@index([brigadaId])
   @@index([role])
@@ -280,6 +282,7 @@ model Inquerito {
   colaboradores   InqueritoColaborador[]
   intervenientes  Interveniente[]
   apreensoes      Apreensao[]
+  pericias        Pericia[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -391,9 +394,72 @@ model Apreensao {
   registadoPor   Utilizador @relation("ApreensaoRegistador", fields: [registadoPorId], references: [id])
   registadoPorId String
 
+  // Perícias que incidem sobre este objeto (ligação opcional).
+  pericias     Pericia[]  @relation("ApreensaoPericias")
+
   @@index([inqueritoid])
   @@index([estado])
   @@index([dataApreensao])
+}
+
+// Tipo de perícia técnica/científica solicitada (lista fixa + OUTRO).
+enum TipoPericia {
+  BALISTICA
+  ADN
+  INFORMATICA_FORENSE
+  DOCUMENTAL
+  TOXICOLOGICA
+  DACTILOSCOPICA
+  MEDICO_LEGAL
+  FINANCEIRA
+  AVALIACAO
+  OUTRO
+}
+
+// Estado do pedido de perícia.
+enum EstadoPericia {
+  SOLICITADA
+  EM_CURSO
+  CONCLUIDA
+  CANCELADA
+}
+
+// Perícia/exame técnico pedido a uma entidade especializada (LPC, INML, …),
+// opcionalmente sobre um objeto apreendido. Trabalho operacional do inquérito
+// (mesmo scope/escrita das atividades e apreensões).
+model Pericia {
+  id               String        @id @default(cuid())
+  tipo             TipoPericia   @default(OUTRO)
+  tipoOutro        String?       // descrição livre quando tipo = OUTRO
+  descricao        String        // objeto/objetivo da perícia
+  entidade         String?       // laboratório/entidade (LPC, INML, …)
+  numeroReferencia String?       // nº de referência do pedido/exame
+  dataPedido       DateTime
+  dataPrevista     DateTime?     // data prevista de conclusão (prazo)
+  estado           EstadoPericia @default(SOLICITADA)
+  dataConclusao    DateTime?
+  resultado        String?       // conclusões/resultado
+  observacoes      String?
+  // Idempotência do alerta "perícia atrasada" (prevista já passou, sem conclusão).
+  alertaAtrasoEnviado Boolean    @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  inquerito    Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid  String
+
+  // Ligação opcional ao objeto apreendido examinado. Ao apagar a apreensão, a
+  // perícia mantém-se mas fica sem ligação (SetNull).
+  apreensao    Apreensao? @relation("ApreensaoPericias", fields: [apreensaoId], references: [id], onDelete: SetNull)
+  apreensaoId  String?
+
+  registadoPor   Utilizador @relation("PericiaRegistador", fields: [registadoPorId], references: [id])
+  registadoPorId String
+
+  @@index([inqueritoid])
+  @@index([estado])
+  @@index([dataPrevista])
+  @@index([apreensaoId])
 }
 
 // Documentos/anexos de um inquérito (provas, relatórios, ofícios…).
@@ -793,6 +859,9 @@ model ConfiguracaoSistema {
   // Dias em custódia após os quais um objeto ainda por devolver/dar destino
   // gera um lembrete (APREENSAO_PARADA) ao inspetor. null/0 = desligado.
   apreensaoAlertaDias             Int?     @default(180)
+  // Módulo Perícias (exames técnicos/científicos pedidos a entidades externas).
+  moduloPericiasAtivo             Boolean  @default(true)
+  moduloPericiasRoles             String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Explicações por IA na Toolbox (LLM local via Ollama). Opt-in: o admin só
   // deve ativar depois de descarregar o modelo no container Ollama.
   toolboxIaAtivo                  Boolean  @default(false)

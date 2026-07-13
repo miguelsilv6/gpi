@@ -27,6 +27,7 @@ export const NOTIFICATION_TIPO_LABELS: Record<TipoNotificacao, string> = {
   INTERCECAO_A_TERMINAR: 'Interceção a terminar',
   COLABORACAO_AUTORIZADA: 'Colaboração autorizada',
   APREENSAO_PARADA: 'Apreensão por dar destino',
+  PERICIA_ATRASADA: 'Perícia atrasada',
 }
 
 /**
@@ -50,6 +51,7 @@ export const NOTIFICATION_TIPO_DESCRIPTIONS: Record<TipoNotificacao, string> = {
   INTERCECAO_A_TERMINAR: 'Disparada quando uma linha de interceção (escuta) se aproxima da data de fim — até 2 avisos com dias configuráveis por linha (por defeito 10 e 3 dias). Notifica o inspetor do inquérito.',
   COLABORACAO_AUTORIZADA: 'Disparada quando um inspetor é autorizado a colaborar num inquérito que não lhe está distribuído. Notifica o inspetor autorizado.',
   APREENSAO_PARADA: 'Disparada quando um objeto apreendido continua em custódia (por devolver ou dar destino) há mais do que os dias configurados. Notifica o inspetor do inquérito.',
+  PERICIA_ATRASADA: 'Disparada quando a data prevista de conclusão de uma perícia já passou e esta continua por concluir. Notifica o inspetor do inquérito.',
 }
 
 /**
@@ -77,6 +79,7 @@ export const NOTIFICATION_TIPO_HAS_NATURAL: Record<TipoNotificacao, boolean> = {
   INTERCECAO_A_TERMINAR: true,
   COLABORACAO_AUTORIZADA: true,
   APREENSAO_PARADA: true,
+  PERICIA_ATRASADA: true,
 }
 
 /**

@@ -14,6 +14,8 @@ import { TIPO_LINHA_LABEL, TIPO_PRODUTO_LABEL, DIRECAO_LABEL } from '@/lib/valid
 import { TIPO_INTERVENIENTE_LABEL, TIPO_PESSOA_LABEL } from '@/lib/validations/interveniente'
 import { ESTADO_APREENSAO_LABEL } from '@/lib/validations/apreensao'
 import { apreensaoTipoLabel } from '@/lib/apreensoes'
+import { ESTADO_PERICIA_LABEL } from '@/lib/validations/pericia'
+import { periciaTipoLabel } from '@/lib/pericias'
 import type { Role } from '@/generated/prisma/enums'
 
 function escapeCSV(value: unknown): string {
@@ -95,6 +97,10 @@ export async function GET(
         },
         intervenientes: { orderBy: { createdAt: 'asc' } },
         apreensoes: { orderBy: [{ dataApreensao: 'desc' }, { createdAt: 'desc' }] },
+        pericias: {
+          orderBy: [{ dataPedido: 'desc' }, { createdAt: 'desc' }],
+          include: { apreensao: { select: { descricao: true } } },
+        },
       },
     })
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
@@ -115,6 +121,7 @@ export async function GET(
         intercecaoLinhas: inquerito.intercecaoAlvos.reduce((n, a) => n + a.linhas.length, 0),
         intercecaoProdutos: inquerito.intercecaoAlvos.reduce((n, a) => n + a.produtos.length, 0),
         apreensoes: inquerito.apreensoes.length,
+        pericias: inquerito.pericias.length,
       },
     })
 
@@ -441,6 +448,43 @@ export async function GET(
           ESTADO_APREENSAO_LABEL[a.estado as keyof typeof ESTADO_APREENSAO_LABEL] ?? a.estado,
           a.dataDestino ? fmtDate(a.dataDestino) : '',
           a.observacoes ?? '',
+        ]
+          .map(escapeCSV)
+          .join(','),
+      )
+    }
+
+    // Perícias
+    lines.push('')
+    lines.push(`Perícias (${inquerito.pericias.length})`)
+    const perHeaders = [
+      'Perícia',
+      'Tipo',
+      'Entidade',
+      'N.º de referência',
+      'Data do pedido',
+      'Data prevista',
+      'Estado',
+      'Data de conclusão',
+      'Resultado',
+      'Objeto apreendido',
+      'Observações',
+    ]
+    lines.push(perHeaders.map(escapeCSV).join(','))
+    for (const p of inquerito.pericias) {
+      lines.push(
+        [
+          p.descricao,
+          periciaTipoLabel(p.tipo, p.tipoOutro),
+          p.entidade ?? '',
+          p.numeroReferencia ?? '',
+          fmtDate(p.dataPedido),
+          p.dataPrevista ? fmtDate(p.dataPrevista) : '',
+          ESTADO_PERICIA_LABEL[p.estado as keyof typeof ESTADO_PERICIA_LABEL] ?? p.estado,
+          p.dataConclusao ? fmtDate(p.dataConclusao) : '',
+          p.resultado ?? '',
+          p.apreensao?.descricao ?? '',
+          p.observacoes ?? '',
         ]
           .map(escapeCSV)
           .join(','),

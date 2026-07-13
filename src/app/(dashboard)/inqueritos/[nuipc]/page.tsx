@@ -8,6 +8,9 @@ import { IntervenientesSection } from '@/components/inqueritos/intervenientes-se
 import { ApreensoesSection } from '@/components/inqueritos/apreensoes-section'
 import { isModuloApreensoesAtivo } from '@/lib/apreensoes-module'
 import { getApreensoesForInquerito } from '@/lib/apreensoes'
+import { PericiasSection } from '@/components/inqueritos/pericias-section'
+import { isModuloPericiasAtivo } from '@/lib/pericias-module'
+import { getPericiasForInquerito } from '@/lib/pericias'
 import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
 import { isModuloAnexosAtivo } from '@/lib/anexos-module'
@@ -194,6 +197,15 @@ export default async function InqueritoDetailPage({
     ...a,
     dataApreensao: a.dataApreensao.toISOString(),
     dataDestino: a.dataDestino ? a.dataDestino.toISOString() : null,
+  }))
+  const apreensoesDisponiveis = apreensoesRaw.map((a) => ({ id: a.id, descricao: a.descricao }))
+  const periciasAtivo = await isModuloPericiasAtivo(role)
+  const periciasRaw = periciasAtivo ? await getPericiasForInquerito(inquerito.id) : []
+  const periciasItems = periciasRaw.map((p) => ({
+    ...p,
+    dataPedido: p.dataPedido.toISOString(),
+    dataPrevista: p.dataPrevista ? p.dataPrevista.toISOString() : null,
+    dataConclusao: p.dataConclusao ? p.dataConclusao.toISOString() : null,
   }))
   const documentos = anexosAtivo
     ? await prisma.documento.findMany({
@@ -937,6 +949,15 @@ export default async function InqueritoDetailPage({
         <ApreensoesSection
           nuipcSlug={inqSlug}
           apreensoes={apreensoesItems}
+          podeGerir={canWork}
+        />
+      )}
+
+      {periciasAtivo && (
+        <PericiasSection
+          nuipcSlug={inqSlug}
+          pericias={periciasItems}
+          apreensoesDisponiveis={apreensoesDisponiveis}
           podeGerir={canWork}
         />
       )}

@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip, RadioTower, Boxes } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip, RadioTower, Boxes, Microscope } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { TransicoesTab } from './transicoes-tab'
@@ -844,6 +844,9 @@ export default function ConfiguracoesPage() {
   const [moduloApreensoesRoles, setModuloApreensoesRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [apreensaoAlertaDias, setApreensaoAlertaDias] = useState('')
   const [savingApreensaoAlerta, setSavingApreensaoAlerta] = useState(false)
+  const [moduloPericiasAtivo, setModuloPericiasAtivo] = useState(true)
+  const [moduloPericiasRoles, setModuloPericiasRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [savingModuloPericias, setSavingModuloPericias] = useState(false)
   const [savingModuloAgenda, setSavingModuloAgenda] = useState(false)
   const [savingModuloIntercecoes, setSavingModuloIntercecoes] = useState(false)
   const [savingModuloApreensoes, setSavingModuloApreensoes] = useState(false)
@@ -917,6 +920,8 @@ export default function ConfiguracoesPage() {
         setModuloApreensoesAtivo(d.moduloApreensoesAtivo ?? true)
         setModuloApreensoesRoles((d.moduloApreensoesRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setApreensaoAlertaDias(d.apreensaoAlertaDias == null ? '' : String(d.apreensaoAlertaDias))
+        setModuloPericiasAtivo(d.moduloPericiasAtivo ?? true)
+        setModuloPericiasRoles((d.moduloPericiasRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setToolboxIaAtivo(d.toolboxIaAtivo ?? false)
         setToolboxIaModelo(d.toolboxIaModelo ?? 'qwen3:4b')
         setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
@@ -1315,6 +1320,31 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function toggleModuloPericias() {
+    const next = !moduloPericiasAtivo
+    setSavingModuloPericias(true)
+    setModuloPericiasAtivo(next)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduloPericiasAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setModuloPericiasAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Módulo Perícias ativado' : 'Módulo Perícias desativado')
+    } catch {
+      setModuloPericiasAtivo(!next)
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingModuloPericias(false)
+    }
+  }
+
   async function saveApreensaoAlertaDias() {
     const raw = apreensaoAlertaDias.trim()
     // Vazio = desligar o alerta (null); caso contrário tem de ser inteiro ≥ 0.
@@ -1373,7 +1403,7 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos' | 'agenda' | 'intercecoes' | 'apreensoes', role: string) {
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos' | 'agenda' | 'intercecoes' | 'apreensoes' | 'pericias', role: string) {
     const configMap = {
       ajudas:     { roles: moduloAjudasRoles,     setter: setModuloAjudasRoles,     key: 'moduloAjudasRoles' },
       ferias:     { roles: moduloFeriasRoles,     setter: setModuloFeriasRoles,     key: 'moduloFeriasRoles' },
@@ -1383,6 +1413,7 @@ export default function ConfiguracoesPage() {
       agenda:     { roles: moduloAgendaRoles,     setter: setModuloAgendaRoles,     key: 'moduloAgendaRoles' },
       intercecoes: { roles: moduloIntercecoesRoles, setter: setModuloIntercecoesRoles, key: 'moduloIntercecoesRoles' },
       apreensoes: { roles: moduloApreensoesRoles, setter: setModuloApreensoesRoles, key: 'moduloApreensoesRoles' },
+      pericias:   { roles: moduloPericiasRoles,   setter: setModuloPericiasRoles,   key: 'moduloPericiasRoles' },
     } as const
     const { roles: current, setter, key } = configMap[modulo]
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
@@ -2133,6 +2164,49 @@ export default function ConfiguracoesPage() {
                     </p>
                   </div>
                 </>
+              )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloPericiasAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <Microscope className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Perícias</p>
+                    <p className="text-xs text-muted-foreground">
+                      Exames técnicos/científicos pedidos a entidades externas (LPC, INML, …) com alerta de perícia atrasada
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleModuloPericias}
+                  disabled={savingModuloPericias}
+                  aria-label={moduloPericiasAtivo ? 'Desativar módulo Perícias' : 'Ativar módulo Perícias'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloPericiasAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloPericiasAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloPericiasAtivo && (
+                <ModuloRoleSelector
+                  roles={moduloPericiasRoles}
+                  disabled={savingRoles}
+                  onToggle={(r) => toggleModuloRole('pericias', r)}
+                />
               )}
             </div>
 
