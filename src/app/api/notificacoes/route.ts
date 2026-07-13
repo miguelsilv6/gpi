@@ -11,9 +11,21 @@ export async function GET(req: NextRequest) {
     const includeHistory = searchParams.get('history') === 'true'
 
     if (countOnly) {
-      const count = await prisma.notificacao.count({
-        where: { utilizadorId: session.user.id, lida: false, limpa: false },
-      })
+      // Heartbeat de atividade: o sino sonda esta rota a cada ~90s enquanto a
+      // app está aberta. Como as sessões são JWT (sem registo em BD), é este o
+      // sinal usado para o indicador "online agora" em /utilizadores.
+      // Best-effort: nunca deve fazer falhar a contagem do sino.
+      const [count] = await Promise.all([
+        prisma.notificacao.count({
+          where: { utilizadorId: session.user.id, lida: false, limpa: false },
+        }),
+        prisma.utilizador
+          .update({
+            where: { id: session.user.id },
+            data: { lastSeenAt: new Date() },
+          })
+          .catch(() => {}),
+      ])
       return Response.json({ count })
     }
 
