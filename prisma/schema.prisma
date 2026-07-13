@@ -888,6 +888,10 @@ model ConfiguracaoSistema {
   // Módulo de notificações por email. false = nenhum email é enviado pelo sistema,
   // independentemente das políticas por tipo. Útil durante fases de teste/integração.
   emailNotificacoesAtivo          Boolean  @default(true)
+  // Template (global) dos e-mails de notificação — formulário estruturado
+  // (cabeçalho/cor/saudação/rodapé/aviso legal/prefixo do assunto). null = usar
+  // os defaults de src/lib/email-template.ts. Ver EmailTemplate.
+  emailTemplate                   Json?
   // Default estado codigos applied to /inqueritos when the user has no explicit
   // filter set on the URL. Stored as codigos for stability across renames.
   inqueritoFiltroEstadosDefault   String[] @default([])
