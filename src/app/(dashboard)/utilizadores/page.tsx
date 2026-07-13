@@ -112,6 +112,7 @@ export default async function UtilizadoresPage({ searchParams }: PageProps) {
                         className="inline-block h-2 w-2 rounded-full bg-green-500 shrink-0"
                         title="Ativo agora (visto nos últimos minutos)"
                         aria-label="Online agora"
+                        role="img"
                       />
                     )}
                     {u.nome}
@@ -182,6 +183,7 @@ export default async function UtilizadoresPage({ searchParams }: PageProps) {
                     className="inline-block h-2 w-2 rounded-full bg-green-500 shrink-0"
                     title="Ativo agora (visto nos últimos minutos)"
                     aria-label="Online agora"
+                    role="img"
                   />
                 )}
                 <span className="truncate">{u.nome}</span>

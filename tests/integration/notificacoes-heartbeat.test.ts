@@ -56,6 +56,20 @@ describe('heartbeat de atividade via /api/notificacoes', () => {
     expect(after!.lastSeenAt!.getTime()).toBeGreaterThanOrEqual(before - 1000)
   })
 
+  test('sondagens seguidas dentro de 60s não regravam lastSeenAt (throttle)', async () => {
+    const u = await makeUtilizador(prisma)
+    asUser(u.id)
+
+    await GET(new NextRequest('http://localhost/api/notificacoes?count=true'))
+    const first = await prisma.utilizador.findUnique({ where: { id: u.id } })
+    expect(first?.lastSeenAt).not.toBeNull()
+
+    // Segunda sondagem imediata: dentro da janela de 60s → sem nova escrita.
+    await GET(new NextRequest('http://localhost/api/notificacoes?count=true'))
+    const second = await prisma.utilizador.findUnique({ where: { id: u.id } })
+    expect(second!.lastSeenAt!.getTime()).toBe(first!.lastSeenAt!.getTime())
+  })
+
   test('o caminho de lista (sem count) NÃO actualiza lastSeenAt', async () => {
     const u = await makeUtilizador(prisma)
     asUser(u.id)
