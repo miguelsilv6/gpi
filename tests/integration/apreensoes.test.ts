@@ -144,6 +144,17 @@ describe('checkApreensoesParadas', () => {
     expect(alertas).toBe(0)
   })
 
+  test('respeita o desligar via campo vazio (apreensaoAlertaDias = null)', async () => {
+    // Regressão: `config?.apreensaoAlertaDias ?? 180` reativava o alerta a 180
+    // dias quando o utilizador limpava o campo (null) para o desligar.
+    const s = await scenarioTwoBrigadas(prisma)
+    await prisma.configuracaoSistema.create({ data: { id: 'singleton', apreensaoAlertaDias: null } })
+    await seedApreensao(s.inqA[0].id, s.inspetorA.id, { dataApreensao: daysAgo(500) })
+
+    const { alertas } = await checkApreensoesParadas(new Date())
+    expect(alertas).toBe(0)
+  })
+
   test('ignora apreensões de inquéritos soft-deleted', async () => {
     const s = await scenarioTwoBrigadas(prisma)
     await seedApreensao(s.inqA[0].id, s.inspetorA.id, { dataApreensao: daysAgo(200) })

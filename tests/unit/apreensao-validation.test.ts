@@ -81,6 +81,36 @@ describe('apreensaoCreateSchema', () => {
     }
   })
 
+  test('dataDestino só é aceite em estados terminais', () => {
+    const base = { descricao: 'X', tipo: 'DINHEIRO' as const, dataApreensao: '2026-01-10' }
+    // Em custódia (não terminal) com data de destino → rejeitado.
+    expect(
+      apreensaoCreateSchema.safeParse({ ...base, estado: 'EM_CUSTODIA', dataDestino: '2026-02-01' })
+        .success,
+    ).toBe(false)
+    // Sem estado (assume EM_CUSTODIA) com data de destino → rejeitado.
+    expect(apreensaoCreateSchema.safeParse({ ...base, dataDestino: '2026-02-01' }).success).toBe(
+      false,
+    )
+    // Estado terminal com data de destino → aceite.
+    expect(
+      apreensaoCreateSchema.safeParse({ ...base, estado: 'DEVOLVIDO', dataDestino: '2026-02-01' })
+        .success,
+    ).toBe(true)
+  })
+
+  test('dataDestino não pode ser anterior à dataApreensao', () => {
+    const base = { descricao: 'X', tipo: 'DINHEIRO' as const, estado: 'DESTRUIDO' as const }
+    expect(
+      apreensaoCreateSchema.safeParse({ ...base, dataApreensao: '2026-03-10', dataDestino: '2026-03-01' })
+        .success,
+    ).toBe(false)
+    expect(
+      apreensaoCreateSchema.safeParse({ ...base, dataApreensao: '2026-03-01', dataDestino: '2026-03-10' })
+        .success,
+    ).toBe(true)
+  })
+
   test('aceita estado dos valores conhecidos e rejeita outros', () => {
     expect(
       apreensaoCreateSchema.safeParse({

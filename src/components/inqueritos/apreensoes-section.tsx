@@ -162,7 +162,9 @@ export function ApreensoesSection({ nuipcSlug, apreensoes, podeGerir }: Props) {
         apreendidoA: form.apreendidoA.trim() || undefined,
         localCustodia: form.localCustodia.trim() || undefined,
         estado: form.estado,
-        dataDestino: form.dataDestino || undefined,
+        // A data do destino só se envia para estados terminais (o campo só
+        // aparece nesse caso); evita um 400 ao voltar o estado para custódia.
+        dataDestino: isTerminal ? form.dataDestino || undefined : undefined,
         observacoes: form.observacoes.trim() || undefined,
       }
       const url = editId

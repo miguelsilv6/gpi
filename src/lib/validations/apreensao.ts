@@ -79,6 +79,16 @@ export const apreensaoCreateSchema = z
     message: 'Descreva o tipo de apreensão',
     path: ['tipoOutro'],
   })
+  // A data do destino só faz sentido quando o objeto já teve destino (estado
+  // terminal). O estado omitido assume EM_CUSTODIA (não terminal).
+  .refine((d) => !d.dataDestino || (!!d.estado && ESTADO_APREENSAO_TERMINAL.has(d.estado)), {
+    message: 'A data do destino só se aplica a apreensões concluídas',
+    path: ['dataDestino'],
+  })
+  .refine((d) => !d.dataDestino || Date.parse(d.dataDestino) >= Date.parse(d.dataApreensao), {
+    message: 'A data do destino não pode ser anterior à data da apreensão',
+    path: ['dataDestino'],
+  })
 
 export const apreensaoUpdateSchema = apreensaoCreateSchema
 

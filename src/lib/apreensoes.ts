@@ -97,8 +97,11 @@ export async function checkApreensoesParadas(now: Date = new Date()): Promise<{ 
     where: { id: 'singleton' },
     select: { apreensaoAlertaDias: true },
   })
-  const dias = config?.apreensaoAlertaDias ?? 180
-  if (!dias || dias <= 0) return { alertas: 0 }
+  // Sem linha de config → default 180 (alerta ativo). Linha com valor `null`
+  // (o utilizador limpou o campo para desligar) ou ≤ 0 → alerta desligado.
+  // NB: não usar `?? 180`, senão o `null` de "desligado" voltaria a 180.
+  const dias = config ? config.apreensaoAlertaDias : 180
+  if (dias == null || dias <= 0) return { alertas: 0 }
 
   const limite = new Date(now)
   limite.setDate(limite.getDate() - dias)
@@ -130,9 +133,13 @@ export async function checkApreensoesParadas(now: Date = new Date()): Promise<{ 
         mensagem: `O objeto "${a.descricao}" está apreendido desde ${a.dataApreensao.toLocaleDateString('pt-PT', { timeZone: 'UTC' })} e continua por devolver/dar destino.`,
         inqueritoid: a.inquerito.id,
         naturalUserId: a.inquerito.inspetorId,
-      }).then(() =>
-        prisma.apreensao.update({ where: { id: a.id }, data: { alertaParadaEnviado: true } }),
-      ),
+      })
+        .then(() =>
+          prisma.apreensao.update({ where: { id: a.id }, data: { alertaParadaEnviado: true } }),
+        )
+        .catch((err) =>
+          log.error({ err, apreensaoId: a.id }, 'Falha ao notificar apreensão parada'),
+        ),
     )
   }
 
