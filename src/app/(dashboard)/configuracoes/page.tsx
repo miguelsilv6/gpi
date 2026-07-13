@@ -819,7 +819,25 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'transicoes' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'email' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
+const TABS = [
+  'sistema',
+  'estados',
+  'transicoes',
+  'crimes',
+  'etiquetas',
+  'comarcas',
+  'tribunais',
+  'seccoes',
+  'atividades',
+  'notificacoes',
+  'email',
+  'backups',
+  'atualizacoes',
+  'aparencia',
+  'ajudas-config',
+] as const
+
+type Tab = (typeof TABS)[number]
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -1451,7 +1469,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'transicoes', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'email', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
+        {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1739,9 +1757,11 @@ export default function ConfiguracoesPage() {
               </div>
               <button
                 type="button"
+                role="switch"
+                aria-checked={emailNotificacoesAtivo}
                 onClick={toggleEmailNotificacoes}
                 disabled={savingEmailNotificacoes}
-                aria-label={emailNotificacoesAtivo ? 'Desativar notificações por email' : 'Ativar notificações por email'}
+                aria-label="Ativar envio por email"
                 className={cn(
                   'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
                   emailNotificacoesAtivo ? 'bg-green-600' : 'bg-input',
