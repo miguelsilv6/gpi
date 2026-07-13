@@ -129,6 +129,10 @@ model Utilizador {
   failedLoginCount Int  @default(0)
   lastLoginAt  DateTime?
   lastLoginIp  String?
+  // Última atividade (heartbeat): atualizado pelo poll de notificações (~90s)
+  // enquanto o utilizador tem a app aberta. Base do indicador "online agora"
+  // (as sessões são JWT, sem registo em BD). null = nunca visto ativo.
+  lastSeenAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

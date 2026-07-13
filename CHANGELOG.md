@@ -7,6 +7,26 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.88] — 2026-07-13
+
+### Adicionado
+- **Último acesso de cada utilizador na lista de utilizadores** (perfil de
+  Administração) — a página **Utilizadores** passa a mostrar uma coluna
+  **Último acesso** com a data/hora do último início de sessão bem-sucedido e o
+  **IP** desse acesso (ou *“Nunca”* para quem nunca entrou). Disponível também
+  nos cartões em ecrã pequeno.
+- **Indicador “online agora”** — um ponto verde junto ao nome (e a etiqueta
+  *“· online”*) assinala os utilizadores ativos neste momento. Como as sessões
+  são *stateless* (JWT, sem registo de sessões em base de dados), a presença é
+  derivada de um **heartbeat de atividade**: enquanto a aplicação está aberta, a
+  sondagem periódica do sino de notificações (~90 s) atualiza a “última
+  atividade” do utilizador; considera-se online quem foi visto nos últimos
+  ~3 minutos (tolera até duas sondagens falhadas). Este sinal é apenas
+  indicativo — não substitui o registo de auditoria de início de sessão.
+- Testes de integração do heartbeat: a sondagem de contagem do sino
+  (`?count=true`) atualiza a última atividade, e o caminho de listagem das
+  notificações não a atualiza (mantém o sinal restrito e barato).
+
 ## [0.5.86] — 2026-07-13
 
 ### Alterado
