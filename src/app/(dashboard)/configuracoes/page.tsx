@@ -34,6 +34,7 @@ import { TribunaisTab } from './tribunais-tab'
 import { SeccoesTab } from './seccoes-tab'
 import { BackupsTab } from './backups-tab'
 import { NotificacoesTab } from './notificacoes-tab'
+import { EmailTemplateTab } from './email-template-tab'
 import { AtualizacoesTab } from './atualizacoes-tab'
 import { AparenciaTab } from './aparencia-tab'
 import { EtiquetasTab } from './etiquetas-tab'
@@ -818,7 +819,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'sistema' | 'estados' | 'transicoes' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
+type Tab = 'sistema' | 'estados' | 'transicoes' | 'crimes' | 'etiquetas' | 'comarcas' | 'tribunais' | 'seccoes' | 'atividades' | 'notificacoes' | 'email-template' | 'backups' | 'atualizacoes' | 'aparencia' | 'ajudas-config'
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
@@ -1450,7 +1451,7 @@ export default function ConfiguracoesPage() {
 
       {/* Tabs */}
       <div className="flex border-b gap-0 flex-wrap">
-        {(['sistema', 'estados', 'transicoes', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
+        {(['sistema', 'estados', 'transicoes', 'crimes', 'etiquetas', 'comarcas', 'tribunais', 'seccoes', 'atividades', 'notificacoes', 'email-template', 'backups', 'atualizacoes', 'aparencia', 'ajudas-config'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1481,6 +1482,8 @@ export default function ConfiguracoesPage() {
                           ? 'Atividades'
                           : t === 'notificacoes'
                             ? 'Notificações'
+                            : t === 'email-template'
+                              ? 'Template E-mail'
                             : t === 'backups'
                               ? 'Backups'
                               : t === 'atualizacoes'
@@ -2275,6 +2278,8 @@ export default function ConfiguracoesPage() {
 
       {/* Notificações tab */}
       {tab === 'notificacoes' && <NotificacoesTab />}
+
+      {tab === 'email-template' && <EmailTemplateTab />}
 
       {/* Backups tab */}
       {tab === 'backups' && <BackupsTab />}

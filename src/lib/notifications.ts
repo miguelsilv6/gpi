@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { sendMail } from '@/lib/mailer'
 import { childLogger } from '@/lib/logger'
+import { getEmailTemplateContext } from '@/lib/email-template-loader'
+import { renderEmailSubject, renderEmailText, renderEmailHtml } from '@/lib/email-template'
 import type { TipoNotificacao, Role } from '@/generated/prisma/enums'
 
 const log = childLogger({ subsystem: 'notifications' })
@@ -120,6 +122,8 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
   // Preferências por utilizador: opt-out de email por tipo. A ausência de linha
   // = ativo (default on); só guardamos opt-outs explícitos. Não afeta o in-app.
   let emailOptOut = new Set<string>()
+  // Template (global) dos e-mails — carregado uma vez por despacho (cache 60s).
+  let emailCtx: Awaited<ReturnType<typeof getEmailTemplateContext>> | null = null
   if (policy.emailEnabled) {
     const prefs = await prisma.notificacaoPreferencia.findMany({
       where: {
@@ -130,6 +134,7 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
       select: { utilizadorId: true },
     })
     emailOptOut = new Set(prefs.map((p) => p.utilizadorId))
+    emailCtx = await getEmailTemplateContext()
   }
 
   await Promise.all(
@@ -147,13 +152,14 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
         })
         notificacaoId = n.id
       }
-      if (policy.emailEnabled && r.email && !emailOptOut.has(r.id)) {
+      if (policy.emailEnabled && emailCtx && r.email && !emailOptOut.has(r.id)) {
         try {
+          const content = { titulo: opts.titulo, mensagem: opts.mensagem, appName: emailCtx.appName }
           await sendMail({
             to: r.email,
-            subject: opts.titulo,
-            text: opts.mensagem,
-            html: `<p>${opts.mensagem.replace(/\n/g, '<br/>')}</p>`,
+            subject: renderEmailSubject(emailCtx.tpl, { titulo: opts.titulo, appName: emailCtx.appName }),
+            text: renderEmailText(emailCtx.tpl, content),
+            html: renderEmailHtml(emailCtx.tpl, content),
           })
           if (notificacaoId) {
             await prisma.notificacao.update({

@@ -7,7 +7,25 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.82] — 2026-07-13
+## [0.5.84] — 2026-07-13
+
+### Adicionado
+- **Personalização do template dos e-mails de notificação** — nova página
+  (separador **Template E-mail**) nas Configurações, só para a Administração:
+  - **Formulário estruturado** com pré-visualização ao vivo: mostrar/ocultar o
+    cabeçalho com o nome da aplicação, cor de destaque, saudação, rodapé/
+    assinatura, aviso legal e prefixo do assunto. O sistema gera o HTML do
+    e-mail (compatível com clientes de e-mail, estilos inline).
+  - Os campos de texto suportam a variável `{appName}`; o título e a mensagem
+    de cada notificação entram no corpo. O conteúdo é sempre escapado (sem risco
+    de injeção de HTML a partir dos dados das notificações).
+  - Aplica-se a **todos** os e-mails de notificação — antes eram um `<p>` simples.
+    O template é global, guardado na configuração do sistema (predefinições
+    embutidas quando não personalizado), com registo de auditoria e cache de
+    60 s no envio.
+  - Testes: unitários do render (assunto/HTML/texto, escaping, `{appName}`,
+    cabeçalho, cor) e de integração do endpoint (gate de Administração,
+    persistência, validação).
 
 ### Adicionado
 - **Novo módulo "Perícias"** — registo e acompanhamento dos exames técnicos e
