@@ -73,6 +73,9 @@ export const ACAO_LABELS: Record<string, string> = {
   CREATE_INTERVENIENTE: 'Interveniente adicionado',
   UPDATE_INTERVENIENTE: 'Interveniente alterado',
   DELETE_INTERVENIENTE: 'Interveniente removido',
+  CREATE_APREENSAO: 'Apreensão registada',
+  UPDATE_APREENSAO: 'Apreensão alterada',
+  DELETE_APREENSAO: 'Apreensão removida',
 }
 
 /** Cor categórica para os badges de acao em listas. */
@@ -186,6 +189,9 @@ export const FIELD_LABELS: Record<string, string> = {
   moduloAnexosRoles: 'Perfis com acesso (Anexos)',
   moduloIntercecoesAtivo: 'Módulo Interceções',
   moduloIntercecoesRoles: 'Perfis com acesso (Interceções)',
+  moduloApreensoesAtivo: 'Módulo Apreensões',
+  moduloApreensoesRoles: 'Perfis com acesso (Apreensões)',
+  apreensaoAlertaDias: 'Alerta de apreensão parada (dias)',
   // Interceções
   nome: 'Nome',
   alvoNome: 'Alvo',
@@ -224,6 +230,13 @@ export const FIELD_LABELS: Record<string, string> = {
   contacto: 'Contacto',
   email: 'Email',
   responsavel: 'Responsável',
+  // Apreensões
+  numeroAuto: 'Nº do auto',
+  dataApreensao: 'Data da apreensão',
+  local: 'Local',
+  apreendidoA: 'Apreendido a',
+  localCustodia: 'Local de custódia',
+  dataDestino: 'Data do destino',
   // Bulk markers
   __bulk__: '(lote)',
   __bulk_export__: '(exportação)',
@@ -237,6 +250,8 @@ export const DATE_FIELDS = new Set([
   'dataInicio',
   'dataFim',
   'data',
+  'dataApreensao',
+  'dataDestino',
 ])
 export const DATETIME_FIELDS = new Set(['concluidaEm', 'concluidoEm', 'createdAt'])
 

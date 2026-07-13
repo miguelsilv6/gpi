@@ -7,6 +7,33 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.80] — 2026-07-13
+
+### Adicionado
+- **Novo módulo "Apreensões"** — registo e cadeia de custódia dos objetos
+  apreendidos em cada inquérito, substituindo o controlo informal em papel/Excel:
+  - **Registo por objeto**: descrição, tipo (arma, veículo, dinheiro/valores,
+    estupefaciente, equipamento informático, documento ou outro), quantidade,
+    n.º do auto, data e local da apreensão, a quem foi apreendido, local de
+    custódia, estado da custódia (em custódia, a aguardar exame, devolvido,
+    perdido a favor do Estado, destruído), data e observações do destino.
+  - **Gestão dentro do inquérito** (secção própria no detalhe) com o mesmo gate
+    operacional das atividades/interceções — o titular, a hierarquia e os
+    colaboradores autorizados podem registar.
+  - **Página global "Apreensões"** com filtros por estado (em custódia /
+    concluídas / todas), agrupada por NUIPC e respeitando o âmbito de acesso de
+    cada utilizador.
+  - **Alerta de "apreensão parada"**: objetos que fiquem em custódia (ou a
+    aguardar exame) além de um prazo configurável (por defeito 180 dias) geram um
+    lembrete ao inspetor titular para lhes dar destino. O prazo é ajustável nas
+    Configurações e pode ser desligado.
+  - **Módulo opcional**: ativável/desativável por perfil nas Configurações
+    (padrão dos restantes módulos; a Administração vê sempre).
+  - **Exportação**: as apreensões passam a constar do CSV de detalhe do inquérito.
+  - Cobertura de testes: validação (unitários) e integração das rotas (gates,
+    proteção contra IDs cruzados) e do motor do alerta (dispara uma vez, é
+    idempotente e respeita estado/prazo/soft-delete).
+
 ## [0.5.78] — 2026-07-12
 
 ### Alterado

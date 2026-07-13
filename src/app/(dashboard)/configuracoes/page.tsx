@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ESTADO_COR_CLASSES, ESTADO_COR_DEFAULT } from '@/lib/constants'
-import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip, RadioTower } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Check, X, Banknote, CalendarDays, CalendarCheck, Mail, Bug, Wrench, Sparkles, Download, RefreshCw, Paperclip, RadioTower, Boxes } from 'lucide-react'
 import { cn, iconButtonClasses } from '@/lib/utils'
 import { EstadosTab } from './estados-tab'
 import { TransicoesTab } from './transicoes-tab'
@@ -840,8 +840,13 @@ export default function ConfiguracoesPage() {
   const [moduloAgendaRoles, setModuloAgendaRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
   const [moduloIntercecoesAtivo, setModuloIntercecoesAtivo] = useState(true)
   const [moduloIntercecoesRoles, setModuloIntercecoesRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [moduloApreensoesAtivo, setModuloApreensoesAtivo] = useState(true)
+  const [moduloApreensoesRoles, setModuloApreensoesRoles] = useState<string[]>(['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR'])
+  const [apreensaoAlertaDias, setApreensaoAlertaDias] = useState('')
+  const [savingApreensaoAlerta, setSavingApreensaoAlerta] = useState(false)
   const [savingModuloAgenda, setSavingModuloAgenda] = useState(false)
   const [savingModuloIntercecoes, setSavingModuloIntercecoes] = useState(false)
+  const [savingModuloApreensoes, setSavingModuloApreensoes] = useState(false)
   const [savingModuloAnexos, setSavingModuloAnexos] = useState(false)
   const [emailNotificacoesAtivo, setEmailNotificacoesAtivo] = useState(true)
   const [savingEmailNotificacoes, setSavingEmailNotificacoes] = useState(false)
@@ -909,6 +914,9 @@ export default function ConfiguracoesPage() {
         setModuloAgendaRoles((d.moduloAgendaRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
         setModuloIntercecoesAtivo(d.moduloIntercecoesAtivo ?? true)
         setModuloIntercecoesRoles((d.moduloIntercecoesRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setModuloApreensoesAtivo(d.moduloApreensoesAtivo ?? true)
+        setModuloApreensoesRoles((d.moduloApreensoesRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR').split(',').filter(Boolean))
+        setApreensaoAlertaDias(d.apreensaoAlertaDias == null ? '' : String(d.apreensaoAlertaDias))
         setToolboxIaAtivo(d.toolboxIaAtivo ?? false)
         setToolboxIaModelo(d.toolboxIaModelo ?? 'qwen3:4b')
         setEmailNotificacoesAtivo(d.emailNotificacoesAtivo ?? true)
@@ -1282,6 +1290,64 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function toggleModuloApreensoes() {
+    const next = !moduloApreensoesAtivo
+    setSavingModuloApreensoes(true)
+    setModuloApreensoesAtivo(next)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduloApreensoesAtivo: next }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setModuloApreensoesAtivo(!next)
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      toast.success(next ? 'Módulo Apreensões ativado' : 'Módulo Apreensões desativado')
+    } catch {
+      setModuloApreensoesAtivo(!next)
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingModuloApreensoes(false)
+    }
+  }
+
+  async function saveApreensaoAlertaDias() {
+    const raw = apreensaoAlertaDias.trim()
+    // Vazio = desligar o alerta (null); caso contrário tem de ser inteiro ≥ 0.
+    let valor: number | null = null
+    if (raw !== '') {
+      const n = Number(raw)
+      if (!Number.isInteger(n) || n < 0 || n > 3650) {
+        toast.error('Indique um número de dias entre 0 e 3650 (ou deixe vazio para desligar)')
+        return
+      }
+      valor = n
+    }
+    setSavingApreensaoAlerta(true)
+    try {
+      const res = await fetch('/api/configuracoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apreensaoAlertaDias: valor }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao guardar')
+        return
+      }
+      setApreensaoAlertaDias(valor == null ? '' : String(valor))
+      toast.success('Prazo de alerta de apreensões guardado')
+    } catch {
+      toast.error('Erro de rede ao guardar')
+    } finally {
+      setSavingApreensaoAlerta(false)
+    }
+  }
+
   async function toggleEmailNotificacoes() {
     const next = !emailNotificacoesAtivo
     setSavingEmailNotificacoes(true)
@@ -1307,7 +1373,7 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos' | 'agenda' | 'intercecoes', role: string) {
+  async function toggleModuloRole(modulo: 'ajudas' | 'ferias' | 'bugreports' | 'toolbox' | 'anexos' | 'agenda' | 'intercecoes' | 'apreensoes', role: string) {
     const configMap = {
       ajudas:     { roles: moduloAjudasRoles,     setter: setModuloAjudasRoles,     key: 'moduloAjudasRoles' },
       ferias:     { roles: moduloFeriasRoles,     setter: setModuloFeriasRoles,     key: 'moduloFeriasRoles' },
@@ -1316,6 +1382,7 @@ export default function ConfiguracoesPage() {
       anexos:     { roles: moduloAnexosRoles,     setter: setModuloAnexosRoles,     key: 'moduloAnexosRoles' },
       agenda:     { roles: moduloAgendaRoles,     setter: setModuloAgendaRoles,     key: 'moduloAgendaRoles' },
       intercecoes: { roles: moduloIntercecoesRoles, setter: setModuloIntercecoesRoles, key: 'moduloIntercecoesRoles' },
+      apreensoes: { roles: moduloApreensoesRoles, setter: setModuloApreensoesRoles, key: 'moduloApreensoesRoles' },
     } as const
     const { roles: current, setter, key } = configMap[modulo]
     const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role]
@@ -1995,6 +2062,77 @@ export default function ConfiguracoesPage() {
                   disabled={savingRoles}
                   onToggle={(r) => toggleModuloRole('intercecoes', r)}
                 />
+              )}
+            </div>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-lg',
+                    moduloApreensoesAtivo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground',
+                  )}>
+                    <Boxes className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Apreensões</p>
+                    <p className="text-xs text-muted-foreground">
+                      Registo e custódia de objetos apreendidos (tipo, auto, destino) com alerta de apreensão parada
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleModuloApreensoes}
+                  disabled={savingModuloApreensoes}
+                  aria-label={moduloApreensoesAtivo ? 'Desativar módulo Apreensões' : 'Ativar módulo Apreensões'}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                    moduloApreensoesAtivo ? 'bg-green-600' : 'bg-input',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                      moduloApreensoesAtivo ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+              {moduloApreensoesAtivo && (
+                <>
+                  <ModuloRoleSelector
+                    roles={moduloApreensoesRoles}
+                    disabled={savingRoles}
+                    onToggle={(r) => toggleModuloRole('apreensoes', r)}
+                  />
+                  <div className="flex flex-wrap items-end gap-2 pt-1">
+                    <label className="text-xs text-muted-foreground">
+                      Alerta de apreensão parada (dias em custódia)
+                      <input
+                        type="number"
+                        min={0}
+                        max={3650}
+                        value={apreensaoAlertaDias}
+                        onChange={(e) => setApreensaoAlertaDias(e.target.value)}
+                        placeholder="180"
+                        className="mt-1 block w-28 rounded-lg border bg-background px-3 py-1.5 text-sm text-foreground"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={saveApreensaoAlertaDias}
+                      disabled={savingApreensaoAlerta}
+                      className="rounded-lg border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      {savingApreensaoAlerta ? 'A guardar…' : 'Guardar prazo'}
+                    </button>
+                    <p className="w-full text-[11px] text-muted-foreground">
+                      Objetos ainda em custódia/a aguardar exame há mais dias que este valor geram um lembrete
+                      ao inspetor titular. Deixe vazio para desligar o alerta.
+                    </p>
+                  </div>
+                </>
               )}
             </div>
 

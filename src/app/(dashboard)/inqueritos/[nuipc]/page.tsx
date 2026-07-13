@@ -5,6 +5,9 @@ import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
 import { isColaboradorAtivo, canManageColaboradores } from '@/lib/colaboradores'
 import { ColaboradoresSection } from '@/components/inqueritos/colaboradores-section'
 import { IntervenientesSection } from '@/components/inqueritos/intervenientes-section'
+import { ApreensoesSection } from '@/components/inqueritos/apreensoes-section'
+import { isModuloApreensoesAtivo } from '@/lib/apreensoes-module'
+import { getApreensoesForInquerito } from '@/lib/apreensoes'
 import { hasPermission } from '@/lib/rbac'
 import { isTerminal } from '@/lib/inquerito-state'
 import { isModuloAnexosAtivo } from '@/lib/anexos-module'
@@ -185,6 +188,13 @@ export default async function InqueritoDetailPage({
   const anexosAtivo = await isModuloAnexosAtivo(role)
   const intercecoesAtivo = await isModuloIntercecoesAtivo(role)
   const intercecoesResumo = intercecoesAtivo ? await getIntercecoesResumo(inquerito.id) : null
+  const apreensoesAtivo = await isModuloApreensoesAtivo(role)
+  const apreensoesRaw = apreensoesAtivo ? await getApreensoesForInquerito(inquerito.id) : []
+  const apreensoesItems = apreensoesRaw.map((a) => ({
+    ...a,
+    dataApreensao: a.dataApreensao.toISOString(),
+    dataDestino: a.dataDestino ? a.dataDestino.toISOString() : null,
+  }))
   const documentos = anexosAtivo
     ? await prisma.documento.findMany({
         where: { inqueritoid: inquerito.id },
@@ -921,6 +931,14 @@ export default async function InqueritoDetailPage({
 
       {intercecoesAtivo && intercecoesResumo && (
         <IntercecoesSection nuipcSlug={inqSlug} resumo={intercecoesResumo} />
+      )}
+
+      {apreensoesAtivo && (
+        <ApreensoesSection
+          nuipcSlug={inqSlug}
+          apreensoes={apreensoesItems}
+          podeGerir={canWork}
+        />
       )}
 
       {anexosAtivo && (

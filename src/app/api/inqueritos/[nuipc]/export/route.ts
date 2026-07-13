@@ -12,6 +12,8 @@ import { slugToNuipc } from '@/lib/utils'
 import { TIPO_DILIGENCIA_LABEL } from '@/lib/validations/diligencia'
 import { TIPO_LINHA_LABEL, TIPO_PRODUTO_LABEL, DIRECAO_LABEL } from '@/lib/validations/intercecao'
 import { TIPO_INTERVENIENTE_LABEL, TIPO_PESSOA_LABEL } from '@/lib/validations/interveniente'
+import { ESTADO_APREENSAO_LABEL } from '@/lib/validations/apreensao'
+import { apreensaoTipoLabel } from '@/lib/apreensoes'
 import type { Role } from '@/generated/prisma/enums'
 
 function escapeCSV(value: unknown): string {
@@ -92,6 +94,7 @@ export async function GET(
           },
         },
         intervenientes: { orderBy: { createdAt: 'asc' } },
+        apreensoes: { orderBy: [{ dataApreensao: 'desc' }, { createdAt: 'desc' }] },
       },
     })
     if (!inquerito) return apiError('Inquérito não encontrado', 404)
@@ -111,6 +114,7 @@ export async function GET(
         intercecaoAlvos: inquerito.intercecaoAlvos.length,
         intercecaoLinhas: inquerito.intercecaoAlvos.reduce((n, a) => n + a.linhas.length, 0),
         intercecaoProdutos: inquerito.intercecaoAlvos.reduce((n, a) => n + a.produtos.length, 0),
+        apreensoes: inquerito.apreensoes.length,
       },
     })
 
@@ -404,6 +408,43 @@ export async function GET(
             .join(','),
         )
       }
+    }
+
+    // Apreensões
+    lines.push('')
+    lines.push(`Apreensões (${inquerito.apreensoes.length})`)
+    const aprHeaders = [
+      'Objeto',
+      'Tipo',
+      'Quantidade',
+      'N.º do auto',
+      'Data da apreensão',
+      'Local',
+      'Apreendido a',
+      'Local de custódia',
+      'Estado',
+      'Data do destino',
+      'Observações',
+    ]
+    lines.push(aprHeaders.map(escapeCSV).join(','))
+    for (const a of inquerito.apreensoes) {
+      lines.push(
+        [
+          a.descricao,
+          apreensaoTipoLabel(a.tipo, a.tipoOutro),
+          a.quantidade ?? '',
+          a.numeroAuto ?? '',
+          fmtDate(a.dataApreensao),
+          a.local ?? '',
+          a.apreendidoA ?? '',
+          a.localCustodia ?? '',
+          ESTADO_APREENSAO_LABEL[a.estado as keyof typeof ESTADO_APREENSAO_LABEL] ?? a.estado,
+          a.dataDestino ? fmtDate(a.dataDestino) : '',
+          a.observacoes ?? '',
+        ]
+          .map(escapeCSV)
+          .join(','),
+      )
     }
 
     // UTF-8 BOM so Excel detects the encoding correctly
