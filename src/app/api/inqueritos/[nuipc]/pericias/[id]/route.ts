@@ -66,6 +66,17 @@ export async function PUT(
     if (apreensaoId === 'invalid') return apiError('Apreensão associada inválida', 400)
 
     const estado = d.estado ?? 'SOLICITADA'
+    const novaPrevista = parsePericiaData(d.dataPrevista)
+
+    // Re-armar o alerta de atraso: se a data prevista mudou (adiamento) ou a
+    // perícia foi reaberta de um estado terminal, o lembrete deve poder voltar a
+    // disparar. (Sem isto, adiar o prazo nunca re-alertaria.) Se nada disto
+    // mudou, mantemos o valor atual (omitindo o campo do update).
+    const previstaMudou =
+      (atual.dataPrevista?.getTime() ?? null) !== (novaPrevista?.getTime() ?? null)
+    const reaberta = ESTADO_PERICIA_TERMINAL.has(atual.estado) && !ESTADO_PERICIA_TERMINAL.has(estado)
+    const resetAlerta = previstaMudou || reaberta
+
     const updated = await prisma.pericia.update({
       where: { id: atual.id },
       data: {
@@ -75,12 +86,13 @@ export async function PUT(
         entidade: d.entidade ?? null,
         numeroReferencia: d.numeroReferencia ?? null,
         dataPedido,
-        dataPrevista: parsePericiaData(d.dataPrevista),
+        dataPrevista: novaPrevista,
         estado,
         dataConclusao: ESTADO_PERICIA_TERMINAL.has(estado) ? parsePericiaData(d.dataConclusao) : null,
         resultado: d.resultado ?? null,
         observacoes: d.observacoes ?? null,
         apreensaoId,
+        ...(resetAlerta ? { alertaAtrasoEnviado: false } : {}),
       },
       select: PERICIA_SELECT,
     })

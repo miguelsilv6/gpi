@@ -147,6 +147,90 @@ describe('checkPericiasAtrasadas', () => {
     const { alertas } = await checkPericiasAtrasadas(new Date())
     expect(alertas).toBe(0)
   })
+
+  test('não alerta no próprio dia do prazo (data prevista = hoje)', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+    await seedPericia(s.inqA[0].id, s.inspetorA.id, { dataPrevista: hoje })
+
+    const { alertas } = await checkPericiasAtrasadas(new Date())
+    expect(alertas).toBe(0)
+  })
+})
+
+describe('reset do alerta ao adiar/reabrir (PUT)', () => {
+  async function flag(id: string) {
+    return (await prisma.pericia.findUnique({ where: { id } }))?.alertaAtrasoEnviado
+  }
+
+  test('adiar a data prevista repõe o flag (volta a poder alertar)', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const p = await seedPericia(s.inqA[0].id, s.inspetorA.id, { dataPrevista: daysAgo(5) })
+    await checkPericiasAtrasadas(new Date())
+    expect(await flag(p.id)).toBe(true)
+
+    asUser(s.inspetorA)
+    const res = await PUT(
+      jsonReq('PUT', {
+        tipo: 'BALISTICA',
+        descricao: 'Exame teste',
+        dataPedido: '2026-01-01',
+        dataPrevista: '2026-12-31',
+        estado: 'EM_CURSO',
+      }),
+      paramsId(s.inqA[0].nuipc, p.id),
+    )
+    expect(res.status).toBe(200)
+    expect(await flag(p.id)).toBe(false)
+  })
+
+  test('reabrir de um estado terminal repõe o flag', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const p = await seedPericia(s.inqA[0].id, s.inspetorA.id, {
+      estado: 'CONCLUIDA',
+      dataPrevista: new Date('2026-06-01T00:00:00.000Z'),
+    })
+    // Marca o flag manualmente (simula um alerta anterior antes de concluir).
+    await prisma.pericia.update({ where: { id: p.id }, data: { alertaAtrasoEnviado: true } })
+
+    asUser(s.inspetorA)
+    const res = await PUT(
+      jsonReq('PUT', {
+        tipo: 'BALISTICA',
+        descricao: 'Exame teste',
+        dataPedido: '2026-01-01',
+        dataPrevista: '2026-06-01',
+        estado: 'EM_CURSO',
+      }),
+      paramsId(s.inqA[0].nuipc, p.id),
+    )
+    expect(res.status).toBe(200)
+    expect(await flag(p.id)).toBe(false)
+  })
+
+  test('editar sem mexer no prazo/estado mantém o flag', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const p = await seedPericia(s.inqA[0].id, s.inspetorA.id, {
+      dataPrevista: new Date('2026-06-01T00:00:00.000Z'),
+    })
+    await checkPericiasAtrasadas(new Date())
+    expect(await flag(p.id)).toBe(true)
+
+    asUser(s.inspetorA)
+    const res = await PUT(
+      jsonReq('PUT', {
+        tipo: 'BALISTICA',
+        descricao: 'Descrição alterada',
+        dataPedido: '2026-01-01',
+        dataPrevista: '2026-06-01',
+        estado: 'SOLICITADA',
+      }),
+      paramsId(s.inqA[0].nuipc, p.id),
+    )
+    expect(res.status).toBe(200)
+    expect(await flag(p.id)).toBe(true)
+  })
 })
 
 describe('rotas de perícias — gates e ligação à apreensão', () => {

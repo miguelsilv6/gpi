@@ -94,11 +94,16 @@ export async function getPericiasGlobal(opts: {
  * (marca `alertaAtrasoEnviado`). Ignora inquéritos apagados.
  */
 export async function checkPericiasAtrasadas(now: Date = new Date()): Promise<{ alertas: number }> {
+  // "Atrasada" = a data prevista é anterior a HOJE — não dispara no próprio dia
+  // do prazo. Como as datas são guardadas à meia-noite, comparamos com o início
+  // do dia atual (mesmo critério do destaque a vermelho na página global).
+  const hoje = new Date(now)
+  hoje.setHours(0, 0, 0, 0)
   const atrasadas = await prisma.pericia.findMany({
     where: {
       estado: { in: [...ESTADOS_PERICIA_PENDENTES] },
       alertaAtrasoEnviado: false,
-      dataPrevista: { not: null, lt: now },
+      dataPrevista: { not: null, lt: hoje },
       inquerito: { deletedAt: null },
     },
     select: {

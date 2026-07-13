@@ -64,7 +64,10 @@ export default async function PericiasPage({
     page,
   })
 
-  const now = new Date()
+  // Início do dia atual: uma perícia só fica "atrasada" no dia seguinte ao prazo
+  // (as datas são guardadas à meia-noite). Mesmo critério do alerta.
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
 
   function buildUrl(f: PericiaEstadoFiltro, p?: number): string {
     const params = new URLSearchParams()
@@ -171,7 +174,7 @@ export default async function PericiasPage({
                   <tbody className="divide-y">
                     {g.itens.map((p) => {
                       const terminal = ESTADO_PERICIA_TERMINAL.has(p.estado)
-                      const atrasada = !terminal && !!p.dataPrevista && p.dataPrevista < now
+                      const atrasada = !terminal && !!p.dataPrevista && p.dataPrevista < todayStart
                       return (
                         <tr key={p.id} className={cn(terminal && 'opacity-60')}>
                           <td className="px-4 py-2">
