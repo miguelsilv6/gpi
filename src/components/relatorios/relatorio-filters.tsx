@@ -319,12 +319,24 @@ export function InatividadeFilters({ filters, setFilter, catalogo, lockedBrigada
  * pertence. A brigada fica travada para o Inspetor-Chefe (scope do servidor).
  */
 function BrigadaInspetorFields({ filters, setFilter, catalogo, lockedBrigadaId }: FiltersProps) {
+  const bId = filters.brigadaId ?? lockedBrigadaId ?? ''
+  // Só oferece inspetores da brigada selecionada (por nome — é o que o catálogo
+  // traz), como em InspetoresFilters. Evita escolher um inspetor de outra
+  // brigada, o que produziria um relatório vazio (scope por AND).
+  const inspetoresList = catalogo.inspetores.filter((u) => {
+    if (!bId) return true
+    return catalogo.brigadas.find((b) => b.id === bId)?.nome === u.brigada?.nome
+  })
+
   return (
     <>
       <Field label="Brigada">
         <NativeSelect
           value={filters.brigadaId ?? lockedBrigadaId ?? ''}
-          onChange={(v) => setFilter('brigadaId', v)}
+          onChange={(v) => {
+            setFilter('brigadaId', v)
+            setFilter('inspetorId', '')
+          }}
           disabled={!!lockedBrigadaId}
         >
           <option value="">Todas</option>
@@ -338,7 +350,7 @@ function BrigadaInspetorFields({ filters, setFilter, catalogo, lockedBrigadaId }
       <Field label="Inspetor">
         <NativeSelect value={filters.inspetorId ?? ''} onChange={(v) => setFilter('inspetorId', v)}>
           <option value="">Todos</option>
-          {catalogo.inspetores.map((u) => (
+          {inspetoresList.map((u) => (
             <option key={u.id} value={u.id}>
               {u.nome}
               {u.brigada ? ` · ${u.brigada.nome}` : ''}

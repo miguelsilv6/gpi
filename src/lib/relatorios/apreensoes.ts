@@ -89,7 +89,6 @@ export const queryApreensoes: RelatorioHandler = async (filters, session) => {
       dataApreensao: true,
       local: true,
       apreendidoA: true,
-      localCustodia: true,
       estado: true,
       dataDestino: true,
       inquerito: {
@@ -103,12 +102,9 @@ export const queryApreensoes: RelatorioHandler = async (filters, session) => {
   })
 
   const porEstado = new Map<string, number>()
-  const porTipo = new Map<string, number>()
   for (const a of items) {
     const estadoNome = ESTADO_APREENSAO_LABEL[a.estado as EstadoApreensao]
     porEstado.set(estadoNome, (porEstado.get(estadoNome) ?? 0) + 1)
-    const tipoNome = apreensaoTipoLabel(a.tipo, a.tipoOutro)
-    porTipo.set(tipoNome, (porTipo.get(tipoNome) ?? 0) + 1)
   }
   const summary: RelatorioSummaryItem[] = [
     { label: 'Total', value: items.length },
@@ -144,7 +140,7 @@ export const queryApreensoes: RelatorioHandler = async (filters, session) => {
             ? 'Concluídas'
             : 'Todas',
       Tipo: tipoValido ? apreensaoTipoLabel(tipo, null) : null,
-      Brigada: brigadaId || null,
+      Brigada: brigadaId || (session.role === 'INSPETOR_CHEFE' ? session.brigadaId : null),
       Inspetor: inspetorId || null,
       'Data (De)': fmtDate(dataFrom) || null,
       'Data (Até)': fmtDate(dataTo) || null,

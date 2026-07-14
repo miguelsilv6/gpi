@@ -92,12 +92,9 @@ export const queryIntercecoes: RelatorioHandler = async (filters, session) => {
   })
 
   const porEstado = new Map<string, number>()
-  const porTipo = new Map<string, number>()
   for (const l of items) {
     const est = estadoLinha(l.dataFim, now) === 'ativa' ? 'Ativas' : 'Terminadas'
     porEstado.set(est, (porEstado.get(est) ?? 0) + 1)
-    const tipoNome = TIPO_LINHA_LABEL[l.tipo as TipoLinhaIntercecao]
-    porTipo.set(tipoNome, (porTipo.get(tipoNome) ?? 0) + 1)
   }
   const summary: RelatorioSummaryItem[] = [
     { label: 'Total', value: items.length },
@@ -138,7 +135,7 @@ export const queryIntercecoes: RelatorioHandler = async (filters, session) => {
             ? `A expirar (${A_EXPIRAR_DIAS} dias)`
             : 'Todas',
       Tipo: tipoValido ? TIPO_LINHA_LABEL[tipo as TipoLinhaIntercecao] : null,
-      Brigada: brigadaId || null,
+      Brigada: brigadaId || (session.role === 'INSPETOR_CHEFE' ? session.brigadaId : null),
       Inspetor: inspetorId || null,
     },
     columns: [

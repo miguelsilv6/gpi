@@ -144,7 +144,7 @@ export const queryPericias: RelatorioHandler = async (filters, session) => {
             ? 'Concluídas / canceladas'
             : 'Todas',
       Tipo: tipoValido ? periciaTipoLabel(tipo, null) : null,
-      Brigada: brigadaId || null,
+      Brigada: brigadaId || (session.role === 'INSPETOR_CHEFE' ? session.brigadaId : null),
       Inspetor: inspetorId || null,
       'Data Pedido (De)': fmtDate(dataFrom) || null,
       'Data Pedido (Até)': fmtDate(dataTo) || null,
