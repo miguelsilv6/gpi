@@ -103,5 +103,9 @@ export const config = {
   // anti-XSS do SVG servido diretamente é garantida pela CSP `sandbox`
   // definida na própria rota (src/app/branding/[file]/route.ts), não pela CSP
   // do middleware.
-  matcher: ['/((?!api|branding/|_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
+  //
+  // `sw.js` (service worker) também fica de fora: tem de ser servido
+  // publicamente e sem redirecionamento para /login, senão o registo do
+  // service worker falha e não há notificações push.
+  matcher: ['/((?!api|branding/|sw\\.js|_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
 }

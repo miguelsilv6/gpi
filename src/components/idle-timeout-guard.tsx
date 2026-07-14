@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { signOut } from 'next-auth/react'
+import { unsubscribePushThisDevice } from '@/lib/push-client'
 import {
   Dialog,
   DialogContent,
@@ -106,7 +107,10 @@ export function IdleTimeoutGuard({ timeoutMinutes }: Props) {
       const idle = Date.now() - lastActivityRef.current
       if (idle >= timeoutMs) {
         clearInterval(interval)
-        void signOut({ redirect: false })
+        // Limpa a subscrição push deste dispositivo antes de sair (partilha).
+        void unsubscribePushThisDevice()
+          .catch(() => {})
+          .then(() => signOut({ redirect: false }))
           .catch(() => {/* ignore — redirect happens regardless */})
           .finally(() => {
             window.location.replace('/login?reason=idle')

@@ -3,6 +3,8 @@ import { sendMail } from '@/lib/mailer'
 import { childLogger } from '@/lib/logger'
 import { getEmailTemplateContext } from '@/lib/email-template-loader'
 import { renderEmailSubject, renderEmailText, renderEmailHtml } from '@/lib/email-template'
+import { sendPushToUser } from '@/lib/push'
+import { nuipcToSlug } from '@/lib/utils'
 import type { TipoNotificacao, Role } from '@/generated/prisma/enums'
 
 const log = childLogger({ subsystem: 'notifications' })
@@ -137,6 +139,21 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
     emailCtx = await getEmailTemplateContext()
   }
 
+  // URL de deep-link do push: para o inquérito quando há um, senão a lista de
+  // notificações. Resolve-se uma vez (é igual para todos os destinatários).
+  let pushUrl = '/notificacoes'
+  if (opts.inqueritoid) {
+    try {
+      const inq = await prisma.inquerito.findUnique({
+        where: { id: opts.inqueritoid },
+        select: { nuipc: true },
+      })
+      if (inq) pushUrl = `/inqueritos/${nuipcToSlug(inq.nuipc)}`
+    } catch {
+      // fica em /notificacoes
+    }
+  }
+
   await Promise.all(
     [...recipients.values()].map(async (r) => {
       let notificacaoId: string | null = null
@@ -151,6 +168,17 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
           },
         })
         notificacaoId = n.id
+        // Push é uma extensão do canal in-app: envia aos dispositivos
+        // subscritos do destinatário. No-op se push não estiver configurado
+        // ou o utilizador não tiver subscrições. NÃO se faz `await` — o envio
+        // envolve HTTP a serviços externos (FCM/APNs/Mozilla) e não deve
+        // atrasar a ação do utilizador; sendPushToUser nunca rejeita.
+        void sendPushToUser(r.id, {
+          title: opts.titulo,
+          body: opts.mensagem,
+          url: pushUrl,
+          tag: opts.inqueritoid ?? opts.tipo,
+        })
       }
       if (policy.emailEnabled && emailCtx && r.email && !emailOptOut.has(r.id)) {
         try {
