@@ -183,6 +183,7 @@ model Utilizador {
   apreensoesRegistadas   Apreensao[]  @relation("ApreensaoRegistador")
   periciasRegistadas     Pericia[]    @relation("PericiaRegistador")
   pushSubscriptions      PushSubscription[]
+  webauthnCredentials    WebauthnCredential[]
 
   @@index([brigadaId])
   @@index([role])
@@ -202,6 +203,32 @@ model PushSubscription {
   auth         String
   userAgent    String?
   createdAt    DateTime   @default(now())
+
+  @@index([utilizadorId])
+}
+
+/// Credencial WebAuthn (passkey) de um utilizador — permite iniciar sessão por
+/// biometria / chave de segurança, em alternativa à password. Um utilizador
+/// pode registar várias (um dispositivo/chave por linha). Guarda-se o suficiente
+/// para verificar futuras asserções: id da credencial, chave pública e contador.
+model WebauthnCredential {
+  id           String     @id @default(cuid())
+  utilizador   Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+  utilizadorId String
+  // Identificador da credencial (base64url), único globalmente.
+  credentialId String     @unique
+  // Chave pública COSE (base64url).
+  publicKey    String
+  // Contador de assinaturas — deteção de clonagem (deve ser monótono).
+  counter      Int        @default(0)
+  // Transportes disponíveis (ex.: "internal,hybrid"), usados como dica ao cliente.
+  transports   String?
+  deviceType   String?
+  backedUp     Boolean    @default(false)
+  // Nome amigável dado pelo utilizador (ex.: "iPhone de serviço").
+  nome         String?
+  createdAt    DateTime   @default(now())
+  lastUsedAt   DateTime?
 
   @@index([utilizadorId])
 }

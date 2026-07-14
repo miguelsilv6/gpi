@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save, ListFilter, List, Compass } from 'lucide-react'
+import { Loader2, User, Shield, Building2, KeyRound, Calculator, Car, Pencil, Plus, Trash2, Bell, Save, ListFilter, List, Compass, Fingerprint } from 'lucide-react'
 import { START_TOUR_EVENT } from '@/lib/tour-steps'
 import { INQUERITO_PAGE_SIZES, DEFAULT_INQUERITO_PAGE_SIZE } from '@/lib/pagination'
 import { ROLE_LABELS } from '@/lib/rbac'
 import { NOTIFICATION_TIPO_LABELS, NOTIFICATION_TIPO_DESCRIPTIONS } from '@/lib/notification-labels'
 import { PushToggle } from '@/components/push/push-toggle'
+import { PasskeysManager } from '@/components/webauthn/passkeys-manager'
 import type { Role } from '@/generated/prisma/enums'
 
 interface ViaturaItem { id: string; nome: string; matricula: string | null }
@@ -673,6 +674,19 @@ export default function PerfilPage() {
         </CardHeader>
         <CardContent>
           <PushToggle />
+        </CardContent>
+      </Card>
+
+      {/* Passkeys (WebAuthn) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+            <Fingerprint className="h-4 w-4" />
+            Passkeys (biometria)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PasskeysManager />
         </CardContent>
       </Card>
 
