@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { getInqueritoCounters, getComarcaBreakdown } from '@/lib/estatisticas-counters'
+import { utcDayRangeFilter } from '@/lib/date-range'
 import type { Prisma } from '@/generated/prisma/client'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -64,6 +65,10 @@ export async function GET(req: NextRequest) {
     // concluídos" da UI reativa-os. Os contadores `arquivados`/`ativos`
     // dentro de getInqueritoCounters sobrepõem `estado` com o seu próprio
     // filtro, por isso continuam corretos independentemente desta flag.
+    // Intervalo inclusivo em dias UTC — o `lte` cobre o dia inteiro do fim.
+    // (Antes usava-se `new Date(dataFim)` = meia-noite UTC, que excluía
+    // silenciosamente tudo o que acontecesse no último dia do intervalo.)
+    const dataAberturaRange = utcDayRangeFilter(dataInicio, dataFim)
     const where = {
       // Inquéritos soft-deleted não contam para estatística — alinhado com a
       // listagem /inqueritos (que filtra deletedAt: null). Sem isto, um
@@ -72,14 +77,7 @@ export async function GET(req: NextRequest) {
       ...(brigadaId && { brigadaId }),
       ...(inspetorId && { inspetorId }),
       ...(incluirTerminados !== '1' && { estado: { terminal: false } }),
-      ...(dataInicio || dataFim
-        ? {
-            dataAbertura: {
-              ...(dataInicio && { gte: new Date(dataInicio) }),
-              ...(dataFim && { lte: new Date(dataFim) }),
-            },
-          }
-        : {}),
+      ...(dataAberturaRange && { dataAbertura: dataAberturaRange }),
     }
 
     // Âmbito "atual" (sem filtro de datas) para os contadores Aguarda Exames /
@@ -154,14 +152,11 @@ export async function GET(req: NextRequest) {
     }[] = []
     let atividadesInspetorTotal = 0
     if (inspetorId) {
-      const periodWhere = {
-        ...(dataInicio && { gte: new Date(dataInicio) }),
-        ...(dataFim && { lte: new Date(dataFim) }),
-      }
+      const periodRange = utcDayRangeFilter(dataInicio, dataFim)
       const atividades = await prisma.atividade.findMany({
         where: {
           inquerito: { inspetorId, deletedAt: null },
-          ...(dataInicio || dataFim ? { dataRealizacao: periodWhere } : {}),
+          ...(periodRange ? { dataRealizacao: periodRange } : {}),
         },
         select: { descricao: true, quantidade: true },
       })

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { getComarcaBreakdown } from '@/lib/estatisticas-counters'
+import { utcDayRangeFilter } from '@/lib/date-range'
 import type { Role } from '@/generated/prisma/enums'
 
 const querySchema = z.object({
@@ -45,17 +46,11 @@ export async function GET(req: NextRequest) {
     // reativa-os. `arquivados`/`concluidos` abaixo sobrepõem `estado` com o
     // seu próprio filtro, por isso continuam corretos independentemente
     // desta flag.
+    const dataAberturaRange = utcDayRangeFilter(dataInicio, dataFim)
     const where = {
       ...scopeWhere,
       ...(incluirTerminados !== '1' && { estado: { terminal: false } }),
-      ...(dataInicio || dataFim
-        ? {
-            dataAbertura: {
-              ...(dataInicio && { gte: new Date(`${dataInicio}T00:00:00.000Z`) }),
-              ...(dataFim && { lte: new Date(`${dataFim}T23:59:59.999Z`) }),
-            },
-          }
-        : {}),
+      ...(dataAberturaRange && { dataAbertura: dataAberturaRange }),
     }
 
     const padroesCategoria = await prisma.atividadePadrao.findMany({
@@ -69,6 +64,8 @@ export async function GET(req: NextRequest) {
       .filter((p) => p.categoriaDashboard === 'ENVIADO')
       .map((p) => p.nome)
 
+    // atividadesInspetor não depende dos contadores acima — vai no mesmo lote.
+    const periodRange = utcDayRangeFilter(dataInicio, dataFim)
     const [
       porEstadoRaw,
       porNatureza,
@@ -81,6 +78,7 @@ export async function GET(req: NextRequest) {
       arquivados,
       concluidos,
       anoRaw,
+      atividades,
     ] = await Promise.all([
       prisma.inquerito.groupBy({ by: ['estadoId'], where, _count: true }),
       prisma.inquerito.groupBy({
@@ -117,29 +115,34 @@ export async function GET(req: NextRequest) {
       prisma.inquerito.count({ where: { ...where, estado: { codigo: 'ARQUIVADO' } } }),
       prisma.inquerito.count({ where: { ...where, estado: { codigo: 'CONCLUIDO' } } }),
       prisma.inquerito.findMany({ where, select: { dataAbertura: true, nuipc: true } }),
+      // Atividades registadas pelo próprio inspetor no período. Filtra por
+      // utilizadorId (quem registou), não por inquerito.inspetorId, para não
+      // contar trabalho registado por outros em inquéritos do inspetor.
+      prisma.atividade.findMany({
+        where: {
+          utilizadorId: inspetorId,
+          inquerito: { deletedAt: null },
+          ...(periodRange ? { dataRealizacao: periodRange } : {}),
+        },
+        select: { descricao: true, quantidade: true },
+      }),
     ])
 
-    // Atividades registadas pelo próprio inspetor no período selecionado.
-    // Filtra por utilizadorId (quem registou) e não apenas por inquerito.inspetorId,
-    // para não contar trabalho registado por outros em inquéritos do inspetor.
-    const periodWhere = {
-      ...(dataInicio && { gte: new Date(`${dataInicio}T00:00:00.000Z`) }),
-      ...(dataFim && { lte: new Date(`${dataFim}T23:59:59.999Z`) }),
-    }
-    const atividades = await prisma.atividade.findMany({
-      where: {
-        utilizadorId: inspetorId,
-        inquerito: { deletedAt: null },
-        ...(dataInicio || dataFim ? { dataRealizacao: periodWhere } : {}),
-      },
-      select: { descricao: true, quantidade: true },
-    })
-
-    const padroes = await prisma.atividadePadrao.findMany({
-      where: { nome: { in: Array.from(new Set(atividades.map((a) => a.descricao))) } },
-      select: { nome: true, temQuantidade: true },
-    })
+    // Segundo lote — só depende de resultados já obtidos (atividades,
+    // porEstadoRaw, porTribunalRaw), por isso corre em paralelo.
+    const [padroes, estados, porComarca] = await Promise.all([
+      prisma.atividadePadrao.findMany({
+        where: { nome: { in: Array.from(new Set(atividades.map((a) => a.descricao))) } },
+        select: { nome: true, temQuantidade: true },
+      }),
+      prisma.estadoInquerito.findMany({
+        where: { id: { in: porEstadoRaw.map((e) => e.estadoId) } },
+        select: { id: true, codigo: true, nome: true, cor: true },
+      }),
+      getComarcaBreakdown(porTribunalRaw),
+    ])
     const temQtdByNome = new Map(padroes.map((p) => [p.nome, p.temQuantidade]))
+    const estadoById = new Map(estados.map((e) => [e.id, e]))
 
     const acc = new Map<string, { count: number; sumQ: number; temQ: boolean }>()
     for (const a of atividades) {
@@ -178,14 +181,6 @@ export async function GET(req: NextRequest) {
     const porAno = Array.from(anoMap.entries())
       .map(([ano, count]) => ({ ano, count }))
       .sort((a, b) => a.ano.localeCompare(b.ano))
-
-    const estados = await prisma.estadoInquerito.findMany({
-      where: { id: { in: porEstadoRaw.map((e) => e.estadoId) } },
-      select: { id: true, codigo: true, nome: true, cor: true },
-    })
-    const estadoById = new Map(estados.map((e) => [e.id, e]))
-
-    const porComarca = await getComarcaBreakdown(porTribunalRaw)
 
     return Response.json({
       total,

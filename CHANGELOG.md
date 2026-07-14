@@ -7,6 +7,25 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.102] — 2026-07-14
+
+### Corrigido
+- **Estatísticas: o último dia do intervalo de datas deixava de contar.** Na
+  página de Estatísticas (perfil de chefia/coordenação), ao filtrar por um
+  período, os inquéritos (e as atividades do inspetor selecionado) abertos/
+  registados **no próprio dia final** eram silenciosamente excluídos — o limite
+  superior usava a meia-noite desse dia em vez do fim do dia. Passa a ser um
+  intervalo inclusivo em ambos os extremos (a página "Minha estatística" já
+  estava correta; a lógica ficou centralizada num utilitário partilhado
+  `date-range` para as duas não voltarem a divergir).
+
+### Desempenho
+- **Menos idas à base de dados na "Minha estatística".** A consulta das
+  atividades do inspetor deixou de ser sequencial e passou a correr no mesmo
+  lote paralelo dos contadores; os complementos (padrões de atividade, estados
+  e repartição por comarca) passam a resolver-se todos em paralelo — ~4 idas
+  sequenciais reduzidas a 2 vagas, sem alterar os resultados.
+
 ## [0.5.100] — 2026-07-14
 
 ### Adicionado
