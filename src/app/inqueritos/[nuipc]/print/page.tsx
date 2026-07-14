@@ -147,7 +147,29 @@ export default async function InqueritoPrintPage({
   // the app (we still share the root <html> and <body> with the rest of the
   // site — only the inner UI is print-tuned).
   const css = `
+    @page { size: A4; margin: 14mm 12mm; }
+    .gpi-print .doc-header {
+      text-align: center; font-size: 9pt; color: #555;
+      letter-spacing: 1pt; text-transform: uppercase;
+      border-bottom: 0.5pt solid #ddd;
+      padding-bottom: 4pt; margin-bottom: 8pt;
+    }
+    .gpi-watermark {
+      position: fixed;
+      top: 42%; left: 0; right: 0;
+      text-align: center;
+      transform: rotate(-35deg); transform-origin: center;
+      font-size: 70pt; font-weight: 800; letter-spacing: 6pt;
+      text-transform: uppercase;
+      color: rgba(0, 0, 0, 0.06);
+      pointer-events: none; z-index: 0;
+    }
     .gpi-print {
+      /* Garante que fundos e a marca de água esbatida saem na impressão mesmo
+         sem a opção "Gráficos de fundo" ativa. Propriedade herdada → cobre a
+         .gpi-watermark e os fundos de tabela. */
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #111;
       font-size: 11pt;
@@ -247,6 +269,8 @@ export default async function InqueritoPrintPage({
       </div>
 
       <div className="gpi-print">
+        {brand.pdfWatermarkText && <div className="gpi-watermark">{brand.pdfWatermarkText}</div>}
+        {brand.pdfHeaderText && <div className="doc-header">{brand.pdfHeaderText}</div>}
         <div className="header">
           <div>
             <h1>Inquérito {inquerito.nuipc}</h1>
@@ -648,7 +672,7 @@ export default async function InqueritoPrintPage({
         )}
 
         <div className="footer">
-          <span>Documento exportado de {brand.appShortName} · não inclui o histórico de alterações.</span>
+          <span>{brand.pdfFooterText}</span>
           <span>{inquerito.nuipc}</span>
         </div>
       </div>

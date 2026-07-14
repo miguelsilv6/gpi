@@ -26,6 +26,9 @@ const updateSchema = z.object({
   appDescription: z.string().min(1).max(120).nullable().optional(),
   manifestDescription: z.string().min(1).max(200).nullable().optional(),
   pdfFooterText: z.string().min(1).max(120).nullable().optional(),
+  // Cabeçalho e marca de água aceitam vazio (= sem cabeçalho / sem marca).
+  pdfHeaderText: z.string().max(80).nullable().optional(),
+  pdfWatermarkText: z.string().max(40).nullable().optional(),
   appAuthor: z.string().max(120).nullable().optional(),
   logoHorizontalEscala: z.number().int().min(10).max(200).optional(),
   logoHorizontalAlinhamento: z.enum(['left', 'center', 'right']).optional(),
@@ -37,6 +40,8 @@ const TEXT_FIELDS = [
   'appDescription',
   'manifestDescription',
   'pdfFooterText',
+  'pdfHeaderText',
+  'pdfWatermarkText',
   'appAuthor',
 ] as const
 

@@ -17,6 +17,35 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#1f2937',
   },
+  docHeader: {
+    // Absoluto + `fixed`: repete no topo de TODAS as páginas sem entrar no
+    // fluxo (um elemento fixo em fluxo normal só reserva espaço na 1.ª página,
+    // sobrepondo-se ao conteúdo da 2.ª em diante). O espaço é reservado via
+    // `paddingTop` dinâmico na Page. Mesmo padrão do `footer` abaixo.
+    position: 'absolute',
+    top: 20,
+    left: 36,
+    right: 36,
+    fontSize: 8,
+    color: '#6b7280',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e5e7eb',
+    paddingBottom: 4,
+  },
+  watermark: {
+    position: 'absolute',
+    top: '45%',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    color: '#eceef1',
+    fontSize: 70,
+    fontFamily: 'Helvetica-Bold',
+    transform: 'rotate(-35deg)',
+  },
   headerTitle: {
     fontSize: 16,
     fontFamily: 'Helvetica-Bold',
@@ -127,6 +156,8 @@ export interface RelatorioPDFBrand {
   appName: string
   appShortName: string
   pdfFooterText: string
+  pdfHeaderText: string
+  pdfWatermarkText: string
 }
 
 export function RelatorioPDF({
@@ -147,7 +178,17 @@ export function RelatorioPDF({
       creator={brand.appName}
       producer={brand.appName}
     >
-      <Page size="A4" style={styles.page} wrap>
+      <Page size="A4" style={[styles.page, brand.pdfHeaderText ? { paddingTop: 48 } : {}]} wrap>
+        {brand.pdfWatermarkText ? (
+          <Text style={styles.watermark} fixed>
+            {brand.pdfWatermarkText}
+          </Text>
+        ) : null}
+        {brand.pdfHeaderText ? (
+          <Text style={styles.docHeader} fixed>
+            {brand.pdfHeaderText}
+          </Text>
+        ) : null}
         <View>
           <Text style={styles.headerTitle}>{data.title}</Text>
           <Text style={styles.headerMeta}>

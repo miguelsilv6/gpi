@@ -22,6 +22,8 @@ export const getBrand = cache(async (): Promise<Brand> => {
     appDescription: string | null
     manifestDescription: string | null
     pdfFooterText: string | null
+    pdfHeaderText: string | null
+    pdfWatermarkText: string | null
     appAuthor: string | null
     logoLightFilename: string | null
     logoDarkFilename: string | null
@@ -41,6 +43,8 @@ export const getBrand = cache(async (): Promise<Brand> => {
         appDescription: true,
         manifestDescription: true,
         pdfFooterText: true,
+        pdfHeaderText: true,
+        pdfWatermarkText: true,
         appAuthor: true,
         logoLightFilename: true,
         logoDarkFilename: true,
@@ -65,6 +69,8 @@ export const getBrand = cache(async (): Promise<Brand> => {
     appDescription: row.appDescription ?? BRAND_DEFAULTS.appDescription,
     manifestDescription: row.manifestDescription ?? BRAND_DEFAULTS.manifestDescription,
     pdfFooterText: row.pdfFooterText ?? BRAND_DEFAULTS.pdfFooterText,
+    pdfHeaderText: row.pdfHeaderText ?? BRAND_DEFAULTS.pdfHeaderText,
+    pdfWatermarkText: row.pdfWatermarkText ?? BRAND_DEFAULTS.pdfWatermarkText,
     appAuthor: row.appAuthor ?? BRAND_DEFAULTS.appAuthor,
     logoLightFilename: row.logoLightFilename,
     logoDarkFilename: row.logoDarkFilename,

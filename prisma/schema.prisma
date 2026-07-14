@@ -959,6 +959,10 @@ model ConfiguracaoSistema {
   appDescription                  String?
   manifestDescription             String?
   pdfFooterText                   String?
+  // Cabeçalho/título e marca de água dos PDFs (impressão do inquérito e
+  // relatórios). null = usar o default (cabeçalho vazio, sem marca de água).
+  pdfHeaderText                   String?
+  pdfWatermarkText                String?
   appAuthor                       String?
   logoLightFilename               String?
   logoDarkFilename                String?

@@ -14,6 +14,10 @@ export const BRAND_DEFAULTS = {
   appDescription: 'Gestão de Processos de Investigação',
   manifestDescription: 'Plataforma de gestão de inquéritos criminais',
   pdfFooterText: 'GPI · Gestão de Processos de Investigação',
+  // Cabeçalho/título e marca de água dos PDFs. Vazio = sem cabeçalho / sem
+  // marca de água.
+  pdfHeaderText: '' as string,
+  pdfWatermarkText: '' as string,
   appAuthor: '' as string,
   logoLightFilename: null as string | null,
   logoDarkFilename: null as string | null,
@@ -31,6 +35,8 @@ export type Brand = {
   appDescription: string
   manifestDescription: string
   pdfFooterText: string
+  pdfHeaderText: string
+  pdfWatermarkText: string
   appAuthor: string
   logoLightFilename: string | null
   logoDarkFilename: string | null
