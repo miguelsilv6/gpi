@@ -101,7 +101,13 @@ export function PushToggle() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
       })
-      if (!res.ok) throw new Error('subscribe failed')
+      if (!res.ok) {
+        // O servidor não registou a subscrição — desfaz a subscrição no browser
+        // para não deixar um estado inconsistente (browser subscrito mas servidor
+        // sem registo, que mostraria "on" sem nunca receber pushes).
+        await sub.unsubscribe().catch(() => {})
+        throw new Error('subscribe failed')
+      }
       setState('on')
       toast.success('Notificações push ativadas neste dispositivo')
     } catch {

@@ -7,6 +7,16 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.98] — 2026-07-14
+
+### Corrigido
+- **Notificações push: estado consistente quando o registo no servidor falha.**
+  No opt-in por dispositivo, se a subscrição do browser era criada mas o
+  registo no servidor falhava (ex.: falha de rede momentânea), o browser ficava
+  subscrito sem o servidor saber — a interface mostrava “ativado” mas nunca
+  chegavam notificações. Passa a desfazer-se a subscrição do browser nesse caso,
+  para o estado local e o do servidor ficarem sempre coerentes.
+
 ## [0.5.96] — 2026-07-14
 
 ### Adicionado
