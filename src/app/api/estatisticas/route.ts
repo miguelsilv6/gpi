@@ -155,7 +155,13 @@ export async function GET(req: NextRequest) {
       const periodRange = utcDayRangeFilter(dataInicio, dataFim)
       const atividades = await prisma.atividade.findMany({
         where: {
-          inquerito: { inspetorId, deletedAt: null },
+          // Filtra por quem REGISTOU a atividade (utilizadorId), não pelo
+          // inspetor titular do inquérito — para responder a "o que fez este
+          // inspetor?" e coincidir com a página "Minha estatística" (/own).
+          // Antes usava `inquerito: { inspetorId }`, que contava trabalho de
+          // colaboradores nos inquéritos do inspetor e divergia da vista /own.
+          utilizadorId: inspetorId,
+          inquerito: { deletedAt: null },
           ...(periodRange ? { dataRealizacao: periodRange } : {}),
         },
         select: { descricao: true, quantidade: true },
