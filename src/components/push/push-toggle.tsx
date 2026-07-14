@@ -84,6 +84,10 @@ export function PushToggle() {
   async function enable() {
     if (!publicKey) return
     setState('busy')
+    // Fora do try para o catch poder desfazer a subscrição do browser se o
+    // registo no servidor não ficar — cobre tanto um status de erro como uma
+    // falha de rede (nesse caso o fetch REJEITA, não devolve `!res.ok`).
+    let sub: PushSubscription | null = null
     try {
       const perm = await Notification.requestPermission()
       if (perm !== 'granted') {
@@ -91,7 +95,7 @@ export function PushToggle() {
         return
       }
       const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.subscribe({
+      sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToBuffer(publicKey),
       })
@@ -101,16 +105,15 @@ export function PushToggle() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
       })
-      if (!res.ok) {
-        // O servidor não registou a subscrição — desfaz a subscrição no browser
-        // para não deixar um estado inconsistente (browser subscrito mas servidor
-        // sem registo, que mostraria "on" sem nunca receber pushes).
-        await sub.unsubscribe().catch(() => {})
-        throw new Error('subscribe failed')
-      }
+      if (!res.ok) throw new Error('subscribe failed')
       setState('on')
       toast.success('Notificações push ativadas neste dispositivo')
     } catch {
+      // Se a subscrição do browser chegou a ser criada mas o registo no servidor
+      // falhou (status de erro OU falha de rede), desfá-la para o estado local e
+      // o do servidor ficarem coerentes — senão a UI mostraria "on" sem nunca
+      // receber pushes.
+      if (sub) await sub.unsubscribe().catch(() => {})
       setState('off')
       toast.error('Não foi possível ativar as notificações push')
     }
