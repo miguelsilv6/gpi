@@ -9,7 +9,7 @@ export async function login(page: Page): Promise<void> {
   await page.goto('/login')
   await page.getByLabel('Email').fill(ADMIN_EMAIL)
   await page.getByLabel('Password').fill(ADMIN_PASSWORD)
-  await page.getByRole('button', { name: 'Entrar' }).click()
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await page.waitForURL('**/dashboard')
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 }

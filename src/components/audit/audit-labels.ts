@@ -74,6 +74,8 @@ export const ACAO_LABELS: Record<string, string> = {
   CREATE_INTERVENIENTE: 'Interveniente adicionado',
   UPDATE_INTERVENIENTE: 'Interveniente alterado',
   DELETE_INTERVENIENTE: 'Interveniente removido',
+  CREATE_WEBAUTHN_CREDENTIAL: 'Passkey registada',
+  DELETE_WEBAUTHN_CREDENTIAL: 'Passkey removida',
   CREATE_APREENSAO: 'Apreensão registada',
   UPDATE_APREENSAO: 'Apreensão alterada',
   DELETE_APREENSAO: 'Apreensão removida',

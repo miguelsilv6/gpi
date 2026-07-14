@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { headers } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { authConfig } from '@/auth.config'
+import { verifyWebauthnTicket } from '@/lib/webauthn-ticket'
 import {
   LOGIN_MAX_FAILED_ATTEMPTS,
   LOGIN_LOCKOUT_MINUTES,
@@ -195,6 +196,43 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           },
         })
         await recordAttempt(email, true, null, ip, userAgent)
+        await recordLoginAudit(utilizador.id, ip, userAgent)
+
+        return {
+          id: utilizador.id,
+          nome: utilizador.nome,
+          email: utilizador.email,
+          role: utilizador.role,
+          brigadaId: utilizador.brigadaId,
+          tokenVersion: utilizador.tokenVersion,
+        }
+      },
+    }),
+    // Login por passkey (WebAuthn). A verificação criptográfica da asserção
+    // acontece na rota /api/webauthn/authenticate, que emite um bilhete de uso
+    // único; aqui só se valida esse bilhete e se estabelece a sessão.
+    Credentials({
+      id: 'passkey',
+      name: 'passkey',
+      credentials: { ticket: { label: 'Ticket', type: 'text' } },
+      async authorize(credentials) {
+        const ticket = typeof credentials?.ticket === 'string' ? credentials.ticket : ''
+        const userId = verifyWebauthnTicket(ticket)
+        if (!userId) return null
+
+        const utilizador = await prisma.utilizador.findUnique({ where: { id: userId } })
+        if (!utilizador || !utilizador.ativo) return null
+
+        const { ip, userAgent } = await getClientHints()
+        await prisma.utilizador.update({
+          where: { id: utilizador.id },
+          data: {
+            failedLoginCount: 0,
+            lockedUntil: null,
+            lastLoginAt: new Date(),
+            lastLoginIp: ip,
+          },
+        })
         await recordLoginAudit(utilizador.id, ip, userAgent)
 
         return {

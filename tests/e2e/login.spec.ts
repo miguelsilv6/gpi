@@ -6,7 +6,7 @@ test.describe('Autenticação', () => {
     await page.goto('/login')
     await page.getByLabel('Email').fill(ADMIN_EMAIL)
     await page.getByLabel('Password').fill('password-errada')
-    await page.getByRole('button', { name: 'Entrar' }).click()
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click()
     await expect(page.getByText('Email ou password incorretos.')).toBeVisible()
   })
 
@@ -14,7 +14,7 @@ test.describe('Autenticação', () => {
     await page.goto('/login')
     await page.getByLabel('Email').fill(ADMIN_EMAIL)
     await page.getByLabel('Password').fill(ADMIN_PASSWORD)
-    await page.getByRole('button', { name: 'Entrar' }).click()
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click()
     await page.waitForURL('**/dashboard')
     // Se a CSP (nonce) bloqueasse os scripts, a app não hidratava e o
     // formulário não submetia — este teste cobre também esse caminho.
@@ -27,6 +27,6 @@ test.describe('Autenticação', () => {
   test('rota protegida sem sessão é redirecionada para /login', async ({ page }) => {
     await page.goto('/inqueritos')
     await page.waitForURL('**/login**')
-    await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeVisible()
   })
 })

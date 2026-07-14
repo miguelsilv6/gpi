@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
+import { PasskeyLoginButton } from '@/components/webauthn/passkey-login-button'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -223,6 +224,8 @@ export default function LoginPage() {
                 'Entrar'
               )}
             </Button>
+
+            <PasskeyLoginButton />
 
             <div className="text-center text-sm">
               <Link

@@ -7,7 +7,24 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
-## [0.5.92] — 2026-07-13
+## [0.5.94] — 2026-07-14
+
+### Adicionado
+- **Início de sessão por passkey (WebAuthn / biometria).** Passa a ser possível
+  entrar com **Face ID / impressão digital / chave de segurança**, sem escrever
+  a password — segundo passo da experiência tipo-*app* sem app nativa:
+  - **Registo no Perfil** (“Passkeys (biometria)”): registar, nomear, listar e
+    remover passkeys do próprio dispositivo. Um utilizador pode ter várias.
+  - **Botão “Entrar com passkey”** no ecrã de login, com login **sem nome de
+    utilizador** (credenciais descobríveis) — o dispositivo oferece as passkeys
+    que tem para o serviço.
+  - É um método **adicional**: a password continua a funcionar (não é 2FA
+    obrigatório).
+  - Segurança: a verificação valida challenge (uso único, cookie httpOnly da
+    cerimónia), origem, RP ID e contador de assinaturas; a asserção verificada é
+    trocada por um **bilhete de uso único** (HMAC, 60 s) que estabelece a sessão.
+    RP ID/origin configuráveis por env (`WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN`),
+    derivados do host em falta. Registo e remoção ficam em auditoria.
 
 ### Adicionado
 - **Notificações push (Web Push) e service worker.** A aplicação passa a poder
