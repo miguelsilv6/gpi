@@ -13,6 +13,9 @@ import {
   BrigadasFilters,
   InspetoresFilters,
   InatividadeFilters,
+  IntercecoesFilters,
+  ApreensoesFilters,
+  PericiasFilters,
 } from './relatorio-filters'
 
 interface ApiRelatorioResult {
@@ -140,6 +143,30 @@ export function RelatorioView({
           )}
           {id === 'inatividade' && (
             <InatividadeFilters
+              filters={filters}
+              setFilter={setFilter}
+              catalogo={catalogo}
+              lockedBrigadaId={lockedBrigadaId}
+            />
+          )}
+          {id === 'intercecoes' && (
+            <IntercecoesFilters
+              filters={filters}
+              setFilter={setFilter}
+              catalogo={catalogo}
+              lockedBrigadaId={lockedBrigadaId}
+            />
+          )}
+          {id === 'apreensoes' && (
+            <ApreensoesFilters
+              filters={filters}
+              setFilter={setFilter}
+              catalogo={catalogo}
+              lockedBrigadaId={lockedBrigadaId}
+            />
+          )}
+          {id === 'pericias' && (
+            <PericiasFilters
               filters={filters}
               setFilter={setFilter}
               catalogo={catalogo}

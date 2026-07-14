@@ -2,6 +2,9 @@
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TIPO_LINHA_VALUES, TIPO_LINHA_LABEL } from '@/lib/validations/intercecao'
+import { TIPO_APREENSAO, TIPO_APREENSAO_LABEL } from '@/lib/validations/apreensao'
+import { TIPO_PERICIA, TIPO_PERICIA_LABEL } from '@/lib/validations/pericia'
 
 /**
  * Componentes de filtro específicos por relatório. Todos partilham a mesma
@@ -305,6 +308,161 @@ export function InatividadeFilters({ filters, setFilter, catalogo, lockedBrigada
             </option>
           ))}
         </NativeSelect>
+      </Field>
+    </div>
+  )
+}
+
+/**
+ * Campos de scope partilhados pelos relatórios de módulo (Interceções,
+ * Apreensões, Perícias): brigada + inspetor do inquérito a que o registo
+ * pertence. A brigada fica travada para o Inspetor-Chefe (scope do servidor).
+ */
+function BrigadaInspetorFields({ filters, setFilter, catalogo, lockedBrigadaId }: FiltersProps) {
+  const bId = filters.brigadaId ?? lockedBrigadaId ?? ''
+  // Só oferece inspetores da brigada selecionada (por nome — é o que o catálogo
+  // traz), como em InspetoresFilters. Evita escolher um inspetor de outra
+  // brigada, o que produziria um relatório vazio (scope por AND).
+  const inspetoresList = catalogo.inspetores.filter((u) => {
+    if (!bId) return true
+    return catalogo.brigadas.find((b) => b.id === bId)?.nome === u.brigada?.nome
+  })
+
+  return (
+    <>
+      <Field label="Brigada">
+        <NativeSelect
+          value={filters.brigadaId ?? lockedBrigadaId ?? ''}
+          onChange={(v) => {
+            setFilter('brigadaId', v)
+            setFilter('inspetorId', '')
+          }}
+          disabled={!!lockedBrigadaId}
+        >
+          <option value="">Todas</option>
+          {catalogo.brigadas.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.nome}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+      <Field label="Inspetor">
+        <NativeSelect value={filters.inspetorId ?? ''} onChange={(v) => setFilter('inspetorId', v)}>
+          <option value="">Todos</option>
+          {inspetoresList.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.nome}
+              {u.brigada ? ` · ${u.brigada.nome}` : ''}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+    </>
+  )
+}
+
+export function IntercecoesFilters(props: FiltersProps) {
+  const { filters, setFilter } = props
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <Field label="Estado">
+        <NativeSelect value={filters.estado ?? ''} onChange={(v) => setFilter('estado', v)}>
+          <option value="">Todas</option>
+          <option value="ativas">Ativas</option>
+          <option value="a-expirar">A expirar (10 dias)</option>
+        </NativeSelect>
+      </Field>
+      <Field label="Tipo de linha">
+        <NativeSelect value={filters.tipo ?? ''} onChange={(v) => setFilter('tipo', v)}>
+          <option value="">Todos</option>
+          {TIPO_LINHA_VALUES.map((t) => (
+            <option key={t} value={t}>
+              {TIPO_LINHA_LABEL[t]}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+      <BrigadaInspetorFields {...props} />
+    </div>
+  )
+}
+
+export function ApreensoesFilters(props: FiltersProps) {
+  const { filters, setFilter } = props
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <Field label="Estado">
+        <NativeSelect value={filters.estado ?? ''} onChange={(v) => setFilter('estado', v)}>
+          <option value="">Todas</option>
+          <option value="em-custodia">Em custódia</option>
+          <option value="concluidas">Concluídas</option>
+        </NativeSelect>
+      </Field>
+      <Field label="Tipo">
+        <NativeSelect value={filters.tipo ?? ''} onChange={(v) => setFilter('tipo', v)}>
+          <option value="">Todos</option>
+          {TIPO_APREENSAO.map((t) => (
+            <option key={t} value={t}>
+              {TIPO_APREENSAO_LABEL[t]}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+      <BrigadaInspetorFields {...props} />
+      <Field label="Data apreensão — de">
+        <Input
+          type="date"
+          value={filters.dataApreensaoFrom ?? ''}
+          onChange={(e) => setFilter('dataApreensaoFrom', e.target.value)}
+        />
+      </Field>
+      <Field label="Data apreensão — até">
+        <Input
+          type="date"
+          value={filters.dataApreensaoTo ?? ''}
+          onChange={(e) => setFilter('dataApreensaoTo', e.target.value)}
+        />
+      </Field>
+    </div>
+  )
+}
+
+export function PericiasFilters(props: FiltersProps) {
+  const { filters, setFilter } = props
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <Field label="Estado">
+        <NativeSelect value={filters.estado ?? ''} onChange={(v) => setFilter('estado', v)}>
+          <option value="">Todas</option>
+          <option value="pendentes">Pendentes</option>
+          <option value="concluidas">Concluídas / canceladas</option>
+        </NativeSelect>
+      </Field>
+      <Field label="Tipo">
+        <NativeSelect value={filters.tipo ?? ''} onChange={(v) => setFilter('tipo', v)}>
+          <option value="">Todos</option>
+          {TIPO_PERICIA.map((t) => (
+            <option key={t} value={t}>
+              {TIPO_PERICIA_LABEL[t]}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+      <BrigadaInspetorFields {...props} />
+      <Field label="Data pedido — de">
+        <Input
+          type="date"
+          value={filters.dataPedidoFrom ?? ''}
+          onChange={(e) => setFilter('dataPedidoFrom', e.target.value)}
+        />
+      </Field>
+      <Field label="Data pedido — até">
+        <Input
+          type="date"
+          value={filters.dataPedidoTo ?? ''}
+          onChange={(e) => setFilter('dataPedidoTo', e.target.value)}
+        />
       </Field>
     </div>
   )
