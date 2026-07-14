@@ -7,6 +7,28 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.100] — 2026-07-14
+
+### Adicionado
+- **Novos relatórios de módulo: Interceções, Apreensões e Perícias / Exames.**
+  Juntam-se aos relatórios operacionais (Relatórios), com pré-visualização e
+  exportação **CSV / Markdown / PDF**:
+  - **Interceções** — uma linha por linha intercetada (alvo, código, tipo,
+    identificador, rede, início/fim, renovações, estado e dias restantes).
+    Filtros: estado (ativas / a expirar / todas), tipo de linha, brigada,
+    inspetor.
+  - **Apreensões** — uma linha por objeto apreendido (tipo, quantidade, nº do
+    auto, custódia, estado e datas). Filtros: estado (em custódia / concluídas /
+    todas), tipo, brigada, inspetor e período de apreensão.
+  - **Perícias / Exames** — uma linha por pedido (tipo, entidade, nº de
+    referência, datas de pedido/prevista/conclusão, estado); o sumário assinala
+    as **atrasadas** (pendentes cuja data prevista já passou). Filtros: estado
+    (pendentes / concluídas / todas), tipo, brigada, inspetor e período de pedido.
+  - Todos respeitam o **âmbito de acesso do utilizador** (a mesma regra dos
+    inquéritos): o Inspetor-Chefe vê a sua brigada, o Inspetor os seus, e a
+    Coordenação/Administração tudo. Limite de linhas partilhado com os restantes
+    relatórios.
+
 ## [0.5.98] — 2026-07-14
 
 ### Corrigido

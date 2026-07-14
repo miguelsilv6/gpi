@@ -1,10 +1,13 @@
-import { FileText, Users, Building2, Hourglass, Scale } from 'lucide-react'
+import { FileText, Users, Building2, Hourglass, Scale, RadioTower, Boxes, Microscope } from 'lucide-react'
 import type { RelatorioDefinition } from './types'
 import { queryInqueritos } from './inqueritos'
 import { queryBrigadas } from './brigadas'
 import { queryInspetores } from './inspetores'
 import { queryInatividade } from './inatividade'
 import { queryCartasPrecatorias } from './cartas-precatorias'
+import { queryIntercecoes } from './intercecoes'
+import { queryApreensoes } from './apreensoes'
+import { queryPericias } from './pericias'
 
 /**
  * Registry de relatórios. Cada entrada produz um `RelatorioResult` canónico
@@ -53,6 +56,30 @@ export const RELATORIOS: Record<string, RelatorioDefinition> = {
       'Lista de todos os inquéritos marcados como Carta Precatória, com tribunal e secção, filtrável por período e estado.',
     icon: Scale,
     handler: queryCartasPrecatorias,
+  },
+  intercecoes: {
+    id: 'intercecoes',
+    titulo: 'Interceções',
+    descricao:
+      'Linhas intercetadas (alvo, tipo, identificador, início/fim, estado e dias restantes), filtrável por estado, tipo, brigada e inspetor.',
+    icon: RadioTower,
+    handler: queryIntercecoes,
+  },
+  apreensoes: {
+    id: 'apreensoes',
+    titulo: 'Apreensões',
+    descricao:
+      'Objetos apreendidos (tipo, quantidade, custódia, estado e datas), filtrável por estado, tipo, brigada, inspetor e período.',
+    icon: Boxes,
+    handler: queryApreensoes,
+  },
+  pericias: {
+    id: 'pericias',
+    titulo: 'Perícias / Exames',
+    descricao:
+      'Perícias e exames técnicos (tipo, entidade, estado, datas previstas e conclusão), filtrável por estado, tipo, brigada, inspetor e período.',
+    icon: Microscope,
+    handler: queryPericias,
   },
 }
 
