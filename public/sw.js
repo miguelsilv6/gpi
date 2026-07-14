@@ -38,7 +38,22 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/'
+
+  // Defesa em profundidade contra open-redirect: só navegamos para caminhos da
+  // mesma origem. Os payloads são gerados no servidor (URLs relativas), mas
+  // validamos na mesma antes de abrir/navegar.
+  let targetUrl = '/'
+  try {
+    const raw = event.notification.data && event.notification.data.url
+    if (raw) {
+      const parsed = new URL(raw, self.location.origin)
+      if (parsed.origin === self.location.origin) {
+        targetUrl = parsed.pathname + parsed.search + parsed.hash
+      }
+    }
+  } catch (e) {
+    targetUrl = '/'
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

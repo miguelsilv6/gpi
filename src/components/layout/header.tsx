@@ -1,6 +1,7 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
+import { unsubscribePushThisDevice } from '@/lib/push-client'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -108,6 +109,10 @@ export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = tru
             <DropdownMenuItem
               className="gap-2 text-red-600 focus:text-red-600 cursor-pointer"
               onClick={async () => {
+                // Limpa a subscrição push deste dispositivo ANTES de sair
+                // (dispositivos partilhados: não deixar chegar notificações do
+                // utilizador que saiu). Best-effort.
+                await unsubscribePushThisDevice()
                 await signOut({ redirect: false })
                 window.location.href = '/login'
               }}

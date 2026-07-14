@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Bell, BellOff, Loader2 } from 'lucide-react'
+import { unsubscribePushThisDevice } from '@/lib/push-client'
 
 /**
  * Opt-in de notificações push por dispositivo (Perfil). Pede permissão do
@@ -20,14 +21,17 @@ import { Bell, BellOff, Loader2 } from 'lucide-react'
 
 type State = 'loading' | 'unsupported' | 'unavailable' | 'blocked' | 'off' | 'on' | 'busy'
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
+// Converte a chave VAPID (base64url) no ArrayBuffer que o PushManager exige.
+// Devolve ArrayBuffer (um BufferSource válido) para evitar qualquer dependência
+// da forma genérica de Uint8Array entre versões do TypeScript.
+function urlBase64ToBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(base64)
   const buffer = new ArrayBuffer(raw.length)
-  const output = new Uint8Array(buffer)
-  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i)
-  return output
+  const view = new Uint8Array(buffer)
+  for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i)
+  return buffer
 }
 
 export function PushToggle() {
@@ -89,7 +93,7 @@ export function PushToggle() {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
+        applicationServerKey: urlBase64ToBuffer(publicKey),
       })
       const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
       const res = await fetch('/api/push', {
@@ -109,16 +113,7 @@ export function PushToggle() {
   async function disable() {
     setState('busy')
     try {
-      const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.getSubscription()
-      if (sub) {
-        await fetch('/api/push', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: sub.endpoint }),
-        }).catch(() => {})
-        await sub.unsubscribe().catch(() => {})
-      }
+      await unsubscribePushThisDevice()
       setState('off')
       toast.success('Notificações push desativadas neste dispositivo')
     } catch {

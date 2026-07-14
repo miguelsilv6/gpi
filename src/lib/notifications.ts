@@ -170,8 +170,10 @@ export async function applyPolicy(opts: ApplyPolicyOpts): Promise<void> {
         notificacaoId = n.id
         // Push é uma extensão do canal in-app: envia aos dispositivos
         // subscritos do destinatário. No-op se push não estiver configurado
-        // ou o utilizador não tiver subscrições.
-        await sendPushToUser(r.id, {
+        // ou o utilizador não tiver subscrições. NÃO se faz `await` — o envio
+        // envolve HTTP a serviços externos (FCM/APNs/Mozilla) e não deve
+        // atrasar a ação do utilizador; sendPushToUser nunca rejeita.
+        void sendPushToUser(r.id, {
           title: opts.titulo,
           body: opts.mensagem,
           url: pushUrl,
