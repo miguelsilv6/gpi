@@ -165,6 +165,11 @@ export default async function InqueritoPrintPage({
       pointer-events: none; z-index: 0;
     }
     .gpi-print {
+      /* Garante que fundos e a marca de água esbatida saem na impressão mesmo
+         sem a opção "Gráficos de fundo" ativa. Propriedade herdada → cobre a
+         .gpi-watermark e os fundos de tabela. */
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #111;
       font-size: 11pt;

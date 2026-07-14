@@ -18,6 +18,14 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   docHeader: {
+    // Absoluto + `fixed`: repete no topo de TODAS as páginas sem entrar no
+    // fluxo (um elemento fixo em fluxo normal só reserva espaço na 1.ª página,
+    // sobrepondo-se ao conteúdo da 2.ª em diante). O espaço é reservado via
+    // `paddingTop` dinâmico na Page. Mesmo padrão do `footer` abaixo.
+    position: 'absolute',
+    top: 20,
+    left: 36,
+    right: 36,
     fontSize: 8,
     color: '#6b7280',
     textAlign: 'center',
@@ -26,7 +34,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: '#e5e7eb',
     paddingBottom: 4,
-    marginBottom: 8,
   },
   watermark: {
     position: 'absolute',
@@ -171,7 +178,7 @@ export function RelatorioPDF({
       creator={brand.appName}
       producer={brand.appName}
     >
-      <Page size="A4" style={styles.page} wrap>
+      <Page size="A4" style={[styles.page, brand.pdfHeaderText ? { paddingTop: 48 } : {}]} wrap>
         {brand.pdfWatermarkText ? (
           <Text style={styles.watermark} fixed>
             {brand.pdfWatermarkText}
