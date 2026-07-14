@@ -45,11 +45,16 @@ export function resolveRp(host: string | null | undefined, proto?: string | null
   const envOrigin = process.env.WEBAUTHN_ORIGIN
   const rpName = process.env.WEBAUTHN_RP_NAME || 'GPI'
   const h = host || 'localhost'
-  const hostname = h.split(':')[0]
+  // Extrai o hostname sem porta, suportando IPv6 entre parênteses retos
+  // (ex.: "[::1]:3000" → "::1").
+  const hostname = h.startsWith('[') ? h.slice(1, h.indexOf(']')) : h.split(':')[0]
   // Esquema: usa o proto do pedido (x-forwarded-proto de um proxy) quando
   // presente; senão, http para hosts locais e https para os restantes.
   const isLocal =
-    hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local')
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname.endsWith('.local')
   const scheme = proto || (isLocal ? 'http' : 'https')
   return {
     rpID: envRpId || hostname,
@@ -101,8 +106,10 @@ export async function buildRegistrationOptions(params: {
       transports: parseTransports(c.transports),
     })),
     authenticatorSelection: {
-      residentKey: 'preferred',
-      userVerification: 'preferred',
+      // Login passwordless: a credencial tem de ser descobrível (resident) e
+      // exigir verificação do utilizador (biometria/PIN) — não basta presença.
+      residentKey: 'required',
+      userVerification: 'required',
     },
   })
 }
@@ -118,7 +125,7 @@ export async function verifyRegistration(params: {
     expectedChallenge,
     expectedOrigin: rp.origin,
     expectedRPID: rp.rpID,
-    requireUserVerification: false,
+    requireUserVerification: true,
   })
   if (!verification.verified || !verification.registrationInfo) return null
   const info = verification.registrationInfo
@@ -137,7 +144,7 @@ export async function buildAuthenticationOptions(rp: RpConfig): Promise<PublicKe
   // escolhe entre as suas passkeys descobríveis para este RP).
   return generateAuthenticationOptions({
     rpID: rp.rpID,
-    userVerification: 'preferred',
+    userVerification: 'required',
     allowCredentials: [],
   })
 }
@@ -154,7 +161,7 @@ export async function verifyAuthentication(params: {
     expectedChallenge,
     expectedOrigin: rp.origin,
     expectedRPID: rp.rpID,
-    requireUserVerification: false,
+    requireUserVerification: true,
     authenticator: {
       credentialID: isoBase64URL.toBuffer(stored.credentialId),
       credentialPublicKey: isoBase64URL.toBuffer(stored.publicKey),

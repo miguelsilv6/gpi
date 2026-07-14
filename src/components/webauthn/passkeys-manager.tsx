@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Fingerprint, Trash2, Loader2, Plus } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 
@@ -26,6 +27,7 @@ export function PasskeysManager() {
   const [passkeys, setPasskeys] = useState<Passkey[]>([])
   const [loading, setLoading] = useState(true)
   const [registering, setRegistering] = useState(false)
+  const [nome, setNome] = useState('')
 
   useEffect(() => {
     setSupported(typeof window !== 'undefined' && browserSupportsWebAuthn())
@@ -54,17 +56,16 @@ export function PasskeysManager() {
 
       const attResp = await startRegistration(options)
 
-      const nome = window.prompt('Nome para esta passkey (ex.: "iPhone de serviço"):')?.trim() || undefined
-
       const verifyRes = await fetch('/api/webauthn/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ response: attResp, nome }),
+        body: JSON.stringify({ response: attResp, nome: nome.trim() || undefined }),
       })
       if (!verifyRes.ok) {
         const body = await verifyRes.json().catch(() => ({}))
         throw new Error(body.error ?? 'verify')
       }
+      setNome('')
       toast.success('Passkey registada')
       await refresh()
     } catch (err) {
@@ -144,10 +145,20 @@ export function PasskeysManager() {
         </ul>
       )}
 
-      <Button size="sm" onClick={addPasskey} disabled={registering}>
-        {registering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-        Adicionar passkey
-      </Button>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Input
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          placeholder="Nome (opcional, ex.: iPhone de serviço)"
+          maxLength={60}
+          disabled={registering}
+          className="max-w-xs"
+        />
+        <Button size="sm" onClick={addPasskey} disabled={registering}>
+          {registering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+          Adicionar passkey
+        </Button>
+      </div>
     </div>
   )
 }

@@ -26,6 +26,9 @@ export function mintWebauthnTicket(userId: string, ttlSeconds = 60): string {
 }
 
 export function verifyWebauthnTicket(ticket: string): string | null {
+  // Limite de tamanho antes de qualquer alocação (um bilhete válido tem <100
+  // chars): evita OOM por input gigante na parte da assinatura.
+  if (!ticket || ticket.length > 500) return null
   const secret = ticketSecret()
   if (!secret) return null
   const parts = ticket.split('.')
