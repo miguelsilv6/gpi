@@ -19,6 +19,8 @@ interface TextForm {
   appDescription: string
   manifestDescription: string
   pdfFooterText: string
+  pdfHeaderText: string
+  pdfWatermarkText: string
   appAuthor: string
 }
 
@@ -61,6 +63,8 @@ export function AparenciaTab() {
         appDescription: b.appDescription,
         manifestDescription: b.manifestDescription,
         pdfFooterText: b.pdfFooterText,
+        pdfHeaderText: b.pdfHeaderText,
+        pdfWatermarkText: b.pdfWatermarkText,
         appAuthor: b.appAuthor,
       })
       setHorizontalEscala(b.logoHorizontalEscala)
@@ -314,6 +318,28 @@ export function AparenciaTab() {
             placeholder={BRAND_DEFAULTS.pdfFooterText}
             maxLength={120}
             hint="Texto que aparece no rodapé dos relatórios PDF gerados."
+          />
+          <TextField
+            label="Cabeçalho/título de PDFs"
+            id="pdfHeaderText"
+            value={form.pdfHeaderText}
+            onChange={(v) => setForm({ ...form, pdfHeaderText: v })}
+            onReset={() => resetField('pdfHeaderText')}
+            isDefault={form.pdfHeaderText === BRAND_DEFAULTS.pdfHeaderText}
+            placeholder="(sem cabeçalho)"
+            maxLength={80}
+            hint="Linha no topo dos PDFs (ex.: nome do departamento). Vazio = sem cabeçalho."
+          />
+          <TextField
+            label="Marca de água de PDFs"
+            id="pdfWatermarkText"
+            value={form.pdfWatermarkText}
+            onChange={(v) => setForm({ ...form, pdfWatermarkText: v })}
+            onReset={() => resetField('pdfWatermarkText')}
+            isDefault={form.pdfWatermarkText === BRAND_DEFAULTS.pdfWatermarkText}
+            placeholder="(sem marca de água)"
+            maxLength={40}
+            hint="Texto em diagonal, esbatido, ao fundo de cada página (ex.: CONFIDENCIAL). Vazio = sem marca de água."
           />
           <TextField
             label="Autor / Entidade"

@@ -17,6 +17,28 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#1f2937',
   },
+  docHeader: {
+    fontSize: 8,
+    color: '#6b7280',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e5e7eb',
+    paddingBottom: 4,
+    marginBottom: 8,
+  },
+  watermark: {
+    position: 'absolute',
+    top: '45%',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    color: '#eceef1',
+    fontSize: 70,
+    fontFamily: 'Helvetica-Bold',
+    transform: 'rotate(-35deg)',
+  },
   headerTitle: {
     fontSize: 16,
     fontFamily: 'Helvetica-Bold',
@@ -127,6 +149,8 @@ export interface RelatorioPDFBrand {
   appName: string
   appShortName: string
   pdfFooterText: string
+  pdfHeaderText: string
+  pdfWatermarkText: string
 }
 
 export function RelatorioPDF({
@@ -148,6 +172,16 @@ export function RelatorioPDF({
       producer={brand.appName}
     >
       <Page size="A4" style={styles.page} wrap>
+        {brand.pdfWatermarkText ? (
+          <Text style={styles.watermark} fixed>
+            {brand.pdfWatermarkText}
+          </Text>
+        ) : null}
+        {brand.pdfHeaderText ? (
+          <Text style={styles.docHeader} fixed>
+            {brand.pdfHeaderText}
+          </Text>
+        ) : null}
         <View>
           <Text style={styles.headerTitle}>{data.title}</Text>
           <Text style={styles.headerMeta}>

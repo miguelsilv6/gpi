@@ -7,6 +7,22 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+## [0.5.96] — 2026-07-14
+
+### Adicionado
+- **Relatórios PDF em formato A4 com cabeçalho, rodapé e marca de água
+  personalizáveis pelo administrador.** Uniformiza as duas superfícies de PDF
+  (a impressão do inquérito e os relatórios gerados via `@react-pdf/renderer`):
+  - **Página A4** com margens consistentes.
+  - **Cabeçalho/título** e **rodapé** de texto livre, definidos em
+    **Configurações → Aparência**. O rodapé passa a surgir na impressão do
+    inquérito ao lado do NUIPC.
+  - **Marca de água** de texto (ex.: “CONFIDENCIAL”), também configurável,
+    impressa em diagonal e esbatida por cima do conteúdo. Deixar o campo vazio
+    desativa a marca de água.
+  - Cada campo é opcional; limpar repõe o comportamento por omissão. As
+    alterações ficam em auditoria (`UPDATE_BRANDING`).
+
 ## [0.5.94] — 2026-07-14
 
 ### Adicionado

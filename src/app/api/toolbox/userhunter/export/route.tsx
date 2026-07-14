@@ -119,6 +119,8 @@ export async function POST(req: NextRequest) {
           appName: brand.appName,
           appShortName: brand.appShortName,
           pdfFooterText: brand.pdfFooterText,
+          pdfHeaderText: brand.pdfHeaderText,
+          pdfWatermarkText: brand.pdfWatermarkText,
         }}
       />,
     ).toBuffer()
