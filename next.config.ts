@@ -52,6 +52,19 @@ const API_CACHE_HEADERS = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  typescript: {
+    // O CI já corre `npx tsc --noEmit` como step próprio antes de qualquer
+    // merge para main (ver .github/workflows/ci.yml) — repetir o typecheck
+    // do projeto inteiro aqui dentro do `next build` é redundante e é a
+    // fase mais pesada em memória do build. Em servidores self-hosted com
+    // RAM limitada (scripts/update.sh compila `app` + `worker` em
+    // paralelo), essa fase chega a levar o OOM killer a matar o processo
+    // (SIGKILL) mesmo com o build a compilar sem problemas.
+    // `ignoreBuildErrors` salta por completo o type-checking do `next
+    // build` (não corre e ignora — não corre mesmo, ver docs oficiais) —
+    // seguro aqui porque a garantia de tipos já vem do CI antes do merge.
+    ignoreBuildErrors: true,
+  },
   async headers() {
     return [
       {
