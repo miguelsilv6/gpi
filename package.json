@@ -20,8 +20,12 @@
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
   },
+  "overrides": {
+    "uuid": "^11.1.1",
+    "@dotenvx/dotenvx": "1.66.0"
+  },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.2",
+    "@auth/prisma-adapter": "^2.11.3",
     "@base-ui/react": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/adapter-pg": "^7.8.0",
@@ -38,8 +42,8 @@
     "driver.js": "^1.6.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^1.16.0",
-    "next": "16.2.6",
-    "next-auth": "^5.0.0-beta.31",
+    "next": "16.3.5",
+    "next-auth": "^5.0.0-beta.32",
     "next-themes": "^0.4.6",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.13",
@@ -63,18 +67,18 @@
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
-    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/coverage-v8": "^5.0.1",
     "dotenv": "^17.4.2",
     "tailwindcss": "^4",
     "tsx": "^4.22.0",
     "typescript": "^5",
-    "vitest": "^2.1.9",
-    "vitest-mock-extended": "^2.0.2"
+    "vitest": "^5.0.1",
+    "vitest-mock-extended": "^5.1.1"
   }
 }
