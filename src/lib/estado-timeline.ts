@@ -6,6 +6,9 @@ export interface EstadoTimelineEntry {
   at: string
   estadoCodigo: string
   estadoNome: string
+  /** Cor do catálogo de estados (`EstadoInquerito.cor`) — null se o estado
+   *  já não existe no catálogo (ex: entretanto apagado) ou não tem cor. */
+  cor: string | null
   porNome: string | null
   motivo?: string
 }
@@ -35,9 +38,10 @@ export async function getEstadoTimeline(inqueritoId: string): Promise<EstadoTime
   })
   if (rows.length === 0) return []
 
-  // codigo → nome (catálogo dinâmico, com fallback para os estados standard).
+  // codigo → nome/cor (catálogo dinâmico, com fallback para os estados standard).
   const estados = await listEstados()
   const nomeByCodigo = new Map(estados.map((e) => [e.codigo, e.nome]))
+  const corByCodigo = new Map(estados.map((e) => [e.codigo, e.cor]))
   const resolveNome = (codigo: string) =>
     nomeByCodigo.get(codigo) ?? ESTADO_LABELS_FALLBACK[codigo] ?? codigo
 
@@ -92,6 +96,7 @@ export async function getEstadoTimeline(inqueritoId: string): Promise<EstadoTime
       at: r.createdAt.toISOString(),
       estadoCodigo: codigo,
       estadoNome: resolveNome(codigo),
+      cor: corByCodigo.get(codigo) ?? null,
       porNome: nomeByUserId.get(r.utilizadorId) ?? null,
       ...(motivo ? { motivo } : {}),
     })
