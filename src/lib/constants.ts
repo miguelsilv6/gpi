@@ -25,6 +25,21 @@ export const ESTADO_COR_DEFAULT = 'bg-gray-100 text-gray-700 border-gray-200'
 
 export const ESTADO_COR_OPTIONS = ['blue', 'yellow', 'orange', 'green', 'gray', 'red', 'purple', 'slate']
 
+// Variante "bar" (mais saturada que o badge acima) — usada na barra de
+// duração por estado da Cronologia (ver estado-duracao-bar.tsx).
+export const ESTADO_COR_BAR_CLASSES: Record<string, string> = {
+  blue: 'bg-blue-500',
+  yellow: 'bg-yellow-500',
+  orange: 'bg-orange-500',
+  green: 'bg-green-500',
+  gray: 'bg-gray-400',
+  red: 'bg-red-500',
+  purple: 'bg-purple-500',
+  slate: 'bg-slate-500',
+}
+
+export const ESTADO_COR_BAR_DEFAULT = 'bg-gray-400'
+
 // Standard codigos (these are what the SEED creates and what code-paths reference).
 // New estados can be added via configurações but these are always there.
 export const ESTADO_CODIGOS = {

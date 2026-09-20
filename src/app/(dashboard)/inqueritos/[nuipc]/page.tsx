@@ -33,8 +33,10 @@ import { ConexoesSection } from '@/components/inqueritos/conexoes-section'
 import { getChecklistForInquerito } from '@/lib/checklist'
 import { ChecklistSection } from '@/components/inqueritos/checklist-section'
 import { getEstadoTimeline } from '@/lib/estado-timeline'
+import { buildEstadoDuracao } from '@/lib/estado-duracao'
 import { mergeTimelineEvents } from '@/lib/inquerito-timeline'
 import { CronologiaSection } from '@/components/inqueritos/cronologia-section'
+import { EstadoDuracaoBar } from '@/components/inqueritos/estado-duracao-bar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
@@ -183,8 +185,10 @@ export default async function InqueritoDetailPage({
   const totalAtividades = inquerito._count.atividades
   const totalAtivPages = Math.ceil(totalAtividades / ATIVIDADES_PAGE_SIZE)
 
-  // Mudanças de estado reconstruídas do AuditLog — alimentam a Cronologia.
+  // Mudanças de estado reconstruídas do AuditLog — alimentam a Cronologia e
+  // a barra "Estado do inquérito" (duração por estado).
   const estadoTimeline = await getEstadoTimeline(inquerito.id)
+  const estadoDuracao = buildEstadoDuracao(estadoTimeline)
 
   // Documentos anexados (provas, relatórios, ofícios) — só quando o módulo Anexos
   // está ativo para o role do utilizador.
@@ -999,6 +1003,8 @@ export default async function InqueritoDetailPage({
         currentUserId={session.user.id}
         isAdmin={hasPermission(role, 'inquerito:edit:all')}
       />
+
+      <EstadoDuracaoBar segmentos={estadoDuracao} />
 
       <CronologiaSection events={timelineEvents} />
 

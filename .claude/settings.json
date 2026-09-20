@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "knowledge-work-plugins": {
+      "source": "github",
+      "repo": "anthropics/knowledge-work-plugins"
+    },
+    "googlechrome": {
+      "source": "github",
+      "repo": "googlechrome/modern-web-guidance"
+    },
+    "browser-use": {
+      "source": "github",
+      "repo": "browser-use/plugins"
+    },
+    "gpi-plugins": {
+      "source": "settings",
+      "name": "gpi-plugins",
+      "owner": { "name": "GPI" },
+      "plugins": [
+        {
+          "name": "prisma",
+          "source": { "source": "github", "repo": "prisma/claude-plugin" },
+          "description": "Prisma MCP integration for Postgres database management, schema migrations, SQL queries, and connection string management."
+        }
+      ]
+    }
+  },
+  "enabledPlugins": {
+    "security-guidance@claude-plugins-official": true,
+    "engineering@knowledge-work-plugins": true,
+    "modern-web-guidance@googlechrome": true,
+    "browser-use@browser-use": true,
+    "prisma@gpi-plugins": true
+  }
+}
