@@ -39,6 +39,9 @@ Thumbs.db
 .claude
 
 # Volumes de runtime — persistem via bind-mount; nunca devem ir para o contexto de build
+# ollama: mantido mesmo após a remoção do serviço — instalações antigas podem
+# ter ./ollama em disco (modelo descarregado, vários GB); sem esta linha esse
+# diretório morto entraria no contexto de build de qualquer host que o tenha.
 ollama
 documentos
 branding
