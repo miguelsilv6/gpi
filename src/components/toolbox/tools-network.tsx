@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { ResultRow, CopyButton, FonteNote, ExplainButton, postTool } from './toolbox-shared'
+import { ResultRow, CopyButton, FonteNote, postTool } from './toolbox-shared'
 
 interface IpLookupResult {
   query: string
@@ -77,7 +77,6 @@ export function IpLookupTool() {
           <ResultRow label="ASN" value={`${result.asn}${result.asDomain ? ` (${result.asDomain})` : ''}` || '—'} />
           <ResultRow label="Reverse DNS" value={result.reverse || '—'} />
           <FonteNote fonte={result.fonte} />
-          <ExplainButton ferramenta="ip" resultado={result} />
         </div>
       )}
     </div>
@@ -135,7 +134,6 @@ export function DnsTool() {
         <div className="rounded-lg border p-4">
           <ResultRow label="PTR" value={(result.ptr ?? []).join(', ') || '—'} />
           <FonteNote fonte={result.fonte} />
-          <ExplainButton ferramenta="dns" resultado={result} />
         </div>
       )}
       {result?.tipo === 'forward' && (
@@ -159,7 +157,6 @@ export function DnsTool() {
             </div>
           )}
           <FonteNote fonte={result.fonte} />
-          <ExplainButton ferramenta="dns" resultado={result} />
         </div>
       )}
     </div>
@@ -241,7 +238,6 @@ export function WhoisTool() {
             </>
           )}
           <FonteNote fonte={result.fonte} />
-          <ExplainButton ferramenta="whois" resultado={result} />
         </div>
       )}
       <p className="text-xs text-muted-foreground">
