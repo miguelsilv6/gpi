@@ -1,6 +1,6 @@
 {
   "name": "gestao-processos",
-  "version": "0.5.111",
+  "version": "0.5.112",
   "private": true,
   "scripts": {
     "dev": "next dev",
