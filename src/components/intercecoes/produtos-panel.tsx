@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { Fragment, useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   TIPO_PRODUTO_LABEL,
   TIPO_PRODUTO_VALUES,
@@ -17,13 +16,23 @@ import {
   DIRECAO_LABEL,
   DIRECAO_VALUES,
   TIPO_LINHA_LABEL,
+  TRANSCRICAO_LABEL,
+  TRANSCRICAO_BADGE,
+  TRANSCRICAO_VALUES,
+  temTranscricao,
+  numeroControlo,
+  indexarRelacoes,
+  identificacaoDe,
 } from '@/lib/validations/intercecao'
+import type { PlanoDTO } from './validacoes-panel'
+import type { RelacaoDTO } from './relacoes-panel'
 import { formatDate, cn, iconButtonClasses } from '@/lib/utils'
 import { ChevronDown, ChevronRight, Loader2, Plus, Pencil, Trash2, FileText, Timer } from 'lucide-react'
 import type {
   TipoProdutoIntercecao,
   DirecaoProdutoIntercecao,
   TipoLinhaIntercecao,
+  EstadoTranscricao,
 } from '@/generated/prisma/enums'
 
 interface LinhaRef {
@@ -37,14 +46,18 @@ interface ProdutoItem {
   id: string
   tipo: TipoProdutoIntercecao
   numeroProduto: string | null
+  idProduto: string | null
   direcao: DirecaoProdutoIntercecao | null
   data: string
   horaInicio: string | null
   horaFim: string | null
   duracao: string | null
-  paraTranscricao: boolean
+  transcricao: EstadoTranscricao
+  transcricaoEm: string | null
   de: string | null
+  identificacaoDe: string | null
   para: string | null
+  identificacaoPara: string | null
   resumo: string
   comentarios: string | null
   criadoPor: { id: string; nome: string }
@@ -56,6 +69,8 @@ interface Props {
   alvoId: string
   totalInicial: number
   linhas: LinhaRef[]
+  relacoes: RelacaoDTO[]
+  plano: PlanoDTO | null
   canEdit: boolean
 }
 
@@ -63,29 +78,35 @@ interface ProdutoForm {
   tipo: TipoProdutoIntercecao
   linhaId: string
   numeroProduto: string
+  idProduto: string
   direcao: '' | DirecaoProdutoIntercecao
   data: string
   horaInicio: string
   horaFim: string
   duracao: string
-  paraTranscricao: boolean
+  transcricao: EstadoTranscricao
   de: string
+  identificacaoDe: string
   para: string
+  identificacaoPara: string
   resumo: string
   comentarios: string
 }
 const EMPTY_PRODUTO: ProdutoForm = {
-  tipo: 'CHAMADA',
+  tipo: 'VOZ',
   linhaId: '',
   numeroProduto: '',
+  idProduto: '',
   direcao: '',
   data: '',
   horaInicio: '',
   horaFim: '',
   duracao: '',
-  paraTranscricao: false,
+  transcricao: 'NENHUMA',
   de: '',
+  identificacaoDe: '',
   para: '',
+  identificacaoPara: '',
   resumo: '',
   comentarios: '',
 }
@@ -96,7 +117,15 @@ const NONE = '__none__'
  * Produtos de interesse de um alvo — sempre paginados on-demand (a árvore da
  * página só traz contagens): o painel carrega ao expandir e a cada mudança.
  */
-export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit }: Props) {
+export function ProdutosPanel({
+  nuipcSlug,
+  alvoId,
+  totalInicial,
+  linhas,
+  relacoes,
+  plano,
+  canEdit,
+}: Props) {
   const router = useRouter()
   const base = `/api/inqueritos/${nuipcSlug}/intercecoes`
 
@@ -110,6 +139,17 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
   const [dialog, setDialog] = useState<{ mode: 'create' } | { mode: 'edit'; id: string } | null>(null)
   const [form, setForm] = useState<ProdutoForm>(EMPTY_PRODUTO)
   const [saving, setSaving] = useState(false)
+
+  // Identificação do "DE"/"PARA": a Relação manda, o texto manual é o recurso.
+  const relacoesIndex = useMemo(() => indexarRelacoes(relacoes), [relacoes])
+
+  // Datas de validação, para saber a que lote de controlo pertence cada
+  // produto. São as que o servidor já gerou — o ecrã e o ficheiro exportado
+  // numeram os controlos a partir da mesma lista, e não de dois cálculos.
+  const datasValidacao = useMemo(
+    () => (plano?.validacoes ?? []).map((v) => new Date(v.data)),
+    [plano],
+  )
 
   const load = useCallback(
     async (p: number) => {
@@ -146,19 +186,27 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
       tipo: pItem.tipo,
       linhaId: pItem.linha?.id ?? '',
       numeroProduto: pItem.numeroProduto ?? '',
+      idProduto: pItem.idProduto ?? '',
       direcao: pItem.direcao ?? '',
       data: pItem.data.slice(0, 10),
       horaInicio: pItem.horaInicio ?? '',
       horaFim: pItem.horaFim ?? '',
       duracao: pItem.duracao ?? '',
-      paraTranscricao: pItem.paraTranscricao,
+      transcricao: pItem.transcricao,
       de: pItem.de ?? '',
+      identificacaoDe: pItem.identificacaoDe ?? '',
       para: pItem.para ?? '',
+      identificacaoPara: pItem.identificacaoPara ?? '',
       resumo: pItem.resumo,
       comentarios: pItem.comentarios ?? '',
     })
     setDialog({ mode: 'edit', id: pItem.id })
   }
+
+  // Identificação que as Relações já dão para os números escritos no diálogo:
+  // quando existe, o campo manual fica bloqueado (a ficha é a fonte de verdade).
+  const identDeForm = identificacaoDe(form.de || null, null, relacoesIndex)
+  const identParaForm = identificacaoDe(form.para || null, null, relacoesIndex)
 
   async function handleSubmit() {
     if (!dialog) return
@@ -250,12 +298,42 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                       <th className="py-1.5 pr-3 font-medium">Linha</th>
                       <th className="py-1.5 pr-3 font-medium">De → Para</th>
                       <th className="py-1.5 pr-3 font-medium">Resumo</th>
+                      <th className="py-1.5 pr-3 font-medium">Transcrição</th>
                       {canEdit && <th className="py-1.5 font-medium sr-only">Ações</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {items.map((pItem) => (
-                      <tr key={pItem.id}>
+                    {items.map((pItem, i) => {
+                      // Separador de lote sempre que o controlo muda (a lista
+                      // vem do mais recente para o mais antigo, por isso os
+                      // números descem — o agrupamento mantém-se legível).
+                      const controlo =
+                        datasValidacao.length > 0
+                          ? numeroControlo(new Date(pItem.data), datasValidacao)
+                          : null
+                      const anterior =
+                        i > 0 && datasValidacao.length > 0
+                          ? numeroControlo(new Date(items[i - 1].data), datasValidacao)
+                          : null
+                      const identDe = identificacaoDe(pItem.de, pItem.identificacaoDe, relacoesIndex)
+                      const identPara = identificacaoDe(
+                        pItem.para,
+                        pItem.identificacaoPara,
+                        relacoesIndex,
+                      )
+                      return (
+                    <Fragment key={pItem.id}>
+                      {controlo !== null && controlo !== anterior && (
+                        <tr className="bg-muted/50">
+                          <td
+                            colSpan={canEdit ? 8 : 7}
+                            className="py-1 px-1 text-xs font-semibold text-muted-foreground"
+                          >
+                            {controlo}.º Controlo
+                          </td>
+                        </tr>
+                      )}
+                      <tr>
                         <td className="py-2 pr-3 whitespace-nowrap">
                           {formatDate(pItem.data)}
                           {(pItem.horaInicio || pItem.horaFim) && (
@@ -278,30 +356,58 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                             {TIPO_PRODUTO_LABEL[pItem.tipo]}
                           </span>
                         </td>
-                        <td className="py-2 pr-3 font-mono text-xs whitespace-nowrap">{pItem.numeroProduto ?? '—'}</td>
+                        <td className="py-2 pr-3 font-mono text-xs whitespace-nowrap">
+                          {pItem.numeroProduto ?? '—'}
+                          {pItem.idProduto && (
+                            <span
+                              className="block text-[10px] text-muted-foreground truncate max-w-[110px]"
+                              title={`ID do produto: ${pItem.idProduto}`}
+                            >
+                              {pItem.idProduto}
+                            </span>
+                          )}
+                        </td>
                         <td className="py-2 pr-3 whitespace-nowrap text-xs">
                           {pItem.direcao ? DIRECAO_LABEL[pItem.direcao] : '—'}
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap text-xs font-mono">
                           {pItem.linha ? pItem.linha.identificador : '—'}
                         </td>
-                        <td className="py-2 pr-3 whitespace-nowrap text-xs font-mono">
-                          {pItem.de || pItem.para ? `${pItem.de ?? '?'} → ${pItem.para ?? '?'}` : '—'}
+                        <td className="py-2 pr-3 whitespace-nowrap text-xs">
+                          {pItem.de || pItem.para ? (
+                            <>
+                              <span className="font-mono">
+                                {pItem.de ?? '?'} → {pItem.para ?? '?'}
+                              </span>
+                              {(identDe || identPara) && (
+                                <span className="block text-[10px] text-muted-foreground">
+                                  {identDe ?? '?'} → {identPara ?? '?'}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            '—'
+                          )}
                         </td>
                         <td className="py-2 pr-3 max-w-[320px]">
-                          <div className="flex items-center gap-1.5">
-                            {pItem.paraTranscricao && (
-                              <span
-                                className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
-                                title="Marcado para transcrição"
-                              >
-                                <FileText className="h-3 w-3" /> Transcr.
-                              </span>
-                            )}
-                            <span className="block truncate" title={pItem.resumo}>
-                              {pItem.resumo}
+                          <span className="block truncate" title={pItem.resumo}>
+                            {pItem.resumo}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-3 whitespace-nowrap">
+                          {temTranscricao(pItem.transcricao) ? (
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                TRANSCRICAO_BADGE[pItem.transcricao],
+                              )}
+                            >
+                              <FileText className="h-3 w-3" />
+                              {TRANSCRICAO_LABEL[pItem.transcricao]}
                             </span>
-                          </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </td>
                         {canEdit && (
                           <td className="py-2 whitespace-nowrap">
@@ -326,7 +432,9 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                           </td>
                         )}
                       </tr>
-                    ))}
+                    </Fragment>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -392,6 +500,16 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                 placeholder="n.º da sessão"
                 value={form.numeroProduto}
                 onChange={(e) => setForm({ ...form, numeroProduto: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="prodIdProduto">ID do produto</Label>
+              <Input
+                id="prodIdProduto"
+                className="font-mono"
+                placeholder="ID do sistema de interceção"
+                value={form.idProduto}
+                onChange={(e) => setForm({ ...form, idProduto: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
@@ -506,6 +624,32 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                   onChange={(e) => setForm({ ...form, para: e.target.value })}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prodIdentDe">Identificação do &quot;De&quot;</Label>
+                <Input
+                  id="prodIdentDe"
+                  placeholder={identDeForm ?? 'quem é este número'}
+                  disabled={identDeForm !== null}
+                  value={identDeForm ?? form.identificacaoDe}
+                  onChange={(e) => setForm({ ...form, identificacaoDe: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prodIdentPara">Identificação do &quot;Para&quot;</Label>
+                <Input
+                  id="prodIdentPara"
+                  placeholder={identParaForm ?? 'quem é este número'}
+                  disabled={identParaForm !== null}
+                  value={identParaForm ?? form.identificacaoPara}
+                  onChange={(e) => setForm({ ...form, identificacaoPara: e.target.value })}
+                />
+              </div>
+              {(identDeForm || identParaForm) && (
+                <p className="col-span-2 text-[11px] text-muted-foreground">
+                  Identificação preenchida pelas Relações do inquérito — para a alterar, edite a
+                  ficha do contacto.
+                </p>
+              )}
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="prodResumo">Descrição / resumo *</Label>
@@ -516,16 +660,35 @@ export function ProdutosPanel({ nuipcSlug, alvoId, totalInicial, linhas, canEdit
                 onChange={(e) => setForm({ ...form, resumo: e.target.value })}
               />
             </div>
-            <label className="sm:col-span-2 flex items-center gap-2.5 rounded-md border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 px-3 py-2.5 cursor-pointer">
-              <Checkbox
-                checked={form.paraTranscricao}
-                onCheckedChange={(v) => setForm({ ...form, paraTranscricao: v === true })}
-              />
-              <span className="flex items-center gap-1.5 text-sm">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="flex items-center gap-1.5">
                 <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                Marcar para transcrição
-              </span>
-            </label>
+                Transcrição
+              </Label>
+              <Select
+                value={form.transcricao}
+                onValueChange={(v) => v && setForm({ ...form, transcricao: v as EstadoTranscricao })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {(v: string | null) =>
+                      v ? TRANSCRICAO_LABEL[v as EstadoTranscricao] ?? v : '—'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TRANSCRICAO_VALUES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t === 'NENHUMA' ? 'Sem transcrição' : TRANSCRICAO_LABEL[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Pedida → autorizada → transcrita. O relatório de transcrições inclui tudo o que não
+                esteja em &quot;sem transcrição&quot;.
+              </p>
+            </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="prodComentarios">Comentários</Label>
               <Textarea

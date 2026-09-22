@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       atividades: summary.atividades,
       controlos: summary.controlos,
       intercecoes: summary.intercecoes,
+      validacoes: summary.validacoes,
       apreensoes: summary.apreensoes,
       pericias: summary.pericias,
     })

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit, diff } from '@/lib/audit'
 import { loadIntercecaoContext, parseData } from '@/lib/intercecoes-api'
+import { sincronizarValidacoes } from '@/lib/intercecoes-validacoes'
 import {
   intercecaoLinhaUpdateSchema,
   resetAlertFlagsOnUpdate,
@@ -53,6 +54,17 @@ export async function PUT(
       if (!v) return apiError('Data de fim inválida', 400)
       dataFim = v
     }
+    // '' limpa a data do ofício; omitida mantém-na.
+    let dataOficio: Date | null | undefined
+    if (d.dataOficio !== undefined) {
+      if (d.dataOficio.trim() === '') {
+        dataOficio = null
+      } else {
+        const v = parseData(d.dataOficio)
+        if (!v) return apiError('Data do ofício inválida', 400)
+        dataOficio = v
+      }
+    }
     const inicioFinal = dataInicio ?? linha.dataInicio
     const fimFinal = dataFim ?? linha.dataFim
     if (fimFinal.getTime() < inicioFinal.getTime()) {
@@ -84,6 +96,7 @@ export async function PUT(
         ...(d.tipo !== undefined && { tipo: d.tipo }),
         ...(d.identificador !== undefined && { identificador: d.identificador }),
         ...(d.rede !== undefined && { rede: d.rede.trim() || null }),
+        ...(dataOficio !== undefined && { dataOficio }),
         ...(dataInicio !== undefined && { dataInicio }),
         ...(dataFim !== undefined && { dataFim }),
         ...(d.alertaDias1 !== undefined && { alertaDias1: d.alertaDias1 }),
@@ -93,7 +106,12 @@ export async function PUT(
       },
     })
 
-    const keys = ['codigo', 'tipo', 'identificador', 'rede', 'dataInicio', 'dataFim', 'alertaDias1', 'alertaDias2', 'observacoes'] as const
+    // Mudar a data de fim mexe no horizonte das validações.
+    if (dataFim !== undefined && dataFim.getTime() !== linha.dataFim.getTime()) {
+      await sincronizarValidacoes(ctx.inquerito.id)
+    }
+
+    const keys = ['codigo', 'tipo', 'identificador', 'rede', 'dataOficio', 'dataInicio', 'dataFim', 'alertaDias1', 'alertaDias2', 'observacoes'] as const
     const changes = diff(
       Object.fromEntries(keys.map((k) => [k, linha[k]])) as Record<string, string | number | Date | null>,
       Object.fromEntries(keys.map((k) => [k, updated[k]])) as Record<string, string | number | Date | null>,
@@ -130,6 +148,9 @@ export async function DELETE(
     if (!linha) return apiError('Linha não encontrada', 404)
 
     await prisma.intercecaoLinha.delete({ where: { id: linha.id } })
+    // Sem esta linha o horizonte pode ter encolhido; as validações por fazer
+    // que sobram são removidas (as já feitas ficam, são registo histórico).
+    await sincronizarValidacoes(ctx.inquerito.id)
 
     await writeAudit({
       req,

@@ -6,6 +6,7 @@ import {
   escalateUrgentToChefes,
 } from '@/lib/notifications'
 import { checkIntercecoesATerminar } from '@/lib/intercecoes'
+import { checkValidacoesIntercecoes } from '@/lib/intercecoes-validacoes'
 import { checkApreensoesParadas } from '@/lib/apreensoes'
 import { checkPericiasAtrasadas } from '@/lib/pericias'
 
@@ -16,6 +17,7 @@ export interface DeadlineCheckSummary {
   atividades: number
   controlos: number
   intercecoes: number
+  validacoes: number
   apreensoes: number
   pericias: number
 }
@@ -27,7 +29,8 @@ export interface DeadlineCheckSummary {
  *   1. prazos de inquéritos (+ escalada à hierarquia);
  *   2. prazos de ATIVIDADES (1.º/2.º aviso, por atividade);
  *   3. controlos periódicos (por realização);
- *   4. fim de linhas de interceção.
+ *   4. fim de linhas de interceção;
+ *   5. validações quinzenais das interceções (e renovações a preparar).
  *
  * Historicamente estes dois caminhos divergiram (as atividades só corriam na
  * rota; os controlos só no worker), pelo que os alertas de prazo de atividades
@@ -230,6 +233,9 @@ export async function runDeadlineChecks(now: Date = new Date()): Promise<Deadlin
   // ── 4. Interceções: fim de linhas (aguarda internamente os envios) ──────────
   const intercecoes = await checkIntercecoesATerminar(now)
 
+  // ── 4b. Interceções: validações quinzenais e renovações a preparar ─────────
+  const validacoes = await checkValidacoesIntercecoes(now)
+
   // ── 5. Apreensões paradas (objetos há muito por dar destino) ────────────────
   const apreensoes = await checkApreensoesParadas(now)
 
@@ -243,6 +249,7 @@ export async function runDeadlineChecks(now: Date = new Date()): Promise<Deadlin
     atividades: atividadesComPrazo.length,
     controlos: controlosAlertas,
     intercecoes: intercecoes.alertas,
+    validacoes: validacoes.alertas,
     apreensoes: apreensoes.alertas,
     pericias: pericias.alertas,
   }

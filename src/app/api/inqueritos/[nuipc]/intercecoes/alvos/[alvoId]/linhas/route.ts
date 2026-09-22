@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { loadIntercecaoContext, parseData } from '@/lib/intercecoes-api'
+import { sincronizarValidacoes } from '@/lib/intercecoes-validacoes'
 import {
   intercecaoLinhaCreateSchema,
   INTERCECAO_ALERTA1_DEFAULT,
@@ -40,6 +41,8 @@ export async function POST(
     const dataInicio = parseData(d.dataInicio)
     const dataFim = parseData(d.dataFim)
     if (!dataInicio || !dataFim) return apiError('Data inválida', 400)
+    const dataOficio = d.dataOficio === undefined ? null : parseData(d.dataOficio)
+    if (d.dataOficio !== undefined && !dataOficio) return apiError('Data do ofício inválida', 400)
     if (dataFim.getTime() < dataInicio.getTime()) {
       return apiError('A data de fim não pode ser anterior à de início', 400)
     }
@@ -60,6 +63,7 @@ export async function POST(
         tipo: d.tipo,
         identificador: d.identificador,
         rede: d.rede ?? null,
+        dataOficio,
         dataInicio,
         dataFim,
         // undefined = usar default; null explícito = aviso desligado.
@@ -68,6 +72,10 @@ export async function POST(
         observacoes: d.observacoes ?? null,
       },
     })
+
+    // O horizonte das validações é a data de fim mais tardia: uma linha nova
+    // pode estender (ou, se for a primeira, criar) a lista de validações.
+    await sincronizarValidacoes(ctx.inquerito.id)
 
     await writeAudit({
       req,

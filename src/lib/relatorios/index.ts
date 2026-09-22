@@ -61,7 +61,7 @@ export const RELATORIOS: Record<string, RelatorioDefinition> = {
     id: 'intercecoes',
     titulo: 'Interceções',
     descricao:
-      'Linhas intercetadas (alvo, tipo, identificador, início/fim, estado e dias restantes), filtrável por estado, tipo, brigada e inspetor.',
+      'Linhas intercetadas (alvo, tipo, identificador, ofício, início/fim, "ouvido até", estado e dias restantes), filtrável por estado, tipo, brigada e inspetor.',
     icon: RadioTower,
     handler: queryIntercecoes,
   },

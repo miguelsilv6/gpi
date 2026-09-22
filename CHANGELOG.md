@@ -7,6 +7,63 @@ Versionamento: [SemVer](https://semver.org/lang/pt-PT/).
 
 ## [Unreleased]
 
+### Adicionado
+- **Controlo de escutas alinhado com o modelo em papel.** O módulo de
+  Interceções passa a cobrir as quatro folhas do ficheiro Excel que substitui
+  (Alvo, Registos, Relações e Produtos com Interesse), em vez de apenas os
+  alvos, linhas e produtos:
+  - **Validações quinzenais (art. 188.º CPP)**: cada inquérito tem um plano com
+    a data da 1.ª apresentação e a cadência (14 dias por omissão, o que mantém
+    as validações sempre no mesmo dia da semana). O GPI gera a lista numerada
+    até cobrir o fim da última interceção, marca-se o ✓ de feito (com autor e
+    data) e a lista é re-sincronizada sozinha quando se acrescenta, prorroga ou
+    apaga uma linha — as validações já feitas nunca são apagadas.
+  - **Renovação assinalada na validação certa**: o GPI calcula qual das
+    validações antecede o fim de cada interceção — a mesma que no ficheiro em
+    papel se escrevia à mão como "6.ª Validação/Renovação do Alvo 145779040" —
+    e mostra-a na tabela e na exportação.
+  - **Relações**: ficha dos contactos que aparecem nas escutas (contacto, nome,
+    morada, documento de identificação, data de nascimento, ficha no SPO e
+    fotografia). Identificar um número aqui preenche automaticamente o "DE" e o
+    "PARA" de **todos** os produtos onde ele aparece — e renomear o contacto
+    corrige-os a todos de uma vez. Um botão "Por identificar" lista os números
+    que já aparecem nos produtos e ainda não têm ficha, dos mais falados para
+    os menos.
+  - **"Ouvido até" por linha**: substitui o campo de texto livre por um registo
+    estruturado (n.º do produto, data e horas) com histórico e autor, para
+    retomar a escuta exatamente onde ficou. As notas livres de acompanhamento
+    do alvo mantêm-se.
+  - **Lotes de controlo automáticos**: cada produto é atribuído ao controlo em
+    que foi apresentado, calculado pela data (1.º antes da 1.ª validação, e daí
+    em diante). A tabela agrupa-os e a exportação repõe os separadores
+    "2.º Controlo", "3.º Controlo" tal como no ficheiro original.
+  - **Campos novos**: data do ofício (na linha, distinta do início da escuta),
+    ID do produto atribuído pelo sistema de interceção (ao lado do n.º
+    sequencial) e os tipos de produto **Voz** e **Raw (Em Bruto)**.
+- **Dois alertas novos** (configuráveis em Configurações → Notificações):
+  **Validação de interceções a aproximar-se**, com a antecedência definida no
+  plano, e **Renovação de interceção a preparar**, disparado na validação que
+  antecede o fim de uma linha e indicando quais.
+
+### Alterado
+- **Transcrição deixa de ser "sim/não" e passa a ter estado**: sem transcrição,
+  pedida, autorizada ou transcrita — a distinção que o controlo em papel fazia
+  na coluna "TRANSCRIÇÃO". Os produtos já marcados passam automaticamente a
+  "pedida" na atualização. O relatório de transcrições inclui agora tudo o que
+  não esteja em "sem transcrição" e mostra o estado de cada um, para separar o
+  que falta autorizar do que falta transcrever.
+- **A exportação em Excel passa a ter o formato do controlo em papel** — as
+  folhas "Alvo", "Registos", "Relações" e "Produtos com Interesse", pela mesma
+  ordem e com os mesmos cabeçalhos, em vez de uma folha por alvo. O ficheiro
+  exportado volta a servir para juntar ao processo ou entregar a quem trabalha
+  em papel, sem tradução.
+- **Direção do produto** passa a ler-se "De entrada"/"De saída" (em vez de
+  "Recebida"/"Efetuada"), como no ficheiro original.
+- A exportação CSV do inquérito e o relatório de Interceções acompanham:
+  ganham a data do ofício, o "ouvido até" corrente, o ID do produto, as
+  identificações do "DE"/"PARA" já resolvidas pelas Relações e a secção
+  "Interceções — Relações".
+
 ## [0.5.102] — 2026-07-14
 
 ### Corrigido

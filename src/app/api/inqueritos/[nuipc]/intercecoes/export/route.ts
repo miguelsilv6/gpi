@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { loadIntercecaoContext } from '@/lib/intercecoes-api'
 import { buildIntercecoesWorkbook } from '@/lib/intercecoes-xlsx'
+import { getDadosExportacao } from '@/lib/intercecoes-export'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,48 +22,9 @@ export async function GET(
     const ctx = await loadIntercecaoContext(slug)
     if (ctx instanceof Response) return ctx
 
-    const alvos = await prisma.intercecaoAlvo.findMany({
-      where: { inqueritoid: ctx.inquerito.id },
-      orderBy: { nome: 'asc' },
-      select: {
-        nome: true,
-        observacoes: true,
-        notas: true,
-        linhas: {
-          orderBy: { dataInicio: 'asc' },
-          select: {
-            codigo: true,
-            tipo: true,
-            identificador: true,
-            rede: true,
-            dataInicio: true,
-            dataFim: true,
-            renovacoes: true,
-            observacoes: true,
-          },
-        },
-        produtos: {
-          orderBy: { data: 'asc' },
-          select: {
-            tipo: true,
-            numeroProduto: true,
-            direcao: true,
-            data: true,
-            horaInicio: true,
-            horaFim: true,
-            duracao: true,
-            paraTranscricao: true,
-            de: true,
-            para: true,
-            resumo: true,
-            comentarios: true,
-            linha: { select: { identificador: true, codigo: true } },
-          },
-        },
-      },
-    })
+    const dados = await getDadosExportacao(ctx.inquerito.id, ctx.inquerito.nuipc)
 
-    const wb = buildIntercecoesWorkbook({ nuipc: ctx.inquerito.nuipc, alvos })
+    const wb = buildIntercecoesWorkbook(dados)
     const buffer = await wb.xlsx.writeBuffer()
 
     await writeAudit({
@@ -74,9 +35,11 @@ export async function GET(
       utilizadorId: ctx.userId,
       detalhes: {
         nuipc: ctx.inquerito.nuipc,
-        alvos: alvos.length,
-        linhas: alvos.reduce((n, a) => n + a.linhas.length, 0),
-        produtos: alvos.reduce((n, a) => n + a.produtos.length, 0),
+        alvos: dados.alvos.length,
+        linhas: dados.alvos.reduce((n, a) => n + a.linhas.length, 0),
+        produtos: dados.alvos.reduce((n, a) => n + a.produtos.length, 0),
+        relacoes: dados.relacoes.length,
+        validacoes: dados.validacoes.length,
       },
     })
 

@@ -72,15 +72,25 @@ export async function PUT(
         ...(d.horaInicio !== undefined && { horaInicio: d.horaInicio || null }),
         ...(d.horaFim !== undefined && { horaFim: d.horaFim || null }),
         ...(d.duracao !== undefined && { duracao: d.duracao || null }),
-        ...(d.paraTranscricao !== undefined && { paraTranscricao: d.paraTranscricao }),
+        ...(d.idProduto !== undefined && { idProduto: d.idProduto.trim() || null }),
+        // Mudar de estado carimba a data; voltar a NENHUMA limpa-a.
+        ...(d.transcricao !== undefined &&
+          d.transcricao !== produto.transcricao && {
+            transcricao: d.transcricao,
+            transcricaoEm: d.transcricao === 'NENHUMA' ? null : new Date(),
+          }),
         ...(d.de !== undefined && { de: d.de.trim() || null }),
+        ...(d.identificacaoDe !== undefined && { identificacaoDe: d.identificacaoDe.trim() || null }),
         ...(d.para !== undefined && { para: d.para.trim() || null }),
+        ...(d.identificacaoPara !== undefined && {
+          identificacaoPara: d.identificacaoPara.trim() || null,
+        }),
         ...(d.resumo !== undefined && { resumo: d.resumo }),
         ...(d.comentarios !== undefined && { comentarios: d.comentarios.trim() || null }),
       },
     })
 
-    const keys = ['tipo', 'numeroProduto', 'direcao', 'data', 'horaInicio', 'horaFim', 'duracao', 'paraTranscricao', 'de', 'para', 'resumo', 'comentarios', 'linhaId'] as const
+    const keys = ['tipo', 'numeroProduto', 'idProduto', 'direcao', 'data', 'horaInicio', 'horaFim', 'duracao', 'transcricao', 'de', 'identificacaoDe', 'para', 'identificacaoPara', 'resumo', 'comentarios', 'linhaId'] as const
     const changes = diff(
       Object.fromEntries(keys.map((k) => [k, produto[k]])) as Record<string, string | Date | boolean | null>,
       Object.fromEntries(keys.map((k) => [k, updated[k]])) as Record<string, string | Date | boolean | null>,

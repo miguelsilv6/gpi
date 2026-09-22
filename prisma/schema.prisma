@@ -34,6 +34,8 @@ enum TipoNotificacao {
   CONTROLO_APROXIMANDO
   TRANSICAO_AUTOMATICA
   INTERCECAO_A_TERMINAR
+  INTERCECAO_VALIDACAO_APROXIMA
+  INTERCECAO_RENOVACAO_PREPARAR
   COLABORACAO_AUTORIZADA
   APREENSAO_PARADA
   PERICIA_ATRASADA
@@ -83,29 +85,43 @@ enum TipoLinhaIntercecao {
   OUTRO
 }
 
-// Tipo de produto de interesse registado numa interceção.
+// Tipo de produto de interesse registado numa interceção. VOZ e RAW espelham
+// o vocabulário do sistema de interceção usado no controlo em papel ("Voz",
+// "Raw (Em Bruto)"); os restantes mantêm-se para não invalidar registos antigos.
 enum TipoProdutoIntercecao {
   CHAMADA
+  VOZ
   SMS
   MMS
   DADOS
+  RAW
   LOCALIZACAO
   OUTRO
 }
 
-// Direção do produto relativamente ao alvo.
+// Direção do produto relativamente ao alvo ("De saída" / "De entrada" no
+// modelo em papel).
 enum DirecaoProdutoIntercecao {
   EFETUADA
   RECEBIDA
 }
 
+// Estado do pedido de transcrição de um produto. Substitui o antigo booleano
+// `paraTranscricao`: o controlo em papel distingue o pedido da autorização.
+enum EstadoTranscricao {
+  NENHUMA
+  PEDIDA
+  AUTORIZADA
+  TRANSCRITA
+}
+
 model Brigada {
-  id          String   @id @default(cuid())
-  nome        String   @unique
-  descricao   String?
-  ativa       Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  descricao String?
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   utilizadores Utilizador[]
   inqueritos   Inquerito[]
@@ -113,77 +129,80 @@ model Brigada {
 }
 
 model Utilizador {
-  id           String   @id @default(cuid())
-  nome         String
-  email        String   @unique
+  id               String    @id @default(cuid())
+  nome             String
+  email            String    @unique
   // Internal identification number (e.g. "número de LT"). Unique when set,
   // optional so legacy accounts and seed users don't have to backfill yet.
-  lt           Int?     @unique
-  telemovel    String?
-  passwordHash String
-  role         Role
-  ativo        Boolean  @default(true)
-  chefeSupremo Boolean  @default(false)
-  tokenVersion Int      @default(0)
-  lockedUntil  DateTime?
-  failedLoginCount Int  @default(0)
-  lastLoginAt  DateTime?
-  lastLoginIp  String?
+  lt               Int?      @unique
+  telemovel        String?
+  passwordHash     String
+  role             Role
+  ativo            Boolean   @default(true)
+  chefeSupremo     Boolean   @default(false)
+  tokenVersion     Int       @default(0)
+  lockedUntil      DateTime?
+  failedLoginCount Int       @default(0)
+  lastLoginAt      DateTime?
+  lastLoginIp      String?
   // Última atividade (heartbeat): atualizado pelo poll de notificações (~90s)
   // enquanto o utilizador tem a app aberta. Base do indicador "online agora"
   // (as sessões são JWT, sem registo em BD). null = nunca visto ativo.
-  lastSeenAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  lastSeenAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   brigada   Brigada? @relation(fields: [brigadaId], references: [id])
   brigadaId String?
 
-  inqueritos           Inquerito[]   @relation("InspetorAtribuido")
-  inqueritosDocPendente Inquerito[]  @relation("DocumentacaoPendentePor")
-  atividadesRealizadas Atividade[]
-  notificacoes         Notificacao[]
-  sessoes              Sessao[]
-  passwordResetTokens  PasswordResetToken[]
-  atualizacoesIniciadas AtualizacaoSistema[]
-  etiquetas            Etiqueta[]
-  ajudasRegistos       AjudasRegisto[]
+  inqueritos                    Inquerito[]              @relation("InspetorAtribuido")
+  inqueritosDocPendente         Inquerito[]              @relation("DocumentacaoPendentePor")
+  atividadesRealizadas          Atividade[]
+  notificacoes                  Notificacao[]
+  sessoes                       Sessao[]
+  passwordResetTokens           PasswordResetToken[]
+  atualizacoesIniciadas         AtualizacaoSistema[]
+  etiquetas                     Etiqueta[]
+  ajudasRegistos                AjudasRegisto[]
   // Per-user overrides for Ajudas Mensais calculations.
   // When set, these take precedence over the global AjudasConfig values.
-  ajudasVencimentoBase Float?
-  ajudasTaxaIRS        Float?
+  ajudasVencimentoBase          Float?
+  ajudasTaxaIRS                 Float?
   // Estados pré-selecionados por defeito no filtro da pesquisa de inquéritos
   // (guardados como codigos, estáveis a renomeações). Quando não vazio,
   // sobrepõe-se ao default global (ConfiguracaoSistema.inqueritoFiltroEstadosDefault).
-  inqueritoFiltroEstadosDefault String[] @default([])
+  inqueritoFiltroEstadosDefault String[]                 @default([])
   // Nº de inquéritos por página pré-definido na listagem. Null = usa o default
   // do sistema (20). Restrito a valores conhecidos (20/50/100/250) na validação.
-  inqueritoPageSizeDefault Int?
+  inqueritoPageSizeDefault      Int?
   // Tour de boas-vindas: data em que o utilizador concluiu ou saltou a tour
   // guiada. Null = ainda não a viu → arranca automaticamente no primeiro
   // acesso. Pode ser reposta para voltar a ver ("Ver tour novamente" no Perfil).
-  tourConcluidaEm      DateTime?
-  viaturas             Viatura[]
-  ausencias            Ausencia[]    @relation("AusenciasInspetor")
-  notificacaoPreferencias NotificacaoPreferencia[]
-  bugReports           BugReport[]
-  controlosCriados     Controlo[]   @relation("ControloCriador")
-  controloRealizacoes  ControloRealizacao[] @relation("ControloRealizacaoPor")
-  documentosCarregados Documento[]  @relation("DocumentoUploader")
-  notasInquerito       NotaInquerito[] @relation("NotaInqueritoAutor")
-  notasEditadas        NotaInquerito[] @relation("NotaInqueritoEditor")
-  tarefasInquerito     TarefaInquerito[]
-  relacoesInqueritoCriadas InqueritoRelacao[] @relation("RelacaoCriador")
-  diligenciasCriadas   Diligencia[]  @relation("DiligenciaCriador")
-  intercecaoProdutosCriados IntercecaoProduto[] @relation("IntercecaoProdutoCriador")
+  tourConcluidaEm               DateTime?
+  viaturas                      Viatura[]
+  ausencias                     Ausencia[]               @relation("AusenciasInspetor")
+  notificacaoPreferencias       NotificacaoPreferencia[]
+  bugReports                    BugReport[]
+  controlosCriados              Controlo[]               @relation("ControloCriador")
+  controloRealizacoes           ControloRealizacao[]     @relation("ControloRealizacaoPor")
+  documentosCarregados          Documento[]              @relation("DocumentoUploader")
+  notasInquerito                NotaInquerito[]          @relation("NotaInqueritoAutor")
+  notasEditadas                 NotaInquerito[]          @relation("NotaInqueritoEditor")
+  tarefasInquerito              TarefaInquerito[]
+  relacoesInqueritoCriadas      InqueritoRelacao[]       @relation("RelacaoCriador")
+  diligenciasCriadas            Diligencia[]             @relation("DiligenciaCriador")
+  intercecaoProdutosCriados     IntercecaoProduto[]      @relation("IntercecaoProdutoCriador")
+  intercecaoValidacoes          IntercecaoValidacao[]    @relation("IntercecaoValidacaoPor")
+  intercecaoRelacoesCriadas     IntercecaoRelacao[]      @relation("IntercecaoRelacaoCriador")
+  intercecaoOuvidoAte           IntercecaoOuvidoAte[]    @relation("IntercecaoOuvidoAtePor")
   // Colaborações autorizadas: inquéritos onde este utilizador é colaborador,
   // e autorizações que este utilizador concedeu a outros.
-  colaboracoes           InqueritoColaborador[] @relation("ColaboradorInquerito")
-  colaboracoesConcedidas InqueritoColaborador[] @relation("ColaboradorConcedidoPor")
-  apreensoesRegistadas   Apreensao[]  @relation("ApreensaoRegistador")
-  periciasRegistadas     Pericia[]    @relation("PericiaRegistador")
-  pushSubscriptions      PushSubscription[]
-  webauthnCredentials    WebauthnCredential[]
+  colaboracoes                  InqueritoColaborador[]   @relation("ColaboradorInquerito")
+  colaboracoesConcedidas        InqueritoColaborador[]   @relation("ColaboradorConcedidoPor")
+  apreensoesRegistadas          Apreensao[]              @relation("ApreensaoRegistador")
+  periciasRegistadas            Pericia[]                @relation("PericiaRegistador")
+  pushSubscriptions             PushSubscription[]
+  webauthnCredentials           WebauthnCredential[]
 
   @@index([brigadaId])
   @@index([role])
@@ -234,44 +253,44 @@ model WebauthnCredential {
 }
 
 model Inquerito {
-  id             String   @id @default(cuid())
-  nuipc          String   @unique
-  nai            String?  @unique
+  id                        String    @id @default(cuid())
+  nuipc                     String    @unique
+  nai                       String?   @unique
   // Free-text natureza, kept for transitional backfill. Once `crimeId` is
   // populated for every row (via scripts/migrate-natureza-to-crime.ts) and
   // the UI no longer reads from this field, a future migration drops it.
-  natureza       String
-  dataAbertura     DateTime
-  dataDistribuicao DateTime?
-  dataPrazo        DateTime?
-  dataConclusao    DateTime?
-  notas          String?
-  cartaPrecatoria Boolean @default(false)
+  natureza                  String
+  dataAbertura              DateTime
+  dataDistribuicao          DateTime?
+  dataPrazo                 DateTime?
+  dataConclusao             DateTime?
+  notas                     String?
+  cartaPrecatoria           Boolean   @default(false)
   // Carta Precatória — inspetor titular do inquérito (de outra unidade), a
   // quem o processo é devolvido após as diligências. Campos livres: o titular
   // pode pertencer a outro órgão/unidade e não ser utilizador do sistema.
-  titularNome    String?
-  titularEmail   String?
-  titularVoip    String?
-  titularUnidade String?
+  titularNome               String?
+  titularEmail              String?
+  titularVoip               String?
+  titularUnidade            String?
   // Tribunal / Ministério Público — all optional.
-  procurador     String?
-  oficialJustica String?
-  voip           String?
-  notasTribunal  String?
+  procurador                String?
+  oficialJustica            String?
+  voip                      String?
+  notasTribunal             String?
   // Denunciante (queixoso) — all optional. Tipo é 'SINGULAR' | 'COLETIVA'
   // ao nível da aplicação (nullable String para não exigir migração quando
   // surgirem novos tipos). NIF para singulares; NIPC para coletivas.
-  denuncianteNome        String?
-  denuncianteTipo        String?
-  denuncianteNif         String?
-  denuncianteMorada      String?
-  denuncianteCodPostal   String?
-  denuncianteLocalidade  String?
-  denuncianteContacto    String?
-  denuncianteEmail       String?
-  denuncianteResponsavel String?
-  denuncianteNotas       String?
+  denuncianteNome           String?
+  denuncianteTipo           String?
+  denuncianteNif            String?
+  denuncianteMorada         String?
+  denuncianteCodPostal      String?
+  denuncianteLocalidade     String?
+  denuncianteContacto       String?
+  denuncianteEmail          String?
+  denuncianteResponsavel    String?
+  denuncianteNotas          String?
   // Documentação pendente — inquérito já enviado/concluído mas a aguardar
   // documentação que chega depois e tem de ser junta a posterior.
   // `documentacaoPendenteNota` descreve o que falta; `...Desde` é preenchido
@@ -279,9 +298,9 @@ model Inquerito {
   documentacaoPendente      Boolean   @default(false)
   documentacaoPendenteNota  String?
   documentacaoPendenteDesde DateTime?
-  deletedAt      DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  deletedAt                 DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
   estado   EstadoInquerito @relation(fields: [estadoId], references: [id])
   estadoId String
@@ -298,8 +317,8 @@ model Inquerito {
   documentacaoPendentePor   Utilizador? @relation("DocumentacaoPendentePor", fields: [documentacaoPendentePorId], references: [id], onDelete: SetNull)
   documentacaoPendentePorId String?
 
-  crime    Crime?  @relation("CrimePrincipal", fields: [crimeId], references: [id])
-  crimeId  String?
+  crime            Crime?  @relation("CrimePrincipal", fields: [crimeId], references: [id])
+  crimeId          String?
   // Crimes adicionais (m2m implícita). Não contam para estatísticas —
   // só o crime principal (crimeId) entra nos agrupamentos por crime,
   // garantindo que um inquérito nunca é contado mais de uma vez.
@@ -307,7 +326,7 @@ model Inquerito {
 
   tribunal   Tribunal? @relation(fields: [tribunalId], references: [id])
   tribunalId String?
-  seccao     Seccao? @relation(fields: [seccaoId], references: [id])
+  seccao     Seccao?   @relation(fields: [seccaoId], references: [id])
   seccaoId   String?
 
   // Etiquetas (tags) pessoais aplicadas ao inquérito. Relação m2m implícita —
@@ -326,12 +345,14 @@ model Inquerito {
   relacoesOrigem  InqueritoRelacao[] @relation("RelacaoOrigem")
   relacoesDestino InqueritoRelacao[] @relation("RelacaoDestino")
 
-  diligencias     Diligencia[]
-  intercecaoAlvos IntercecaoAlvo[]
-  colaboradores   InqueritoColaborador[]
-  intervenientes  Interveniente[]
-  apreensoes      Apreensao[]
-  pericias        Pericia[]
+  diligencias              Diligencia[]
+  intercecaoAlvos          IntercecaoAlvo[]
+  intercecaoRelacoes       IntercecaoRelacao[]
+  intercecaoPlanoValidacao IntercecaoPlanoValidacao?
+  colaboradores            InqueritoColaborador[]
+  intervenientes           Interveniente[]
+  apreensoes               Apreensao[]
+  pericias                 Pericia[]
 
   @@index([brigadaId])
   @@index([inspetorId])
@@ -419,32 +440,32 @@ enum EstadoApreensao {
 // operacional do inquérito (o acesso segue o scope do inquérito, e a escrita a
 // mesma regra das atividades — inclui colaboradores autorizados).
 model Apreensao {
-  id           String          @id @default(cuid())
-  descricao    String          // o que foi apreendido
-  tipo         TipoApreensao   @default(OUTRO)
-  tipoOutro    String?         // descrição livre quando tipo = OUTRO
-  quantidade   String?         // ex.: "3 unidades", "250 g" — texto livre
-  numeroAuto   String?         // nº do auto de apreensão
-  dataApreensao DateTime
-  local        String?         // onde foi apreendido
-  apreendidoA  String?         // a quem foi apreendido (texto livre)
-  localCustodia String?        // onde está guardado (cofre/depósito)
-  estado       EstadoApreensao @default(EM_CUSTODIA)
-  dataDestino  DateTime?       // data da devolução / perda / destruição
-  observacoes  String?
+  id                  String          @id @default(cuid())
+  descricao           String // o que foi apreendido
+  tipo                TipoApreensao   @default(OUTRO)
+  tipoOutro           String? // descrição livre quando tipo = OUTRO
+  quantidade          String? // ex.: "3 unidades", "250 g" — texto livre
+  numeroAuto          String? // nº do auto de apreensão
+  dataApreensao       DateTime
+  local               String? // onde foi apreendido
+  apreendidoA         String? // a quem foi apreendido (texto livre)
+  localCustodia       String? // onde está guardado (cofre/depósito)
+  estado              EstadoApreensao @default(EM_CUSTODIA)
+  dataDestino         DateTime? // data da devolução / perda / destruição
+  observacoes         String?
   // Idempotência do alerta "apreensão parada" (objeto há muito por dar destino).
-  alertaParadaEnviado Boolean  @default(false)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  alertaParadaEnviado Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
-  inquerito    Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
-  inqueritoid  String
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String
 
   registadoPor   Utilizador @relation("ApreensaoRegistador", fields: [registadoPorId], references: [id])
   registadoPorId String
 
   // Perícias que incidem sobre este objeto (ligação opcional).
-  pericias     Pericia[]  @relation("ApreensaoPericias")
+  pericias Pericia[] @relation("ApreensaoPericias")
 
   @@index([inqueritoid])
   @@index([estado])
@@ -477,30 +498,30 @@ enum EstadoPericia {
 // opcionalmente sobre um objeto apreendido. Trabalho operacional do inquérito
 // (mesmo scope/escrita das atividades e apreensões).
 model Pericia {
-  id               String        @id @default(cuid())
-  tipo             TipoPericia   @default(OUTRO)
-  tipoOutro        String?       // descrição livre quando tipo = OUTRO
-  descricao        String        // objeto/objetivo da perícia
-  entidade         String?       // laboratório/entidade (LPC, INML, …)
-  numeroReferencia String?       // nº de referência do pedido/exame
-  dataPedido       DateTime
-  dataPrevista     DateTime?     // data prevista de conclusão (prazo)
-  estado           EstadoPericia @default(SOLICITADA)
-  dataConclusao    DateTime?
-  resultado        String?       // conclusões/resultado
-  observacoes      String?
+  id                  String        @id @default(cuid())
+  tipo                TipoPericia   @default(OUTRO)
+  tipoOutro           String? // descrição livre quando tipo = OUTRO
+  descricao           String // objeto/objetivo da perícia
+  entidade            String? // laboratório/entidade (LPC, INML, …)
+  numeroReferencia    String? // nº de referência do pedido/exame
+  dataPedido          DateTime
+  dataPrevista        DateTime? // data prevista de conclusão (prazo)
+  estado              EstadoPericia @default(SOLICITADA)
+  dataConclusao       DateTime?
+  resultado           String? // conclusões/resultado
+  observacoes         String?
   // Idempotência do alerta "perícia atrasada" (prevista já passou, sem conclusão).
-  alertaAtrasoEnviado Boolean    @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  alertaAtrasoEnviado Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  inquerito    Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
-  inqueritoid  String
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String
 
   // Ligação opcional ao objeto apreendido examinado. Ao apagar a apreensão, a
   // perícia mantém-se mas fica sem ligação (SetNull).
-  apreensao    Apreensao? @relation("ApreensaoPericias", fields: [apreensaoId], references: [id], onDelete: SetNull)
-  apreensaoId  String?
+  apreensao   Apreensao? @relation("ApreensaoPericias", fields: [apreensaoId], references: [id], onDelete: SetNull)
+  apreensaoId String?
 
   registadoPor   Utilizador @relation("PericiaRegistador", fields: [registadoPorId], references: [id])
   registadoPorId String
@@ -575,8 +596,8 @@ model EstadoInquerito {
   updatedAt DateTime @updatedAt
 
   inqueritos                            Inquerito[]
-  atividadesPadraoQueTransitam          AtividadePadrao[] @relation("AtividadePadraoTransicao")
-  atividadesPadraoQueTransitamConclusao AtividadePadrao[] @relation("AtividadePadraoTransicaoConclusao")
+  atividadesPadraoQueTransitam          AtividadePadrao[]          @relation("AtividadePadraoTransicao")
+  atividadesPadraoQueTransitamConclusao AtividadePadrao[]          @relation("AtividadePadraoTransicaoConclusao")
   regrasComoOrigem                      RegraTransicaoAutomatica[] @relation("RegraTransicaoOrigem")
   regrasComoDestino                     RegraTransicaoAutomatica[] @relation("RegraTransicaoDestino")
 
@@ -597,7 +618,7 @@ model RegraTransicaoAutomatica {
   destino   EstadoInquerito @relation("RegraTransicaoDestino", fields: [destinoId], references: [id], onDelete: Cascade)
   destinoId String
 
-  meses Int     // meses de inatividade no estado de origem antes de transitar
+  meses Int // meses de inatividade no estado de origem antes de transitar
   ativa Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -616,8 +637,8 @@ model Crime {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  inqueritos          Inquerito[] @relation("CrimePrincipal")
-  inqueritoAssociados Inquerito[] @relation("CrimesAssociados")
+  inqueritos          Inquerito[]          @relation("CrimePrincipal")
+  inqueritoAssociados Inquerito[]          @relation("CrimesAssociados")
   checklist           CrimeChecklistItem[]
 
   @@index([ativo, ordem])
@@ -653,42 +674,44 @@ model Comarca {
   updatedAt DateTime   @updatedAt
   tribunais Tribunal[]
   seccoes   Seccao[]
+
   @@index([ativo, ordem])
 }
 
 model Tribunal {
-  id        String   @id @default(cuid())
-  nome      String   @unique
-  comarcaId String?
-  comarca   Comarca? @relation(fields: [comarcaId], references: [id], onDelete: SetNull)
-  morada    String?
-  telefone  String?
-  email     String?
-  descricao String?
-  ordem     Int      @default(0)
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String      @id @default(cuid())
+  nome       String      @unique
+  comarcaId  String?
+  comarca    Comarca?    @relation(fields: [comarcaId], references: [id], onDelete: SetNull)
+  morada     String?
+  telefone   String?
+  email      String?
+  descricao  String?
+  ordem      Int         @default(0)
+  ativo      Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   inqueritos Inquerito[]
+
   @@index([ativo, ordem])
   @@index([comarcaId])
 }
 
 model Seccao {
-  id        String   @id @default(cuid())
-  nome      String
-  descricao String?
-  ordem     Int      @default(0)
-  ativo     Boolean  @default(true)
-  comarcaId String?
-  comarca   Comarca? @relation(fields: [comarcaId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String      @id @default(cuid())
+  nome       String
+  descricao  String?
+  ordem      Int         @default(0)
+  ativo      Boolean     @default(true)
+  comarcaId  String?
+  comarca    Comarca?    @relation(fields: [comarcaId], references: [id], onDelete: SetNull)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   inqueritos Inquerito[]
+
   @@index([ativo, ordem])
   @@index([comarcaId])
 }
-
 
 // Etiqueta (tag) pessoal — cada utilizador cria as suas, únicas dentro do seu
 // perfil. A unicidade é case-insensitive: garantida por `nomeNormalizado`
@@ -698,13 +721,13 @@ model Seccao {
 // Uma vez aplicada, a etiqueta "viaja" com o inquérito e fica visível a quem o
 // vê, independentemente de quem a criou.
 model Etiqueta {
-  id          String   @id @default(cuid())
-  nome        String
+  id              String   @id @default(cuid())
+  nome            String
   // Forma normalizada (lower-case de `nome`) usada apenas para impor unicidade
   // case-insensitive por utilizador. Mantida em sincronia em cada escrita.
   nomeNormalizado String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   criadoPor   Utilizador @relation(fields: [criadoPorId], references: [id], onDelete: Cascade)
   criadoPorId String
@@ -761,13 +784,13 @@ model Controlo {
   createdAt   DateTime  @default(now())
 
   inqueritoid String?
-  inquerito   Inquerito?  @relation(fields: [inqueritoid], references: [id], onDelete: SetNull)
+  inquerito   Inquerito? @relation(fields: [inqueritoid], references: [id], onDelete: SetNull)
 
-  atividadeId String?   @unique
+  atividadeId String?    @unique
   atividade   Atividade? @relation(fields: [atividadeId], references: [id], onDelete: SetNull)
 
-  criadorId   String
-  criador     Utilizador  @relation("ControloCriador", fields: [criadorId], references: [id])
+  criadorId String
+  criador   Utilizador @relation("ControloCriador", fields: [criadorId], references: [id])
 
   realizacoes ControloRealizacao[]
 
@@ -786,8 +809,8 @@ model ControloRealizacao {
   alertaEnviado  Boolean   @default(false)
   createdAt      DateTime  @default(now())
 
-  controlo    Controlo   @relation(fields: [controloId], references: [id], onDelete: Cascade)
-  controloId  String
+  controlo   Controlo @relation(fields: [controloId], references: [id], onDelete: Cascade)
+  controloId String
 
   realizadoPorId String?
   realizadoPor   Utilizador? @relation("ControloRealizacaoPor", fields: [realizadoPorId], references: [id], onDelete: SetNull)
@@ -850,175 +873,175 @@ model LoginAttempt {
 }
 
 model ConfiguracaoSistema {
-  id                              String   @id @default("singleton")
-  backupScheduleCron              String   @default("0 2 * * *")
+  id                            String    @id @default("singleton")
+  backupScheduleCron            String    @default("0 2 * * *")
   // Número de ficheiros de backup a manter por prefixo (rotação FIFO).
   // Passado como BACKUP_RETENTION ao backup.sh pelo worker.
-  backupRetencao                  Int      @default(30)
+  backupRetencao                Int       @default(30)
   // Quando true, o middleware bloqueia utilizadores não-ADMINISTRACAO com 503.
   // Activado/desactivado pelo endpoint de restauro e disponível como toggle
   // manual em /configurações para janelas de manutenção planeadas.
-  maintenanceMode                 Boolean  @default(false)
+  maintenanceMode               Boolean   @default(false)
   // When false, the Ajudas Mensais module is hidden and all its API routes
   // return 503. Only ADMINISTRACAO can toggle this in Configurações → Sistema.
-  moduloAjudasAtivo               Boolean  @default(true)
+  moduloAjudasAtivo             Boolean   @default(true)
   // Comma-separated list of Role values that can access the Ajudas module when
   // it is active. ADMINISTRACAO always has access and is never stored here.
-  moduloAjudasRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloAjudasRoles             String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // When false, the Férias module is hidden and all its API routes return 503.
   // Only ADMINISTRACAO can toggle this in Configurações → Sistema.
-  moduloFeriasAtivo               Boolean  @default(true)
+  moduloFeriasAtivo             Boolean   @default(true)
   // Comma-separated list of Role values that can access the Férias module when
   // it is active. ADMINISTRACAO always has access and is never stored here.
-  moduloFeriasRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloFeriasRoles             String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // When false, users can no longer submit bug reports (the /reportar-bug page
   // and its POST route return "module disabled"). The ADMINISTRACAO management
   // page (/bugs) is always available so existing reports can still be analysed.
-  moduloBugReportsAtivo           Boolean  @default(true)
+  moduloBugReportsAtivo         Boolean   @default(true)
   // Comma-separated list of Role values allowed to submit bug reports when the
   // module is active. ADMINISTRACAO always has access and is never stored here.
-  moduloBugReportsRoles           String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloBugReportsRoles         String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // When false, the Toolbox module (investigator utilities: IP lookup, email
   // header analysis, DNS, etc.) is hidden and its API routes return 503.
-  moduloToolboxAtivo              Boolean  @default(true)
+  moduloToolboxAtivo            Boolean   @default(true)
   // Comma-separated list of Role values allowed to use the Toolbox when the
   // module is active. ADMINISTRACAO always has access and is never stored here.
-  moduloToolboxRoles              String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloToolboxRoles            String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // When false, the Anexos feature (documentos anexados a inquéritos) is hidden
   // on the inquiry detail page and its API routes return 503. Only ADMINISTRACAO
   // can toggle this in Configurações → Sistema.
-  moduloAnexosAtivo               Boolean  @default(true)
+  moduloAnexosAtivo             Boolean   @default(true)
   // Comma-separated list of Role values allowed to see/manage attachments when
   // the module is active. ADMINISTRACAO always has access and is never stored here.
-  moduloAnexosRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloAnexosRoles             String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // When false, the Agenda module (vista de calendário: prazos, atividades,
   // controlos e diligências) is hidden and its API routes return 503. Only
   // ADMINISTRACAO can toggle this in Configurações → Sistema.
-  moduloAgendaAtivo               Boolean  @default(true)
+  moduloAgendaAtivo             Boolean   @default(true)
   // Comma-separated list of Role values allowed to use the Agenda when the
   // module is active. ADMINISTRACAO always has access and is never stored here.
-  moduloAgendaRoles               String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloAgendaRoles             String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Módulo Interceções (controlo de escutas): quando desativado, a navegação
   // esconde a página e as rotas API devolvem 503. ADMINISTRACAO tem sempre acesso.
-  moduloIntercecoesAtivo          Boolean  @default(true)
-  moduloIntercecoesRoles          String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloIntercecoesAtivo        Boolean   @default(true)
+  moduloIntercecoesRoles        String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Módulo Apreensões (cadeia de custódia de objetos apreendidos).
-  moduloApreensoesAtivo           Boolean  @default(true)
-  moduloApreensoesRoles           String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloApreensoesAtivo         Boolean   @default(true)
+  moduloApreensoesRoles         String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Dias em custódia após os quais um objeto ainda por devolver/dar destino
   // gera um lembrete (APREENSAO_PARADA) ao inspetor. null/0 = desligado.
-  apreensaoAlertaDias             Int?     @default(180)
+  apreensaoAlertaDias           Int?      @default(180)
   // Módulo Perícias (exames técnicos/científicos pedidos a entidades externas).
-  moduloPericiasAtivo             Boolean  @default(true)
-  moduloPericiasRoles             String   @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
+  moduloPericiasAtivo           Boolean   @default(true)
+  moduloPericiasRoles           String    @default("INSPETOR,INSPETOR_CHEFE,COORDENADOR")
   // Idle timeout in minutes. 0 disables the feature.
-  sessaoTimeoutMinutos            Int      @default(0)
-  prazoAlertaDias                 Int      @default(7)
+  sessaoTimeoutMinutos          Int       @default(0)
+  prazoAlertaDias               Int       @default(7)
   // Segundo limiar (opcional, mais próximo do prazo) para um aviso "urgente"
   // de inquéritos: quando o prazo cai dentro deste nº de dias, escala também
   // ao Inspetor-Chefe da brigada. null = desligado.
-  prazoAlertaDiasUrgente          Int?
-  emailRemetenteNome              String   @default("GPI Sistema")
-  emailRemetenteAddr              String   @default("noreply@gpi.pt")
+  prazoAlertaDiasUrgente        Int?
+  emailRemetenteNome            String    @default("GPI Sistema")
+  emailRemetenteAddr            String    @default("noreply@gpi.pt")
   // Ligação ao servidor SMTP, configurável pelo ADMINISTRACAO em
   // /configurações → Sistema. Quando smtpHost está definido, sobrepõe-se às
   // variáveis de ambiente SMTP_*; caso contrário usa-se o fallback de env.
   // A palavra-passe é guardada cifrada (AES-256-GCM, ver src/lib/crypto-secrets.ts)
   // e nunca é devolvida em texto pela API.
-  smtpHost                        String?
-  smtpPort                        Int?
-  smtpSecure                      Boolean  @default(false)
-  smtpUser                        String?
-  smtpPasswordEnc                 String?
+  smtpHost                      String?
+  smtpPort                      Int?
+  smtpSecure                    Boolean   @default(false)
+  smtpUser                      String?
+  smtpPasswordEnc               String?
   // Módulo de notificações por email. false = nenhum email é enviado pelo sistema,
   // independentemente das políticas por tipo. Útil durante fases de teste/integração.
-  emailNotificacoesAtivo          Boolean  @default(true)
+  emailNotificacoesAtivo        Boolean   @default(true)
   // Template (global) dos e-mails de notificação — formulário estruturado
   // (cabeçalho/cor/saudação/rodapé/aviso legal/prefixo do assunto). null = usar
   // os defaults de src/lib/email-template.ts. Ver EmailTemplate.
-  emailTemplate                   Json?
+  emailTemplate                 Json?
   // Default estado codigos applied to /inqueritos when the user has no explicit
   // filter set on the URL. Stored as codigos for stability across renames.
-  inqueritoFiltroEstadosDefault   String[] @default([])
+  inqueritoFiltroEstadosDefault String[]  @default([])
   // Cache da última verificação à GitHub Releases. Escrito pelo worker no
   // tick agendado e pelo endpoint POST /api/updates/check.
-  latestVersionTag                String?
-  latestVersionCheckedAt          DateTime?
-  latestVersionUrl                String?
-  latestVersionNotes              String?
+  latestVersionTag              String?
+  latestVersionCheckedAt        DateTime?
+  latestVersionUrl              String?
+  latestVersionNotes            String?
   // Personalização (branding) — null em qualquer campo = usar o default
   // codificado em src/lib/brand-defaults.ts. Os ficheiros referenciados
   // (logos, favicon) vivem em BRANDING_DIR (bind mount ./branding).
   // brandUpdatedAt é usado como cache-busting `?v=<ts>` para os assets.
-  appName                         String?
-  appShortName                    String?
-  appDescription                  String?
-  manifestDescription             String?
-  pdfFooterText                   String?
+  appName                       String?
+  appShortName                  String?
+  appDescription                String?
+  manifestDescription           String?
+  pdfFooterText                 String?
   // Cabeçalho/título e marca de água dos PDFs (impressão do inquérito e
   // relatórios). null = usar o default (cabeçalho vazio, sem marca de água).
-  pdfHeaderText                   String?
-  pdfWatermarkText                String?
-  appAuthor                       String?
-  logoLightFilename               String?
-  logoDarkFilename                String?
-  faviconFilename                 String?
-  logoHorizontalLightFilename     String?
-  logoHorizontalDarkFilename      String?
+  pdfHeaderText                 String?
+  pdfWatermarkText              String?
+  appAuthor                     String?
+  logoLightFilename             String?
+  logoDarkFilename              String?
+  faviconFilename               String?
+  logoHorizontalLightFilename   String?
+  logoHorizontalDarkFilename    String?
   // Escala em % (10–200) e alinhamento (left|center|right) do logo horizontal na sidebar.
-  logoHorizontalEscala            Int      @default(100)
-  logoHorizontalAlinhamento       String   @default("center")
-  brandUpdatedAt                  DateTime?
-  updatedAt                       DateTime @updatedAt
+  logoHorizontalEscala          Int       @default(100)
+  logoHorizontalAlinhamento     String    @default("center")
+  brandUpdatedAt                DateTime?
+  updatedAt                     DateTime  @updatedAt
 }
 
 // Cada tentativa de atualização da app deixa uma linha aqui. A FSM (campo
 // `state`) é validada em escrita por src/lib/updates/state-machine.ts; este
 // modelo é o ponto único de verdade observado pelo UI e pelo audit.
 model AtualizacaoSistema {
-  id              String   @id @default(cuid())
+  id            String     @id @default(cuid())
   // Idempotency key passada pelo cliente (header Idempotency-Key). Permite
   // que retries da request POST /api/updates/start não criem duplicados.
-  requestId       String   @unique
-  fromVersion     String
-  toVersion       String
-  fromCommitSha   String
-  toCommitSha     String?
+  requestId     String     @unique
+  fromVersion   String
+  toVersion     String
+  fromCommitSha String
+  toCommitSha   String?
   // Nome do estado da FSM. Strings em vez de enum para evitar migrações
   // sempre que se adiciona um estado intermédio.
-  state           String
+  state         String
   // Filename do gpi_prerestore_*.sql.gz criado antes do update, usado pelo
   // path de rollback para reverter a BD.
-  preBackupFile   String?
-  startedAt       DateTime @default(now())
-  finishedAt      DateTime?
-  errorMessage    String?
-  rolledBack      Boolean  @default(false)
-  iniciadoPorId   String
-  iniciadoPor     Utilizador @relation(fields: [iniciadoPorId], references: [id])
+  preBackupFile String?
+  startedAt     DateTime   @default(now())
+  finishedAt    DateTime?
+  errorMessage  String?
+  rolledBack    Boolean    @default(false)
+  iniciadoPorId String
+  iniciadoPor   Utilizador @relation(fields: [iniciadoPorId], references: [id])
 
   @@index([startedAt])
   @@index([state])
 }
 
 model AtividadePadrao {
-  id                    String   @id @default(cuid())
-  nome                  String   @unique
-  descricao             String?
-  ativa                 Boolean  @default(true)
-  ordem                 Int      @default(0)
-  temPrazo              Boolean  @default(false)
-  temQuantidade         Boolean  @default(false)
-  temControlo           Boolean  @default(false)
+  id                         String           @id @default(cuid())
+  nome                       String           @unique
+  descricao                  String?
+  ativa                      Boolean          @default(true)
+  ordem                      Int              @default(0)
+  temPrazo                   Boolean          @default(false)
+  temQuantidade              Boolean          @default(false)
+  temControlo                Boolean          @default(false)
   // When false, activities of this type are excluded from analytical
   // aggregations (e.g. "Resumo por tipo" in the inquérito detail). The total
   // count of activities is unaffected.
-  contaParaEstatistica  Boolean  @default(true)
+  contaParaEstatistica       Boolean          @default(true)
   // Optional auto-transition: when an Atividade with this padrão's `nome` is
   // created, the parent inquérito is moved to this estado (subject to the
   // state machine). Null means no transition.
-  transicaoEstado   EstadoInquerito? @relation("AtividadePadraoTransicao", fields: [transicaoEstadoId], references: [id], onDelete: SetNull)
-  transicaoEstadoId String?
+  transicaoEstado            EstadoInquerito? @relation("AtividadePadraoTransicao", fields: [transicaoEstadoId], references: [id], onDelete: SetNull)
+  transicaoEstadoId          String?
   // Optional auto-transition on CONFIRMATION: when an Atividade of this padrão
   // is marked as concluded (confirmação de devolução / conclusão de exames), the
   // parent inquérito moves to this estado (subject to the state machine). Null
@@ -1028,9 +1051,9 @@ model AtividadePadrao {
   // Optional category for the dashboard counters. Values are an app-level
   // union ('AGUARDA_EXAMES' | 'ENVIADO'); kept as a nullable String so new
   // categories can be added without a Prisma migration.
-  categoriaDashboard String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  categoriaDashboard         String?
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
 
   checklistItems CrimeChecklistItem[]
 
@@ -1087,7 +1110,7 @@ model AjudasRegisto {
   utilizadorId String
   utilizador   Utilizador    @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
   ano          Int
-  mes          Int           // 1-12
+  mes          Int // 1-12
   linhas       AjudasLinha[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -1098,29 +1121,29 @@ model AjudasRegisto {
 
 // Individual callout/activity entry
 model AjudasLinha {
-  id                   String          @id @default(cuid())
-  registoId            String
-  registo              AjudasRegisto   @relation(fields: [registoId], references: [id], onDelete: Cascade)
-  nuipc                String?
-  local                String?
-  dataInicio           DateTime
-  dataFim              DateTime
-  prevencao            AjudasPrevencao @default(NENHUMA)
+  id               String          @id @default(cuid())
+  registoId        String
+  registo          AjudasRegisto   @relation(fields: [registoId], references: [id], onDelete: Cascade)
+  nuipc            String?
+  local            String?
+  dataInicio       DateTime
+  dataFim          DateTime
+  prevencao        AjudasPrevencao @default(NENHUMA)
   // When true, this entry records only a prevencao/piquete fee (no overtime hours).
   // splitHours is skipped; only the prevencao period is counted.
-  prevencaoOnly        Boolean         @default(false)
-  ajudaCustoAlmoco     Int             @default(0)
-  ajudaCustoJantar     Int             @default(0)
-  ajudaCustoCeia       Int             @default(0)
-  senhaAlmoco          Int             @default(0)
-  senhaJantar          Int             @default(0)
-  senhaCeia            Int             @default(0)
-  viaturaId            String?
-  viatura              Viatura?        @relation(fields: [viaturaId], references: [id], onDelete: SetNull)
-  km                   Int             @default(0)
-  observacoes          String?
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  prevencaoOnly    Boolean         @default(false)
+  ajudaCustoAlmoco Int             @default(0)
+  ajudaCustoJantar Int             @default(0)
+  ajudaCustoCeia   Int             @default(0)
+  senhaAlmoco      Int             @default(0)
+  senhaJantar      Int             @default(0)
+  senhaCeia        Int             @default(0)
+  viaturaId        String?
+  viatura          Viatura?        @relation(fields: [viaturaId], references: [id], onDelete: SetNull)
+  km               Int             @default(0)
+  observacoes      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([registoId])
   @@index([viaturaId])
@@ -1151,8 +1174,8 @@ model Ausencia {
 }
 
 model Sessao {
-  id           String     @id @default(cuid())
-  sessionToken String     @unique
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
   expires      DateTime
 
   utilizador   Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
@@ -1254,14 +1277,14 @@ enum PrioridadeTarefa {
 }
 
 model TarefaInquerito {
-  id          String          @id @default(cuid())
+  id          String           @id @default(cuid())
   titulo      String
   descricao   String?
   prioridade  PrioridadeTarefa @default(NORMAL)
-  concluida   Boolean         @default(false)
+  concluida   Boolean          @default(false)
   concluidaEm DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @default(now()) @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
 
   inquerito   Inquerito @relation(fields: [inqueritoId], references: [id], onDelete: Cascade)
   inqueritoId String
@@ -1337,17 +1360,17 @@ model Diligencia {
 // — o acesso segue o scope do inquérito, não o criador.
 
 model IntercecaoAlvo {
-  id          String  @id @default(cuid())
-  nome        String  // suspeito
-  observacoes String?
+  id             String   @id @default(cuid())
+  nome           String // suspeito
+  observacoes    String?
   // Notas livres do inspetor sobre o alvo (informação considerada relevante).
-  notas       String?
+  notas          String?
   // Até onde o inspetor já acompanhou/reviu as interceções — para saber por
   // onde recomeçar numa próxima sessão. Sempre visível na UI (não é um campo
   // "escondido" atrás de um diálogo).
   acompanhamento String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
   inqueritoid String
@@ -1366,27 +1389,31 @@ model IntercecaoAlvo {
 // único — cada tipo de interceção associado ao alvo tem o seu código próprio
 // no sistema de interceção, ex.: SIM = "123-A", IMEI = "123-B").
 model IntercecaoLinha {
-  id            String   @id @default(cuid())
-  codigo        String   // código do alvo associado a ESTA interceção (ex.: "123")
-  tipo          TipoLinhaIntercecao
-  identificador String   // nº de telefone ou IMEI
-  rede          String?  // operadora (MEO, Vodafone, NOS, …)
-  dataInicio    DateTime
-  dataFim       DateTime
-  alertaDias1   Int?     @default(10)
-  alertaDias2   Int?     @default(3)
-  alerta1Enviado Boolean @default(false)
-  alerta2Enviado Boolean @default(false)
+  id             String              @id @default(cuid())
+  codigo         String // código do alvo associado a ESTA interceção (ex.: "123")
+  tipo           TipoLinhaIntercecao
+  identificador  String // nº de telefone ou IMEI
+  rede           String? // operadora (MEO, Vodafone, NOS, …)
+  // Data do ofício que autorizou/comunicou a interceção — distinta do início
+  // efetivo da escuta (coluna "DATA DO OFÍCIO" do controlo em papel).
+  dataOficio     DateTime?
+  dataInicio     DateTime
+  dataFim        DateTime
+  alertaDias1    Int?                @default(10)
+  alertaDias2    Int?                @default(3)
+  alerta1Enviado Boolean             @default(false)
+  alerta2Enviado Boolean             @default(false)
   // Nº de renovações (prorrogações) da autorização — incrementado ao renovar.
-  renovacoes    Int      @default(0)
-  observacoes   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  renovacoes     Int                 @default(0)
+  observacoes    String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   alvo   IntercecaoAlvo @relation(fields: [alvoId], references: [id], onDelete: Cascade)
   alvoId String
 
-  produtos IntercecaoProduto[]
+  produtos  IntercecaoProduto[]
+  ouvidoAte IntercecaoOuvidoAte[]
 
   @@unique([alvoId, codigo])
   @@index([alvoId])
@@ -1397,21 +1424,31 @@ model IntercecaoLinha {
 // colunas da folha por alvo do Excel. `linha` é opcional: apagar a linha não
 // apaga o registo (SetNull).
 model IntercecaoProduto {
-  id            String   @id @default(cuid())
-  tipo          TipoProdutoIntercecao
-  numeroProduto String?  // nº do produto/sessão no sistema de interceção
-  direcao       DirecaoProdutoIntercecao?
-  data          DateTime
-  horaInicio    String?  // "HH:mm"
-  horaFim       String?  // "HH:mm"
-  duracao       String?  // duração (mm:ss ou hh:mm:ss), sobretudo para chamadas
-  // Marcado pelo inspetor como candidato a transcrição.
-  paraTranscricao Boolean @default(false)
-  de            String?
-  para          String?
-  resumo        String
-  comentarios   String?
-  createdAt     DateTime @default(now())
+  id                String                    @id @default(cuid())
+  tipo              TipoProdutoIntercecao
+  numeroProduto     String? // nº sequencial do produto/sessão (coluna "PRODUTO")
+  // Identificador longo atribuído pelo sistema de interceção (coluna "ID DO
+  // PRODUTO", ex.: "870155919242722000"). Guardado como texto: excede o
+  // intervalo seguro dos inteiros de JavaScript.
+  idProduto         String?
+  direcao           DirecaoProdutoIntercecao?
+  data              DateTime
+  horaInicio        String? // "HH:mm"
+  horaFim           String? // "HH:mm"
+  duracao           String? // duração (mm:ss ou hh:mm:ss), sobretudo para chamadas
+  // Estado do pedido de transcrição (substitui o antigo booleano).
+  transcricao       EstadoTranscricao         @default(NENHUMA)
+  transcricaoEm     DateTime?
+  de                String?
+  para              String?
+  // Identificação manual do nº de origem/destino, usada apenas quando o número
+  // não corresponde a nenhuma Relação do inquérito (essa tem precedência, para
+  // que renomear o contacto atualize todos os produtos de uma vez).
+  identificacaoDe   String?
+  identificacaoPara String?
+  resumo            String
+  comentarios       String?
+  createdAt         DateTime                  @default(now())
 
   alvo   IntercecaoAlvo @relation(fields: [alvoId], references: [id], onDelete: Cascade)
   alvoId String
@@ -1428,6 +1465,113 @@ model IntercecaoProduto {
   @@index([criadoPorId])
 }
 
+// ── Validações quinzenais (art. 188.º CPP) ───────────────────────────────────
+
+// Plano de validações de um inquérito: a data da 1.ª apresentação ao MP/JIC e
+// a cadência. Um por inquérito — no controlo em papel a lista é única e cobre
+// todos os alvos, com a renovação de cada linha a cair numa dessas datas.
+// O intervalo é de 14 dias por defeito (quinzenal no mesmo dia da semana, o
+// que mantém as datas em dia útil) e não de 15 dias corridos.
+model IntercecaoPlanoValidacao {
+  id            String   @id @default(cuid())
+  dataPrimeira  DateTime
+  intervaloDias Int      @default(14)
+  // Dias de antecedência do aviso de cada validação (0 = sem aviso).
+  alertaDias    Int      @default(3)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String    @unique
+
+  validacoes IntercecaoValidacao[]
+}
+
+// Cada validação numerada do plano (1.ª, 2.ª, …). As datas são geradas a
+// partir do plano e re-sincronizadas quando as linhas mudam; uma validação já
+// marcada como feita nunca é apagada pela sincronização.
+model IntercecaoValidacao {
+  id                     String    @id @default(cuid())
+  numero                 Int
+  data                   DateTime
+  feitaEm                DateTime?
+  observacoes            String?
+  // Idempotência dos avisos, no mesmo padrão das linhas: alterar a data da
+  // validação repõe ambos os flags.
+  alertaEnviado          Boolean   @default(false)
+  alertaRenovacaoEnviado Boolean   @default(false)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  plano   IntercecaoPlanoValidacao @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  planoId String
+
+  feitaPorId String?
+  feitaPor   Utilizador? @relation("IntercecaoValidacaoPor", fields: [feitaPorId], references: [id], onDelete: SetNull)
+
+  @@unique([planoId, numero])
+  @@index([planoId])
+  @@index([data])
+}
+
+// ── Relações (contactos identificados nas escutas) ───────────────────────────
+
+// Um contacto que aparece nas interceções, com a identificação já apurada.
+// É do INQUÉRITO e não do alvo: o mesmo número fala com vários alvos e só se
+// identifica uma vez. Os produtos resolvem "DE"/"PARA" por aqui.
+// `contacto` é guardado normalizado (só dígitos e um "+" inicial) para que
+// "928 022 089" e "928022089" sejam o mesmo registo.
+model IntercecaoRelacao {
+  id             String    @id @default(cuid())
+  contacto       String
+  nome           String?
+  morada         String?
+  documento      String? // doc. de identificação
+  dataNascimento DateTime?
+  fichaSpo       String? // ficha no SPO
+  notas          String?
+  // Fotografia do contacto. Guardada em DOCUMENTOS_DIR mas FORA dos anexos do
+  // inquérito (não é peça processual) — daí os campos próprios em vez de uma
+  // referência a Documento.
+  fotoStoredName String?
+  fotoFilename   String?
+  fotoMimeType   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
+  inqueritoid String
+
+  criadoPorId String
+  criadoPor   Utilizador @relation("IntercecaoRelacaoCriador", fields: [criadoPorId], references: [id])
+
+  @@unique([inqueritoid, contacto])
+  @@index([inqueritoid])
+}
+
+// ── "Ouvido até" (acompanhamento estruturado por linha) ──────────────────────
+
+// Marca até onde o inspetor já ouviu uma linha, para retomar na sessão
+// seguinte. É um histórico (uma linha por registo); o mais recente é o
+// corrente. As notas livres continuam em IntercecaoAlvo.acompanhamento.
+model IntercecaoOuvidoAte {
+  id            String   @id @default(cuid())
+  numeroProduto String? // último produto ouvido
+  data          DateTime
+  horaInicio    String? // "HH:mm" ou "HH:mm:ss"
+  horaFim       String?
+  observacoes   String?
+  createdAt     DateTime @default(now())
+
+  linha   IntercecaoLinha @relation(fields: [linhaId], references: [id], onDelete: Cascade)
+  linhaId String
+
+  registadoPorId String
+  registadoPor   Utilizador @relation("IntercecaoOuvidoAtePor", fields: [registadoPorId], references: [id])
+
+  @@index([linhaId, createdAt(sort: Desc)])
+}
+
 // Colaboração autorizada — um inspetor a quem o inquérito NÃO está distribuído
 // pode, mediante autorização do titular (ou da hierarquia), trabalhar no
 // processo (registar atividades, notas, documentos, controlos e interceções).
@@ -1436,14 +1580,14 @@ model IntercecaoProduto {
 // autorização é por inquérito, revogável a qualquer momento e opcionalmente
 // com data de expiração (após a qual deixa de valer automaticamente).
 model InqueritoColaborador {
-  id        String  @id @default(cuid())
+  id        String    @id @default(cuid())
   // Motivo/âmbito da autorização (livre) — para contexto no histórico.
   motivo    String?
   // Quando definido, a autorização deixa de valer a partir desta data/hora.
   // Null = vale até ser revogada manualmente.
   expiraEm  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
   inqueritoid String
