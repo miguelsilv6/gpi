@@ -4,6 +4,7 @@ import { handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { loadIntercecaoContext, parseData } from '@/lib/intercecoes-api'
 import { intercecaoRenovarSchema, resetAlertFlagsOnUpdate } from '@/lib/validations/intercecao'
+import { sincronizarValidacoes } from '@/lib/intercecoes-validacoes'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,10 @@ export async function POST(
         ...reset,
       },
     })
+
+    // O novo fim estende o horizonte: gera as validações que faltam para o
+    // cobrir, incluindo aquela em que a próxima renovação será preparada.
+    await sincronizarValidacoes(ctx.inquerito.id)
 
     await writeAudit({
       req,

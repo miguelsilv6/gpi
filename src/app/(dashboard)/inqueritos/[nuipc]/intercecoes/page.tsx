@@ -6,10 +6,17 @@ import { buildInqueritoWhere, canEditInquerito } from '@/lib/auth-helpers'
 import { isColaboradorAtivo } from '@/lib/colaboradores'
 import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import { getIntercecoesTree } from '@/lib/intercecoes'
+import { getPlanoValidacoes } from '@/lib/intercecoes-validacoes'
+import { getRelacoes } from '@/lib/intercecoes-relacoes'
 import { isTerminal } from '@/lib/inquerito-state'
 import { slugToNuipc } from '@/lib/utils'
 import { AccessDenied } from '@/components/access-denied'
-import { IntercecoesView, type AlvoDTO } from '@/components/intercecoes/intercecoes-view'
+import {
+  IntercecoesView,
+  type AlvoDTO,
+  type PlanoDTO,
+  type RelacaoDTO,
+} from '@/components/intercecoes/intercecoes-view'
 import { ChevronLeft, FileSpreadsheet, FileText } from 'lucide-react'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -70,7 +77,12 @@ export default async function IntercecoesInqueritoPage({
     notFound()
   }
 
-  const alvosRaw = await getIntercecoesTree(inquerito.id)
+  const [alvosRaw, planoRaw, relacoesRaw] = await Promise.all([
+    getIntercecoesTree(inquerito.id),
+    getPlanoValidacoes(inquerito.id),
+    getRelacoes(inquerito.id),
+  ])
+
   const alvos: AlvoDTO[] = alvosRaw.map((a) => ({
     id: a.id,
     nome: a.nome,
@@ -80,16 +92,49 @@ export default async function IntercecoesInqueritoPage({
     produtos: a._count.produtos,
     linhas: a.linhas.map((l) => ({
       ...l,
+      dataOficio: l.dataOficio?.toISOString() ?? null,
       dataInicio: l.dataInicio.toISOString(),
       dataFim: l.dataFim.toISOString(),
+      ouvidoAte: l.ouvidoAte[0]
+        ? {
+            ...l.ouvidoAte[0],
+            data: l.ouvidoAte[0].data.toISOString(),
+            createdAt: l.ouvidoAte[0].createdAt.toISOString(),
+          }
+        : null,
     })),
   }))
 
+  const plano: PlanoDTO | null = planoRaw
+    ? {
+        dataPrimeira: planoRaw.dataPrimeira.toISOString(),
+        intervaloDias: planoRaw.intervaloDias,
+        alertaDias: planoRaw.alertaDias,
+        validacoes: planoRaw.validacoes.map((v) => ({
+          ...v,
+          data: v.data.toISOString(),
+          feitaEm: v.feitaEm?.toISOString() ?? null,
+        })),
+      }
+    : null
+
+  const relacoes: RelacaoDTO[] = relacoesRaw.map((r) => ({
+    id: r.id,
+    contacto: r.contacto,
+    nome: r.nome,
+    morada: r.morada,
+    documento: r.documento,
+    dataNascimento: r.dataNascimento?.toISOString() ?? null,
+    fichaSpo: r.fichaSpo,
+    notas: r.notas,
+    temFoto: r.fotoStoredName !== null,
+  }))
+
   const temAlvos = alvos.length > 0
-  // Produtos marcados para transcrição (para o botão de relatório dedicado).
+  // Produtos com transcrição pedida/autorizada/feita (botão do relatório).
   const transcricoesCount = temAlvos
     ? await prisma.intercecaoProduto.count({
-        where: { alvo: { inqueritoid: inquerito.id }, paraTranscricao: true },
+        where: { alvo: { inqueritoid: inquerito.id }, transcricao: { not: 'NENHUMA' } },
       })
     : 0
 
@@ -115,7 +160,7 @@ export default async function IntercecoesInqueritoPage({
           </Link>
           <h1 className="text-2xl font-bold tracking-tight mt-1">Controlo de Interceções</h1>
           <p className="text-muted-foreground text-sm">
-            Alvos, linhas intercetadas (com alertas de fim) e produtos de interesse.
+            Alvos, linhas intercetadas, validações quinzenais, relações e produtos de interesse.
             {!canEdit && ' Modo de consulta.'}
           </p>
         </div>
@@ -132,7 +177,7 @@ export default async function IntercecoesInqueritoPage({
               <a
                 href={`/api/inqueritos/${slug}/intercecoes/export-transcricao`}
                 className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-amber-100 dark:hover:bg-amber-950/50"
-                title="Exportar apenas os produtos marcados para transcrição"
+                title="Exportar os produtos com transcrição pedida, autorizada ou feita"
               >
                 <FileText className="h-4 w-4" />
                 Transcrições ({transcricoesCount})
@@ -142,7 +187,13 @@ export default async function IntercecoesInqueritoPage({
         )}
       </div>
 
-      <IntercecoesView nuipcSlug={slug} alvos={alvos} canEdit={canEdit} />
+      <IntercecoesView
+        nuipcSlug={slug}
+        alvos={alvos}
+        plano={plano}
+        relacoes={relacoes}
+        canEdit={canEdit}
+      />
     </div>
   )
 }

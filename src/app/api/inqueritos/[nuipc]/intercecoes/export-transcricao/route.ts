@@ -1,17 +1,17 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/auth-helpers'
 import { writeAudit } from '@/lib/audit'
 import { loadIntercecaoContext } from '@/lib/intercecoes-api'
 import { buildTranscricaoWorkbook } from '@/lib/intercecoes-xlsx'
+import { getDadosTranscricao } from '@/lib/intercecoes-export'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET — exporta em Excel apenas os produtos de interesse marcados para
- * transcrição (worklist do transcritor). O acesso é o do módulo (leitura do
- * inquérito no scope), como a exportação geral das interceções.
+ * GET — exporta em Excel os produtos de interesse com transcrição pedida,
+ * autorizada ou já feita (worklist do transcritor). O acesso é o do módulo
+ * (leitura do inquérito no scope), como a exportação geral das interceções.
  */
 export async function GET(
   req: NextRequest,
@@ -22,38 +22,8 @@ export async function GET(
     const ctx = await loadIntercecaoContext(slug)
     if (ctx instanceof Response) return ctx
 
-    const alvos = await prisma.intercecaoAlvo.findMany({
-      where: {
-        inqueritoid: ctx.inquerito.id,
-        produtos: { some: { paraTranscricao: true } },
-      },
-      orderBy: { nome: 'asc' },
-      select: {
-        nome: true,
-        produtos: {
-          where: { paraTranscricao: true },
-          orderBy: { data: 'asc' },
-          select: {
-            tipo: true,
-            numeroProduto: true,
-            direcao: true,
-            data: true,
-            horaInicio: true,
-            horaFim: true,
-            duracao: true,
-            paraTranscricao: true,
-            de: true,
-            para: true,
-            resumo: true,
-            comentarios: true,
-            linha: { select: { identificador: true, codigo: true } },
-          },
-        },
-      },
-    })
-
-    const total = alvos.reduce((n, a) => n + a.produtos.length, 0)
-    const wb = buildTranscricaoWorkbook({ nuipc: ctx.inquerito.nuipc, alvos })
+    const { data, total } = await getDadosTranscricao(ctx.inquerito.id, ctx.inquerito.nuipc)
+    const wb = buildTranscricaoWorkbook(data)
     const buffer = await wb.xlsx.writeBuffer()
 
     await writeAudit({

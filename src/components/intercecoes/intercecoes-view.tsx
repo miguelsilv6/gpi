@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PrazoUrgencyBadge } from '@/components/prazos/prazo-urgency-badge'
 import { ProdutosPanel } from './produtos-panel'
+import { ValidacoesPanel, type PlanoDTO } from './validacoes-panel'
+import { RelacoesPanel, type RelacaoDTO } from './relacoes-panel'
+import { OuvidoAteDialog, type OuvidoAteDTO } from './ouvido-ate-dialog'
 import {
   TIPO_LINHA_LABEL,
   TIPO_LINHA_VALUES,
@@ -20,8 +23,21 @@ import {
   estadoLinha,
 } from '@/lib/validations/intercecao'
 import { formatDate, cn, iconButtonClasses } from '@/lib/utils'
-import { Loader2, Plus, Pencil, Trash2, RadioTower, Target, CalendarPlus, StickyNote, Bookmark } from 'lucide-react'
+import {
+  Loader2,
+  Plus,
+  Pencil,
+  Trash2,
+  RadioTower,
+  Target,
+  CalendarPlus,
+  StickyNote,
+  Bookmark,
+  Headphones,
+} from 'lucide-react'
 import type { TipoLinhaIntercecao } from '@/generated/prisma/enums'
+
+export type { PlanoDTO, RelacaoDTO }
 
 export interface LinhaDTO {
   id: string
@@ -29,12 +45,15 @@ export interface LinhaDTO {
   tipo: TipoLinhaIntercecao
   identificador: string
   rede: string | null
+  dataOficio: string | null
   dataInicio: string
   dataFim: string
   alertaDias1: number | null
   alertaDias2: number | null
   renovacoes: number
   observacoes: string | null
+  /** Registo de "ouvido até" mais recente desta linha (o corrente). */
+  ouvidoAte: OuvidoAteDTO | null
 }
 
 export interface AlvoDTO {
@@ -50,6 +69,8 @@ export interface AlvoDTO {
 interface Props {
   nuipcSlug: string
   alvos: AlvoDTO[]
+  plano: PlanoDTO | null
+  relacoes: RelacaoDTO[]
   canEdit: boolean
 }
 
@@ -67,6 +88,7 @@ interface LinhaForm {
   tipo: TipoLinhaIntercecao
   identificador: string
   rede: string
+  dataOficio: string
   dataInicio: string
   dataFim: string
   alertaDias1: string
@@ -78,6 +100,7 @@ const EMPTY_LINHA: LinhaForm = {
   tipo: 'SIM',
   identificador: '',
   rede: '',
+  dataOficio: '',
   dataInicio: '',
   dataFim: '',
   alertaDias1: String(INTERCECAO_ALERTA1_DEFAULT),
@@ -173,7 +196,7 @@ function AcompanhamentoField({
   )
 }
 
-export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
+export function IntercecoesView({ nuipcSlug, alvos, plano, relacoes, canEdit }: Props) {
   const router = useRouter()
   const base = `/api/inqueritos/${nuipcSlug}/intercecoes`
 
@@ -188,6 +211,8 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
   // Dialog de renovação (prorrogação da data de fim)
   const [renovarDialog, setRenovarDialog] = useState<LinhaDTO | null>(null)
   const [novaDataFim, setNovaDataFim] = useState('')
+  // Diálogo "ouvido até" — guarda a linha a que se refere.
+  const [ouvidoDialog, setOuvidoDialog] = useState<LinhaDTO | null>(null)
   const [saving, setSaving] = useState(false)
 
   function openCreateAlvo() {
@@ -208,6 +233,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
       tipo: l.tipo,
       identificador: l.identificador,
       rede: l.rede ?? '',
+      dataOficio: l.dataOficio ? toDateInput(l.dataOficio) : '',
       dataInicio: toDateInput(l.dataInicio),
       dataFim: toDateInput(l.dataFim),
       alertaDias1: l.alertaDias1 == null ? '' : String(l.alertaDias1),
@@ -281,6 +307,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
       tipo: linhaForm.tipo,
       identificador: linhaForm.identificador,
       rede: linhaForm.rede,
+      dataOficio: linhaForm.dataOficio,
       dataInicio: linhaForm.dataInicio,
       dataFim: linhaForm.dataFim,
       alertaDias1: parseAlerta(linhaForm.alertaDias1),
@@ -338,6 +365,22 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
           </Button>
         )}
       </div>
+
+      <ValidacoesPanel
+        nuipcSlug={nuipcSlug}
+        plano={plano}
+        linhas={alvos.flatMap((a) =>
+          a.linhas.map((l) => ({
+            codigo: l.codigo,
+            identificador: l.identificador,
+            alvoNome: a.nome,
+            dataFim: l.dataFim,
+          })),
+        )}
+        canEdit={canEdit}
+      />
+
+      <RelacoesPanel nuipcSlug={nuipcSlug} relacoes={relacoes} canEdit={canEdit} />
 
       {alvos.map((alvo) => (
         <Card key={alvo.id}>
@@ -403,6 +446,7 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                       <th className="py-1.5 pr-3 font-medium">Início</th>
                       <th className="py-1.5 pr-3 font-medium">Fim</th>
                       <th className="py-1.5 pr-3 font-medium">Prazo</th>
+                      <th className="py-1.5 pr-3 font-medium">Ouvido até</th>
                       <th className="py-1.5 pr-3 font-medium">Avisos</th>
                       {canEdit && <th className="py-1.5 font-medium sr-only">Ações</th>}
                     </tr>
@@ -416,7 +460,17 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                           <td className="py-2 pr-3 font-mono whitespace-nowrap">{l.codigo}</td>
                           <td className="py-2 pr-3 font-mono whitespace-nowrap">{l.identificador}</td>
                           <td className="py-2 pr-3 whitespace-nowrap">{l.rede ?? '—'}</td>
-                          <td className="py-2 pr-3 whitespace-nowrap">{formatDate(l.dataInicio)}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {formatDate(l.dataInicio)}
+                            {l.dataOficio && (
+                              <span
+                                className="block text-[11px] text-muted-foreground"
+                                title="Data do ofício"
+                              >
+                                of. {formatDate(l.dataOficio)}
+                              </span>
+                            )}
+                          </td>
                           <td className="py-2 pr-3 whitespace-nowrap">
                             {formatDate(l.dataFim)}
                             {l.renovacoes > 0 && (
@@ -439,6 +493,29 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
                                 alertaDias={l.alertaDias1 ?? INTERCECAO_ALERTA1_DEFAULT}
                               />
                             )}
+                          </td>
+                          <td className="py-2 pr-3 whitespace-nowrap text-xs">
+                            <button
+                              onClick={() => setOuvidoDialog(l)}
+                              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-accent transition-colors"
+                              title={
+                                l.ouvidoAte
+                                  ? `Registado por ${l.ouvidoAte.registadoPor.nome}`
+                                  : 'Registar até onde esta linha já foi ouvida'
+                              }
+                            >
+                              <Headphones className="h-3.5 w-3.5 text-muted-foreground" />
+                              {l.ouvidoAte ? (
+                                <span>
+                                  {l.ouvidoAte.numeroProduto && (
+                                    <span className="font-mono">#{l.ouvidoAte.numeroProduto} </span>
+                                  )}
+                                  {formatDate(l.ouvidoAte.data)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </button>
                           </td>
                           <td className="py-2 pr-3 whitespace-nowrap text-xs text-muted-foreground">
                             {l.alertaDias1 == null && l.alertaDias2 == null
@@ -488,6 +565,8 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
               alvoId={alvo.id}
               totalInicial={alvo.produtos}
               linhas={alvo.linhas.map((l) => ({ id: l.id, codigo: l.codigo, tipo: l.tipo, identificador: l.identificador }))}
+              relacoes={relacoes}
+              plano={plano}
               canEdit={canEdit}
             />
           </CardContent>
@@ -623,6 +702,15 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
               </datalist>
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="linhaOficio">Data do ofício</Label>
+              <Input
+                id="linhaOficio"
+                type="date"
+                value={linhaForm.dataOficio}
+                onChange={(e) => setLinhaForm({ ...linhaForm, dataOficio: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="linhaInicio">Data de início *</Label>
               <Input
                 id="linhaInicio"
@@ -696,6 +784,13 @@ export function IntercecoesView({ nuipcSlug, alvos, canEdit }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <OuvidoAteDialog
+        nuipcSlug={nuipcSlug}
+        linha={ouvidoDialog}
+        onClose={() => setOuvidoDialog(null)}
+        canEdit={canEdit}
+      />
 
       {/* Dialog renovar (prorrogação) */}
       <Dialog open={renovarDialog !== null} onOpenChange={(o) => !o && setRenovarDialog(null)}>

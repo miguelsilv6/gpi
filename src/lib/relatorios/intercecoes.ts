@@ -12,9 +12,9 @@ import type { TipoLinhaIntercecao } from '@/generated/prisma/enums'
 /**
  * Relatório "Interceções".
  *
- * Uma linha por linha intercetada (SIM/IMEI/…), com o alvo (suspeito) e o
- * inquérito a que pertence. Scope de leitura via `buildInqueritoWhere` na
- * relação `alvo.inquerito` (como `getLinhasGlobal`).
+ * Uma linha por linha intercetada (SIM/IMEI/…), com o alvo (suspeito), o
+ * inquérito a que pertence e até onde já foi ouvida. Scope de leitura via
+ * `buildInqueritoWhere` na relação `alvo.inquerito` (como `getLinhasGlobal`).
  *
  * Filtros (querystring):
  *   - estado: 'ativas' | 'a-expirar' | ''(todas)
@@ -73,9 +73,17 @@ export const queryIntercecoes: RelatorioHandler = async (filters, session) => {
       tipo: true,
       identificador: true,
       rede: true,
+      dataOficio: true,
       dataInicio: true,
       dataFim: true,
       renovacoes: true,
+      // O "ouvido até" corrente — para a chefia ver de relance que escutas
+      // estão por rever antes da próxima validação.
+      ouvidoAte: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { numeroProduto: true, data: true },
+      },
       alvo: {
         select: {
           nome: true,
@@ -115,9 +123,15 @@ export const queryIntercecoes: RelatorioHandler = async (filters, session) => {
       tipo: TIPO_LINHA_LABEL[l.tipo as TipoLinhaIntercecao],
       identificador: l.identificador,
       rede: l.rede ?? '',
+      dataOficio: l.dataOficio ? fmtDate(l.dataOficio) : '',
       dataInicio: fmtDate(l.dataInicio),
       dataFim: fmtDate(l.dataFim),
       renovacoes: l.renovacoes,
+      ouvidoAte: l.ouvidoAte[0]
+        ? [l.ouvidoAte[0].numeroProduto && `#${l.ouvidoAte[0].numeroProduto}`, fmtDate(l.ouvidoAte[0].data)]
+            .filter(Boolean)
+            .join(' ')
+        : '',
       estado: ativa ? 'Ativa' : 'Terminada',
       diasRestantes: ativa ? dias : '',
     }
@@ -147,9 +161,11 @@ export const queryIntercecoes: RelatorioHandler = async (filters, session) => {
       { key: 'tipo', label: 'Tipo', flex: 0.8 },
       { key: 'identificador', label: 'Identificador', flex: 1.2 },
       { key: 'rede', label: 'Rede', flex: 0.9 },
+      { key: 'dataOficio', label: 'Ofício', flex: 0.8 },
       { key: 'dataInicio', label: 'Início', flex: 0.8 },
       { key: 'dataFim', label: 'Fim', flex: 0.8 },
       { key: 'renovacoes', label: 'Renov.', flex: 0.6, align: 'right' },
+      { key: 'ouvidoAte', label: 'Ouvido até', flex: 1.0 },
       { key: 'estado', label: 'Estado', flex: 0.8 },
       { key: 'diasRestantes', label: 'Dias rest.', flex: 0.7, align: 'right' },
     ],

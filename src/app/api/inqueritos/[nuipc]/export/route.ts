@@ -10,7 +10,14 @@ import { hasPermission } from '@/lib/rbac'
 import { writeAudit } from '@/lib/audit'
 import { slugToNuipc } from '@/lib/utils'
 import { TIPO_DILIGENCIA_LABEL } from '@/lib/validations/diligencia'
-import { TIPO_LINHA_LABEL, TIPO_PRODUTO_LABEL, DIRECAO_LABEL } from '@/lib/validations/intercecao'
+import {
+  TIPO_LINHA_LABEL,
+  TIPO_PRODUTO_LABEL,
+  DIRECAO_LABEL,
+  TRANSCRICAO_LABEL,
+  temTranscricao,
+} from '@/lib/validations/intercecao'
+import { indexarRelacoes, identificacaoDe } from '@/lib/intercecoes-relacoes'
 import { TIPO_INTERVENIENTE_LABEL, TIPO_PESSOA_LABEL } from '@/lib/validations/interveniente'
 import { ESTADO_APREENSAO_LABEL } from '@/lib/validations/apreensao'
 import { apreensaoTipoLabel } from '@/lib/apreensoes'
@@ -95,6 +102,7 @@ export async function GET(
             },
           },
         },
+        intercecaoRelacoes: { orderBy: [{ nome: 'asc' }, { contacto: 'asc' }] },
         intervenientes: { orderBy: { createdAt: 'asc' } },
         apreensoes: { orderBy: [{ dataApreensao: 'desc' }, { createdAt: 'desc' }] },
         pericias: {
@@ -127,6 +135,11 @@ export async function GET(
 
     // Header block — inquérito metadata as key/value pairs. We use a
     // two-column CSV ("Campo,Valor") for readability when opened in Excel.
+    // As identificações de "DE"/"PARA" são resolvidas pelas Relações, tal como
+    // na UI e na exportação Excel — o CSV não deve mostrar números por
+    // identificar quando o contacto já está fichado.
+    const relacoesIndex = indexarRelacoes(inquerito.intercecaoRelacoes)
+
     const lines: string[] = []
     lines.push(['Campo', 'Valor'].map(escapeCSV).join(','))
     const meta: Array<[string, unknown]> = [
@@ -325,6 +338,7 @@ export async function GET(
       'Tipo',
       'N.º Telefone / IMEI',
       'Rede',
+      'Data do Ofício',
       'Data Início',
       'Data Fim',
       'Renovações',
@@ -339,7 +353,7 @@ export async function GET(
         // Alvo sem linhas: uma linha só com o suspeito (sem código — o
         // código pertence a cada linha, que ainda não existe).
         lines.push(
-          [alvo.nome, '', '', '', '', '', '', '', '', '', alvo.observacoes ?? '', alvo.notas ?? '']
+          [alvo.nome, '', '', '', '', '', '', '', '', '', '', alvo.observacoes ?? '', alvo.notas ?? '']
             .map(escapeCSV)
             .join(','),
         )
@@ -353,6 +367,7 @@ export async function GET(
             TIPO_LINHA_LABEL[l.tipo] ?? l.tipo,
             l.identificador,
             l.rede ?? '',
+            l.dataOficio ? fmtDate(l.dataOficio) : '',
             fmtDate(l.dataInicio),
             fmtDate(l.dataFim),
             l.renovacoes,
@@ -377,13 +392,16 @@ export async function GET(
       'Linha',
       'Tipo de Produto',
       'N.º Produto',
+      'ID do Produto',
       'Direção',
       'Data',
       'Hora Início',
       'Hora Fim',
       'Duração',
       'De',
+      'Identificação do "De"',
       'Para',
+      'Identificação do "Para"',
       'Resumo',
       'Transcrição',
       'Comentários',
@@ -399,15 +417,18 @@ export async function GET(
             p.linha?.identificador ?? '',
             TIPO_PRODUTO_LABEL[p.tipo] ?? p.tipo,
             p.numeroProduto ?? '',
+            p.idProduto ?? '',
             p.direcao ? DIRECAO_LABEL[p.direcao] : '',
             fmtDate(p.data),
             p.horaInicio ?? '',
             p.horaFim ?? '',
             p.duracao ?? '',
             p.de ?? '',
+            identificacaoDe(p.de, p.identificacaoDe, relacoesIndex),
             p.para ?? '',
+            identificacaoDe(p.para, p.identificacaoPara, relacoesIndex),
             p.resumo,
-            p.paraTranscricao ? 'Sim' : '',
+            temTranscricao(p.transcricao) ? TRANSCRICAO_LABEL[p.transcricao] : '',
             p.comentarios ?? '',
             p.criadoPor.nome,
           ]
@@ -415,6 +436,35 @@ export async function GET(
             .join(','),
         )
       }
+    }
+
+    // Spacer + interceções (relações) section
+    lines.push('')
+    lines.push(`Interceções — Relações (${inquerito.intercecaoRelacoes.length})`)
+    const relHeaders = [
+      'Contacto',
+      'Nome',
+      'Morada',
+      'Doc. de identificação',
+      'Data de nascimento',
+      'Ficha no SPO',
+      'Foto',
+    ]
+    lines.push(relHeaders.map(escapeCSV).join(','))
+    for (const r of inquerito.intercecaoRelacoes) {
+      lines.push(
+        [
+          r.contacto,
+          r.nome ?? '',
+          r.morada ?? '',
+          r.documento ?? '',
+          r.dataNascimento ? fmtDate(r.dataNascimento) : '',
+          r.fichaSpo ?? '',
+          r.fotoStoredName ? 'Sim' : '',
+        ]
+          .map(escapeCSV)
+          .join(','),
+      )
     }
 
     // Apreensões

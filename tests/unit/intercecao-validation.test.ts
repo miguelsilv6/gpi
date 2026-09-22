@@ -15,6 +15,14 @@ import {
   estadoLinha,
   alertasDevidos,
   resetAlertFlagsOnUpdate,
+  datasValidacoes,
+  numeroControlo,
+  numeroValidacaoRenovacao,
+  normalizarContacto,
+  intercecaoPlanoSchema,
+  intercecaoRelacaoCreateSchema,
+  intercecaoRelacaoUpdateSchema,
+  intercecaoOuvidoAteSchema,
 } from '@/lib/validations/intercecao'
 import {
   TipoLinhaIntercecao,
@@ -127,20 +135,40 @@ describe('schemas', () => {
     expect(DURACAO_REGEX.test('45')).toBe(false)
   })
 
-  test('produto create: duração válida; "" → undefined; paraTranscricao booleano', () => {
-    const base = { tipo: 'CHAMADA', data: '2026-05-05', resumo: 'ok' }
+  test('produto create: duração válida; "" → undefined; estado de transcrição', () => {
+    const base = { tipo: 'VOZ', data: '2026-05-05', resumo: 'ok' }
     expect(intercecaoProdutoCreateSchema.safeParse({ ...base, duracao: '02:15' }).success).toBe(true)
     expect(intercecaoProdutoCreateSchema.safeParse({ ...base, duracao: 'xpto' }).success).toBe(false)
-    const ok = intercecaoProdutoCreateSchema.safeParse({ ...base, duracao: '', paraTranscricao: true })
+    const ok = intercecaoProdutoCreateSchema.safeParse({ ...base, duracao: '', transcricao: 'PEDIDA' })
     expect(ok.success).toBe(true)
     if (ok.success) {
       expect(ok.data.duracao).toBeUndefined()
-      expect(ok.data.paraTranscricao).toBe(true)
+      expect(ok.data.transcricao).toBe('PEDIDA')
+    }
+    // Estado fora do enum é rejeitado (o antigo booleano também).
+    expect(intercecaoProdutoCreateSchema.safeParse({ ...base, transcricao: 'SIM' }).success).toBe(false)
+  })
+
+  test('produto create: ID do produto e identificações do de/para', () => {
+    const parsed = intercecaoProdutoCreateSchema.safeParse({
+      tipo: 'RAW',
+      data: '2026-05-05',
+      resumo: 'ok',
+      idProduto: '870155919242722000',
+      de: '928022089',
+      identificacaoDe: 'Miguel Viegas',
+      identificacaoPara: '',
+    })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data.idProduto).toBe('870155919242722000')
+      expect(parsed.data.identificacaoDe).toBe('Miguel Viegas')
+      expect(parsed.data.identificacaoPara).toBeUndefined()
     }
   })
 
-  test('produto update: duração e paraTranscricao opcionais', () => {
-    expect(intercecaoProdutoUpdateSchema.safeParse({ paraTranscricao: false }).success).toBe(true)
+  test('produto update: duração e estado de transcrição opcionais', () => {
+    expect(intercecaoProdutoUpdateSchema.safeParse({ transcricao: 'AUTORIZADA' }).success).toBe(true)
     expect(intercecaoProdutoUpdateSchema.safeParse({ duracao: '10:00' }).success).toBe(true)
     expect(intercecaoProdutoUpdateSchema.safeParse({ duracao: 'nope' }).success).toBe(false)
   })
@@ -228,5 +256,129 @@ describe('resetAlertFlagsOnUpdate', () => {
 
   test('campos omitidos não repõem', () => {
     expect(resetAlertFlagsOnUpdate(before, {})).toEqual({})
+  })
+})
+
+describe('validações quinzenais e lotes de controlo', () => {
+  const PRIMEIRA = new Date('2026-06-17T00:00:00Z')
+
+  test('datasValidacoes: 14 dias mantêm sempre o mesmo dia da semana', () => {
+    const datas = datasValidacoes(PRIMEIRA, 14, new Date('2026-10-06T00:00:00Z'))
+    // Todas quartas-feiras, como no controlo em papel.
+    for (const d of datas) expect(d.getUTCDay()).toBe(PRIMEIRA.getUTCDay())
+    expect(datas[0].toISOString().slice(0, 10)).toBe('2026-06-17')
+    expect(datas[1].toISOString().slice(0, 10)).toBe('2026-07-01')
+    expect(datas[5].toISOString().slice(0, 10)).toBe('2026-08-26')
+  })
+
+  test('datasValidacoes: gera sempre uma para lá do horizonte', () => {
+    const ate = new Date('2026-07-01T00:00:00Z') // exatamente a 2.ª validação
+    const datas = datasValidacoes(PRIMEIRA, 14, ate)
+    expect(datas).toHaveLength(3)
+    expect(datas.at(-1)!.toISOString().slice(0, 10)).toBe('2026-07-15')
+  })
+
+  test('numeroControlo: o produto do dia da validação já conta para o lote seguinte', () => {
+    const datas = datasValidacoes(PRIMEIRA, 14, new Date('2026-07-20T00:00:00Z'))
+    // Antes da 1.ª validação.
+    expect(numeroControlo(new Date('2026-06-08T00:00:00Z'), datas)).toBe(1)
+    // No próprio dia da 1.ª → 2.º Controlo (a apresentação leva o que veio antes).
+    expect(numeroControlo(new Date('2026-06-17T00:00:00Z'), datas)).toBe(2)
+    expect(numeroControlo(new Date('2026-06-29T00:00:00Z'), datas)).toBe(2)
+    // Depois da 2.ª (01/07) → 3.º Controlo.
+    expect(numeroControlo(new Date('2026-07-04T00:00:00Z'), datas)).toBe(3)
+  })
+
+  test('numeroControlo: sem validações, tudo fica no 1.º lote', () => {
+    expect(numeroControlo(new Date('2026-07-04T00:00:00Z'), [])).toBe(1)
+  })
+
+  test('numeroValidacaoRenovacao: reproduz as renovações do controlo em papel', () => {
+    // Alvo que termina a 05/09 → prepara-se na 6.ª validação (26/08).
+    expect(numeroValidacaoRenovacao(PRIMEIRA, 14, new Date('2026-09-05T00:00:00Z'))).toBe(6)
+    // Alvo que termina a 06/10 → 8.ª validação (23/09).
+    expect(numeroValidacaoRenovacao(PRIMEIRA, 14, new Date('2026-10-06T00:00:00Z'))).toBe(8)
+  })
+
+  test('numeroValidacaoRenovacao: fim que cai numa validação usa a anterior', () => {
+    // O fim é no próprio dia da 2.ª validação: a renovação tem de estar pedida
+    // antes disso, logo prepara-se na 1.ª.
+    expect(numeroValidacaoRenovacao(PRIMEIRA, 14, new Date('2026-07-01T00:00:00Z'))).toBe(1)
+  })
+
+  test('numeroValidacaoRenovacao: fim antes da 1.ª validação não tem onde ser preparada', () => {
+    expect(numeroValidacaoRenovacao(PRIMEIRA, 14, new Date('2026-06-10T00:00:00Z'))).toBeNull()
+    expect(numeroValidacaoRenovacao(PRIMEIRA, 14, PRIMEIRA)).toBeNull()
+  })
+
+  test('plano: data obrigatória, intervalo e alerta dentro dos limites', () => {
+    expect(intercecaoPlanoSchema.safeParse({ dataPrimeira: '2026-06-17' }).success).toBe(true)
+    expect(intercecaoPlanoSchema.safeParse({ dataPrimeira: '' }).success).toBe(false)
+    expect(
+      intercecaoPlanoSchema.safeParse({ dataPrimeira: '2026-06-17', intervaloDias: 0 }).success,
+    ).toBe(false)
+    expect(
+      intercecaoPlanoSchema.safeParse({ dataPrimeira: '2026-06-17', intervaloDias: 91 }).success,
+    ).toBe(false)
+    expect(
+      intercecaoPlanoSchema.safeParse({ dataPrimeira: '2026-06-17', alertaDias: 0 }).success,
+    ).toBe(true)
+  })
+})
+
+describe('normalizarContacto', () => {
+  test('descarta a formatação para que o mesmo número seja um só contacto', () => {
+    expect(normalizarContacto('928 022 089')).toBe('928022089')
+    expect(normalizarContacto(' 928-022.089 ')).toBe('928022089')
+  })
+
+  test('mantém o indicativo — não adivinha que "+351…" é o mesmo número', () => {
+    expect(normalizarContacto('+351 928022089')).toBe('+351928022089')
+    expect(normalizarContacto('+351928022089')).not.toBe(normalizarContacto('928022089'))
+  })
+
+  test('texto sem dígitos fica vazio (rejeitado na rota)', () => {
+    expect(normalizarContacto('desconhecido')).toBe('')
+  })
+})
+
+describe('relação: schemas', () => {
+  test('create: contacto obrigatório; campos vazios → undefined', () => {
+    expect(intercecaoRelacaoCreateSchema.safeParse({ contacto: '' }).success).toBe(false)
+    const ok = intercecaoRelacaoCreateSchema.safeParse({
+      contacto: '928022089',
+      nome: 'Miguel Viegas',
+      morada: '',
+    })
+    expect(ok.success).toBe(true)
+    if (ok.success) {
+      expect(ok.data.nome).toBe('Miguel Viegas')
+      expect(ok.data.morada).toBeUndefined()
+    }
+  })
+
+  test('update: tudo opcional, mas contacto não pode ficar vazio', () => {
+    expect(intercecaoRelacaoUpdateSchema.safeParse({}).success).toBe(true)
+    expect(intercecaoRelacaoUpdateSchema.safeParse({ nome: '' }).success).toBe(true)
+    expect(intercecaoRelacaoUpdateSchema.safeParse({ contacto: '' }).success).toBe(false)
+  })
+})
+
+describe('ouvido até: schema', () => {
+  test('data obrigatória; horas validadas; vazios → undefined', () => {
+    expect(intercecaoOuvidoAteSchema.safeParse({ data: '' }).success).toBe(false)
+    expect(intercecaoOuvidoAteSchema.safeParse({ data: '2026-08-27', horaInicio: '25:00' }).success).toBe(false)
+    const ok = intercecaoOuvidoAteSchema.safeParse({
+      data: '2026-08-27',
+      numeroProduto: '70623',
+      horaInicio: '14:49:38',
+      horaFim: '',
+    })
+    expect(ok.success).toBe(true)
+    if (ok.success) {
+      expect(ok.data.numeroProduto).toBe('70623')
+      expect(ok.data.horaInicio).toBe('14:49:38')
+      expect(ok.data.horaFim).toBeUndefined()
+    }
   })
 })

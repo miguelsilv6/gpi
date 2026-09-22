@@ -26,12 +26,29 @@ export const INTERCECAO_LINHA_SELECT = {
   tipo: true,
   identificador: true,
   rede: true,
+  dataOficio: true,
   dataInicio: true,
   dataFim: true,
   alertaDias1: true,
   alertaDias2: true,
   renovacoes: true,
   observacoes: true,
+} as const
+
+/**
+ * O "ouvido até" corrente de uma linha é o registo mais recente do histórico.
+ * Trazer só 1 por linha mantém a árvore leve (o histórico completo é pedido
+ * on-demand pelo painel, como os produtos).
+ */
+export const OUVIDO_ATE_SELECT = {
+  id: true,
+  numeroProduto: true,
+  data: true,
+  horaInicio: true,
+  horaFim: true,
+  observacoes: true,
+  createdAt: true,
+  registadoPor: { select: { id: true, nome: true } },
 } as const
 
 /** Árvore de alvos com linhas (ordenadas por fim) e contagem de produtos. */
@@ -45,7 +62,13 @@ export async function getIntercecoesTree(inqueritoId: string) {
       observacoes: true,
       notas: true,
       acompanhamento: true,
-      linhas: { orderBy: { dataFim: 'asc' }, select: INTERCECAO_LINHA_SELECT },
+      linhas: {
+        orderBy: { dataFim: 'asc' },
+        select: {
+          ...INTERCECAO_LINHA_SELECT,
+          ouvidoAte: { orderBy: { createdAt: 'desc' }, take: 1, select: OUVIDO_ATE_SELECT },
+        },
+      },
       _count: { select: { produtos: true } },
     },
   })
