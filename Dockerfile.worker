@@ -29,6 +29,15 @@ RUN npx prisma generate
 # corrigir o ownership dos bind mounts.
 RUN apk add --no-cache bash postgresql16-client coreutils util-linux su-exec
 
+# `server-only` (importado por src/lib/push.ts, webauthn.ts, brand.ts, etc.)
+# tem exports condicionais no seu package.json: sob a condição `react-server`
+# resolve para um no-op, sob `default` resolve para um módulo que lança
+# sempre um erro. O bundler do Next define `react-server` automaticamente;
+# o tsx (usado aqui para correr worker.ts fora do Next) usa a resolução
+# `default` do Node, logo precisa desta condição explícita ou o worker
+# crasha ao primeiro import de um desses ficheiros.
+ENV NODE_OPTIONS=--conditions=react-server
+
 # NOTA: deliberadamente SEM `USER worker` aqui. O entrypoint arranca como
 # root para fazer chown aos bind mounts (./backups, ./control, ./branding)
 # e só depois exec'a como worker via su-exec. Sem isto, o worker (uid 1001)
