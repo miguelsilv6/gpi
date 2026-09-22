@@ -47,13 +47,35 @@ fi
 
 echo "[restore] A restaurar de: $BACKUP_FILE"
 
-# -1 / --single-transaction: tudo dentro de BEGIN/COMMIT, falha atómica.
+# Reset total do schema `public` antes de aplicar o dump. Necessário para
+# restaurar backups de OUTRAS instalações GPI (versão de schema diferente):
+# os DROP TABLE/DROP CONSTRAINT do dump são calculados a partir do schema da
+# ORIGEM, não do alvo — se o alvo tiver colunas/tabelas mais recentes que
+# dependem de um objeto que o dump tenta largar (ex. uma FK nova que
+# referencia uma PK antiga), o DROP falha porque não sabe dessa dependência.
+# Recriar o schema do zero elimina essa classe de conflito por completo: o
+# dump deixa de precisar de "limpar" nada, só de construir a partir do nada.
+#
+# -1 / --single-transaction: tudo — incluindo o DROP/CREATE SCHEMA — dentro
+# de BEGIN/COMMIT, falha atómica. Se o dump falhar a meio, o schema
+# reconstruído nunca é confirmado e a BD fica exactamente como estava.
 # -v ON_ERROR_STOP=1: aborta na primeira instrução SQL com erro.
-# Com --clean --if-exists no dump, podemos restaurar sobre uma BD existente
-# sem mexer no schema.
-if ! gunzip -c "$BACKUP_FILE" | psql -1 -v ON_ERROR_STOP=1 "$PG_URL"; then
+if ! { echo 'DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION CURRENT_USER;'; \
+       gunzip -c "$BACKUP_FILE"; } | psql -1 -v ON_ERROR_STOP=1 "$PG_URL"; then
   echo "[restore] psql falhou — transação cancelada, BD inalterada." >&2
   exit 1
+fi
+
+# O dump pode ser de uma versão mais antiga do GPI (schema sem as migrações
+# mais recentes). Reaplica-as agora para trazer o schema à versão actual
+# desta instalação, preservando os dados acabados de restaurar — a mesma
+# chamada que o entrypoint da app corre no arranque. Não-fatal: o restauro
+# da BD já está confirmado; um schema desatualizado só é resolvido no
+# próximo arranque normal da app/worker se isto falhar aqui.
+if [ -n "${DATABASE_URL:-}" ]; then
+  echo "[restore] A atualizar o schema para a versão atual (prisma migrate deploy)..."
+  npx prisma migrate deploy \
+    || echo "[restore] AVISO: prisma migrate deploy falhou — reinicia app/worker para tentar de novo." >&2
 fi
 
 # ── Anexos ────────────────────────────────────────────────────────────────────
