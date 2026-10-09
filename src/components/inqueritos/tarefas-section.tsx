@@ -198,6 +198,9 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
   // Abre as concluídas automaticamente quando não há pendentes.
   const effectiveShowConcluidas = showConcluidas || pendentes.length === 0
 
+  // Sem tarefas o painel fica oculto; "Ações → Tarefa" abre-o em modo de escrita.
+  if (tarefas.length === 0 && !composing) return null
+
   return (
     <Card ref={cardRef} className="scroll-mt-4">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
