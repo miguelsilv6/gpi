@@ -13,6 +13,7 @@
  * Tomar o mais recente garante que uma atividade recente OU uma entrada recente
  * no estado impedem a transição (nunca arquiva algo com trabalho recente).
  */
+import { limpaDocumentacaoSeArquivado } from '@/lib/documentacao-pendente'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { canTransition } from '@/lib/inquerito-state'
@@ -183,6 +184,7 @@ export async function runAutoTransicoes(now: Date = new Date()): Promise<AutoTra
             data: {
               estadoId: regra.destino.id,
               ...(regra.destino.terminal && { dataConclusao: now }),
+              ...limpaDocumentacaoSeArquivado(regra.destino.codigo),
             },
           })
           if (affected.count === 0) return

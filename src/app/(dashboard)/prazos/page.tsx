@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { buildAtividadePrazoWhere, buildControloWhere } from '@/lib/auth-helpers'
+import { buildAtividadePrazoWhere, buildControloWhere, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { AccessDenied } from '@/components/access-denied'
 import {
@@ -138,7 +138,8 @@ export default async function PrazosPage({
     ],
   }
 
-  const showInspetor = false
+  // Quem não é INSPETOR vê interceções de outros inspetores — mostra de quem.
+  const showInspetor = role !== 'INSPETOR'
   const showBrigada = false
   const canFilterInspetor = false
   const inspetores: { id: string; nome: string }[] = []
@@ -160,8 +161,16 @@ export default async function PrazosPage({
           : { gte: startOfDayLocal(now) }
   const intercecaoWhere = {
     dataFim: intercecaoDataFim,
+    // Segue o scope do inquérito (como o resto do módulo Interceções), não só
+    // os do próprio utilizador. Composto via AND porque o scope do INSPETOR
+    // devolve um `OR` no topo.
     alvo: {
-      inquerito: { deletedAt: null, estado: { terminal: false }, inspetorId: userId },
+      inquerito: {
+        AND: [
+          { deletedAt: null, estado: { terminal: false } },
+          buildInqueritoWhere(role, userId, session.user.brigadaId ?? null),
+        ],
+      },
     },
   }
   const intercecaoSelect = {
@@ -177,7 +186,12 @@ export default async function PrazosPage({
     alvo: {
       select: {
         nome: true,
-        inquerito: ATIVIDADE_PRAZO_SELECT.inquerito,
+        inquerito: {
+          select: {
+            ...ATIVIDADE_PRAZO_SELECT.inquerito.select,
+            inspetor: { select: { id: true, nome: true } },
+          },
+        },
       },
     },
   } as const
@@ -210,7 +224,7 @@ export default async function PrazosPage({
         alertaDias2: l.alertaDias2,
         alerta1Enviado: l.alerta1Enviado,
         alerta2Enviado: l.alerta2Enviado,
-        realizadaPor: { id: userId, nome: '' },
+        realizadaPor: l.alvo.inquerito.inspetor ?? { id: userId, nome: '—' },
         inquerito: l.alvo.inquerito,
       })),
     }
@@ -235,13 +249,16 @@ export default async function PrazosPage({
         ...inter.items,
       ].sort(byDataPrazo)
     } else {
-      // Paginação sobre duas fontes: carrega-se até ao fim da página pedida de
-      // cada uma, ordena-se em conjunto e fatia-se.
-      const upTo = page * PAGE_SIZE
+      // Sem interceções a misturar (histórico / módulo desativado) pagina-se
+      // diretamente na BD. Com duas fontes, carrega-se até ao fim da página
+      // pedida de cada uma, ordena-se em conjunto e fatia-se.
+      const upTo = showIntercecoes ? page * PAGE_SIZE : PAGE_SIZE
+      const skip = showIntercecoes ? 0 : (page - 1) * PAGE_SIZE
       const [data, count, inter] = await Promise.all([
         prisma.atividade.findMany({
           where: prazosWhere,
           orderBy: prazosOrderBy,
+          skip,
           take: upTo,
           select: ATIVIDADE_PRAZO_SELECT,
         }),
@@ -253,7 +270,7 @@ export default async function PrazosPage({
         ...inter.items,
       ]
       if (!historico) merged.sort(byDataPrazo)
-      items = merged.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+      items = showIntercecoes ? merged.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : merged
       total = count + inter.count
       totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     }

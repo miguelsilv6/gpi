@@ -27,7 +27,7 @@ export async function loadPericiaContext(
   const brigadaId = session.user.brigadaId ?? null
 
   if (!(await isModuloPericiasAtivo(role))) {
-    return apiError('Módulo Perícias desativado', 503)
+    return apiError('Módulo Exames/Perícias desativado', 503)
   }
 
   const nuipc = slugToNuipc(slug)

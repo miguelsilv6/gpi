@@ -622,7 +622,7 @@ export default async function InqueritoPrintPage({
 
         {inquerito.pericias.length > 0 && (
           <>
-            <h2>Perícias <span className="count">({inquerito.pericias.length})</span></h2>
+            <h2>Exames/Perícias <span className="count">({inquerito.pericias.length})</span></h2>
             <table className="tbl">
               <thead>
                 <tr><th>Perícia</th><th>Tipo</th><th>Entidade</th><th>Ref.</th><th>Pedido</th><th>Prevista</th><th>Estado</th><th>Conclusão</th></tr>

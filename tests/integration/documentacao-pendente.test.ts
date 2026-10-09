@@ -1,6 +1,6 @@
 import { describe, test, expect, afterAll, beforeEach } from 'vitest'
 import { getTestPrisma, resetDatabase, disconnectTestPrisma } from '../helpers/db'
-import { scenarioTwoBrigadas } from '../helpers/fixtures'
+import { scenarioTwoBrigadas, makeEstado } from '../helpers/fixtures'
 
 /**
  * Listagem de "documentação pendente": é PRIVADA do autor — cada utilizador só
@@ -21,7 +21,12 @@ afterAll(async () => {
 // Espelha a query da página /documentacao-pendente.
 async function listarPara(userId: string) {
   return prisma.inquerito.findMany({
-    where: { deletedAt: null, documentacaoPendente: true, documentacaoPendentePorId: userId },
+    where: {
+      deletedAt: null,
+      documentacaoPendente: true,
+      documentacaoPendentePorId: userId,
+      estado: { codigo: { not: 'ARQUIVADO' } },
+    },
     select: { nuipc: true },
     orderBy: { documentacaoPendenteDesde: 'asc' },
   })
@@ -58,6 +63,23 @@ describe('documentação pendente — privada do autor', () => {
     await prisma.inquerito.update({
       where: { id: s.inqA[1].id },
       data: { deletedAt: new Date() },
+    })
+
+    expect((await listarPara(s.inspetorA.id)).map((i) => i.nuipc)).toEqual(['A-001/22'])
+  })
+
+  test('inquéritos arquivados deixam de constar da lista', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    await marcar(s.inqA[0].id, s.inspetorA.id, new Date('2026-06-01'))
+    await marcar(s.inqA[1].id, s.inspetorA.id, new Date('2026-06-03'))
+    const arquivado = await makeEstado(prisma, {
+      codigo: 'ARQUIVADO',
+      nome: 'Arquivado',
+      terminal: true,
+    })
+    await prisma.inquerito.update({
+      where: { id: s.inqA[1].id },
+      data: { estadoId: arquivado.id },
     })
 
     expect((await listarPara(s.inspetorA.id)).map((i) => i.nuipc)).toEqual(['A-001/22'])

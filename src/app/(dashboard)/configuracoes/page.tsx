@@ -1255,7 +1255,7 @@ export default function ConfiguracoesPage() {
         toast.error(err.error ?? 'Erro ao guardar')
         return
       }
-      toast.success(next ? 'Módulo Perícias ativado' : 'Módulo Perícias desativado')
+      toast.success(next ? 'Módulo Exames/Perícias ativado' : 'Módulo Exames/Perícias desativado')
     } catch {
       setModuloPericiasAtivo(!next)
       toast.error('Erro de rede ao guardar')
@@ -2067,7 +2067,7 @@ export default function ConfiguracoesPage() {
                     <Microscope className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Perícias</p>
+                    <p className="text-sm font-medium">Exames/Perícias</p>
                     <p className="text-xs text-muted-foreground">
                       Exames técnicos/científicos pedidos a entidades externas (LPC, INML, …) com alerta de perícia atrasada
                     </p>
@@ -2077,7 +2077,7 @@ export default function ConfiguracoesPage() {
                   type="button"
                   onClick={toggleModuloPericias}
                   disabled={savingModuloPericias}
-                  aria-label={moduloPericiasAtivo ? 'Desativar módulo Perícias' : 'Ativar módulo Perícias'}
+                  aria-label={moduloPericiasAtivo ? 'Desativar módulo Exames/Perícias' : 'Ativar módulo Exames/Perícias'}
                   className={cn(
                     'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
                     moduloPericiasAtivo ? 'bg-green-600' : 'bg-input',

@@ -44,7 +44,7 @@ export default async function PericiasPage({
     return (
       <AccessDenied
         title="Módulo desativado"
-        message="O módulo Perícias está desativado ou o teu perfil não tem acesso."
+        message="O módulo Exames/Perícias está desativado ou o teu perfil não tem acesso."
         backHref="/dashboard"
         backLabel="Voltar ao dashboard"
       />

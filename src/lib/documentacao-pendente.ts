@@ -63,3 +63,22 @@ export function computeDocumentacaoPendenteUpdate(args: {
     documentacaoPendentePorId: porId,
   }
 }
+
+/** Estado em que um inquérito deixa de aguardar documentação. */
+export const ESTADO_ARQUIVADO = 'ARQUIVADO'
+
+/**
+ * Campos a limpar quando um inquérito passa a arquivado: deixa de haver
+ * documentação por juntar, por isso a marca (e nota/desde/autor) é removida
+ * em vez de ficar latente e reaparecer se o inquérito for reaberto.
+ */
+export const DOCUMENTACAO_PENDENTE_LIMPA = {
+  documentacaoPendente: false,
+  documentacaoPendenteNota: null,
+  documentacaoPendenteDesde: null,
+  documentacaoPendentePorId: null,
+} as const
+
+export function limpaDocumentacaoSeArquivado(estadoCodigo: string | null | undefined) {
+  return estadoCodigo === ESTADO_ARQUIVADO ? DOCUMENTACAO_PENDENTE_LIMPA : {}
+}

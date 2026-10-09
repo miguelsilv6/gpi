@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { computeDocumentacaoPendenteUpdate } from '@/lib/documentacao-pendente'
+import { computeDocumentacaoPendenteUpdate, limpaDocumentacaoSeArquivado, DOCUMENTACAO_PENDENTE_LIMPA } from '@/lib/documentacao-pendente'
 
 /**
  * Regras de cálculo dos campos de "documentação pendente" — gestão do `...Desde`
@@ -112,4 +112,23 @@ describe('computeDocumentacaoPendenteUpdate', () => {
     })
     expect(trim.documentacaoPendenteNota).toBe('Perícia financeira')
   })
+})
+
+describe('limpaDocumentacaoSeArquivado', () => {
+  test('arquivado limpa marca, nota, desde e autor', () => {
+    expect(limpaDocumentacaoSeArquivado('ARQUIVADO')).toEqual({
+      documentacaoPendente: false,
+      documentacaoPendenteNota: null,
+      documentacaoPendenteDesde: null,
+      documentacaoPendentePorId: null,
+    })
+    expect(limpaDocumentacaoSeArquivado('ARQUIVADO')).toBe(DOCUMENTACAO_PENDENTE_LIMPA)
+  })
+
+  test.each(['ABERTO', 'CONCLUIDO', 'SUSPENSO', '', null, undefined])(
+    'estado %s não altera a marca',
+    (codigo) => {
+      expect(limpaDocumentacaoSeArquivado(codigo)).toEqual({})
+    },
+  )
 })

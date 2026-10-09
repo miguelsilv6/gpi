@@ -225,10 +225,10 @@ export function PericiasSection({ nuipcSlug, pericias, apreensoesDisponiveis, po
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
             <Microscope className="h-4 w-4" />
-            Perícias
+            Exames/Perícias
           </CardTitle>
           <div className="flex items-center gap-1">
-            <HelpButton title="Ajuda — Perícias" className="shrink-0">
+            <HelpButton title="Ajuda — Exames/Perícias" className="shrink-0">
               <HelpSection title="O que é">
                 <p>
                   Registo dos exames técnicos/científicos pedidos a entidades externas (LPC,
