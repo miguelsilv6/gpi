@@ -292,7 +292,7 @@ export function TribunaisTab() {
 
       {/* Create/Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && setDialogOpen(false)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{dialogMode === 'create' ? 'Novo tribunal' : 'Editar tribunal'}</DialogTitle>
           </DialogHeader>
@@ -320,7 +320,7 @@ export function TribunaisTab() {
                       : comarcas.find((c) => c.id === v)?.nome ?? 'Comarca'}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-auto min-w-(--anchor-width) max-w-[calc(100vw-2rem)]">
                   <SelectItem value={COMARCA_NONE}>Sem comarca</SelectItem>
                   {comarcasAtivas.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
@@ -403,7 +403,7 @@ export function TribunaisTab() {
 
       {/* Delete dialog */}
       <Dialog open={!!deleteCandidate} onOpenChange={(open) => !open && setDeleteCandidate(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Eliminar tribunal</DialogTitle>
           </DialogHeader>

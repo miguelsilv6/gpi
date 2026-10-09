@@ -479,7 +479,7 @@ function LinhaForm({ form, onChange, distanciaMin, viaturas, onViaturaAdded }: L
 
       {/* Add viatura mini-dialog */}
       <Dialog open={addViaturaOpen} onOpenChange={(o) => !addViaturaLoading && setAddViaturaOpen(o)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Adicionar Viatura</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -1326,7 +1326,7 @@ tr:nth-child(even) td{background:#f6f6f6}
 
       {/* Add/Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => !saving && setDialogOpen(open)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingLinha ? 'Editar entrada' : 'Nova entrada'}
@@ -1463,7 +1463,7 @@ tr:nth-child(even) td{background:#f6f6f6}
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteCandidate} onOpenChange={(open) => !open && !deleting && setDeleteCandidate(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Eliminar entrada</DialogTitle>
           </DialogHeader>
@@ -1501,7 +1501,7 @@ tr:nth-child(even) td{background:#f6f6f6}
 
       {/* Detail dialog */}
       <Dialog open={!!detailLinha} onOpenChange={(open) => !open && setDetailLinha(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes da entrada</DialogTitle>
           </DialogHeader>

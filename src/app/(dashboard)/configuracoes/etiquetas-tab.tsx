@@ -132,7 +132,7 @@ export function EtiquetasTab() {
       )}
 
       <Dialog open={!!deleteCandidate} onOpenChange={(open) => !open && setDeleteCandidate(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Eliminar etiqueta</DialogTitle>
           </DialogHeader>

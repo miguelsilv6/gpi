@@ -254,7 +254,7 @@ export function NotasSection({ nuipcSlug, notas, canAdd, currentUserId, isAdmin 
 
       {/* Diálogo de edição */}
       <Dialog open={!!editing} onOpenChange={(v) => { if (!v) setEditing(null) }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-4 w-4" /> Editar nota
@@ -284,7 +284,7 @@ export function NotasSection({ nuipcSlug, notas, canAdd, currentUserId, isAdmin 
 
       {/* Diálogo de eliminação */}
       <Dialog open={!!toDelete} onOpenChange={(v) => { if (!v) setToDelete(null) }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Eliminar nota?</DialogTitle>
           </DialogHeader>

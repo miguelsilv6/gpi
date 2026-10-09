@@ -117,8 +117,8 @@ export function AuditDetailDialog({
         className={cn(
           'overflow-y-auto p-5',
           maximized
-            ? 'max-w-[min(95vw,1400px)] max-h-[95vh] w-full'
-            : 'max-w-4xl max-h-[85vh]',
+            ? 'sm:max-w-[min(95vw,1400px)] max-h-[95vh] w-full'
+            : 'sm:max-w-4xl max-h-[85vh]',
         )}
       >
         <DialogHeader>

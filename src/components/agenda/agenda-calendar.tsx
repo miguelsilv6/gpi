@@ -275,7 +275,7 @@ export function AgendaCalendar({ events, month, day, canCreate, isAdmin, current
       />
 
       <Dialog open={!!toDelete} onOpenChange={(v) => { if (!v) setToDelete(null) }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Eliminar diligência?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             {toDelete?.titulo}. Esta ação é permanente.

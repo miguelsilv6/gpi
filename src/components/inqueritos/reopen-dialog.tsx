@@ -56,7 +56,7 @@ export function ReopenDialog({ slug, trigger = true }: { slug: string; trigger?:
         </Button>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Reabrir inquérito</DialogTitle>
         </DialogHeader>

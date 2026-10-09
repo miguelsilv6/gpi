@@ -382,7 +382,7 @@ function EditPrazoButton({ prazo, compact = false }: { prazo: PrazoItem; compact
         {!compact && <span className="sr-only">Editar</span>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Editar prazo</DialogTitle>
           </DialogHeader>
@@ -454,7 +454,7 @@ function ConcluirPrazoButton({ prazo, compact = false }: { prazo: PrazoItem; com
         {!compact && <span className="sr-only">Concluir</span>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Concluir prazo?</DialogTitle>
           </DialogHeader>

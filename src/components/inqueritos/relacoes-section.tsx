@@ -238,7 +238,7 @@ export function RelacoesSection({ nuipcSlug, selfNuipc, relacoes, canEdit }: Pro
       </CardContent>
 
       <Dialog open={!!toDelete} onOpenChange={(v) => { if (!v) setToDelete(null) }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Remover ligação?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             A ligação a <span className="font-mono">{toDelete?.inquerito.nuipc}</span> será removida. Esta ação não elimina nenhum inquérito.

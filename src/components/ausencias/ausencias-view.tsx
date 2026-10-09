@@ -517,7 +517,7 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !busy && !o && setEditing(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Editar marcação</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-3">
@@ -571,7 +571,7 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
 
       {/* Delete confirm */}
       <Dialog open={!!deleting} onOpenChange={(o) => !busy && !o && setDeleting(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Apagar marcação</DialogTitle>
             <DialogDescription>

@@ -390,7 +390,7 @@ function EditButton({
         {!compact && <span className="sr-only">Editar</span>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar controlo</DialogTitle>
           </DialogHeader>
@@ -504,7 +504,7 @@ function DeleteButton({
         {!compact && <span className="sr-only">Eliminar</span>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Eliminar controlo?</DialogTitle>
           </DialogHeader>
@@ -580,7 +580,7 @@ function ConcluirButton({
         {!compact && <span className="sr-only">Concluir</span>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Concluir controlo?</DialogTitle>
           </DialogHeader>
@@ -672,7 +672,7 @@ function HistoryButton({
         {!compact && <span className="sr-only">Histórico</span>}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Histórico do controlo</DialogTitle>
           </DialogHeader>
@@ -794,7 +794,7 @@ function ConfirmButton({
         </Button>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Confirmar {ordinalControlo(realizacao.numero)}</DialogTitle>
           </DialogHeader>

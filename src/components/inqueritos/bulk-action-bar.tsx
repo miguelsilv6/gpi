@@ -169,7 +169,7 @@ export function BulkActionBar({
       </div>
 
       <Dialog open={!!activeAction} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           {config && (
             <>
               <DialogHeader>
