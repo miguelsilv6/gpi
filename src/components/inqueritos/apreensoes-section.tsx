@@ -1,5 +1,6 @@
 'use client'
 
+import { useAcaoInquerito } from '@/lib/inquerito-acoes'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -127,7 +128,8 @@ export function ApreensoesSection({ nuipcSlug, apreensoes, podeGerir }: Props) {
   const [saving, setSaving] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
 
-  if (!podeGerir && apreensoes.length === 0) return null
+  // Painel oculto quando vazio; o diálogo fica montado para o menu "Ações".
+  useAcaoInquerito('apreensao', openCreate, podeGerir)
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -212,6 +214,8 @@ export function ApreensoesSection({ nuipcSlug, apreensoes, podeGerir }: Props) {
   const isTerminal = ESTADO_APREENSAO_TERMINAL.has(form.estado)
 
   return (
+    <>
+      {apreensoes.length > 0 && (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
@@ -296,6 +300,8 @@ export function ApreensoesSection({ nuipcSlug, apreensoes, podeGerir }: Props) {
           </ul>
         )}
       </CardContent>
+    </Card>
+      )}
 
       <Dialog open={open} onOpenChange={(o) => { if (!o) setOpen(false) }}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
@@ -401,6 +407,6 @@ export function ApreensoesSection({ nuipcSlug, apreensoes, podeGerir }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   )
 }

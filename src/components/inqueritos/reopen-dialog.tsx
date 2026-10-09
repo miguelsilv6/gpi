@@ -14,8 +14,10 @@ import {
 } from '@/components/ui/dialog'
 import { RotateCcw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAcaoInquerito } from '@/lib/inquerito-acoes'
 
-export function ReopenDialog({ slug }: { slug: string }) {
+/** `trigger={false}`: sem botão próprio; abre pelo menu "Ações" do inquérito. */
+export function ReopenDialog({ slug, trigger = true }: { slug: string; trigger?: boolean }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [motivo, setMotivo] = useState('')
@@ -43,12 +45,16 @@ export function ReopenDialog({ slug }: { slug: string }) {
     router.refresh()
   }
 
+  useAcaoInquerito('reabrir', () => setOpen(true), !trigger)
+
   return (
     <>
-      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
-        <RotateCcw className="h-3.5 w-3.5" />
-        Reabrir
-      </Button>
+      {trigger && (
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
+          <RotateCcw className="h-3.5 w-3.5" />
+          Reabrir
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
         <DialogHeader>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,7 @@ import { toast } from 'sonner'
 import type { PrioridadeTarefa } from '@/generated/prisma/enums'
 import { PRIORIDADE_LABEL, PRIORIDADE_COLOR } from '@/components/tarefas/tarefa-shared'
 import { ConfirmarConcluirDialog } from '@/components/tarefas/confirmar-concluir-dialog'
+import { useAcaoInquerito, mostrarElemento } from '@/lib/inquerito-acoes'
 
 export interface TarefaItem {
   id: string
@@ -57,7 +58,12 @@ interface Props {
 export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
   const router = useRouter()
 
+  const cardRef = useRef<HTMLDivElement>(null)
   const [composing, setComposing] = useState(false)
+  useAcaoInquerito('tarefa', () => {
+    setComposing(true)
+    mostrarElemento(cardRef.current)
+  }, canAdd)
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
   const [prioridade, setPrioridade] = useState<PrioridadeTarefa>('NORMAL')
@@ -193,7 +199,7 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
   const effectiveShowConcluidas = showConcluidas || pendentes.length === 0
 
   return (
-    <Card>
+    <Card ref={cardRef} className="scroll-mt-4">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <CheckSquare className="h-4 w-4" />

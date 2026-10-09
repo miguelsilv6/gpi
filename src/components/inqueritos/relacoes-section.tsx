@@ -23,6 +23,7 @@ import {
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { Link2, Plus, Trash2, Loader2, X, Send, ChevronDown, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAcaoInquerito, mostrarElemento } from '@/lib/inquerito-acoes'
 import type { TipoRelacaoInquerito } from '@/generated/prisma/enums'
 import {
   TIPO_RELACAO_LABEL,
@@ -69,6 +70,19 @@ export function RelacoesSection({ nuipcSlug, selfNuipc, relacoes, canEdit }: Pro
   const [tipo, setTipo] = useState<TipoRelacaoInquerito>('RELACIONADO')
   const [nota, setNota] = useState('')
   const [saving, setSaving] = useState(false)
+  // Aberto pelo menu "Ações": mostra o cartão (oculto quando vazio) e leva-o à vista.
+  const cardRef = useRef<HTMLDivElement>(null)
+  const scrollPendente = useRef(false)
+  useAcaoInquerito('relacao', () => {
+    scrollPendente.current = true
+    setComposing(true)
+  }, canEdit)
+  useEffect(() => {
+    if (composing && scrollPendente.current) {
+      scrollPendente.current = false
+      mostrarElemento(cardRef.current)
+    }
+  }, [composing])
 
   const [toDelete, setToDelete] = useState<RelacaoItem | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -126,7 +140,11 @@ export function RelacoesSection({ nuipcSlug, selfNuipc, relacoes, canEdit }: Pro
     }
   }
 
+  // Painel oculto quando não há ligações (exceto enquanto se está a criar uma).
+  if (relacoes.length === 0 && !composing) return null
+
   return (
+    <div ref={cardRef} className="scroll-mt-4">
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base flex items-center gap-2">
@@ -235,6 +253,7 @@ export function RelacoesSection({ nuipcSlug, selfNuipc, relacoes, canEdit }: Pro
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   )
 }
 

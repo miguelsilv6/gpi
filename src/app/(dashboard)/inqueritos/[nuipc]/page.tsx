@@ -41,8 +41,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EtiquetaList } from '@/components/inqueritos/etiqueta-badge'
 import { formatDate, isOverdue, cn, slugToNuipc, nuipcToSlug } from '@/lib/utils'
-import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, Download, FileDown, UserSquare, Mail, MonitorCog, Paperclip } from 'lucide-react'
+import { ChevronLeft, Edit, AlertTriangle, Calendar, User, FileText, BarChart2, Gavel, UserSquare, Mail, MonitorCog, Paperclip } from 'lucide-react'
 import { DocumentacaoPendenteToggle } from '@/components/inqueritos/documentacao-pendente-toggle'
+import { InqueritoAcoesMenu } from '@/components/inqueritos/inquerito-acoes-menu'
 import Link from 'next/link'
 import type { Role } from '@/generated/prisma/enums'
 import { CopyNuipcButton } from '@/components/inqueritos/copy-nuipc-button'
@@ -477,6 +478,10 @@ export default async function InqueritoDetailPage({
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
   const canDelete = hasPermission(role, 'inquerito:delete')
   const canExport = hasPermission(role, 'inquerito:export')
+  const podeDocumentacaoPendente =
+    canEdit &&
+    inquerito.estado.codigo !== 'ARQUIVADO' &&
+    (!inquerito.documentacaoPendente || !!isMinhaDocPendente)
 
   const overdue =
     isOverdue(inquerito.dataPrazo) && !terminal
@@ -560,31 +565,6 @@ export default async function InqueritoDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
-          {canExport && (
-            <>
-              <Button size="sm" variant="outline">
-                <a
-                  href={`/api/inqueritos/${inqSlug}/export?format=csv`}
-                  className="flex items-center gap-1.5"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  CSV
-                </a>
-              </Button>
-              <Button size="sm" variant="outline">
-                <a
-                  href={`/inqueritos/${inqSlug}/print`}
-                  target="_blank"
-                  rel="noopener"
-                  className="flex items-center gap-1.5"
-                  title="Abre uma vista pronta para imprimir / guardar como PDF"
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  PDF
-                </a>
-              </Button>
-            </>
-          )}
           {canEdit && !terminal && (
             <Button size="sm" variant="outline">
               <Link href={`/inqueritos/${inqSlug}/editar`} className="flex items-center gap-1.5">
@@ -593,15 +573,36 @@ export default async function InqueritoDetailPage({
               </Link>
             </Button>
           )}
-          {canEdit && inquerito.estado.codigo !== 'ARQUIVADO' && (!inquerito.documentacaoPendente || isMinhaDocPendente) && (
+          <InqueritoAcoesMenu
+            slug={inqSlug}
+            terminal={terminal}
+            canEdit={canEdit}
+            canWork={canWork}
+            podeAdicionarAtividade={canWork && !terminal}
+            podeAdicionarTarefa={role !== 'ESTATISTICA'}
+            podeGerirColaboradores={podeGerirColaboradores}
+            podeDocumentacaoPendente={podeDocumentacaoPendente}
+            canExport={canExport}
+            canReopen={canReopen}
+            canDelete={canDelete}
+            modulos={{
+              anexos: anexosAtivo,
+              intercecoes: intercecoesAtivo,
+              apreensoes: apreensoesAtivo,
+              pericias: periciasAtivo,
+            }}
+          />
+          {/* Diálogos abertos a partir do menu "Ações" (sem botão próprio). */}
+          {podeDocumentacaoPendente && (
             <DocumentacaoPendenteToggle
               slug={inqSlug}
               pendente={!!isMinhaDocPendente}
               nota={isMinhaDocPendente ? inquerito.documentacaoPendenteNota : null}
+              trigger={false}
             />
           )}
-          {canReopen && terminal && <ReopenDialog slug={inqSlug} />}
-          {canDelete && <DeleteInqueritoButton nuipc={inquerito.nuipc} />}
+          {canReopen && terminal && <ReopenDialog slug={inqSlug} trigger={false} />}
+          {canDelete && <DeleteInqueritoButton nuipc={inquerito.nuipc} trigger={false} />}
         </div>
       </div>
 
@@ -945,7 +946,7 @@ export default async function InqueritoDetailPage({
         editLocked={editLocked}
       />
 
-      {intercecoesAtivo && intercecoesResumo && (
+      {intercecoesAtivo && intercecoesResumo && intercecoesResumo.alvos > 0 && (
         <IntercecoesSection nuipcSlug={inqSlug} resumo={intercecoesResumo} />
       )}
 

@@ -14,6 +14,7 @@ import {
 import { Paperclip, Upload, Download, Trash2, Loader2, FileText, Image as ImageIcon, FileArchive, Mail, File, ShieldCheck, ShieldAlert, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
+import { useAcaoInquerito } from '@/lib/inquerito-acoes'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -53,6 +54,7 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  useAcaoInquerito('documento', () => inputRef.current?.click(), canUpload)
   const [toDelete, setToDelete] = useState<DocumentoItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [verify, setVerify] = useState<Record<string, VerifyState | undefined>>({})

@@ -14,11 +14,14 @@ import {
 } from '@/components/ui/dialog'
 import { Paperclip, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAcaoInquerito } from '@/lib/inquerito-acoes'
 
 interface Props {
   slug: string
   pendente: boolean
   nota: string | null
+  /** false = sem botão próprio; abre pelo menu "Ações" do inquérito. */
+  trigger?: boolean
 }
 
 /**
@@ -27,7 +30,7 @@ interface Props {
  * sem abrir o formulário de edição completo. Funciona mesmo com o inquérito já
  * concluído/enviado, que é precisamente o caso de uso.
  */
-export function DocumentacaoPendenteToggle({ slug, pendente, nota }: Props) {
+export function DocumentacaoPendenteToggle({ slug, pendente, nota, trigger = true }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [notaValue, setNotaValue] = useState(nota ?? '')
@@ -53,20 +56,20 @@ export function DocumentacaoPendenteToggle({ slug, pendente, nota }: Props) {
     router.refresh()
   }
 
+  function abrir() {
+    setNotaValue(nota ?? '')
+    setOpen(true)
+  }
+  useAcaoInquerito('documentacao-pendente', abrir, !trigger)
+
   return (
     <>
-      <Button
-        size="sm"
-        variant="outline"
-        className="gap-1.5"
-        onClick={() => {
-          setNotaValue(nota ?? '')
-          setOpen(true)
-        }}
-      >
-        <Paperclip className="h-3.5 w-3.5" />
-        {pendente ? 'Documentação pendente' : 'Marcar doc. pendente'}
-      </Button>
+      {trigger && (
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={abrir}>
+          <Paperclip className="h-3.5 w-3.5" />
+          {pendente ? 'Documentação pendente' : 'Marcar doc. pendente'}
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
