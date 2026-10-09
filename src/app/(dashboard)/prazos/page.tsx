@@ -61,6 +61,7 @@ export default async function PrazosPage({
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
+  const userId = session.user.id
   if (!hasPermission(role, 'prazo:read:own')) {
     return <AccessDenied message="Não dispões de privilégios para ver prazos." />
   }
@@ -160,7 +161,7 @@ export default async function PrazosPage({
   const intercecaoWhere = {
     dataFim: intercecaoDataFim,
     alvo: {
-      inquerito: { deletedAt: null, estado: { terminal: false }, inspetorId: session.user.id },
+      inquerito: { deletedAt: null, estado: { terminal: false }, inspetorId: userId },
     },
   }
   const intercecaoSelect = {
@@ -209,7 +210,7 @@ export default async function PrazosPage({
         alertaDias2: l.alertaDias2,
         alerta1Enviado: l.alerta1Enviado,
         alerta2Enviado: l.alerta2Enviado,
-        realizadaPor: { id: session.user.id, nome: '' },
+        realizadaPor: { id: userId, nome: '' },
         inquerito: l.alvo.inquerito,
       })),
     }
