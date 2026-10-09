@@ -30,6 +30,18 @@ function pct(n: number) {
   return `${(n * 100).toFixed(1)}%`
 }
 
+function Row({ label, value, formula }: { label: string; value: string; formula: string }) {
+  return (
+    <div className="flex items-center justify-between py-1 border-b gap-2">
+      <div className="flex flex-col min-w-0">
+        <span className="text-muted-foreground text-sm">{label}</span>
+        <span className="text-xs text-muted-foreground/60 font-mono">{formula}</span>
+      </div>
+      <span className="font-medium text-sm whitespace-nowrap">{value}</span>
+    </div>
+  )
+}
+
 function DerivedRates({ config }: { config: AjudasConfig }) {
   const taxaSemanaDia    = (config.vencimentoE25 * config.percentPiqueteSemana) / 12
   const taxaSemanaNoite  = taxaSemanaDia * 2
@@ -40,16 +52,6 @@ function DerivedRates({ config }: { config: AjudasConfig }) {
   // Prevenção passiva = percentPrevencaoPassiva (padrão 40%) do piquete do mesmo tipo de dia
   const taxaPrevencaoSemana = taxaPiqueteSemana * config.percentPrevencaoPassiva
   const taxaPrevencaoFds    = taxaPiqueteFds    * config.percentPrevencaoPassiva
-
-  const Row = ({ label, value, formula }: { label: string; value: string; formula: string }) => (
-    <div className="flex items-center justify-between py-1 border-b gap-2">
-      <div className="flex flex-col min-w-0">
-        <span className="text-muted-foreground text-sm">{label}</span>
-        <span className="text-xs text-muted-foreground/60 font-mono">{formula}</span>
-      </div>
-      <span className="font-medium text-sm whitespace-nowrap">{value}</span>
-    </div>
-  )
 
   return (
     <Card>

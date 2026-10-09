@@ -12,7 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { LogOut, Menu, User } from 'lucide-react'
 import { SidebarNav } from './sidebar-nav'
@@ -114,6 +113,9 @@ export function Header({ user, moduloAjudasAtivo = true, moduloFeriasAtivo = tru
                 // utilizador que saiu). Best-effort.
                 await unsubscribePushThisDevice()
                 await signOut({ redirect: false })
+                // Recarga completa intencional: limpa todo o estado do cliente
+                // (sessão terminada, dispositivo possivelmente partilhado).
+                // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                 window.location.href = '/login'
               }}
             >

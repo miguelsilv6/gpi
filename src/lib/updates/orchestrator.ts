@@ -74,7 +74,7 @@ export async function getUpdateLog(id: string): Promise<UpdateLogEntry[]> {
   })
   const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
   return rows.map((r) => {
-    const d = (r.detalhes ?? {}) as Record<string, any>
+    const d = (r.detalhes ?? {}) as Record<string, unknown>
     let label: string
     let detail: string | undefined
     switch (r.acao) {

@@ -40,6 +40,24 @@ const SLASH_BLOCKS: SlashBlock[] = [
   { id: 'code', label: 'Código', hint: 'Bloco monoespaçado', icon: Code, prefix: '```\n' },
 ]
 
+type ToolbarId =
+  | 'bold' | 'italic' | 'strike' | 'code' | 'h1' | 'h2'
+  | 'ul' | 'ol' | 'tasks' | 'quote' | 'link'
+
+const TOOLBAR: { id: ToolbarId; icon: LucideIcon; title: string }[] = [
+  { id: 'bold', icon: Bold, title: 'Negrito (Ctrl+B)' },
+  { id: 'italic', icon: Italic, title: 'Itálico (Ctrl+I)' },
+  { id: 'strike', icon: Strikethrough, title: 'Rasurado' },
+  { id: 'code', icon: Code, title: 'Código inline' },
+  { id: 'h1', icon: Heading1, title: 'Título' },
+  { id: 'h2', icon: Heading2, title: 'Subtítulo' },
+  { id: 'ul', icon: List, title: 'Lista' },
+  { id: 'ol', icon: ListOrdered, title: 'Lista numerada' },
+  { id: 'tasks', icon: CheckSquare, title: 'Tarefas' },
+  { id: 'quote', icon: Quote, title: 'Citação' },
+  { id: 'link', icon: Link2, title: 'Link' },
+]
+
 interface Props {
   value: string
   onChange: (v: string) => void
@@ -194,32 +212,36 @@ export function NotaEditor({
     }
   }
 
-  const toolbar: { icon: LucideIcon; title: string; action: () => void }[] = [
-    { icon: Bold, title: 'Negrito (Ctrl+B)', action: () => wrap('**') },
-    { icon: Italic, title: 'Itálico (Ctrl+I)', action: () => wrap('*') },
-    { icon: Strikethrough, title: 'Rasurado', action: () => wrap('~~') },
-    { icon: Code, title: 'Código inline', action: () => wrap('`', '`', 'código') },
-    { icon: Heading1, title: 'Título', action: () => prefixLine('# ') },
-    { icon: Heading2, title: 'Subtítulo', action: () => prefixLine('## ') },
-    { icon: List, title: 'Lista', action: () => prefixLine('- ') },
-    { icon: ListOrdered, title: 'Lista numerada', action: () => prefixLine('1. ') },
-    { icon: CheckSquare, title: 'Tarefas', action: () => prefixLine('- [ ] ') },
-    { icon: Quote, title: 'Citação', action: () => prefixLine('> ') },
-    { icon: Link2, title: 'Link', action: insertLink },
-  ]
+  // A lista de botões é estática (fora do componente); a ação é despachada
+  // aqui, no handler do clique — assim nenhum ref é lido durante o render.
+  function runToolbarAction(id: ToolbarId) {
+    switch (id) {
+      case 'bold': return wrap('**')
+      case 'italic': return wrap('*')
+      case 'strike': return wrap('~~')
+      case 'code': return wrap('`', '`', 'código')
+      case 'h1': return prefixLine('# ')
+      case 'h2': return prefixLine('## ')
+      case 'ul': return prefixLine('- ')
+      case 'ol': return prefixLine('1. ')
+      case 'tasks': return prefixLine('- [ ] ')
+      case 'quote': return prefixLine('> ')
+      case 'link': return insertLink()
+    }
+  }
 
   return (
     <div className="rounded-md border bg-background">
       {/* Barra de ferramentas */}
       <div className="flex items-center gap-0.5 border-b px-1.5 py-1 flex-wrap">
-        {toolbar.map((t, idx) => (
+        {TOOLBAR.map((t) => (
           <button
-            key={idx}
+            key={t.id}
             type="button"
             title={t.title}
             aria-label={t.title}
             disabled={tab === 'preview'}
-            onClick={t.action}
+            onClick={() => runToolbarAction(t.id)}
             className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
           >
             <t.icon className="h-3.5 w-3.5" />

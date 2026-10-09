@@ -61,7 +61,6 @@ export function documentoPath(storedName: string): string {
 /** Limpa o nome original: remove paths e caracteres de controlo, limita tamanho. */
 export function sanitizeFilename(name: string): string {
   const base = name.split(/[/\\]/).pop() ?? 'ficheiro'
-  // eslint-disable-next-line no-control-regex
   const cleaned = base.replace(/[\x00-\x1f\x7f]/g, '').trim()
   return (cleaned || 'ficheiro').slice(0, 200)
 }

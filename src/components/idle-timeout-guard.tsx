@@ -43,7 +43,8 @@ function writeStoredActivity(ts: number) {
 }
 
 export function IdleTimeoutGuard({ timeoutMinutes }: Props) {
-  const lastActivityRef = useRef(Date.now())
+  // Inicializado no efeito de montagem (a partir do localStorage ou de agora).
+  const lastActivityRef = useRef(0)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [warning, setWarning] = useState(false)
 

@@ -141,7 +141,7 @@ export default function LoginPage() {
 
     // Full page navigation garante que o cookie de sessão é enviado
     // na primeira request ao middleware (router.push pode criar race condition).
-    window.location.href = callbackUrl
+    window.location.assign(callbackUrl)
   }
 
   return (
@@ -165,7 +165,7 @@ export default function LoginPage() {
           <CardDescription className="text-sm">{brand.appDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={(e) => handleSubmit(onSubmit)(e)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

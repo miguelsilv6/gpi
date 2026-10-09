@@ -20,7 +20,7 @@ self.addEventListener('push', (event) => {
   let data = {}
   try {
     data = event.data ? event.data.json() : {}
-  } catch (e) {
+  } catch {
     data = { title: 'GPI', body: event.data ? event.data.text() : '' }
   }
 
@@ -51,7 +51,7 @@ self.addEventListener('notificationclick', (event) => {
         targetUrl = parsed.pathname + parsed.search + parsed.hash
       }
     }
-  } catch (e) {
+  } catch {
     targetUrl = '/'
   }
 

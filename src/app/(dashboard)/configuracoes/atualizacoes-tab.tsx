@@ -336,34 +336,36 @@ export function AtualizacoesTab() {
 
   // Rastreia se houve um update em progresso nesta sessão para controlar
   // a visibilidade do painel de falha.
+  const hasStatus = status !== null && status !== undefined
+  const statusInProgress = status?.inProgress
+  const statusState = status?.current?.state
+  const statusFinishedAt = status?.current?.finishedAt
   useEffect(() => {
-    if (!status) return
-    if (status.inProgress) {
+    if (!hasStatus) return
+    if (statusInProgress) {
       wasInProgressRef.current = true
       setFailurePanelDismissed(false)
     } else if (wasInProgressRef.current) {
-      const st = status.current?.state
-      if (st === 'FAILED' || st === 'ROLLED_BACK') {
+      if (statusState === 'FAILED' || statusState === 'ROLLED_BACK') {
         setShowFailurePanel(true)
-      } else if (st === 'DONE') {
+      } else if (statusState === 'DONE') {
         wasInProgressRef.current = false
         setShowFailurePanel(false)
       }
     }
-  }, [status?.inProgress, status?.current?.state])
+  }, [hasStatus, statusInProgress, statusState])
 
   // Quando um update acaba de transitar para DONE, refresh da página para
   // que a sidebar mostre a nova versão (depois de o container reiniciar).
   useEffect(() => {
-    if (!status?.current) return
-    if (status.current.state === 'DONE' && status.current.finishedAt) {
-      const finishedAgoMs = Date.now() - new Date(status.current.finishedAt).getTime()
+    if (statusState === 'DONE' && statusFinishedAt) {
+      const finishedAgoMs = Date.now() - new Date(statusFinishedAt).getTime()
       if (finishedAgoMs < 10_000) {
         const t = setTimeout(() => window.location.reload(), 3000)
         return () => clearTimeout(t)
       }
     }
-  }, [status?.current?.state, status?.current?.finishedAt])
+  }, [statusState, statusFinishedAt])
 
   async function handleCheck() {
     setChecking(true)
@@ -538,7 +540,7 @@ export function AtualizacoesTab() {
                 </div>
               ) : (
                 <span className="text-sm text-muted-foreground italic">
-                  Sem informação de versão remota — clique "Verificar agora".
+                  Sem informação de versão remota — clique &quot;Verificar agora&quot;.
                 </span>
               )}
               {status.checkedAt && (
@@ -883,7 +885,7 @@ export function AtualizacoesTab() {
             <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
               <li>É criado automaticamente um backup completo da BD.</li>
               <li>Durante a operação, o sistema fica em modo de manutenção (2-5 min).</li>
-              <li>Utilizadores não-administradores verão "sistema em manutenção" (503).</li>
+              <li>Utilizadores não-administradores verão &quot;sistema em manutenção&quot; (503).</li>
               <li>Em caso de falha, o sistema é revertido automaticamente para v{status.currentVersion}.</li>
             </ul>
           </div>

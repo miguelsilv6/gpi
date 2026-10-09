@@ -29,7 +29,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1)
     const status = searchParams.get('status') // 'pendentes' | 'concluidos' | null (all)
-    const criadorId = searchParams.get('criadorId')
 
     const scopeWhere = buildControloWhere(role, session.user.id, session.user.brigadaId ?? null)
 

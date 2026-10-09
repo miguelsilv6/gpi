@@ -321,7 +321,7 @@ export default function PerfilPage() {
     // O campo email está desativado no formulário para quem não é
     // administrador — não o enviar evita que o PUT seja rejeitado só por
     // reenviar o valor (inalterado) que já estava na BD.
-    const { email, ...rest } = data
+    const { email: _email, ...rest } = data
     const payload = user?.role === 'ADMINISTRACAO' ? data : rest
     const res = await fetch('/api/perfil', {
       method: 'PUT',

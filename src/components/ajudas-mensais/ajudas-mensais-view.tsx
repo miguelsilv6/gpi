@@ -20,7 +20,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
@@ -34,7 +33,6 @@ import {
   Pencil,
   Plus,
   Trash2,
-  Bell,
 } from 'lucide-react'
 import type { AjudasTotais, ConfigData, LinhaDetalhes } from '@/lib/ajudas-calc'
 import { getPortugueseHolidays, splitHours, calcLinhaValor, calcLinhaDetalhes } from '@/lib/ajudas-calc'
@@ -139,15 +137,6 @@ function formatDT(dt: string) {
   const d = new Date(dt)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
-}
-
-function calcDuration(inicio: string, fim: string): string {
-  const ms = new Date(fim).getTime() - new Date(inicio).getTime()
-  if (ms <= 0) return '—'
-  const h = Math.floor(ms / 3600000)
-  const m = Math.floor((ms % 3600000) / 60000)
-  if (m === 0) return `${h}h`
-  return `${h}h${String(m).padStart(2, '0')}m`
 }
 
 function toDatetimeLocal(dt: string): string {
@@ -680,7 +669,7 @@ export function AjudasMensaisView({
     } finally {
       if (fetchSeqRef.current === seq) setLoading(false)
     }
-  }, [])
+  }, [userId, viewingUserId])
 
   useEffect(() => {
     fetchData(ano, mes)
