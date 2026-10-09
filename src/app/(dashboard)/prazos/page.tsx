@@ -46,6 +46,9 @@ function startOfDayLocal(d: Date): Date {
   return x
 }
 
+// Limite de páginas: a paginação sobre atividades + interceções carrega até
+// ao fim da página pedida, por isso `page` não pode ser arbitrariamente grande.
+const MAX_PAGE = 40
 const PAGE_SIZE = 50
 const CALENDAR_MAX = 500
 
@@ -72,7 +75,7 @@ export default async function PrazosPage({
 
   const view: 'list' | 'calendar' = sp.view === 'calendar' ? 'calendar' : 'list'
   const status = sp.status === 'vencidos' || sp.status === 'proximos' ? sp.status : 'todos'
-  const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
+  const page = Math.min(MAX_PAGE, Math.max(1, parseInt(sp.page ?? '1', 10) || 1))
 
   const config = await prisma.configuracaoSistema.findUnique({
     where: { id: 'singleton' },
