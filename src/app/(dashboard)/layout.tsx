@@ -109,7 +109,11 @@ export default async function DashboardLayout({
           moduloPericiasAtivo={moduloPericiasAtivo}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+        {/* `relative`: torna o <main> o bloco de contenção de elementos
+            `absolute` (ex.: cabeçalhos `sr-only` de tabelas). Sem isto, esses
+            elementos posicionam-se em relação à janela, escapam ao scroll do
+            <main> e esticam a página — no fundo aparecia uma faixa vazia. */}
+        <main className="relative flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>
