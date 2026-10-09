@@ -122,7 +122,7 @@ function toDateInput(iso: string): string {
  * um diálogo) e edita-se diretamente no cartão, com guardar independente das
  * restantes ações do alvo.
  */
-function AcompanhamentoField({
+export function AcompanhamentoField({
   base,
   alvoId,
   initial,

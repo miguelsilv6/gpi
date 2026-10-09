@@ -11,6 +11,7 @@ tests/
 │   ├── db.ts                      # PrismaClient + resetDatabase para integration
 │   └── fixtures.ts                # Factories (makeBrigada, scenarioTwoBrigadas, ...)
 ├── unit/                          # Sem rede, sem BD — rápidos
+├── ui/                            # Componentes React em jsdom (Testing Library): cliques, pop-ups
 │   ├── rbac.test.ts
 │   ├── auth-helpers.test.ts
 │   └── formatters.test.ts
@@ -29,6 +30,25 @@ npm run test:unit
 ```
 
 Não precisam de BD nem de rede.
+
+### UI tests (jsdom)
+
+Testam componentes React com interação real (`@testing-library/react` +
+`user-event`), com `fetch`, `next/navigation` e `sonner` mockados. Não precisam
+de BD nem de rede. Cada ficheiro declara `// @vitest-environment jsdom`.
+
+```bash
+npm run test:ui
+```
+
+### Lint
+
+```bash
+npm run lint      # ESLint (flat config em eslint.config.mjs)
+```
+
+No CI corre como passo informativo (não bloqueia) enquanto os avisos antigos
+não forem tratados.
 
 ### Integration tests (exigem Postgres de teste)
 
