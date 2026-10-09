@@ -8,6 +8,7 @@
  * chegarem ao ficheiro.
  */
 import { prisma } from '@/lib/prisma'
+import { ordenarAlvosPorInicio } from '@/lib/intercecoes'
 import {
   anotarRenovacoes,
   resolverIdentificacoes,
@@ -96,7 +97,8 @@ export async function getDadosExportacao(
     }),
   ])
 
-  const alvos = alvosRaw.map((a) => ({
+  // Mesma ordem do ecrã: por data de início da interceção.
+  const alvos = ordenarAlvosPorInicio(alvosRaw).map((a) => ({
     nome: a.nome,
     observacoes: a.observacoes,
     notas: a.notas,
