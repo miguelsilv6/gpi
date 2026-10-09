@@ -6,6 +6,7 @@ import {
   searchNotas,
   searchAtividades,
   searchDocumentos,
+  searchOutros,
 } from '@/lib/search'
 
 /**
@@ -164,5 +165,85 @@ describe('searchDocumentos — substring + scope', () => {
 
     const other = await searchDocumentos('pericial', 'INSPETOR', s.inspetorB.id, s.brigadaB.id)
     expect(other).toHaveLength(0)
+  })
+})
+
+describe('searchOutros — intervenientes, interceções, apreensões, perícias, tarefas', () => {
+  const todos = { intercecoes: true, apreensoes: true, pericias: true }
+
+  async function cenario() {
+    const s = await scenarioTwoBrigadas(prisma)
+    const inq = s.inqA[0]
+    await prisma.interveniente.create({
+      data: { inqueritoid: inq.id, tipo: 'TESTEMUNHA', nome: 'Joaquim Ferreira', nif: '123456789' },
+    })
+    const alvo = await prisma.intercecaoAlvo.create({ data: { inqueritoid: inq.id, nome: 'Alvo Norte' } })
+    await prisma.intercecaoLinha.create({
+      data: {
+        alvoId: alvo.id,
+        codigo: '1A',
+        tipo: 'SIM',
+        identificador: '912345678',
+        dataInicio: new Date('2026-01-01'),
+        dataFim: new Date('2026-03-01'),
+      },
+    })
+    await prisma.apreensao.create({
+      data: {
+        inqueritoid: inq.id,
+        descricao: 'Telemóvel Samsung',
+        tipo: 'OUTRO',
+        dataApreensao: new Date('2026-01-10'),
+        registadoPorId: s.inspetorA.id,
+      },
+    })
+    await prisma.pericia.create({
+      data: {
+        inqueritoid: inq.id,
+        tipo: 'OUTRO',
+        descricao: 'Extração forense do telemóvel',
+        dataPedido: new Date('2026-01-12'),
+        registadoPorId: s.inspetorA.id,
+      },
+    })
+    await prisma.tarefaInquerito.create({
+      data: { inqueritoId: inq.id, autorId: s.inspetorA.id, titulo: 'Pedir faturação detalhada' },
+    })
+    return s
+  }
+
+  test('encontra cada entidade pelo termo e aponta para o inquérito', async () => {
+    const s = await cenario()
+    const tipos = async (q: string) =>
+      (await searchOutros(q, 'INSPETOR', s.inspetorA.id, s.brigadaA.id, todos)).map((h) => h.tipo)
+
+    expect(await tipos('joaquim')).toEqual(['interveniente'])
+    expect(await tipos('123456789')).toEqual(['interveniente'])
+    expect(await tipos('912345')).toEqual(['intercecao'])
+    expect(await tipos('samsung')).toEqual(['apreensao'])
+    expect(await tipos('forense')).toEqual(['pericia'])
+    expect(await tipos('faturação')).toEqual(['tarefa'])
+
+    const [linha] = await searchOutros('912345', 'INSPETOR', s.inspetorA.id, s.brigadaA.id, todos)
+    expect(linha.href).toBe(`/inqueritos/${linha.slug}/intercecoes`)
+    expect(linha.nuipc).toBe(s.inqA[0].nuipc)
+  })
+
+  test('o termo nunca fura o scope e as tarefas são só do autor', async () => {
+    const s = await cenario()
+    const outroInspetor = await searchOutros('joaquim', 'INSPETOR', s.inspetorB.id, s.brigadaB.id, todos)
+    expect(outroInspetor).toHaveLength(0)
+
+    // O chefe da brigada vê o inquérito, mas não as tarefas pessoais do inspetor.
+    const chefe = await searchOutros('faturação', 'INSPETOR_CHEFE', s.chefeA.id, s.brigadaA.id, todos)
+    expect(chefe).toHaveLength(0)
+  })
+
+  test('módulos desativados não são pesquisados', async () => {
+    const s = await cenario()
+    const nenhum = { intercecoes: false, apreensoes: false, pericias: false }
+    const hits = await searchOutros('telem', 'INSPETOR', s.inspetorA.id, s.brigadaA.id, nenhum)
+    expect(hits.filter((h) => h.tipo === 'apreensao' || h.tipo === 'pericia')).toHaveLength(0)
+    expect(await searchOutros('912345', 'INSPETOR', s.inspetorA.id, s.brigadaA.id, nenhum)).toHaveLength(0)
   })
 })

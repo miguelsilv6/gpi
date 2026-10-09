@@ -15,7 +15,19 @@ import {
 } from '@/components/ui/command'
 import { filterNavItems, type NavModuleFlags } from './nav-items'
 import type { Role } from '@/generated/prisma/enums'
-import { Search, FolderOpen, NotebookPen, Activity, Paperclip, Loader2 } from 'lucide-react'
+import {
+  Search,
+  FolderOpen,
+  NotebookPen,
+  Activity,
+  Paperclip,
+  Loader2,
+  Users,
+  RadioTower,
+  Boxes,
+  Microscope,
+  CheckSquare,
+} from 'lucide-react'
 
 interface InqueritoHit {
   id: string
@@ -46,14 +58,34 @@ interface DocumentoHit {
   filename: string
 }
 
+type OutroTipo = 'interveniente' | 'intercecao' | 'apreensao' | 'pericia' | 'tarefa'
+interface OutroHit {
+  id: string
+  tipo: OutroTipo
+  titulo: string
+  detalhe: string | null
+  nuipc: string
+  href: string
+}
+
+/** Grupos das "outras" entidades, pela ordem em que aparecem na paleta. */
+const OUTROS_GRUPOS: { tipo: OutroTipo; titulo: string; icon: typeof Users }[] = [
+  { tipo: 'interveniente', titulo: 'Intervenientes', icon: Users },
+  { tipo: 'intercecao', titulo: 'Interceções', icon: RadioTower },
+  { tipo: 'apreensao', titulo: 'Apreensões', icon: Boxes },
+  { tipo: 'pericia', titulo: 'Exames/Perícias', icon: Microscope },
+  { tipo: 'tarefa', titulo: 'Tarefas', icon: CheckSquare },
+]
+
 interface SearchState {
   inqueritos: InqueritoHit[]
   notas: NotaHit[]
   atividades: AtividadeHit[]
   documentos: DocumentoHit[]
+  outros: OutroHit[]
 }
 
-const EMPTY: SearchState = { inqueritos: [], notas: [], atividades: [], documentos: [] }
+const EMPTY: SearchState = { inqueritos: [], notas: [], atividades: [], documentos: [], outros: [] }
 
 interface CommandPaletteProps {
   role: Role
@@ -114,6 +146,7 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
           notas: Array.isArray(data.notas) ? data.notas : [],
           atividades: Array.isArray(data.atividades) ? data.atividades : [],
           documentos: Array.isArray(data.documentos) ? data.documentos : [],
+          outros: Array.isArray(data.outros) ? data.outros : [],
         })
       } catch {
         // Abort ou erro de rede — mantém a lista atual em silêncio.
@@ -147,7 +180,7 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
   }
 
   const kbd = isMac ? '⌘K' : 'Ctrl K'
-  const { inqueritos, notas, atividades, documentos } = results
+  const { inqueritos, notas, atividades, documentos, outros } = results
 
   return (
     <>
@@ -178,13 +211,13 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
         onOpenChange={onOpenChange}
         className="sm:max-w-3xl"
         title="Pesquisa global"
-        description="Pesquisar inquéritos, notas, atividades e documentos, ou navegar entre páginas"
+        description="Pesquisar inquéritos, notas, atividades, documentos, intervenientes, números intercetados, apreensões, perícias e tarefas, ou navegar entre páginas"
       >
         <Command shouldFilter={false}>
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder="Pesquisar inquéritos, notas, atividades, documentos ou páginas…"
+            placeholder="Pesquisar inquéritos, intervenientes, números, notas, documentos ou páginas…"
           />
           <CommandList>
             <CommandEmpty>
@@ -293,6 +326,27 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
                 ))}
               </CommandGroup>
             )}
+
+            {OUTROS_GRUPOS.map(({ tipo, titulo, icon: Icon }) => {
+              const hits = outros.filter((o) => o.tipo === tipo)
+              if (hits.length === 0) return null
+              return (
+                <CommandGroup key={tipo} heading={titulo}>
+                  {hits.map((o) => (
+                    <CommandItem key={o.id} value={`${tipo}:${o.id}`} onSelect={() => go(o.href)}>
+                      <Icon className="h-4 w-4" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate">{o.titulo}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          <span className="font-mono">{o.nuipc}</span>
+                          {o.detalhe ? ` · ${o.detalhe}` : ''}
+                        </p>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )
+            })}
 
             {loading && (
               <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
