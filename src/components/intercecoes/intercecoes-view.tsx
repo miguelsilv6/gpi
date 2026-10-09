@@ -296,7 +296,7 @@ export function AcompanhamentoField({
       </div>
 
       <Dialog open={agoraConfirmar !== null} onOpenChange={(o) => !o && !savingAte && setAgoraConfirmar(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Confirmar acompanhamento?</DialogTitle>
           </DialogHeader>
@@ -326,7 +326,7 @@ export function AcompanhamentoField({
       </Dialog>
 
       <Dialog open={porMarcar !== null} onOpenChange={(o) => !o && !marcando && setPorMarcar(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Marcar produtos como ouvidos?</DialogTitle>
           </DialogHeader>

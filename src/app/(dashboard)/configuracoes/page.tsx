@@ -754,7 +754,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
         open={!!deleteCandidate}
         onOpenChange={(open) => !open && closeDeleteDialog()}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Apagar atividade padrão</DialogTitle>
           </DialogHeader>

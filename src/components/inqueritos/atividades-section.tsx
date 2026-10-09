@@ -114,7 +114,7 @@ function ConfirmarControloButton({
         {ordinalControlo(realizacao.numero)}
       </button>
       <Dialog open={open} onOpenChange={(val) => { if (!loading) setOpen(val) }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Confirmar {ordinalControlo(realizacao.numero)}</DialogTitle>
           </DialogHeader>

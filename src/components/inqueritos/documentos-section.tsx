@@ -260,7 +260,7 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
       </CardContent>
 
       <Dialog open={!!toDelete} onOpenChange={(v) => { if (!v) setToDelete(null) }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Eliminar documento?</DialogTitle>
           </DialogHeader>

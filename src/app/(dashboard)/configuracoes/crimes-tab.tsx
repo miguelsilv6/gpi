@@ -405,7 +405,7 @@ export function CrimesTab() {
         open={!!checklistCrime}
         onOpenChange={(open) => !open && setChecklistCrime(null)}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Checklist — {checklistCrime?.nome}</DialogTitle>
           </DialogHeader>
@@ -472,7 +472,7 @@ export function CrimesTab() {
         open={!!deleteCandidate}
         onOpenChange={(open) => !open && setDeleteCandidate(null)}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Apagar crime</DialogTitle>
           </DialogHeader>

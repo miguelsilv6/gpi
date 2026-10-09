@@ -406,7 +406,7 @@ export function SeccoesTab() {
         open={!!deleteCandidate}
         onOpenChange={(open) => !open && setDeleteCandidate(null)}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Apagar secção</DialogTitle>
           </DialogHeader>

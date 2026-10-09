@@ -71,7 +71,7 @@ export function DocumentacaoPendenteToggle({ slug, pendente, nota, trigger = tru
         </Button>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Documentação pendente</DialogTitle>
           </DialogHeader>

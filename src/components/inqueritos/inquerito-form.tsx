@@ -951,7 +951,7 @@ export function InqueritoForm({
 
       {/* Inline tribunal creation dialog */}
       <Dialog open={addTribunalOpen} onOpenChange={(open) => { setAddTribunalOpen(open); if (!open) { setAddTribunalNome(''); setAddTribunalMorada(''); setAddTribunalComarcaId(null) } }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Novo Tribunal / M.P.</DialogTitle>
           </DialogHeader>
@@ -1008,7 +1008,7 @@ export function InqueritoForm({
 
       {/* Inline section creation dialog */}
       <Dialog open={addSeccaoOpen} onOpenChange={(open) => { setAddSeccaoOpen(open); if (!open) setAddSeccaoNome('') }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Nova Secção</DialogTitle>
           </DialogHeader>

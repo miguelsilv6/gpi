@@ -490,7 +490,7 @@ export function AusenciasPerfilPanel() {
 
       {/* Add absence dialog */}
       <Dialog open={addOpen} onOpenChange={(o) => { if (!busyAdd) setAddOpen(o) }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova ausência</DialogTitle>
           </DialogHeader>

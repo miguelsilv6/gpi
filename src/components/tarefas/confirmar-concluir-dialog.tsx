@@ -20,7 +20,7 @@ interface Props {
 export function ConfirmarConcluirDialog({ titulo, onConfirm, onCancel }: Props) {
   return (
     <Dialog open={titulo !== null} onOpenChange={(v) => { if (!v) onCancel() }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Concluir tarefa?</DialogTitle>
         </DialogHeader>

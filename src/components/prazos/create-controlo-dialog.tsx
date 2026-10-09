@@ -241,7 +241,7 @@ export function CreateControloDialog() {
       </Button>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset() }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Novo controlo</DialogTitle>
           </DialogHeader>
