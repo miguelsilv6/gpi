@@ -36,6 +36,7 @@ import {
 import { toast } from 'sonner'
 import type { PrioridadeTarefa } from '@/generated/prisma/enums'
 import { PRIORIDADE_LABEL, PRIORIDADE_COLOR } from '@/components/tarefas/tarefa-shared'
+import { ConfirmarConcluirDialog } from '@/components/tarefas/confirmar-concluir-dialog'
 
 export interface TarefaItem {
   id: string
@@ -70,6 +71,7 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
   const [toDelete, setToDelete] = useState<TarefaItem | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [toConcluir, setToConcluir] = useState<TarefaItem | null>(null)
   const [showConcluidas, setShowConcluidas] = useState(false)
 
   function resetCompose() {
@@ -101,6 +103,12 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
     } finally {
       setSaving(false)
     }
+  }
+
+  // Concluir pede confirmação; reabrir é imediato.
+  function requestToggle(t: TarefaItem) {
+    if (t.concluida) void handleToggle(t)
+    else setToConcluir(t)
   }
 
   async function handleToggle(t: TarefaItem) {
@@ -248,7 +256,7 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
 
         {pendentes.length > 0 && (
           <ul className="space-y-1.5">
-            {pendentes.map((t) => <TarefaRow key={t.id} t={t} toggling={toggling} onToggle={handleToggle} onEdit={startEdit} onDelete={setToDelete} />)}
+            {pendentes.map((t) => <TarefaRow key={t.id} t={t} toggling={toggling} onToggle={requestToggle} onEdit={startEdit} onDelete={setToDelete} />)}
           </ul>
         )}
 
@@ -263,7 +271,7 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
               {concluidas.length} concluída{concluidas.length !== 1 ? 's' : ''}
             </summary>
             <ul className="mt-1.5 space-y-1.5">
-              {concluidas.map((t) => <TarefaRow key={t.id} t={t} toggling={toggling} onToggle={handleToggle} onEdit={startEdit} onDelete={setToDelete} />)}
+              {concluidas.map((t) => <TarefaRow key={t.id} t={t} toggling={toggling} onToggle={requestToggle} onEdit={startEdit} onDelete={setToDelete} />)}
             </ul>
           </details>
         )}
@@ -291,6 +299,16 @@ export function TarefasSection({ nuipcSlug, tarefas, canAdd }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmarConcluirDialog
+        titulo={toConcluir?.titulo ?? null}
+        onCancel={() => setToConcluir(null)}
+        onConfirm={() => {
+          const t = toConcluir
+          setToConcluir(null)
+          if (t) void handleToggle(t)
+        }}
+      />
 
       {/* Diálogo de eliminação */}
       <Dialog open={!!toDelete} onOpenChange={(v) => { if (!v) setToDelete(null) }}>

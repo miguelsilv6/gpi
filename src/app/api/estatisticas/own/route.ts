@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
-import { getComarcaBreakdown } from '@/lib/estatisticas-counters'
+import { getComarcaBreakdown, getIntercecoesAtivas } from '@/lib/estatisticas-counters'
+import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import { utcDayRangeFilter } from '@/lib/date-range'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -182,6 +183,11 @@ export async function GET(req: NextRequest) {
       .map(([ano, count]) => ({ ano, count }))
       .sort((a, b) => a.ano.localeCompare(b.ano))
 
+    // Alvos/produtos de interceção ativos nos inquéritos do inspetor (estado atual).
+    const intercecoes = (await isModuloIntercecoesAtivo(role))
+      ? await getIntercecoesAtivas(scopeWhere)
+      : null
+
     return Response.json({
       total,
       vencidos,
@@ -190,6 +196,7 @@ export async function GET(req: NextRequest) {
       enviados,
       arquivados,
       concluidos,
+      intercecoes,
       porAno,
       porEstado: porEstadoRaw.map((r) => {
         const e = estadoById.get(r.estadoId)

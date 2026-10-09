@@ -88,6 +88,35 @@ export async function getInqueritoCounters(
   return { total, cartaPrecatoria, ativos, semInspetor, distribuido, aguardaExames, enviados, arquivados }
 }
 
+export interface IntercecoesAtivas {
+  alvos: number
+  produtos: number
+}
+
+/**
+ * Interceções em curso no âmbito dado: nº de alvos com pelo menos uma linha
+ * ainda em vigor (dataFim hoje ou depois) em inquéritos não terminais, e nº de
+ * produtos registados nesses alvos. `scopeWhere` deve incluir `deletedAt: null`
+ * e o âmbito (brigada/inspetor). É um estado ATUAL — ignora filtros de datas.
+ */
+export async function getIntercecoesAtivas(
+  scopeWhere: Prisma.InqueritoWhereInput,
+  now: Date = new Date(),
+): Promise<IntercecoesAtivas> {
+  // dataFim é guardada como data (meia-noite UTC): uma linha a terminar hoje
+  // ainda está ativa durante todo o dia.
+  const hoje = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const alvoWhere: Prisma.IntercecaoAlvoWhereInput = {
+    inquerito: { AND: [scopeWhere, { estado: { terminal: false } }] },
+    linhas: { some: { dataFim: { gte: hoje } } },
+  }
+  const [alvos, produtos] = await Promise.all([
+    prisma.intercecaoAlvo.count({ where: alvoWhere }),
+    prisma.intercecaoProduto.count({ where: { alvo: alvoWhere } }),
+  ])
+  return { alvos, produtos }
+}
+
 export interface PorComarca {
   comarcaId: string
   nome: string

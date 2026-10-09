@@ -3,8 +3,9 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
-import { getInqueritoCounters, getComarcaBreakdown } from '@/lib/estatisticas-counters'
+import { getInqueritoCounters, getComarcaBreakdown, getIntercecoesAtivas } from '@/lib/estatisticas-counters'
 import { utcDayRangeFilter } from '@/lib/date-range'
+import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import type { Prisma } from '@/generated/prisma/client'
 import type { Role } from '@/generated/prisma/enums'
 
@@ -97,6 +98,7 @@ export async function GET(req: NextRequest) {
       vencidos,
       anoRaw,
       porTribunalRaw,
+      intercecoes,
     ] = await Promise.all([
       // Os 8 contadores-resumo — partilhados com o Dashboard (chefe e superiores).
       getInqueritoCounters(where, currentScopeWhere),
@@ -138,6 +140,11 @@ export async function GET(req: NextRequest) {
         select: { dataAbertura: true, nuipc: true },
       }),
       prisma.inquerito.groupBy({ by: ['tribunalId'], where, _count: true, orderBy: { _count: { tribunalId: 'desc' } } }),
+      // Alvos/produtos de interceção ativos (estado atual; null se o módulo
+      // estiver desativado para este perfil).
+      (await isModuloIntercecoesAtivo(role))
+        ? getIntercecoesAtivas(currentScopeWhere)
+        : Promise.resolve(null),
     ])
 
     // Atividade breakdown for the selected inspetor (only when filtered).
@@ -261,6 +268,7 @@ export async function GET(req: NextRequest) {
       aguardaExames: counters.aguardaExames,
       enviados: counters.enviados,
       arquivados: counters.arquivados,
+      intercecoes,
       porAno,
       porEstado: porEstadoRaw.map((r) => {
         const e = estadoById.get(r.estadoId)
