@@ -42,32 +42,64 @@ export const ESTADOS_APREENSAO_TERMINAIS = ['DEVOLVIDO', 'PERDIDO_A_FAVOR_ESTADO
 
 export type ApreensaoEstadoFiltro = 'em-custodia' | 'concluidas' | 'todas'
 
-/**
- * Listagem global de apreensões, respeitando o scope do inquérito
- * (`buildInqueritoWhere` na relação). Filtro por grupo de estado.
- */
-export async function getApreensoesGlobal(opts: {
+/** Filtros comuns da listagem global e da exportação. */
+export interface ApreensoesGlobalFiltros {
   role: Role
   userId: string
   brigadaId: string | null
   estado?: ApreensaoEstadoFiltro
-  page?: number
-}) {
+  /** Texto livre (descricao, numeroAuto, localCustodia ou NUIPC). */
+  q?: string
+  /** Intervalo de `dataApreensao` (inclusivo, AAAA-MM-DD). */
+  de?: Date | null
+  ate?: Date | null
+}
+
+/**
+ * `where` da listagem global, respeitando o scope do inquérito
+ * (`buildInqueritoWhere` na relação). Composto por AND para o texto livre
+ * nunca alargar o âmbito.
+ */
+export function buildApreensoesGlobalWhere(opts: ApreensoesGlobalFiltros): Prisma.ApreensaoWhereInput {
   const { role, userId, brigadaId } = opts
   const filtro: ApreensaoEstadoFiltro = opts.estado ?? 'em-custodia'
-  const page = Math.max(1, opts.page ?? 1)
-
   const estadoWhere: Prisma.ApreensaoWhereInput =
     filtro === 'em-custodia'
       ? { estado: { in: [...ESTADOS_APREENSAO_ATIVOS] } }
       : filtro === 'concluidas'
         ? { estado: { in: [...ESTADOS_APREENSAO_TERMINAIS] } }
         : {}
-
-  const where: Prisma.ApreensaoWhereInput = {
-    inquerito: { AND: [{ deletedAt: null }, buildInqueritoWhere(role, userId, brigadaId)] },
-    ...estadoWhere,
+  const q = opts.q?.trim()
+  const contains = { contains: q ?? '', mode: 'insensitive' as const }
+  return {
+    AND: [
+      { inquerito: { AND: [{ deletedAt: null }, buildInqueritoWhere(role, userId, brigadaId)] } },
+      estadoWhere,
+      q
+        ? {
+            OR: [
+              { descricao: contains },
+              { numeroAuto: contains },
+              { localCustodia: contains },
+              { inquerito: { nuipc: contains } },
+            ],
+          }
+        : {},
+      opts.de || opts.ate
+        ? {
+            dataApreensao: {
+              ...(opts.de && { gte: opts.de }),
+              ...(opts.ate && { lte: opts.ate }),
+            },
+          }
+        : {},
+    ],
   }
+}
+
+export async function getApreensoesGlobal(opts: ApreensoesGlobalFiltros & { page?: number }) {
+  const page = Math.max(1, opts.page ?? 1)
+  const where = buildApreensoesGlobalWhere(opts)
 
   const [total, items] = await Promise.all([
     prisma.apreensao.count({ where }),
@@ -84,6 +116,19 @@ export async function getApreensoesGlobal(opts: {
   ])
 
   return { items, total, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)), page }
+}
+
+/** Todas as linhas filtradas (até `limit`) — para exportação CSV. */
+export function getApreensoesExport(opts: ApreensoesGlobalFiltros, limit: number) {
+  return prisma.apreensao.findMany({
+    where: buildApreensoesGlobalWhere(opts),
+    orderBy: [{ dataApreensao: 'desc' }, { createdAt: 'desc' }],
+    take: limit,
+    select: {
+      ...APREENSAO_SELECT,
+      inquerito: { select: { nuipc: true } },
+    },
+  })
 }
 
 /**

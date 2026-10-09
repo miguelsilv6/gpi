@@ -5,6 +5,9 @@ import { isModuloPericiasAtivo } from '@/lib/pericias-module'
 import { getPericiasGlobal, periciaTipoLabel, type PericiaEstadoFiltro } from '@/lib/pericias'
 import { ESTADO_PERICIA_LABEL, ESTADO_PERICIA_TERMINAL } from '@/lib/validations/pericia'
 import { AccessDenied } from '@/components/access-denied'
+import { ListaFiltrosForm } from '@/components/lista-filtros-form'
+import { parseFiltrosLista, filtrosParams } from '@/lib/lista-filtros'
+import { hasPermission } from '@/lib/rbac'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { formatDate, nuipcToSlug, cn } from '@/lib/utils'
 import type { Role } from '@/generated/prisma/enums'
@@ -34,7 +37,7 @@ function estadoBadgeClass(estado: string): string {
 export default async function PericiasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; page?: string }>
+  searchParams: Promise<{ estado?: string; page?: string; q?: string; de?: string; ate?: string }>
 }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
@@ -55,6 +58,8 @@ export default async function PericiasPage({
   const estado: PericiaEstadoFiltro =
     sp.estado === 'concluidas' || sp.estado === 'todas' ? sp.estado : 'pendentes'
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
+  const filtros = parseFiltrosLista((k) => sp[k as 'q' | 'de' | 'ate'])
+  const filtrosQs = filtrosParams(sp)
 
   const { items, total, totalPages } = await getPericiasGlobal({
     role,
@@ -62,6 +67,7 @@ export default async function PericiasPage({
     brigadaId: session.user.brigadaId ?? null,
     estado,
     page,
+    ...filtros,
   })
 
   // Início do dia atual: uma perícia só fica "atrasada" no dia seguinte ao prazo
@@ -70,7 +76,7 @@ export default async function PericiasPage({
   todayStart.setHours(0, 0, 0, 0)
 
   function buildUrl(f: PericiaEstadoFiltro, p?: number): string {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams(filtrosQs)
     if (f !== 'pendentes') params.set('estado', f)
     if (p && p > 1) params.set('page', String(p))
     const qs = params.toString()
@@ -139,6 +145,21 @@ export default async function PericiasPage({
           </Link>
         ))}
       </div>
+
+      <ListaFiltrosForm
+        action="/pericias"
+        manter={{ estado: estado === 'pendentes' ? undefined : estado }}
+        q={sp.q}
+        de={sp.de}
+        ate={sp.ate}
+        rotuloData="Data do pedido"
+        placeholder="Pesquisar descrição, referência, entidade ou NUIPC…"
+        exportHref={
+          hasPermission(role, 'inquerito:export')
+            ? `/api/pericias/export?${new URLSearchParams([...filtrosQs, ['estado', estado]]).toString()}`
+            : undefined
+        }
+      />
 
       {items.length === 0 ? (
         <div className="rounded-xl border bg-background py-12 text-center text-sm text-muted-foreground">

@@ -5,6 +5,9 @@ import { isModuloApreensoesAtivo } from '@/lib/apreensoes-module'
 import { getApreensoesGlobal, apreensaoTipoLabel, type ApreensaoEstadoFiltro } from '@/lib/apreensoes'
 import { ESTADO_APREENSAO_LABEL, ESTADO_APREENSAO_TERMINAL } from '@/lib/validations/apreensao'
 import { AccessDenied } from '@/components/access-denied'
+import { ListaFiltrosForm } from '@/components/lista-filtros-form'
+import { parseFiltrosLista, filtrosParams } from '@/lib/lista-filtros'
+import { hasPermission } from '@/lib/rbac'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { formatDate, nuipcToSlug, cn } from '@/lib/utils'
 import type { Role } from '@/generated/prisma/enums'
@@ -34,7 +37,7 @@ function estadoBadgeClass(estado: string): string {
 export default async function ApreensoesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; page?: string }>
+  searchParams: Promise<{ estado?: string; page?: string; q?: string; de?: string; ate?: string }>
 }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
@@ -57,6 +60,8 @@ export default async function ApreensoesPage({
   const estado: ApreensaoEstadoFiltro =
     sp.estado === 'concluidas' || sp.estado === 'todas' ? sp.estado : 'em-custodia'
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
+  const filtros = parseFiltrosLista((k) => sp[k as 'q' | 'de' | 'ate'])
+  const filtrosQs = filtrosParams(sp)
 
   const { items, total, totalPages } = await getApreensoesGlobal({
     role,
@@ -64,10 +69,11 @@ export default async function ApreensoesPage({
     brigadaId: session.user.brigadaId ?? null,
     estado,
     page,
+    ...filtros,
   })
 
   function buildUrl(f: ApreensaoEstadoFiltro, p?: number): string {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams(filtrosQs)
     if (f !== 'em-custodia') params.set('estado', f)
     if (p && p > 1) params.set('page', String(p))
     const qs = params.toString()
@@ -137,6 +143,21 @@ export default async function ApreensoesPage({
           </Link>
         ))}
       </div>
+
+      <ListaFiltrosForm
+        action="/apreensoes"
+        manter={{ estado: estado === 'em-custodia' ? undefined : estado }}
+        q={sp.q}
+        de={sp.de}
+        ate={sp.ate}
+        rotuloData="Data de apreensão"
+        placeholder="Pesquisar objeto, n.º auto, custódia ou NUIPC…"
+        exportHref={
+          hasPermission(role, 'inquerito:export')
+            ? `/api/apreensoes/export?${new URLSearchParams([...filtrosQs, ['estado', estado]]).toString()}`
+            : undefined
+        }
+      />
 
       {items.length === 0 ? (
         <div className="rounded-xl border bg-background py-12 text-center text-sm text-muted-foreground">

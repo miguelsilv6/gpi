@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterAll, vi } from 'vitest'
 import { getTestPrisma, resetDatabase, disconnectTestPrisma } from '../helpers/db'
 import { scenarioTwoBrigadas } from '../helpers/fixtures'
-import { checkApreensoesParadas } from '@/lib/apreensoes'
+import { checkApreensoesParadas, getApreensoesGlobal, getApreensoesExport } from '@/lib/apreensoes'
 import { invalidatePolicyCache } from '@/lib/notifications'
 import { nuipcToSlug } from '@/lib/utils'
 import { TipoNotificacao } from '@/generated/prisma/enums'
@@ -23,6 +23,7 @@ vi.mock('@/auth', () => ({ auth: authMock }))
 
 import { POST, GET } from '@/app/api/inqueritos/[nuipc]/apreensoes/route'
 import { PUT, DELETE } from '@/app/api/inqueritos/[nuipc]/apreensoes/[id]/route'
+import { GET as EXPORT_GET } from '@/app/api/apreensoes/export/route'
 
 const prisma = getTestPrisma()
 
@@ -262,5 +263,57 @@ describe('rotas de apreensões — gates', () => {
     const resOk = await DELETE(jsonReq('DELETE'), paramsId(s.inqA[0].nuipc, apr.id))
     expect(resOk.status).toBe(200)
     expect(await prisma.apreensao.count()).toBe(0)
+  })
+})
+
+describe('getApreensoesGlobal / getApreensoesExport — filtros de texto e datas', () => {
+  test('filtra por texto (incl. NUIPC) e intervalo de datas, sem furar o scope', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const base = { tipo: 'OUTRO' as const, registadoPorId: s.inspetorA.id }
+    await prisma.apreensao.createMany({
+      data: [
+        { ...base, inqueritoid: s.inqA[0].id, descricao: 'Telemóvel Samsung', dataApreensao: new Date('2026-01-10') },
+        { ...base, inqueritoid: s.inqA[0].id, descricao: 'Portátil Dell', dataApreensao: new Date('2026-02-10') },
+        { ...base, inqueritoid: s.inqB[0].id, descricao: 'Telemóvel iPhone', dataApreensao: new Date('2026-01-12') },
+      ],
+    })
+    const ctx = { role: 'INSPETOR' as const, userId: s.inspetorA.id, brigadaId: s.brigadaA.id, estado: 'todas' as const }
+
+    const tel = await getApreensoesGlobal({ ...ctx, q: 'telemóvel' })
+    expect(tel.items.map((a) => a.descricao)).toEqual(['Telemóvel Samsung'])
+
+    const porNuipc = await getApreensoesExport({ ...ctx, q: s.inqA[0].nuipc }, 100)
+    expect(porNuipc).toHaveLength(2)
+
+    const fev = await getApreensoesExport(
+      { ...ctx, de: new Date('2026-02-01T00:00:00Z'), ate: new Date('2026-02-28T23:59:59Z') },
+      100,
+    )
+    expect(fev.map((a) => a.descricao)).toEqual(['Portátil Dell'])
+  })
+})
+
+describe('GET /api/apreensoes/export', () => {
+  test('CSV só com as apreensões no scope, filtrado, e registo na auditoria', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const base = { tipo: 'OUTRO' as const, registadoPorId: s.inspetorA.id, dataApreensao: new Date('2026-01-10') }
+    await prisma.apreensao.createMany({
+      data: [
+        { ...base, inqueritoid: s.inqA[0].id, descricao: '=Telemóvel A' },
+        { ...base, inqueritoid: s.inqB[0].id, descricao: 'Telemóvel B' },
+      ],
+    })
+    asUser({ id: s.inspetorA.id, role: 'INSPETOR', brigadaId: s.brigadaA.id })
+
+    const res = await EXPORT_GET(new NextRequest('http://localhost/api/apreensoes/export?q=telem&estado=todas'))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Content-Type')).toContain('text/csv')
+    const body = await res.text()
+    expect(body).toContain(s.inqA[0].nuipc)
+    expect(body).toContain("'=Telemóvel A") // fórmula neutralizada
+    expect(body).not.toContain('Telemóvel B')
+
+    const audit = await prisma.auditLog.findFirst({ where: { acao: 'EXPORT_APREENSOES' } })
+    expect(audit?.utilizadorId).toBe(s.inspetorA.id)
   })
 })
