@@ -1,5 +1,6 @@
 'use client'
 
+import { useAcaoInquerito } from '@/lib/inquerito-acoes'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,9 +61,8 @@ export function ColaboradoresSection({ nuipcSlug, colaboradores, inspetoresDispo
   const [expiraEm, setExpiraEm] = useState('')
   const [saving, setSaving] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
-
-  // Não mostrar a secção quando não há nada a mostrar nem a gerir.
-  if (!podeGerir && colaboradores.length === 0) return null
+  // Painel oculto quando vazio; o diálogo fica montado para o menu "Ações".
+  useAcaoInquerito('colaborador', () => { resetForm(); setOpen(true) }, podeGerir)
 
   // Inspetores que ainda não estão autorizados (para o seletor).
   const jaAutorizados = new Set(colaboradores.map((c) => c.colaborador.id))
@@ -124,6 +124,8 @@ export function ColaboradoresSection({ nuipcSlug, colaboradores, inspetoresDispo
   }
 
   return (
+    <>
+      {colaboradores.length > 0 && (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
@@ -205,6 +207,8 @@ export function ColaboradoresSection({ nuipcSlug, colaboradores, inspetoresDispo
           </ul>
         )}
       </CardContent>
+    </Card>
+      )}
 
       {/* Dialog de autorização */}
       <Dialog open={open} onOpenChange={(o) => { if (!o) setOpen(false) }}>
@@ -268,6 +272,6 @@ export function ColaboradoresSection({ nuipcSlug, colaboradores, inspetoresDispo
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   )
 }

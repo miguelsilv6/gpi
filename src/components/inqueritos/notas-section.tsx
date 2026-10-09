@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { StickyNote, Send, Trash2, Loader2, Pencil, X, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
+import { useAcaoInquerito, mostrarElemento } from '@/lib/inquerito-acoes'
 
 export interface NotaItem {
   id: string
@@ -39,7 +40,12 @@ interface Props {
 
 export function NotasSection({ nuipcSlug, notas, canAdd, currentUserId, isAdmin }: Props) {
   const router = useRouter()
+  const cardRef = useRef<HTMLDivElement>(null)
   const [composing, setComposing] = useState(false)
+  useAcaoInquerito('nota', () => {
+    setComposing(true)
+    mostrarElemento(cardRef.current)
+  }, canAdd)
   const [titulo, setTitulo] = useState('')
   const [conteudo, setConteudo] = useState('')
   const [saving, setSaving] = useState(false)
@@ -133,7 +139,7 @@ export function NotasSection({ nuipcSlug, notas, canAdd, currentUserId, isAdmin 
   }
 
   return (
-    <Card>
+    <Card ref={cardRef} className="scroll-mt-4">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <StickyNote className="h-4 w-4" />

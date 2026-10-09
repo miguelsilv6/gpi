@@ -1,5 +1,6 @@
 'use client'
 
+import { useAcaoInquerito } from '@/lib/inquerito-acoes'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -136,7 +137,8 @@ export function PericiasSection({ nuipcSlug, pericias, apreensoesDisponiveis, po
   const [saving, setSaving] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
 
-  if (!podeGerir && pericias.length === 0) return null
+  // Painel oculto quando vazio; o diálogo fica montado para o menu "Ações".
+  useAcaoInquerito('pericia', openCreate, podeGerir)
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -220,6 +222,8 @@ export function PericiasSection({ nuipcSlug, pericias, apreensoesDisponiveis, po
   }
 
   return (
+    <>
+      {pericias.length > 0 && (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
@@ -308,6 +312,8 @@ export function PericiasSection({ nuipcSlug, pericias, apreensoesDisponiveis, po
           </ul>
         )}
       </CardContent>
+    </Card>
+      )}
 
       <Dialog open={open} onOpenChange={(o) => { if (!o) setOpen(false) }}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
@@ -435,6 +441,6 @@ export function PericiasSection({ nuipcSlug, pericias, apreensoesDisponiveis, po
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   )
 }
