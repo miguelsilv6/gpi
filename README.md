@@ -163,9 +163,15 @@ Ou usa o `docker-compose.yml` (dev — inclui MailHog em `localhost:8025` para i
 | `DATABASE_URL` | Connection string PostgreSQL |
 | `NEXTAUTH_SECRET` | Secret para JWT (mínimo 32 chars aleatórios) |
 | `NEXTAUTH_URL` | URL pública da aplicação (ex.: `https://gpi.example.com`) |
+| `AUTH_TRUST_HOST` | `true` por defeito nos compose. Necessário atrás de proxy/domínio próprio |
+| `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` | Opcionais; fixam o domínio das passkeys (sem esquema/porta e URL completo) |
 | `CRON_SECRET` | Header de autenticação para triggers externos de cron |
 | `SMTP_HOST` / `SMTP_PORT` | Servidor de email de saída |
 | `SMTP_FROM_EMAIL` | Endereço remetente |
+
+> **Mudar de domínio:** atualizar `NEXTAUTH_URL` (com `https://`, sem `/` final) e, se
+> definidas, `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN`; depois `docker compose up -d --force-recreate app`.
+> As passkeys registadas num domínio antigo deixam de funcionar no novo (o RP ID muda).
 
 ---
 

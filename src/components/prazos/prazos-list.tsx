@@ -17,9 +17,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { formatDate, nuipcToSlug } from '@/lib/utils'
-import { Check, Pencil, CheckCircle2, Loader2 } from 'lucide-react'
+import { Check, Pencil, CheckCircle2, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PrazoItem } from './types'
+import { diasRestantes } from '@/lib/prazos'
 
 interface Props {
   items: PrazoItem[]
@@ -45,10 +46,31 @@ function agruparPorInquerito(items: PrazoItem[]): PrazoGrupo[] {
   return Array.from(map.values())
 }
 
-function GrupoCabecalho({ grupo }: { grupo: PrazoGrupo }) {
+function GrupoCabecalho({
+  grupo,
+  fechado,
+  onToggle,
+}: {
+  grupo: PrazoGrupo
+  fechado: boolean
+  onToggle: () => void
+}) {
   const n = grupo.items.length
+  const vencidos = grupo.items.filter(
+    (p) => !p.concluidaEm && diasRestantes(new Date(p.dataPrazo)) < 0,
+  ).length
+  const Chevron = fechado ? ChevronRight : ChevronDown
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={!fechado}
+        aria-label={fechado ? 'Expandir grupo' : 'Recolher grupo'}
+        className="rounded p-0.5 text-muted-foreground hover:bg-accent"
+      >
+        <Chevron className="h-4 w-4" />
+      </button>
       <Link
         href={`/inqueritos/${nuipcToSlug(grupo.inquerito.nuipc)}`}
         className="font-mono text-sm font-semibold hover:text-blue-600 hover:underline"
@@ -59,6 +81,11 @@ function GrupoCabecalho({ grupo }: { grupo: PrazoGrupo }) {
       <span className="text-xs text-muted-foreground">
         {n} prazo{n !== 1 ? 's' : ''}
       </span>
+      {vencidos > 0 && (
+        <span className="rounded-full border border-red-200 bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-800 dark:border-red-900 dark:bg-red-900/30 dark:text-red-300">
+          {vencidos} vencido{vencidos !== 1 ? 's' : ''}
+        </span>
+      )}
     </div>
   )
 }
@@ -70,6 +97,15 @@ export function PrazosList({
   alertaDias,
   emptyMessage = 'Sem prazos para mostrar.',
 }: Props) {
+  const [fechados, setFechados] = useState<Set<string>>(() => new Set())
+  const alternarGrupo = (id: string) =>
+    setFechados((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
   if (items.length === 0) {
     return (
       <Card>
@@ -109,10 +145,14 @@ export function PrazosList({
               <Fragment key={g.inquerito.id}>
                 <tr className="bg-muted/40">
                   <td colSpan={colSpan} className="px-4 py-2">
-                    <GrupoCabecalho grupo={g} />
+                    <GrupoCabecalho
+                      grupo={g}
+                      fechado={fechados.has(g.inquerito.id)}
+                      onToggle={() => alternarGrupo(g.inquerito.id)}
+                    />
                   </td>
                 </tr>
-                {g.items.map((p) => (
+                {!fechados.has(g.inquerito.id) && g.items.map((p) => (
                   <tr key={p.id} className="hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-3 max-w-[260px]">
                       <p className="line-clamp-2">{p.descricao}</p>
@@ -185,8 +225,12 @@ export function PrazosList({
       <div className="md:hidden space-y-3">
         {grupos.map((g) => (
           <div key={g.inquerito.id} className="space-y-2">
-            <GrupoCabecalho grupo={g} />
-            {g.items.map((p) => (
+            <GrupoCabecalho
+              grupo={g}
+              fechado={fechados.has(g.inquerito.id)}
+              onToggle={() => alternarGrupo(g.inquerito.id)}
+            />
+            {!fechados.has(g.inquerito.id) && g.items.map((p) => (
           <Card key={p.id} className="overflow-hidden">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
