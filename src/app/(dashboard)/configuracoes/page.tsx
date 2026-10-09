@@ -1,5 +1,6 @@
 'use client'
 
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -124,7 +125,7 @@ function AtividadesTab({ estados }: { estados: EstadoOption[] }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useDeferredEffect(() => { load() }, [])
 
   async function handleAdd() {
     if (!newNome.trim()) return

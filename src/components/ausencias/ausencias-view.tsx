@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { Plane, Coffee, Trash2, Pencil, ZoomIn, ZoomOut, Lock, LockOpen } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -210,7 +211,7 @@ export function AusenciasView({ canViewBrigade, canViewAll = false, userBrigadaI
     }
   }, [])
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     const controller = new AbortController()
     fetchSelf(ano, controller.signal)
     if (canViewBrigade) fetchBrigade(ano, selectedBrigadaId, controller.signal)

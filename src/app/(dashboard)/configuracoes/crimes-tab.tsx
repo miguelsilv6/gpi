@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -106,7 +107,7 @@ export function CrimesTab() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useDeferredEffect(() => { load() }, [])
 
   async function handleAdd() {
     if (!neu.nome.trim()) {

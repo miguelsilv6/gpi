@@ -22,13 +22,13 @@ const eslintConfig = defineConfig([
   },
   {
     rules: {
-      // Regra "consultiva" do React 19: sinaliza setState dentro de efeitos.
-      // O código usa o padrão clássico de carregar dados num useEffect (fetch ao
-      // montar, re-sincronizar estado quando muda uma prop, reset ao fechar um
-      // diálogo) — é válido e funciona; migrar tudo para Suspense/`use()`/`key`
-      // é um refactor transversal. Fica como aviso (visível, não bloqueia) e o
-      // CI impede que o número de avisos aumente (`--max-warnings`).
+      // Regra do React 19: sinaliza setState síncrono dentro de efeitos. O código
+      // carrega dados / ressincroniza estado através de `useDeferredEffect`
+      // (src/hooks), que corre o corpo de forma assíncrona. Mantém-se como
+      // aviso; o CI não admite nenhum (`--max-warnings=0`).
       'react-hooks/set-state-in-effect': 'warn',
+      // Valida também as dependências de useDeferredEffect (src/hooks).
+      'react-hooks/exhaustive-deps': ['warn', { additionalHooks: '(useDeferredEffect)' }],
     },
   },
   {

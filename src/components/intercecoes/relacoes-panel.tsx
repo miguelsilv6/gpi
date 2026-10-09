@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -92,7 +93,7 @@ export function RelacoesPanel({ nuipcSlug, relacoes, canEdit }: Props) {
 
   // Recarrega depois de qualquer alteração às relações (um contacto fichado
   // deixa de estar pendente).
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (pendentes !== null) void carregarPendentes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [relacoes.length])

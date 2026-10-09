@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,7 +35,7 @@ export function EtiquetasTab() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useDeferredEffect(() => { load() }, [])
 
   async function handleDelete() {
     if (!deleteCandidate) return

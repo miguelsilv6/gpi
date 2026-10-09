@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -125,7 +126,7 @@ export function EstatisticaInspetorDashboard() {
     setLoading(false)
   }, [dataInicio, dataFim, incluirTerminados])
 
-  useEffect(() => { fetchStats() }, [fetchStats])
+  useDeferredEffect(() => { fetchStats() }, [fetchStats])
 
   const hasDateFilter = !!(dataInicio || dataFim)
   const periodLabel = useMemo(() => {

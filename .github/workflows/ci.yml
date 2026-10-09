@@ -64,9 +64,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: ESLint
-        # Erros bloqueiam. Os avisos antigos (react-hooks/set-state-in-effect e
-        # incompatible-library) têm teto: o CI falha se o nº de avisos aumentar.
-        # Ao corrigir avisos, baixar o valor de --max-warnings em `lint:ci`.
+        # Erros e avisos bloqueiam (--max-warnings=0 em `lint:ci`).
         run: npm run lint:ci
 
       - name: Build

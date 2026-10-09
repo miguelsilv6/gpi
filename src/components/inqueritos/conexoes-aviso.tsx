@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import Link from 'next/link'
 import { Link2 } from 'lucide-react'
 import type { ConexaoHit } from '@/lib/conexoes'
@@ -35,7 +36,7 @@ export function ConexoesAviso({ nif, contacto, email, excludeNuipc }: Props) {
   const contactoQ = contactoDigits.length >= 9 ? contacto!.trim() : ''
   const emailQ = emailNorm.includes('@') && emailNorm.length >= 5 ? emailNorm : ''
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!nifQ && !contactoQ && !emailQ) {
       setHits([])
       return

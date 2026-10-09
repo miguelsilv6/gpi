@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -56,7 +57,7 @@ export default function AuditLogPage() {
     }
   }
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     setLoading(true)
     fetchLogs(undefined, true).finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps

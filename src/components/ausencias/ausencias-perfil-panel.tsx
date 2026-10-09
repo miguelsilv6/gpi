@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -282,7 +283,7 @@ export function AusenciasPerfilPanel() {
     // Os setters de estado são estáveis; listam-se para o React Compiler.
   }, [setAusencias, setTotais, setVisible, setLoading])
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     const controller = new AbortController()
     fetchAusencias(ano, controller.signal)
     return () => controller.abort()

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -56,7 +56,7 @@ export default function NovoUtilizadorPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -65,7 +65,7 @@ export default function NovoUtilizadorPage() {
 
   useUnsavedChangesWarning(isDirty && !isSubmitting && !isSubmitSuccessful)
 
-  watch('role')
+  useWatch({ control, name: 'role' })
 
   async function onSubmit(data: FormData) {
     const payload = {

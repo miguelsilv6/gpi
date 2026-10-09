@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -105,7 +105,6 @@ export default function AddAtividadePage() {
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
@@ -113,8 +112,9 @@ export default function AddAtividadePage() {
     defaultValues: { dataRealizacao: defaultDate },
   })
 
-  const selectedNome = watch('descricao')
-  const watchedAlerta1 = watch('alertaDias1')
+  const selectedNome = useWatch({ control, name: 'descricao' })
+  const watchedAlerta1 = useWatch({ control, name: 'alertaDias1' })
+  const watchedPeriodico = useWatch({ control, name: 'controlo.periodico' })
   const selectedPadrao = atividadesPadrao.find((a) => a.nome === selectedNome)
   const transicaoTarget = selectedPadrao?.transicaoEstadoId
     ? estados.find((e) => e.id === selectedPadrao.transicaoEstadoId) ?? null
@@ -438,7 +438,7 @@ export default function AddAtividadePage() {
                   />
                 </div>
 
-                {watch('controlo.periodico') && (
+                {watchedPeriodico && (
                   <div className="space-y-1.5">
                     <Label htmlFor="controlo-periodo">Período (dias)</Label>
                     <Input

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -105,20 +105,19 @@ export function InqueritoForm({
 
   // Crimes available in the dropdown: active OR the one currently selected
   // (so editing an inquérito whose crime was later deactivated still shows it).
+  const defaultCrimeId = defaultValues?.crimeId
   const crimesForSelect = useMemo(() => {
     const ativos = crimes.filter((c) => c.ativo)
-    const current = defaultValues?.crimeId
-      ? crimes.find((c) => c.id === defaultValues.crimeId)
-      : null
+    const current = defaultCrimeId ? crimes.find((c) => c.id === defaultCrimeId) : null
     if (current && !current.ativo) return [current, ...ativos]
     return ativos
-  }, [crimes, defaultValues?.crimeId])
+  }, [crimes, defaultCrimeId])
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<InqueritoFormData>({
     resolver: zodResolver(inqueritoSchema),
@@ -163,25 +162,29 @@ export function InqueritoForm({
     router.refresh()
   }
 
-  const selectedBrigadaId = watch('brigadaId')
-  const selectedInspetorId = watch('inspetorId')
-  const selectedCrimeId = watch('crimeId')
-  const selectedEtiquetaIds = watch('etiquetaIds') ?? []
-  const selectedCrimeIdsAssociados = watch('crimeIdsAssociados') ?? []
-  const selectedTribunalId = watch('tribunalId')
-  const selectedSeccaoId = watch('seccaoId')
-  const isCartaPrecatoria = watch('cartaPrecatoria')
+  const selectedBrigadaId = useWatch({ control, name: 'brigadaId' })
+  const selectedInspetorId = useWatch({ control, name: 'inspetorId' })
+  const selectedCrimeId = useWatch({ control, name: 'crimeId' })
+  const selectedEtiquetaIds = useWatch({ control, name: 'etiquetaIds' }) ?? []
+  const selectedCrimeIdsAssociados = useWatch({ control, name: 'crimeIdsAssociados' }) ?? []
+  const selectedTribunalId = useWatch({ control, name: 'tribunalId' })
+  const selectedSeccaoId = useWatch({ control, name: 'seccaoId' })
+  const isCartaPrecatoria = useWatch({ control, name: 'cartaPrecatoria' })
+  const selectedEstadoId = useWatch({ control, name: 'estadoId' })
+  const watchedDenuncianteTipo = useWatch({ control, name: 'denuncianteTipo' })
+  const watchedDenuncianteNif = useWatch({ control, name: 'denuncianteNif' })
+  const watchedDenuncianteContacto = useWatch({ control, name: 'denuncianteContacto' })
+  const watchedDenuncianteEmail = useWatch({ control, name: 'denuncianteEmail' })
 
   // Tribunais filtered by the selected comarca (null = tribunals with no comarca).
+  const defaultTribunalId = defaultValues?.tribunalId
   const tribunaisForSelect = useMemo(() => {
     const forComarca = tribunais.filter((t) => t.comarcaId === selectedComarcaId)
     const ativos = forComarca.filter((t) => t.ativo)
-    const current = defaultValues?.tribunalId
-      ? tribunais.find((t) => t.id === defaultValues.tribunalId)
-      : null
+    const current = defaultTribunalId ? tribunais.find((t) => t.id === defaultTribunalId) : null
     if (current && !current.ativo && current.comarcaId === selectedComarcaId) return [current, ...ativos]
     return ativos
-  }, [tribunais, selectedComarcaId, defaultValues?.tribunalId])
+  }, [tribunais, selectedComarcaId, defaultTribunalId])
 
   // Morada is derived from the selected tribunal (display-only).
   const selectedTribunalData = useMemo(() => {
@@ -189,6 +192,7 @@ export function InqueritoForm({
     return tribunais.find((t) => t.id === selectedTribunalId) ?? null
   }, [tribunais, selectedTribunalId])
 
+  const defaultSeccaoId = defaultValues?.seccaoId
   const seccoesForSelect = useMemo(() => {
     // Show sections for the current comarca + global sections (comarcaId === null).
     // When no tribunal is selected, selectedComarcaId === null, so only global sections show.
@@ -196,14 +200,12 @@ export function InqueritoForm({
       (s) => s.comarcaId === selectedComarcaId || s.comarcaId === null,
     )
     const ativas = scoped.filter((s) => s.ativo)
-    const current = defaultValues?.seccaoId
-      ? seccoes.find((s) => s.id === defaultValues.seccaoId)
-      : null
+    const current = defaultSeccaoId ? seccoes.find((s) => s.id === defaultSeccaoId) : null
     if (current && !current.ativo && (current.comarcaId === selectedComarcaId || current.comarcaId === null)) {
       return [current, ...ativas]
     }
     return ativas
-  }, [seccoes, defaultValues?.seccaoId, selectedComarcaId])
+  }, [seccoes, defaultSeccaoId, selectedComarcaId])
 
 // Merge edit-mode initially-assigned associated crimes (may include deactivated)
   // with the active catalog so the CrimeInput can resolve names and deactivated labels.
@@ -509,7 +511,7 @@ export function InqueritoForm({
             <div className="space-y-1.5">
               <Label>Estado *</Label>
               <Select
-                value={watch('estadoId') || ''}
+                value={selectedEstadoId || ''}
                 onValueChange={(v) => setValue('estadoId', v ?? '', { shouldDirty: true })}
               >
                 <SelectTrigger className="w-full">
@@ -812,7 +814,7 @@ export function InqueritoForm({
             <div className="space-y-1.5">
               <Label>Tipo</Label>
               <Select
-                value={watch('denuncianteTipo') || '__none__'}
+                value={watchedDenuncianteTipo || '__none__'}
                 onValueChange={(v) =>
                   setValue(
                     'denuncianteTipo',
@@ -916,9 +918,9 @@ export function InqueritoForm({
             />
           </div>
           <ConexoesAviso
-            nif={watch('denuncianteNif')}
-            contacto={watch('denuncianteContacto')}
-            email={watch('denuncianteEmail')}
+            nif={watchedDenuncianteNif}
+            contacto={watchedDenuncianteContacto}
+            email={watchedDenuncianteEmail}
             excludeNuipc={mode === 'edit' && nuipcOriginal ? nuipcToSlug(nuipcOriginal) : undefined}
           />
         </CardContent>
