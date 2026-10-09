@@ -44,11 +44,13 @@ npm run test:ui
 ### Lint
 
 ```bash
-npm run lint      # ESLint (flat config em eslint.config.mjs)
+npm run lint       # ESLint (flat config em eslint.config.mjs)
+npm run lint:ci    # o mesmo, com teto de avisos (usado no CI)
 ```
 
-No CI corre como passo informativo (não bloqueia) enquanto os avisos antigos
-não forem tratados.
+Erros bloqueiam o CI. Os avisos que restam (`react-hooks/set-state-in-effect`,
+`react-hooks/incompatible-library`) têm um teto em `lint:ci` — o CI falha se o
+número de avisos aumentar; ao corrigir avisos, baixar o `--max-warnings`.
 
 ### Integration tests (exigem Postgres de teste)
 

@@ -58,14 +58,14 @@ export function EtiquetaInput({ value, onChange, ownTags, initialTags = [] }: Et
   }, [ownTags, value, trimmed])
 
   // Já existe (entre as conhecidas) uma tag exatamente com este nome?
-  const exactMatch = useMemo(() => {
+  const exactMatch = (() => {
     if (!trimmed) return null
     const q = trimmed.toLowerCase()
     for (const [id, nome] of known) {
       if (nome.toLowerCase() === q) return { id, nome }
     }
     return null
-  }, [trimmed, known])
+  })()
 
   function addId(id: string, nome: string) {
     if (!known.has(id)) {

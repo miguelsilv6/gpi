@@ -86,12 +86,12 @@ export function EstatisticaMensalView() {
   useEffect(() => { fetchData() }, [fetchData])
 
   // Year options: current year ± 5
+  const currentYear = now.getFullYear()
   const anoOptions = useMemo(() => {
-    const current = now.getFullYear()
     const arr: number[] = []
-    for (let y = current - 5; y <= current + 1; y++) arr.push(y)
+    for (let y = currentYear - 5; y <= currentYear + 1; y++) arr.push(y)
     return arr.reverse()
-  }, [now])
+  }, [currentYear])
 
   function previousMonth() {
     if (mes === 1) { setAno(ano - 1); setMes(12) }

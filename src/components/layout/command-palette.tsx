@@ -1,5 +1,6 @@
 'use client'
 
+import { useClientValue } from '@/hooks/use-client-value'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -64,7 +65,10 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchState>(EMPTY)
   const [loading, setLoading] = useState(false)
-  const [isMac, setIsMac] = useState(false)
+  const isMac = useClientValue(
+    () => /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent),
+    false,
+  )
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const navItems = filterNavItems(role, modules)
@@ -83,10 +87,6 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
-
-  useEffect(() => {
-    setIsMac(/mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent))
   }, [])
 
   // Pesquisa no servidor (debounce 250ms). Os atalhos de navegação são

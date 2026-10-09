@@ -4,7 +4,6 @@ import { useMemo, useOptimistic, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/ui/markdown'
 import {
@@ -14,7 +13,6 @@ import {
   ArrowUpRight,
   Search,
   CheckSquare,
-  ChevronDown,
   Loader2,
   Mail,
 } from 'lucide-react'

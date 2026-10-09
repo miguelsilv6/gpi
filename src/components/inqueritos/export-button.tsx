@@ -28,6 +28,9 @@ export function ExportButton() {
       if (v) params.set(key, v)
     }
     const url = `/api/inqueritos/export${params.size > 0 ? `?${params.toString()}` : ''}`
+    // Descarga de um route handler (/api/...), não uma página do Next: a
+    // navegação completa é intencional (o browser trata o Content-Disposition).
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = url
   }
 

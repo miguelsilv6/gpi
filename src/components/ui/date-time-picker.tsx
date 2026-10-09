@@ -43,13 +43,13 @@ export function DateTimePicker({
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
   const { dateStr, timeStr } = parseParts(value)
-  const selected = React.useMemo(() => {
+  const selected = (() => {
     if (!dateStr) return undefined
     const [y, m, d] = dateStr.split('-').map(Number)
     if (y === undefined || m === undefined || d === undefined) return undefined
     const date = new Date(y, m - 1, d)
     return isNaN(date.getTime()) ? undefined : date
-  }, [dateStr])
+  })()
 
   function handleDaySelect(day: Date | undefined) {
     if (!day) {

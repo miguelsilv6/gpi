@@ -63,12 +63,11 @@ jobs:
       - name: TypeScript check (next build also runs tsc)
         run: npx tsc --noEmit
 
-      - name: ESLint (informativo)
-        # Linha de base introduzida depois do código existente: reporta mas não
-        # bloqueia enquanto os avisos antigos (sobretudo regras novas do React
-        # 19) não forem tratados. Passar a bloqueante = remover continue-on-error.
-        continue-on-error: true
-        run: npm run lint
+      - name: ESLint
+        # Erros bloqueiam. Os avisos antigos (react-hooks/set-state-in-effect e
+        # incompatible-library) têm teto: o CI falha se o nº de avisos aumentar.
+        # Ao corrigir avisos, baixar o valor de --max-warnings em `lint:ci`.
+        run: npm run lint:ci
 
       - name: Build
         # `next build` é o sanity-check definitivo do bundle e dos route

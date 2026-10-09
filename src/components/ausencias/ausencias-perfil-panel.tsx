@@ -279,7 +279,8 @@ export function AusenciasPerfilPanel() {
     } finally {
       setLoading(false)
     }
-  }, [])
+    // Os setters de estado são estáveis; listam-se para o React Compiler.
+  }, [setAusencias, setTotais, setVisible, setLoading])
 
   useEffect(() => {
     const controller = new AbortController()

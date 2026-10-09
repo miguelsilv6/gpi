@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useClientValue } from '@/hooks/use-client-value'
 import { toast } from 'sonner'
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser'
 import { Button } from '@/components/ui/button'
@@ -23,14 +24,14 @@ interface Passkey {
  * início de sessão adicional — a password continua a funcionar.
  */
 export function PasskeysManager() {
-  const [supported, setSupported] = useState<boolean | null>(null)
+  // null enquanto não se sabe (servidor/hidratação); depois true/false.
+  const supported = useClientValue<boolean | null>(() => browserSupportsWebAuthn(), null)
   const [passkeys, setPasskeys] = useState<Passkey[]>([])
   const [loading, setLoading] = useState(true)
   const [registering, setRegistering] = useState(false)
   const [nome, setNome] = useState('')
 
   useEffect(() => {
-    setSupported(typeof window !== 'undefined' && browserSupportsWebAuthn())
     void refresh()
   }, [])
 

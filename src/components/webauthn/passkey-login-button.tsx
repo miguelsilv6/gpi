@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useClientValue } from '@/hooks/use-client-value'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { toast } from 'sonner'
@@ -14,12 +15,8 @@ import { Fingerprint, Loader2 } from 'lucide-react'
  */
 export function PasskeyLoginButton({ callbackUrl = '/dashboard' }: { callbackUrl?: string }) {
   const router = useRouter()
-  const [supported, setSupported] = useState(false)
+  const supported = useClientValue(() => browserSupportsWebAuthn(), false)
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    setSupported(typeof window !== 'undefined' && browserSupportsWebAuthn())
-  }, [])
 
   async function loginWithPasskey() {
     setBusy(true)

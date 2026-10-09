@@ -25,7 +25,7 @@ import { DeleteInqueritoButton } from '@/components/inqueritos/delete-inquerito-
 import { AtividadesSection } from '@/components/inqueritos/atividades-section'
 import { DocumentosSection } from '@/components/inqueritos/documentos-section'
 import { NotasSection } from '@/components/inqueritos/notas-section'
-import { TarefasSection, type TarefaItem } from '@/components/inqueritos/tarefas-section'
+import { TarefasSection } from '@/components/inqueritos/tarefas-section'
 import { RelacoesSection } from '@/components/inqueritos/relacoes-section'
 import { getRelacoesForInquerito } from '@/lib/relacoes'
 import { getConexoesForInquerito } from '@/lib/conexoes'

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession, handleApiError, apiError } from '@/lib/auth-helpers'
+import { getSession, handleApiError } from '@/lib/auth-helpers'
 
 export async function GET(req: NextRequest) {
   try {

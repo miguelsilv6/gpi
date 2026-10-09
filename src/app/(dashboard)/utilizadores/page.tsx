@@ -59,6 +59,8 @@ export default async function UtilizadoresPage({ searchParams }: PageProps) {
   // cada ~90s e actualiza lastSeenAt. Consideramos online quem foi visto nos
   // últimos ~3 min (tolera até 2 sondagens falhadas).
   const ONLINE_WINDOW_MS = 3 * 60 * 1000
+  // Server Component: corre uma vez por pedido, `Date.now()` aqui é intencional.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now()
   const isOnline = (u: { lastSeenAt: Date | null }) =>
     !!u.lastSeenAt && now - u.lastSeenAt.getTime() < ONLINE_WINDOW_MS

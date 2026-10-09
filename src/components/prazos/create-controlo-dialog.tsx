@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useId, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -147,7 +147,6 @@ function NuipcCombobox({
 
 export function CreateControloDialog() {
   const router = useRouter()
-  const uid = useId()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
