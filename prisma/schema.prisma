@@ -1360,7 +1360,7 @@ model Diligencia {
 // — o acesso segue o scope do inquérito, não o criador.
 
 model IntercecaoAlvo {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   nome           String // suspeito
   observacoes    String?
   // Notas livres do inspetor sobre o alvo (informação considerada relevante).
@@ -1369,8 +1369,13 @@ model IntercecaoAlvo {
   // onde recomeçar numa próxima sessão. Sempre visível na UI (não é um campo
   // "escondido" atrás de um diálogo).
   acompanhamento String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  // Até que data/hora o inspetor já acompanhou (ouviu) as interceções deste
+  // alvo. Guardada como hora "de parede" (sem fuso): os campos UTC são
+  // exatamente o que o utilizador escreveu (dd-mm-aaaa hh:mm:ss), tal como
+  // `IntercecaoProduto.data` + `horaInicio`, que se comparam na mesma base.
+  acompanhadoAte DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   inquerito   Inquerito @relation(fields: [inqueritoid], references: [id], onDelete: Cascade)
   inqueritoid String
@@ -1448,6 +1453,10 @@ model IntercecaoProduto {
   identificacaoPara String?
   resumo            String
   comentarios       String?
+  // Marcado como ouvido/acompanhado (individualmente ou ao definir
+  // `IntercecaoAlvo.acompanhadoAte` e aceitar aplicar aos produtos do alvo).
+  ouvido            Boolean                   @default(false)
+  ouvidoEm          DateTime?
   createdAt         DateTime                  @default(now())
 
   alvo   IntercecaoAlvo @relation(fields: [alvoId], references: [id], onDelete: Cascade)

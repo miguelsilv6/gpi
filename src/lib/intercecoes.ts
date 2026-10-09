@@ -62,6 +62,7 @@ export async function getIntercecoesTree(inqueritoId: string) {
       observacoes: true,
       notas: true,
       acompanhamento: true,
+      acompanhadoAte: true,
       linhas: {
         orderBy: { dataFim: 'asc' },
         select: {

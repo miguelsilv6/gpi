@@ -4,6 +4,8 @@ import { handleApiError, apiError } from '@/lib/auth-helpers'
 import { writeAudit, diff } from '@/lib/audit'
 import { loadIntercecaoContext } from '@/lib/intercecoes-api'
 import { intercecaoAlvoUpdateSchema } from '@/lib/validations/intercecao'
+import { parseDataHoraPt, formatDataHoraPt } from '@/lib/datetime-pt'
+import { produtosPorMarcar } from '@/lib/intercecoes-ouvidos'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,6 +33,18 @@ export async function PUT(
     }
     const d = parsed.data
 
+    // "Acompanhado até": '' limpa; senão tem de ser dd-mm-aaaa hh:mm:ss válido.
+    let acompanhadoAte: Date | null | undefined
+    if (d.acompanhadoAte !== undefined) {
+      if (d.acompanhadoAte.trim() === '') {
+        acompanhadoAte = null
+      } else {
+        const v = parseDataHoraPt(d.acompanhadoAte)
+        if (!v) return apiError('Data/hora inválida — use dd-mm-aaaa hh:mm:ss', 400)
+        acompanhadoAte = v
+      }
+    }
+
     const updated = await prisma.intercecaoAlvo.update({
       where: { id: alvo.id },
       data: {
@@ -39,6 +53,7 @@ export async function PUT(
         ...(d.observacoes !== undefined && { observacoes: d.observacoes.trim() || null }),
         ...(d.notas !== undefined && { notas: d.notas.trim() || null }),
         ...(d.acompanhamento !== undefined && { acompanhamento: d.acompanhamento.trim() || null }),
+        ...(acompanhadoAte !== undefined && { acompanhadoAte }),
       },
     })
 
@@ -48,14 +63,16 @@ export async function PUT(
         observacoes: alvo.observacoes,
         notas: alvo.notas,
         acompanhamento: alvo.acompanhamento,
+        acompanhadoAte: alvo.acompanhadoAte ? formatDataHoraPt(alvo.acompanhadoAte) : null,
       },
       {
         nome: updated.nome,
         observacoes: updated.observacoes,
         notas: updated.notas,
         acompanhamento: updated.acompanhamento,
+        acompanhadoAte: updated.acompanhadoAte ? formatDataHoraPt(updated.acompanhadoAte) : null,
       },
-      ['nome', 'observacoes', 'notas', 'acompanhamento'],
+      ['nome', 'observacoes', 'notas', 'acompanhamento', 'acompanhadoAte'],
     )
     if (changes) {
       await writeAudit({
@@ -68,7 +85,13 @@ export async function PUT(
       })
     }
 
-    return Response.json(updated)
+    // Quantos produtos ainda por marcar como ouvidos até esta data/hora — a UI
+    // pergunta ao utilizador se os quer marcar.
+    const porMarcar = updated.acompanhadoAte
+      ? (await produtosPorMarcar(updated.id, updated.acompanhadoAte)).length
+      : 0
+
+    return Response.json({ ...updated, produtosPorMarcar: porMarcar })
   } catch (error) {
     return handleApiError(error)
   }

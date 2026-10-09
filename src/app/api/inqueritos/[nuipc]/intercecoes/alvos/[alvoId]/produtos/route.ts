@@ -28,6 +28,8 @@ const PRODUTO_SELECT = {
   identificacaoPara: true,
   resumo: true,
   comentarios: true,
+  ouvido: true,
+  ouvidoEm: true,
   createdAt: true,
   criadoPor: { select: { id: true, nome: true } },
   linha: { select: { id: true, codigo: true, tipo: true, identificador: true } },

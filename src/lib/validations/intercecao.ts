@@ -159,6 +159,8 @@ export const intercecaoAlvoUpdateSchema = z.object({
   observacoes: z.string().max(INTERCECAO_OBS_MAX).optional(),
   notas: z.string().max(INTERCECAO_NOTAS_MAX).optional(),
   acompanhamento: z.string().max(INTERCECAO_ACOMPANHAMENTO_MAX).optional(),
+  // "dd-mm-aaaa hh:mm:ss"; '' limpa. Validado/parseado na rota.
+  acompanhadoAte: z.string().max(40).optional(),
 })
 
 // ── Linha ────────────────────────────────────────────────────────────────────
@@ -325,6 +327,7 @@ export const intercecaoProdutoUpdateSchema = z.object({
   identificacaoPara: z.string().max(INTERCECAO_IDENTIFICACAO_MAX).optional(),
   resumo: z.string().trim().min(1, 'O resumo é obrigatório').max(INTERCECAO_RESUMO_MAX).optional(),
   comentarios: z.string().max(INTERCECAO_COMENTARIOS_MAX).optional(),
+  ouvido: z.boolean().optional(),
 })
 
 // ── Plano de validações (art. 188.º CPP) ─────────────────────────────────────

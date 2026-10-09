@@ -23,6 +23,7 @@ import {
   estadoLinha,
 } from '@/lib/validations/intercecao'
 import { formatDate, cn, iconButtonClasses } from '@/lib/utils'
+import { parseDataHoraPt, agoraDataHoraPt } from '@/lib/datetime-pt'
 import {
   Loader2,
   Plus,
@@ -34,6 +35,7 @@ import {
   StickyNote,
   Bookmark,
   Headphones,
+  Clock,
 } from 'lucide-react'
 import type { TipoLinhaIntercecao } from '@/generated/prisma/enums'
 
@@ -62,6 +64,8 @@ export interface AlvoDTO {
   observacoes: string | null
   notas: string | null
   acompanhamento: string | null
+  /** "dd-mm-aaaa hh:mm:ss" (hora de parede) ou null. */
+  acompanhadoAte: string | null
   linhas: LinhaDTO[]
   produtos: number
 }
@@ -122,35 +126,52 @@ function AcompanhamentoField({
   base,
   alvoId,
   initial,
+  initialAte,
   canEdit,
   onSaved,
 }: {
   base: string
   alvoId: string
   initial: string
+  /** "dd-mm-aaaa hh:mm:ss" ou ''. */
+  initialAte: string
   canEdit: boolean
   onSaved: () => void
 }) {
   const [value, setValue] = useState(initial)
   const [saving, setSaving] = useState(false)
+  const [ate, setAte] = useState(initialAte)
+  const [savingAte, setSavingAte] = useState(false)
+  // Nº de produtos por marcar como ouvidos após guardar a data/hora (diálogo).
+  const [porMarcar, setPorMarcar] = useState<number | null>(null)
+  const [marcando, setMarcando] = useState(false)
   useEffect(() => setValue(initial), [initial])
+  useEffect(() => setAte(initialAte), [initialAte])
   const dirty = value !== initial
+  const ateDirty = ate.trim() !== initialAte
+  const ateInvalida = ate.trim() !== '' && parseDataHoraPt(ate) === null
+
+  async function put(body: Record<string, string>) {
+    const res = await fetch(`${base}/alvos/${alvoId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Erro ao guardar')
+      return null
+    }
+    return res.json() as Promise<{ produtosPorMarcar?: number }>
+  }
 
   async function handleSave() {
     setSaving(true)
     try {
-      const res = await fetch(`${base}/alvos/${alvoId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acompanhamento: value }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        toast.error(err.error ?? 'Erro ao guardar')
-        return
+      if (await put({ acompanhamento: value })) {
+        toast.success('Acompanhamento guardado')
+        onSaved()
       }
-      toast.success('Acompanhamento guardado')
-      onSaved()
     } catch {
       toast.error('Erro de rede')
     } finally {
@@ -158,40 +179,141 @@ function AcompanhamentoField({
     }
   }
 
-  if (!canEdit) {
-    return (
-      <div className="rounded-md border bg-muted/20 px-3 py-2">
-        <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Bookmark className="h-3.5 w-3.5" /> Acompanhamento
-        </Label>
-        <p className="text-sm mt-1 whitespace-pre-wrap">
-          {initial || <span className="text-muted-foreground">Sem acompanhamento registado.</span>}
-        </p>
-      </div>
-    )
+  async function handleSaveAte() {
+    if (ateInvalida) {
+      toast.error('Use o formato dd-mm-aaaa hh:mm:ss')
+      return
+    }
+    setSavingAte(true)
+    try {
+      const r = await put({ acompanhadoAte: ate.trim() })
+      if (!r) return
+      toast.success('Data/hora de acompanhamento guardada')
+      onSaved()
+      // Pergunta se aplica aos produtos do alvo até esse momento.
+      if ((r.produtosPorMarcar ?? 0) > 0) setPorMarcar(r.produtosPorMarcar ?? 0)
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setSavingAte(false)
+    }
   }
 
+  async function marcarOuvidos() {
+    setMarcando(true)
+    try {
+      const res = await fetch(`${base}/alvos/${alvoId}/marcar-ouvidos`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao marcar os produtos')
+        return
+      }
+      const d = (await res.json()) as { marcados: number }
+      toast.success(`${d.marcados} produto${d.marcados !== 1 ? 's' : ''} marcado${d.marcados !== 1 ? 's' : ''} como ouvido${d.marcados !== 1 ? 's' : ''}`)
+      setPorMarcar(null)
+      onSaved()
+    } catch {
+      toast.error('Erro de rede')
+    } finally {
+      setMarcando(false)
+    }
+  }
+
+  const ateId = `acompanhado-ate-${alvoId}`
+
   return (
-    <div className="rounded-md border bg-muted/20 px-3 py-2">
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <Label htmlFor={`acompanhamento-${alvoId}`} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Bookmark className="h-3.5 w-3.5" /> Acompanhamento
+    <div className="rounded-md border bg-muted/20 px-3 py-2 space-y-3">
+      {/* Acompanhado até (data/hora) */}
+      <div>
+        <Label htmlFor={ateId} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" /> Acompanhado até
         </Label>
-        {dirty && (
-          <Button size="sm" className="h-6 text-xs px-2" onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-            Guardar
-          </Button>
+        {canEdit ? (
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Input
+              id={ateId}
+              inputMode="numeric"
+              placeholder="dd-mm-aaaa hh:mm:ss"
+              value={ate}
+              onChange={(e) => setAte(e.target.value)}
+              aria-invalid={ateInvalida}
+              className={cn('h-8 w-52 font-mono text-sm bg-background', ateInvalida && 'border-red-500')}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setAte(agoraDataHoraPt())}
+            >
+              Agora
+            </Button>
+            {ateDirty && (
+              <Button size="sm" className="h-8 text-xs" onClick={handleSaveAte} disabled={savingAte || ateInvalida}>
+                {savingAte && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                Guardar
+              </Button>
+            )}
+            {ateInvalida && <span className="text-xs text-red-600">Formato: dd-mm-aaaa hh:mm:ss</span>}
+          </div>
+        ) : (
+          <p className="text-sm mt-1 font-mono">
+            {initialAte || <span className="font-sans text-muted-foreground">Sem data/hora registada.</span>}
+          </p>
         )}
       </div>
-      <Textarea
-        id={`acompanhamento-${alvoId}`}
-        rows={2}
-        placeholder="Até onde já acompanhaste as interceções deste alvo, para saberes onde recomeçar…"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="text-sm bg-background"
-      />
+
+      {/* Notas de acompanhamento (texto livre) */}
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <Label htmlFor={`acompanhamento-${alvoId}`} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Bookmark className="h-3.5 w-3.5" /> Notas de acompanhamento
+          </Label>
+          {canEdit && dirty && (
+            <Button size="sm" className="h-6 text-xs px-2" onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+              Guardar
+            </Button>
+          )}
+        </div>
+        {canEdit ? (
+          <Textarea
+            id={`acompanhamento-${alvoId}`}
+            rows={2}
+            placeholder="Até onde já acompanhaste as interceções deste alvo, para saberes onde recomeçar…"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className="text-sm bg-background"
+          />
+        ) : (
+          <p className="text-sm whitespace-pre-wrap">
+            {initial || <span className="text-muted-foreground">Sem acompanhamento registado.</span>}
+          </p>
+        )}
+      </div>
+
+      <Dialog open={porMarcar !== null} onOpenChange={(o) => !o && !marcando && setPorMarcar(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Marcar produtos como ouvidos?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Este alvo tem <strong className="text-foreground">{porMarcar}</strong> produto
+            {porMarcar !== 1 ? 's' : ''} com data/hora até{' '}
+            <strong className="font-mono text-foreground">{ate.trim()}</strong> ainda por marcar. Pretende
+            marcá-lo{porMarcar !== 1 ? 's' : ''} como ouvido{porMarcar !== 1 ? 's' : ''}?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPorMarcar(null)} disabled={marcando}>
+              Não, só guardar
+            </Button>
+            <Button onClick={marcarOuvidos} disabled={marcando}>
+              {marcando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sim, marcar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -429,6 +551,7 @@ export function IntercecoesView({ nuipcSlug, alvos, plano, relacoes, canEdit }: 
               base={base}
               alvoId={alvo.id}
               initial={alvo.acompanhamento ?? ''}
+              initialAte={alvo.acompanhadoAte ?? ''}
               canEdit={canEdit}
               onSaved={() => router.refresh()}
             />

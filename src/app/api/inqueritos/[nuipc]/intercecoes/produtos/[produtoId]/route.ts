@@ -87,10 +87,16 @@ export async function PUT(
         }),
         ...(d.resumo !== undefined && { resumo: d.resumo }),
         ...(d.comentarios !== undefined && { comentarios: d.comentarios.trim() || null }),
+        // Marcar/desmarcar como ouvido carimba (ou limpa) a data.
+        ...(d.ouvido !== undefined &&
+          d.ouvido !== produto.ouvido && {
+            ouvido: d.ouvido,
+            ouvidoEm: d.ouvido ? new Date() : null,
+          }),
       },
     })
 
-    const keys = ['tipo', 'numeroProduto', 'idProduto', 'direcao', 'data', 'horaInicio', 'horaFim', 'duracao', 'transcricao', 'de', 'identificacaoDe', 'para', 'identificacaoPara', 'resumo', 'comentarios', 'linhaId'] as const
+    const keys = ['tipo', 'numeroProduto', 'idProduto', 'direcao', 'data', 'horaInicio', 'horaFim', 'duracao', 'transcricao', 'de', 'identificacaoDe', 'para', 'identificacaoPara', 'resumo', 'comentarios', 'linhaId', 'ouvido'] as const
     const changes = diff(
       Object.fromEntries(keys.map((k) => [k, produto[k]])) as Record<string, string | Date | boolean | null>,
       Object.fromEntries(keys.map((k) => [k, updated[k]])) as Record<string, string | Date | boolean | null>,
