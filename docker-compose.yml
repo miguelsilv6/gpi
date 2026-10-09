@@ -41,9 +41,6 @@ services:
       # Atrás de um proxy/domínio próprio o Auth.js exige confiar no host
       # (senão: UntrustedHost e o login não avança).
       AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
-      # Atrás de um proxy/domínio próprio o Auth.js exige confiar no host
-      # (senão: UntrustedHost e o login não avança).
-      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
       WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-}
       WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN:-}
       WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-}
