@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { isModuloAtivo } from '@/lib/modulos'
 import type { Role } from '@/generated/prisma/enums'
 
 /**
@@ -7,15 +7,6 @@ import type { Role } from '@/generated/prisma/enums'
  * sempre acesso; para os restantes, o módulo tem de estar ativo e o role tem
  * de constar em `moduloToolboxRoles`.
  */
-export async function isModuloToolboxAtivo(role: Role): Promise<boolean> {
-  if (role === 'ADMINISTRACAO') return true
-  const config = await prisma.configuracaoSistema.findUnique({
-    where: { id: 'singleton' },
-    select: { moduloToolboxAtivo: true, moduloToolboxRoles: true },
-  })
-  if (!(config?.moduloToolboxAtivo ?? true)) return false
-  const allowed = (config?.moduloToolboxRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR')
-    .split(',')
-    .filter(Boolean)
-  return allowed.includes(role)
+export function isModuloToolboxAtivo(role: Role): Promise<boolean> {
+  return isModuloAtivo('Toolbox', role)
 }

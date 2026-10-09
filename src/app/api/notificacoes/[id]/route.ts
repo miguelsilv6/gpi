@@ -12,6 +12,9 @@ export async function PATCH(
     const { id } = await params
     const { searchParams } = new URL(req.url)
     const action = searchParams.get('action')
+    if (action !== null && action !== 'clear' && action !== 'read') {
+      return apiError('Ação inválida', 400)
+    }
 
     const notif = await prisma.notificacao.findFirst({
       where: { id, utilizadorId: session.user.id },

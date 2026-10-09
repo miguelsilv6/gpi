@@ -412,6 +412,7 @@ model Interveniente {
   inqueritoid String
 
   @@index([inqueritoid])
+  @@index([nif])
 }
 
 // ── Apreensões (cadeia de custódia de objetos apreendidos) ───────────────────
@@ -553,7 +554,7 @@ model Documento {
   uploadedBy   Utilizador @relation("DocumentoUploader", fields: [uploadedById], references: [id])
   uploadedById String
 
-  @@index([inqueritoid])
+  @@index([inqueritoid, createdAt])
   @@index([uploadedById])
 }
 
@@ -1423,6 +1424,7 @@ model IntercecaoLinha {
   @@unique([alvoId, codigo])
   @@index([alvoId])
   @@index([dataFim])
+  @@index([identificador])
 }
 
 // Produto de interesse (sessão relevante) registado manualmente — espelha as

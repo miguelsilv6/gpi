@@ -35,6 +35,7 @@ import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import type { PrazoItem } from '@/components/prazos/types'
 import type { ControloItem } from '@/lib/controlos'
 import Link from 'next/link'
+import { Download } from 'lucide-react'
 import type { Role, TipoLinhaIntercecao } from '@/generated/prisma/enums'
 
 interface SearchParams {
@@ -431,6 +432,17 @@ export default async function PrazosPage({
         <PrazosViewToggle view={view} />
         {panel === 'controlos' && hasControloAccess && !historico && (
           <CreateControloDialog />
+        )}
+        {panel === 'prazos' && hasPermission(role, 'inquerito:export') && (
+          <a
+            href={`/api/prazos/export?${new URLSearchParams({
+              ...(status !== 'todos' && { status }),
+              ...(historico && { historico: '1' }),
+            }).toString()}`}
+            className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-accent"
+          >
+            <Download className="h-3.5 w-3.5" /> Exportar CSV
+          </a>
         )}
       </div>
 

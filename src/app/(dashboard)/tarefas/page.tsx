@@ -7,6 +7,7 @@ import { AccessDenied } from '@/components/access-denied'
 import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import { TarefasBrowser, type TarefaBrowserItem } from '@/components/tarefas/tarefas-browser'
 import { nuipcToSlug } from '@/lib/utils'
+import { Download } from 'lucide-react'
 import type { Role } from '@/generated/prisma/enums'
 
 export const dynamic = 'force-dynamic'
@@ -72,6 +73,17 @@ export default async function TarefasPage() {
             As suas tarefas pessoais, por inquérito.
           </p>
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+        {hasPermission(role, 'inquerito:export') && tarefas.length > 0 && (
+          // Descarga de um route handler (/api/...), não uma página do Next.
+          // eslint-disable-next-line @next/next/no-html-link-for-pages
+          <a
+            href="/api/tarefas/export"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-accent"
+          >
+            <Download className="h-3.5 w-3.5" /> Exportar CSV
+          </a>
+        )}
         <HelpButton title="Ajuda — Tarefas" className="shrink-0">
           <HelpSection title="O que são as tarefas">
             <p>As tarefas são pessoais — só você as vê. Cada tarefa pertence a um inquérito e pode ter uma prioridade (Alta, Normal, Baixa) e uma descrição com Markdown.</p>
@@ -86,6 +98,7 @@ export default async function TarefasPage() {
             <p>As tarefas são criadas na secção <strong>Tarefas</strong> do detalhe de cada inquérito. Clique em <strong>Abrir</strong> para ir ao inquérito.</p>
           </HelpSection>
         </HelpButton>
+        </div>
       </div>
 
       <TarefasBrowser tarefas={tarefas} />

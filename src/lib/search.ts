@@ -246,3 +246,137 @@ export async function searchDocumentos(
     filename: d.filename,
   }))
 }
+
+// ── Outras entidades ligadas ao inquérito ──────────────────────────────────
+// Intervenientes, linhas intercetadas, apreensões, perícias e tarefas. Todas
+// filtram pelo inquérito com o mesmo scope por role (o termo nunca alarga o
+// âmbito); os módulos opcionais só são pesquisados quando ativos.
+
+const OUTRO_LIMIT = 5
+
+export type OutroTipo = 'interveniente' | 'intercecao' | 'apreensao' | 'pericia' | 'tarefa'
+
+export interface OutroHit {
+  id: string
+  tipo: OutroTipo
+  titulo: string
+  detalhe: string | null
+  nuipc: string
+  slug: string
+  href: string
+}
+
+export interface OutrosModulos {
+  intercecoes: boolean
+  apreensoes: boolean
+  pericias: boolean
+}
+
+function inqueritoScope(role: Role, userId: string, brigadaId: string | null) {
+  return { AND: [{ deletedAt: null }, buildInqueritoWhere(role, userId, brigadaId)] }
+}
+
+function hit(
+  tipo: OutroTipo,
+  id: string,
+  nuipc: string,
+  titulo: string,
+  detalhe: string | null,
+  sufixo = '',
+): OutroHit {
+  const slug = nuipcToSlug(nuipc)
+  return { id, tipo, titulo, detalhe, nuipc, slug, href: `/inqueritos/${slug}${sufixo}` }
+}
+
+export async function searchOutros(
+  q: string,
+  role: Role,
+  userId: string,
+  brigadaId: string | null,
+  modulos: OutrosModulos,
+): Promise<OutroHit[]> {
+  const contains = { contains: q, mode: 'insensitive' as const }
+  const inquerito = inqueritoScope(role, userId, brigadaId)
+  const inqSelect = { inquerito: { select: { nuipc: true } } }
+
+  const [intervenientes, linhas, apreensoes, pericias, tarefas] = await Promise.all([
+    prisma.interveniente.findMany({
+      where: { AND: [{ OR: [{ nome: contains }, { nif: contains }] }, { inquerito }] },
+      orderBy: { updatedAt: 'desc' },
+      take: OUTRO_LIMIT,
+      select: { id: true, nome: true, nif: true, tipo: true, tipoOutro: true, ...inqSelect },
+    }),
+    modulos.intercecoes
+      ? prisma.intercecaoLinha.findMany({
+          where: {
+            AND: [
+              { OR: [{ identificador: contains }, { alvo: { nome: contains } }] },
+              { alvo: { inquerito } },
+            ],
+          },
+          orderBy: { dataFim: 'desc' },
+          take: OUTRO_LIMIT,
+          select: {
+            id: true,
+            identificador: true,
+            codigo: true,
+            alvo: { select: { nome: true, inquerito: { select: { nuipc: true } } } },
+          },
+        })
+      : Promise.resolve([]),
+    modulos.apreensoes
+      ? prisma.apreensao.findMany({
+          where: {
+            AND: [{ OR: [{ descricao: contains }, { numeroAuto: contains }] }, { inquerito }],
+          },
+          orderBy: { dataApreensao: 'desc' },
+          take: OUTRO_LIMIT,
+          select: { id: true, descricao: true, numeroAuto: true, ...inqSelect },
+        })
+      : Promise.resolve([]),
+    modulos.pericias
+      ? prisma.pericia.findMany({
+          where: {
+            AND: [
+              {
+                OR: [
+                  { descricao: contains },
+                  { numeroReferencia: contains },
+                  { entidade: contains },
+                ],
+              },
+              { inquerito },
+            ],
+          },
+          orderBy: { dataPedido: 'desc' },
+          take: OUTRO_LIMIT,
+          select: { id: true, descricao: true, entidade: true, ...inqSelect },
+        })
+      : Promise.resolve([]),
+    // Tarefas são pessoais: só as do próprio utilizador.
+    role !== 'ESTATISTICA'
+      ? prisma.tarefaInquerito.findMany({
+          where: { AND: [{ autorId: userId }, { titulo: contains }, { inquerito }] },
+          orderBy: { createdAt: 'desc' },
+          take: OUTRO_LIMIT,
+          select: { id: true, titulo: true, concluida: true, ...inqSelect },
+        })
+      : Promise.resolve([]),
+  ])
+
+  return [
+    ...intervenientes.map((i) =>
+      hit('interveniente', i.id, i.inquerito.nuipc, i.nome, i.nif ? `NIF ${i.nif}` : null),
+    ),
+    ...linhas.map((l) =>
+      hit('intercecao', l.id, l.alvo.inquerito.nuipc, l.identificador, `${l.alvo.nome} · ${l.codigo}`, '/intercecoes'),
+    ),
+    ...apreensoes.map((a) =>
+      hit('apreensao', a.id, a.inquerito.nuipc, a.descricao, a.numeroAuto ? `Auto ${a.numeroAuto}` : null),
+    ),
+    ...pericias.map((p) => hit('pericia', p.id, p.inquerito.nuipc, p.descricao, p.entidade)),
+    ...tarefas.map((t) =>
+      hit('tarefa', t.id, t.inquerito.nuipc, t.titulo, t.concluida ? 'Concluída' : 'Pendente'),
+    ),
+  ]
+}
