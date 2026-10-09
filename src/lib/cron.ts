@@ -11,6 +11,7 @@ import { fetchLatestRelease, isNewerVersion } from '@/lib/updates/github'
 import { reconcileFromStatusFile, processAvailableUpdates } from '@/lib/updates/orchestrator'
 import { isTerminal, type UpdateState } from '@/lib/updates/state-machine'
 import { runAutoTransicoes } from '@/lib/auto-transicao'
+import { runResumoDiario } from '@/lib/resumo-diario'
 import { runDeadlineChecks } from '@/lib/deadline-checks'
 import { APP_VERSION } from '@/lib/version'
 
@@ -35,6 +36,17 @@ export function startCronJobs() {
       await runDeadlineCheck()
     } catch (err) {
       log.error({ err }, 'Deadline check failed')
+    }
+  })
+
+  // Resumo "O meu dia" por email — dias úteis às 07:45 (hora do servidor,
+  // TZ=Europe/Lisbon nos compose), só para quem o ativou no Perfil.
+  cron.schedule('45 7 * * 1-5', async () => {
+    try {
+      const r = await runResumoDiario()
+      if (r.enviados || r.falhas) log.info(r, 'Resumo diário enviado')
+    } catch (err) {
+      log.error({ err }, 'Resumo diário failed')
     }
   })
 

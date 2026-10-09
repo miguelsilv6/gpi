@@ -139,6 +139,8 @@ interface PreferenciaItem {
 function NotificacoesPreferencias() {
   const [prefs, setPrefs] = useState<PreferenciaItem[]>([])
   const [original, setOriginal] = useState<PreferenciaItem[]>([])
+  const [resumoDiario, setResumoDiario] = useState(false)
+  const [resumoOriginal, setResumoOriginal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -148,6 +150,8 @@ function NotificacoesPreferencias() {
       .then((d) => {
         setPrefs(d.preferencias ?? [])
         setOriginal(d.preferencias ?? [])
+        setResumoDiario(!!d.resumoDiario)
+        setResumoOriginal(!!d.resumoDiario)
         setLoading(false)
       })
       .catch(() => {
@@ -156,10 +160,12 @@ function NotificacoesPreferencias() {
       })
   }, [])
 
-  const isDirty = prefs.some((p) => {
-    const orig = original.find((o) => o.tipo === p.tipo)
-    return orig ? p.emailEnabled !== orig.emailEnabled : false
-  })
+  const isDirty =
+    resumoDiario !== resumoOriginal ||
+    prefs.some((p) => {
+      const orig = original.find((o) => o.tipo === p.tipo)
+      return orig ? p.emailEnabled !== orig.emailEnabled : false
+    })
 
   function toggle(tipo: string) {
     setPrefs((prev) => prev.map((p) => (p.tipo === tipo ? { ...p, emailEnabled: !p.emailEnabled } : p)))
@@ -171,7 +177,7 @@ function NotificacoesPreferencias() {
       const res = await fetch('/api/notificacoes/preferencias', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preferencias: prefs }),
+        body: JSON.stringify({ preferencias: prefs, resumoDiario }),
       })
       if (!res.ok) {
         const e = await res.json().catch(() => ({}))
@@ -179,6 +185,7 @@ function NotificacoesPreferencias() {
         return
       }
       setOriginal(prefs)
+      setResumoOriginal(resumoDiario)
       toast.success('Preferências guardadas')
     } catch {
       toast.error('Erro ao guardar')
@@ -204,6 +211,22 @@ function NotificacoesPreferencias() {
           <div className="text-sm text-muted-foreground py-2">A carregar...</div>
         ) : (
           <>
+            <label className="flex items-start justify-between gap-3 rounded-xl border bg-muted/30 px-3 py-2.5 cursor-pointer select-none">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Resumo diário &quot;O meu dia&quot;</p>
+                <p className="text-xs text-muted-foreground">
+                  Nos dias úteis, às 07:45, um email com os eventos de hoje, atrasados,
+                  interceções a terminar e tarefas em aberto. Só é enviado quando há algo
+                  a assinalar.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={resumoDiario}
+                onChange={() => setResumoDiario((v) => !v)}
+                className="mt-0.5 h-4 w-4 rounded border shrink-0"
+              />
+            </label>
             <div className="rounded-xl border divide-y">
               {prefs.map((p) => (
                 <label

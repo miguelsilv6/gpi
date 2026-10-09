@@ -1,5 +1,5 @@
-import { test, expect, type APIRequestContext } from '@playwright/test'
-import { login } from './helpers'
+import { test, expect } from '@playwright/test'
+import { login, criarInquerito } from './helpers'
 
 /**
  * Página de detalhe do inquérito: cabeçalho com "Editar" + "Ações", painéis
@@ -8,32 +8,12 @@ import { login } from './helpers'
  * administrador — o seed de E2E só tem estados e o utilizador admin.
  */
 
-async function postJson<T>(request: APIRequestContext, url: string, data: unknown): Promise<T> {
-  const res = await request.post(url, { data })
-  expect(res.status(), `${url} → ${await res.text()}`).toBe(201)
-  return (await res.json()) as T
-}
-
 test.describe('Detalhe do inquérito', () => {
   test('painéis vazios ocultos e "Ações → Nota" abre o editor', async ({ page }) => {
     await login(page)
-    const request = page.request
-    const sufixo = Date.now()
+    const { nuipc, slug } = await criarInquerito(page)
 
-    const brigada = await postJson<{ id: string }>(request, '/api/brigadas', { nome: `E2E Brigada ${sufixo}` })
-    const crime = await postJson<{ id: string }>(request, '/api/crimes', { nome: `E2E Crime ${sufixo}` })
-    const estados = (await (await request.get('/api/estados-inquerito')).json()) as { id: string; codigo: string }[]
-    const aberto = estados.find((e) => e.codigo === 'ABERTO')!
-    const nuipc = `${sufixo % 100000}/26.0E2E`
-    await postJson(request, '/api/inqueritos', {
-      nuipc,
-      crimeId: crime.id,
-      estadoId: aberto.id,
-      brigadaId: brigada.id,
-      dataAbertura: new Date().toISOString().slice(0, 10),
-    })
-
-    await page.goto(`/inqueritos/${nuipc.replace(/\//g, '~')}`)
+    await page.goto(`/inqueritos/${slug}`)
     await expect(page.getByText(nuipc).first()).toBeVisible()
 
     // Cabeçalho: só "Editar" + "Ações".
