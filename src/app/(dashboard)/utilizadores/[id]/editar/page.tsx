@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -57,13 +57,13 @@ export default function EditarUtilizadorPage() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   useUnsavedChangesWarning(isDirty && !isSubmitting && !isSubmitSuccessful)
 
-  watch('role')
+  useWatch({ control, name: 'role' })
 
   useEffect(() => {
     Promise.all([

@@ -1,5 +1,6 @@
 'use client'
 
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -182,7 +183,7 @@ function HistoryLogDialog({
   const [entries, setEntries] = useState<LogEntry[] | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!target) {
       setEntries(null)
       setLoading(false)
@@ -309,7 +310,7 @@ export function AtualizacoesTab() {
     }
   }
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     refreshStatus()
   }, [])
 
@@ -340,7 +341,7 @@ export function AtualizacoesTab() {
   const statusInProgress = status?.inProgress
   const statusState = status?.current?.state
   const statusFinishedAt = status?.current?.finishedAt
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!hasStatus) return
     if (statusInProgress) {
       wasInProgressRef.current = true

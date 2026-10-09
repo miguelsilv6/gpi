@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState, useRef } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -90,7 +91,7 @@ export function BackupsTab() {
     }
   }
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     refresh()
   }, [])
 

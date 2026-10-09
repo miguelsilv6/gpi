@@ -1,5 +1,6 @@
 'use client'
 
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -671,7 +672,7 @@ export function AjudasMensaisView({
     }
   }, [userId, viewingUserId])
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     fetchData(ano, mes)
   }, [ano, mes, fetchData])
 

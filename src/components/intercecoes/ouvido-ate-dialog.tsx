@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -69,7 +70,7 @@ export function OuvidoAteDialog({ nuipcSlug, linha, onClose, canEdit }: Props) {
     [base],
   )
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!linha) return
     setNumeroProduto('')
     setData(hoje())

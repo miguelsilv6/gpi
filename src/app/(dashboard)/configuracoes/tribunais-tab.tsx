@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -84,7 +85,7 @@ export function TribunaisTab() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useDeferredEffect(() => { load() }, [])
 
   function openCreate() {
     setForm(EMPTY_FORM)

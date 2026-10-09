@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -76,7 +77,7 @@ export function AparenciaTab() {
     }
   }, [])
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     load()
   }, [load])
 

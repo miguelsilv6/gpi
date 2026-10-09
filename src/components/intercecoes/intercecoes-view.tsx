@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -147,8 +148,8 @@ export function AcompanhamentoField({
   // Nº de produtos por marcar como ouvidos após guardar a data/hora (diálogo).
   const [porMarcar, setPorMarcar] = useState<number | null>(null)
   const [marcando, setMarcando] = useState(false)
-  useEffect(() => setValue(initial), [initial])
-  useEffect(() => setAte(initialAte), [initialAte])
+  useDeferredEffect(() => setValue(initial), [initial])
+  useDeferredEffect(() => setAte(initialAte), [initialAte])
   const dirty = value !== initial
   const ateDirty = ate.trim() !== initialAte
   const ateInvalida = ate.trim() !== '' && parseDataHoraPt(ate) === null

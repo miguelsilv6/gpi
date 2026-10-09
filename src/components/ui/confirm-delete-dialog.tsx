@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,7 @@ export function ConfirmDeleteDialog({
 
   // Reset typed value whenever the dialog opens/closes so a previous near-miss
   // can't be re-used.
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!open) setTyped('')
   }, [open])
 

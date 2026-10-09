@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -46,7 +47,7 @@ export function TransicoesTab() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useDeferredEffect(() => { load() }, [])
 
   const estadosAtivos = useMemo(() => estados.filter((e) => e.ativo), [estados])
   const usados = useMemo(() => new Set(regras.map((r) => r.origem.id)), [regras])

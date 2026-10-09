@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Clock, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
@@ -30,7 +31,7 @@ export function AuditHistory({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!open || loaded) return
     setLoading(true)
     fetch(`/api/inqueritos/${slug}/audit?limit=50`)

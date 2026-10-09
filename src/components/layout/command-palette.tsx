@@ -1,5 +1,6 @@
 'use client'
 
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
 import { useClientValue } from '@/hooks/use-client-value'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -91,7 +92,7 @@ export function CommandPalette({ role, modules }: CommandPaletteProps) {
 
   // Pesquisa no servidor (debounce 250ms). Os atalhos de navegação são
   // resolvidos no cliente e não dependem deste efeito.
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!open) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (term.length < 2) {

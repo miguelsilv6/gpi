@@ -1,5 +1,6 @@
 'use client'
 
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Bell, Check, CheckCheck, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
@@ -49,7 +50,7 @@ export function NotificationBell() {
   }, [])
 
   // Initial fetch + poll every 90s, paused when tab hidden
-  useEffect(() => {
+  useDeferredEffect(() => {
     fetchCount()
     let interval: ReturnType<typeof setInterval> | null = null
 

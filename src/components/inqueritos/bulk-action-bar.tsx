@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -59,7 +60,7 @@ export function BulkActionBar({
   const [selectedValue, setSelectedValue] = useState('')
   const [confirmText, setConfirmText] = useState('')
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     setConfirmText('')
   }, [activeAction])
 

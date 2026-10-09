@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -65,12 +65,13 @@ export default function EditarAtividadePage() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  const watchedAlerta1 = watch('alertaDias1')
+  const watchedAlerta1 = useWatch({ control, name: 'alertaDias1' })
+  const watchedAlerta2 = useWatch({ control, name: 'alertaDias2' })
   const [showAlerta2, setShowAlerta2] = useState(false)
 
   useEffect(() => {
@@ -207,7 +208,7 @@ export default function EditarAtividadePage() {
                 <div className="space-y-1.5">
                   <Label>1.º aviso</Label>
                   <Select
-                    value={watch('alertaDias1') != null ? String(watch('alertaDias1')) : ''}
+                    value={watchedAlerta1 != null ? String(watchedAlerta1) : ''}
                     onValueChange={(v) =>
                       setValue('alertaDias1', v ? Number(v) : undefined, { shouldDirty: true })
                     }
@@ -249,7 +250,7 @@ export default function EditarAtividadePage() {
                       </button>
                     </div>
                     <Select
-                      value={watch('alertaDias2') != null ? String(watch('alertaDias2')) : ''}
+                      value={watchedAlerta2 != null ? String(watchedAlerta2) : ''}
                       onValueChange={(v) =>
                         setValue('alertaDias2', v ? Number(v) : undefined, { shouldDirty: true })
                       }

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,7 +52,7 @@ export function NotificacoesTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     let cancelled = false
     setLoading(true)
     fetch('/api/notification-policies')

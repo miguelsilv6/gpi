@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -167,7 +168,7 @@ function BugReportCard({
 
   // Sincroniza o estado local quando os valores guardados do report mudam (ex:
   // recarga/filtragem no componente pai), evitando UI desatualizada.
-  useEffect(() => {
+  useDeferredEffect(() => {
     setEstado(report.estado)
     setSeveridade(report.severidade)
     setNota(report.notaAdmin ?? '')

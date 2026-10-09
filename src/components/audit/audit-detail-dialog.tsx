@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   Dialog,
@@ -69,7 +70,7 @@ export function AuditDetailDialog({
   const [maximized, setMaximized] = useState(false)
 
   // Carregar preferência do localStorage (apenas client-side).
-  useEffect(() => {
+  useDeferredEffect(() => {
     try {
       const stored = window.localStorage.getItem(PREF_STORAGE_KEY)
       if (stored === '1') setMaximized(true)

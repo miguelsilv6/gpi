@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
+import { useState, useCallback, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
@@ -83,7 +84,7 @@ export function EstatisticaMensalView() {
     }
   }, [ano, mes])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useDeferredEffect(() => { fetchData() }, [fetchData])
 
   // Year options: current year ± 5
   const currentYear = now.getFullYear()

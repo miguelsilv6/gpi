@@ -1,5 +1,6 @@
 'use client'
 
+import { useDeferredEffect } from '@/hooks/use-deferred-effect'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -67,7 +68,7 @@ export function DiligenciaDialog({ open, onOpenChange, existing, defaultDay }: P
   const [saving, setSaving] = useState(false)
 
   // (Re)inicializa o formulário sempre que o diálogo abre.
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!open) return
     if (existing?.diligenciaId) {
       setTitulo(existing.titulo)
@@ -259,7 +260,7 @@ function InqueritoCombobox({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     let active = true
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (query.trim().length < 2) {
