@@ -28,7 +28,6 @@ import {
   ordinalControlo,
 } from '@/lib/controlos'
 import type { Urgency } from '@/lib/prazos'
-import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { diasRestantes } from '@/lib/prazos'
 
 interface Props {
@@ -63,15 +62,12 @@ function GrupoCabecalho({ grupo }: { grupo: ControloGrupo }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {grupo.inquerito ? (
-        <>
-          <Link
-            href={`/inqueritos/${nuipcToSlug(grupo.inquerito.nuipc)}`}
-            className="font-mono text-sm font-semibold hover:text-blue-600 hover:underline"
-          >
-            {grupo.inquerito.nuipc}
-          </Link>
-          <EstadoBadge estado={grupo.inquerito.estado} />
-        </>
+        <Link
+          href={`/inqueritos/${nuipcToSlug(grupo.inquerito.nuipc)}`}
+          className="font-mono text-sm font-semibold hover:text-blue-600 hover:underline"
+        >
+          {grupo.inquerito.nuipc}
+        </Link>
       ) : (
         <span className="text-sm font-semibold text-muted-foreground">Sem inquérito</span>
       )}
