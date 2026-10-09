@@ -17,6 +17,9 @@ import { InqueritoAcoesMenu, type InqueritoAcoesMenuProps } from '@/components/i
 import { ColaboradoresSection, type ColaboradorItem } from '@/components/inqueritos/colaboradores-section'
 import { RelacoesSection } from '@/components/inqueritos/relacoes-section'
 import { DeleteInqueritoButton } from '@/components/inqueritos/delete-inquerito-button'
+import { NotasSection } from '@/components/inqueritos/notas-section'
+import { TarefasSection } from '@/components/inqueritos/tarefas-section'
+import { DocumentosSection } from '@/components/inqueritos/documentos-section'
 import { dispararAcao } from '@/lib/inquerito-acoes'
 
 beforeEach(() => {
@@ -152,5 +155,36 @@ describe('DeleteInqueritoButton trigger={false}', () => {
     act(() => dispararAcao('eliminar'))
     const dialogo = await screen.findByRole('dialog')
     expect(dialogo.textContent).toContain('NUIPC 123/26.0JGLSB')
+  })
+})
+
+describe('Notas, Tarefas e Documentos vazios', () => {
+  test('Notas: oculto; a ação abre o editor; cancelar volta a ocultar', async () => {
+    render(<NotasSection nuipcSlug="x" notas={[]} canAdd currentUserId="u1" isAdmin={false} />)
+    expect(screen.queryByText('Notas de investigação')).toBeNull()
+    act(() => dispararAcao('nota'))
+    expect(await screen.findByText('Notas de investigação')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Título (opcional)')).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByText('Notas de investigação')).toBeNull()
+  })
+
+  test('Tarefas: oculto; a ação abre o formulário', async () => {
+    render(<TarefasSection nuipcSlug="x" tarefas={[]} canAdd />)
+    expect(screen.queryByText('Tarefas')).toBeNull()
+    act(() => dispararAcao('tarefa'))
+    expect(await screen.findByPlaceholderText('Título da tarefa')).toBeTruthy()
+  })
+
+  test('Documentos: oculto, mas o seletor de ficheiros fica disponível para a ação', () => {
+    const { container } = render(
+      <DocumentosSection nuipcSlug="x" documentos={[]} canUpload currentUserId="u1" isAdmin={false} />,
+    )
+    expect(screen.queryByText('Documentos')).toBeNull()
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    expect(input).toBeTruthy()
+    const click = vi.spyOn(input, 'click')
+    act(() => dispararAcao('documento'))
+    expect(click).toHaveBeenCalled()
   })
 })

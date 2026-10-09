@@ -141,6 +141,20 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
   }
 
   return (
+    <>
+    {canUpload && (
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) void handleFile(f)
+        }}
+      />
+    )}
+    {/* Sem documentos o painel fica oculto; "Ações → Documento" abre o seletor. */}
+    {documentos.length > 0 && (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base flex items-center gap-2">
@@ -151,116 +165,98 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
           )}
         </CardTitle>
         {canUpload && (
-          <>
-            <input
-              ref={inputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void handleFile(f)
-              }}
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              disabled={uploading}
-              onClick={() => inputRef.current?.click()}
-            >
-              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              Anexar
-            </Button>
-          </>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            Anexar
+          </Button>
         )}
       </CardHeader>
       <CardContent>
-        {documentos.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">
-            Sem documentos anexados.
-            {canUpload && ' Use "Anexar" para adicionar provas, relatórios ou ofícios.'}
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {documentos.map((d) => {
-              const Icon = mimeIcon(d.mimeType)
-              const canDelete = isAdmin || d.uploadedBy.id === currentUserId
-              return (
-                <li key={d.id} className="py-2.5 flex items-center gap-3">
-                  <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <a
-                      href={`/api/documentos/${d.id}/download`}
-                      className="text-sm font-medium hover:text-blue-600 hover:underline truncate block"
-                      download
+        <ul className="divide-y">
+          {documentos.map((d) => {
+            const Icon = mimeIcon(d.mimeType)
+            const canDelete = isAdmin || d.uploadedBy.id === currentUserId
+            return (
+              <li key={d.id} className="py-2.5 flex items-center gap-3">
+                <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <a
+                    href={`/api/documentos/${d.id}/download`}
+                    className="text-sm font-medium hover:text-blue-600 hover:underline truncate block"
+                    download
+                  >
+                    {d.filename}
+                  </a>
+                  <p className="text-xs text-muted-foreground">
+                    {formatBytes(d.tamanho)} · {d.uploadedBy.nome} · {formatDateTime(d.createdAt)}
+                  </p>
+                  {d.sha256 && (
+                    <button
+                      type="button"
+                      onClick={() => copiarHash(d.sha256!)}
+                      title={`SHA-256: ${d.sha256}\n(clique para copiar)`}
+                      className="mt-0.5 block max-w-full truncate font-mono text-[11px] text-muted-foreground hover:text-foreground"
                     >
-                      {d.filename}
-                    </a>
-                    <p className="text-xs text-muted-foreground">
-                      {formatBytes(d.tamanho)} · {d.uploadedBy.nome} · {formatDateTime(d.createdAt)}
-                    </p>
-                    {d.sha256 && (
-                      <button
-                        type="button"
-                        onClick={() => copiarHash(d.sha256!)}
-                        title={`SHA-256: ${d.sha256}\n(clique para copiar)`}
-                        className="mt-0.5 block max-w-full truncate font-mono text-[11px] text-muted-foreground hover:text-foreground"
-                      >
-                        sha256:{d.sha256.slice(0, 12)}…
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {(() => {
-                      const st = verify[d.id]
-                      const Icon =
-                        st === 'verifying' ? Loader2
-                        : st === 'mismatch' ? ShieldAlert
-                        : st === 'ok' ? ShieldCheck
-                        : Shield
-                      const color =
-                        st === 'ok' ? 'text-green-600'
-                        : st === 'mismatch' ? 'text-red-600'
-                        : st === 'noref' ? 'text-amber-600'
-                        : 'text-muted-foreground'
-                      return (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className={`h-7 w-7 p-0 ${color}`}
-                          title="Verificar integridade (SHA-256)"
-                          onClick={() => verificar(d.id)}
-                          disabled={st === 'verifying'}
-                        >
-                          <Icon className={`h-3.5 w-3.5 ${st === 'verifying' ? 'animate-spin' : ''}`} />
-                        </Button>
-                      )
-                    })()}
-                    <a
-                      href={`/api/documentos/${d.id}/download`}
-                      download
-                      title="Transferir"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent transition-colors"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </a>
-                    {canDelete && (
+                      sha256:{d.sha256.slice(0, 12)}…
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {(() => {
+                    const st = verify[d.id]
+                    const Icon =
+                      st === 'verifying' ? Loader2
+                      : st === 'mismatch' ? ShieldAlert
+                      : st === 'ok' ? ShieldCheck
+                      : Shield
+                    const color =
+                      st === 'ok' ? 'text-green-600'
+                      : st === 'mismatch' ? 'text-red-600'
+                      : st === 'noref' ? 'text-amber-600'
+                      : 'text-muted-foreground'
+                    return (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                        title="Eliminar"
-                        onClick={() => setToDelete(d)}
+                        className={`h-7 w-7 p-0 ${color}`}
+                        title="Verificar integridade (SHA-256)"
+                        onClick={() => verificar(d.id)}
+                        disabled={st === 'verifying'}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Icon className={`h-3.5 w-3.5 ${st === 'verifying' ? 'animate-spin' : ''}`} />
                       </Button>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                    )
+                  })()}
+                  <a
+                    href={`/api/documentos/${d.id}/download`}
+                    download
+                    title="Transferir"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-accent transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </a>
+                  {canDelete && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      title="Eliminar"
+                      onClick={() => setToDelete(d)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
       </CardContent>
 
       <Dialog open={!!toDelete} onOpenChange={(v) => { if (!v) setToDelete(null) }}>
@@ -283,5 +279,7 @@ export function DocumentosSection({ nuipcSlug, documentos, canUpload, currentUse
         </DialogContent>
       </Dialog>
     </Card>
+    )}
+    </>
   )
 }

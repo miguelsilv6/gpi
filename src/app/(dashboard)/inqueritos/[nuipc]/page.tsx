@@ -489,7 +489,7 @@ export default async function InqueritoDetailPage({
   const inqSlug = nuipcToSlug(inquerito.nuipc)
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Link
           href="/inqueritos"

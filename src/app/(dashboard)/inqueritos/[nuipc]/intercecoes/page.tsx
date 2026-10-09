@@ -149,8 +149,7 @@ export default async function IntercecoesInqueritoPage({
       (await isColaboradorAtivo(inquerito.id, session.user.id)))
 
   return (
-    // Desktop: painel com o dobro da largura anterior (max-w-4xl → 112rem).
-    <div className="space-y-4 max-w-4xl xl:max-w-[112rem]">
+    <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <Link

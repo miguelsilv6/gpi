@@ -138,6 +138,9 @@ export function NotasSection({ nuipcSlug, notas, canAdd, currentUserId, isAdmin 
     }
   }
 
+  // Sem notas o painel fica oculto; "Ações → Nota" abre-o em modo de escrita.
+  if (notas.length === 0 && !composing) return null
+
   return (
     <Card ref={cardRef} className="scroll-mt-4">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
