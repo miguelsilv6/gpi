@@ -119,7 +119,14 @@ export function PrazosList({
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1">
-                    {!p.concluidaEm ? (
+                    {p.origem === 'intercecao' ? (
+                      <Link
+                        href={`/inqueritos/${nuipcToSlug(p.inquerito.nuipc)}`}
+                        className="text-xs text-muted-foreground hover:underline"
+                      >
+                        Interceção
+                      </Link>
+                    ) : !p.concluidaEm ? (
                       <>
                         <EditPrazoButton prazo={p} />
                         <ConcluirPrazoButton prazo={p} />
@@ -183,7 +190,14 @@ export function PrazosList({
                   />
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {!p.concluidaEm ? (
+                  {p.origem === 'intercecao' ? (
+                    <Link
+                      href={`/inqueritos/${nuipcToSlug(p.inquerito.nuipc)}`}
+                      className="text-xs text-muted-foreground hover:underline"
+                    >
+                      Interceção
+                    </Link>
+                  ) : !p.concluidaEm ? (
                     <>
                       <EditPrazoButton prazo={p} compact />
                       <ConcluirPrazoButton prazo={p} compact />

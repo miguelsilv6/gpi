@@ -7,6 +7,7 @@ import { getRequestInfo } from '@/lib/request-info'
 import { bulkActionSchema } from '@/lib/validations/inquerito'
 import { canTransition } from '@/lib/inquerito-state'
 import { findEstadoById, getDistribuidoEstado } from '@/lib/estados'
+import { limpaDocumentacaoSeArquivado } from '@/lib/documentacao-pendente'
 import type { Role } from '@/generated/prisma/enums'
 import type { Prisma } from '@/generated/prisma/client'
 
@@ -112,7 +113,10 @@ export async function POST(req: NextRequest) {
     await prisma.$transaction(async (tx) => {
       const updateData: Prisma.InqueritoUncheckedUpdateManyInput = {}
       if (action === 'assign') updateData.inspetorId = inspetorId ?? null
-      if (action === 'changeState' && estadoId) updateData.estadoId = estadoId
+      if (action === 'changeState' && estadoId) {
+        updateData.estadoId = estadoId
+        Object.assign(updateData, limpaDocumentacaoSeArquivado(targetEstado?.codigo))
+      }
       if (action === 'transfer' && brigadaId) {
         updateData.brigadaId = brigadaId
         updateData.inspetorId = null

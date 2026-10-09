@@ -44,7 +44,7 @@ export default async function PericiasPage({
     return (
       <AccessDenied
         title="Módulo desativado"
-        message="O módulo Perícias está desativado ou o teu perfil não tem acesso."
+        message="O módulo Exames/Perícias está desativado ou o teu perfil não tem acesso."
         backHref="/dashboard"
         backLabel="Voltar ao dashboard"
       />
@@ -95,12 +95,12 @@ export default async function PericiasPage({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Perícias</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Exames/Perícias</h1>
           <p className="text-muted-foreground text-sm">
             {total} perícia{total !== 1 ? 's' : ''} — exames técnicos e científicos
           </p>
         </div>
-        <HelpButton title="Ajuda — Perícias" className="shrink-0">
+        <HelpButton title="Ajuda — Exames/Perícias" className="shrink-0">
           <HelpSection title="O que é esta página">
             <p>
               Vista global das perícias pedidas nos inquéritos a que tens acesso. O registo e a

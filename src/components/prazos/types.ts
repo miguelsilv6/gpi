@@ -1,6 +1,8 @@
 /** Shape passed from the server page to client components. */
 export interface PrazoItem {
   id: string
+  /** 'intercecao' = fim de uma linha intercetada (só leitura; gerida no inquérito). */
+  origem?: 'atividade' | 'intercecao'
   descricao: string
   quantidade: number | null
   dataPrazo: Date | string

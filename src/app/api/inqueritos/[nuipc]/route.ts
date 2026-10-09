@@ -15,6 +15,7 @@ import { notifyInqueritoAtribuido } from '@/lib/notifications'
 import { slugToNuipc, nuipcToSlug } from '@/lib/utils'
 import { canTransition, isTerminal } from '@/lib/inquerito-state'
 import { diff, writeAudit } from '@/lib/audit'
+import { limpaDocumentacaoSeArquivado } from '@/lib/documentacao-pendente'
 import type { Role } from '@/generated/prisma/enums'
 
 const ESTADO_INCLUDE = {
@@ -222,6 +223,7 @@ export async function PUT(
         natureza: targetCrime.nome,
         crimeId: targetCrime.id,
         estadoId: finalEstadoId,
+        ...limpaDocumentacaoSeArquivado(targetEstado.codigo),
         dataAbertura: new Date(data.dataAbertura),
         dataDistribuicao: data.dataDistribuicao ? new Date(data.dataDistribuicao) : null,
         dataPrazo: data.dataPrazo ? new Date(data.dataPrazo) : null,

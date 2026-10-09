@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { buildAtividadePrazoWhere, buildControloWhere } from '@/lib/auth-helpers'
+import { buildAtividadePrazoWhere, buildControloWhere, buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission } from '@/lib/rbac'
 import { AccessDenied } from '@/components/access-denied'
 import {
@@ -12,6 +12,8 @@ import {
   startOfMonth,
 } from '@/lib/prazos'
 import { CONTROLO_SELECT } from '@/lib/controlos'
+import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
+import { TIPO_LINHA_LABEL } from '@/lib/validations/intercecao'
 import { PrazosViewToggle } from '@/components/prazos/prazos-view-toggle'
 import { PrazosFilters } from '@/components/prazos/prazos-filters'
 import { PrazosList } from '@/components/prazos/prazos-list'
@@ -25,7 +27,7 @@ import { HelpButton, HelpSection } from '@/components/ui/help-button'
 import type { PrazoItem } from '@/components/prazos/types'
 import type { ControloItem } from '@/lib/controlos'
 import Link from 'next/link'
-import type { Role } from '@/generated/prisma/enums'
+import type { Role, TipoLinhaIntercecao } from '@/generated/prisma/enums'
 
 interface SearchParams {
   view?: string
@@ -38,6 +40,15 @@ interface SearchParams {
   historico?: string
 }
 
+function startOfDayLocal(d: Date): Date {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
+
+// Limite de páginas: a paginação sobre atividades + interceções carrega até
+// ao fim da página pedida, por isso `page` não pode ser arbitrariamente grande.
+const MAX_PAGE = 40
 const PAGE_SIZE = 50
 const CALENDAR_MAX = 500
 
@@ -50,6 +61,7 @@ export default async function PrazosPage({
   if (!session?.user) redirect('/login')
 
   const role = session.user.role as Role
+  const userId = session.user.id
   if (!hasPermission(role, 'prazo:read:own')) {
     return <AccessDenied message="Não dispões de privilégios para ver prazos." />
   }
@@ -64,7 +76,7 @@ export default async function PrazosPage({
 
   const view: 'list' | 'calendar' = sp.view === 'calendar' ? 'calendar' : 'list'
   const status = sp.status === 'vencidos' || sp.status === 'proximos' ? sp.status : 'todos'
-  const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
+  const page = Math.min(MAX_PAGE, Math.max(1, parseInt(sp.page ?? '1', 10) || 1))
 
   const config = await prisma.configuracaoSistema.findUnique({
     where: { id: 'singleton' },
@@ -126,7 +138,8 @@ export default async function PrazosPage({
     ],
   }
 
-  const showInspetor = false
+  // Quem não é INSPETOR vê interceções de outros inspetores — mostra de quem.
+  const showInspetor = role !== 'INSPETOR'
   const showBrigada = false
   const canFilterInspetor = false
   const inspetores: { id: string; nome: string }[] = []
@@ -135,28 +148,130 @@ export default async function PrazosPage({
   let total = 0
   let totalPages = 1
 
+  // Fim das linhas intercetadas dos inquéritos do utilizador (só pendentes:
+  // uma linha cuja autorização terminou não tem "conclusão" a registar).
+  const showIntercecoes = panel === 'prazos' && !historico && (await isModuloIntercecoesAtivo(role))
+  const intercecaoDataFim =
+    status === 'vencidos'
+      ? { lt: now }
+      : status === 'proximos'
+        ? { gte: now, lte: limitProximos }
+        : isCalendar && monthDate && monthEnd
+          ? { gte: monthDate, lt: monthEnd }
+          : { gte: startOfDayLocal(now) }
+  const intercecaoWhere = {
+    dataFim: intercecaoDataFim,
+    // Segue o scope do inquérito (como o resto do módulo Interceções), não só
+    // os do próprio utilizador. Composto via AND porque o scope do INSPETOR
+    // devolve um `OR` no topo.
+    alvo: {
+      inquerito: {
+        AND: [
+          { deletedAt: null, estado: { terminal: false } },
+          buildInqueritoWhere(role, userId, session.user.brigadaId ?? null),
+        ],
+      },
+    },
+  }
+  const intercecaoSelect = {
+    id: true,
+    codigo: true,
+    tipo: true,
+    identificador: true,
+    dataFim: true,
+    alertaDias1: true,
+    alertaDias2: true,
+    alerta1Enviado: true,
+    alerta2Enviado: true,
+    alvo: {
+      select: {
+        nome: true,
+        inquerito: {
+          select: {
+            ...ATIVIDADE_PRAZO_SELECT.inquerito.select,
+            inspetor: { select: { id: true, nome: true } },
+          },
+        },
+      },
+    },
+  } as const
+
+  async function loadIntercecoes(take: number): Promise<{ items: PrazoItem[]; count: number }> {
+    if (!showIntercecoes) return { items: [], count: 0 }
+    const where =
+      status !== 'todos' && isCalendar && monthDate && monthEnd
+        ? { ...intercecaoWhere, AND: [{ dataFim: { gte: monthDate, lt: monthEnd } }] }
+        : intercecaoWhere
+    const [rows, count] = await Promise.all([
+      prisma.intercecaoLinha.findMany({
+        where,
+        orderBy: { dataFim: 'asc' },
+        take,
+        select: intercecaoSelect,
+      }),
+      prisma.intercecaoLinha.count({ where }),
+    ])
+    return {
+      count,
+      items: rows.map((l) => ({
+        id: `intercecao-${l.id}`,
+        origem: 'intercecao' as const,
+        descricao: `Fim de interceção: ${TIPO_LINHA_LABEL[l.tipo as TipoLinhaIntercecao]} ${l.identificador} (alvo «${l.alvo.nome}», código ${l.codigo})`,
+        quantidade: null,
+        dataPrazo: l.dataFim,
+        concluidaEm: null,
+        alertaDias1: l.alertaDias1,
+        alertaDias2: l.alertaDias2,
+        alerta1Enviado: l.alerta1Enviado,
+        alerta2Enviado: l.alerta2Enviado,
+        realizadaPor: l.alvo.inquerito.inspetor ?? { id: userId, nome: '—' },
+        inquerito: l.alvo.inquerito,
+      })),
+    }
+  }
+
+  const byDataPrazo = (a: PrazoItem, b: PrazoItem) =>
+    new Date(a.dataPrazo).getTime() - new Date(b.dataPrazo).getTime()
+
   if (panel === 'prazos') {
     if (isCalendar) {
-      const data = await prisma.atividade.findMany({
-        where: prazosWhere,
-        orderBy: { dataPrazo: 'asc' },
-        take: CALENDAR_MAX,
-        select: ATIVIDADE_PRAZO_SELECT,
-      })
-      items = data.filter((a): a is typeof a & { dataPrazo: Date } => a.dataPrazo !== null)
+      const [data, inter] = await Promise.all([
+        prisma.atividade.findMany({
+          where: prazosWhere,
+          orderBy: { dataPrazo: 'asc' },
+          take: CALENDAR_MAX,
+          select: ATIVIDADE_PRAZO_SELECT,
+        }),
+        loadIntercecoes(CALENDAR_MAX),
+      ])
+      items = [
+        ...data.filter((a): a is typeof a & { dataPrazo: Date } => a.dataPrazo !== null),
+        ...inter.items,
+      ].sort(byDataPrazo)
     } else {
-      const [data, count] = await Promise.all([
+      // Sem interceções a misturar (histórico / módulo desativado) pagina-se
+      // diretamente na BD. Com duas fontes, carrega-se até ao fim da página
+      // pedida de cada uma, ordena-se em conjunto e fatia-se.
+      const upTo = showIntercecoes ? page * PAGE_SIZE : PAGE_SIZE
+      const skip = showIntercecoes ? 0 : (page - 1) * PAGE_SIZE
+      const [data, count, inter] = await Promise.all([
         prisma.atividade.findMany({
           where: prazosWhere,
           orderBy: prazosOrderBy,
-          skip: (page - 1) * PAGE_SIZE,
-          take: PAGE_SIZE,
+          skip,
+          take: upTo,
           select: ATIVIDADE_PRAZO_SELECT,
         }),
         prisma.atividade.count({ where: prazosWhere }),
+        loadIntercecoes(upTo),
       ])
-      items = data.filter((a): a is typeof a & { dataPrazo: Date } => a.dataPrazo !== null)
-      total = count
+      const merged: PrazoItem[] = [
+        ...data.filter((a): a is typeof a & { dataPrazo: Date } => a.dataPrazo !== null),
+        ...inter.items,
+      ]
+      if (!historico) merged.sort(byDataPrazo)
+      items = showIntercecoes ? merged.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : merged
+      total = count + inter.count
       totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     }
   }

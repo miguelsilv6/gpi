@@ -43,6 +43,8 @@ export default async function DocumentacaoPendentePage() {
       deletedAt: null,
       documentacaoPendente: true,
       documentacaoPendentePorId: session.user.id,
+      // Inquéritos arquivados deixam de aguardar documentação.
+      estado: { codigo: { not: 'ARQUIVADO' } },
     },
     orderBy: { documentacaoPendenteDesde: 'asc' },
     select: {

@@ -506,7 +506,7 @@ export async function GET(
 
     // Perícias
     lines.push('')
-    lines.push(`Perícias (${inquerito.pericias.length})`)
+    lines.push(`Exames/Perícias (${inquerito.pericias.length})`)
     const perHeaders = [
       'Perícia',
       'Tipo',

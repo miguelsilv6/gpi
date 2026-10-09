@@ -593,7 +593,7 @@ export default async function InqueritoDetailPage({
               </Link>
             </Button>
           )}
-          {canEdit && (!inquerito.documentacaoPendente || isMinhaDocPendente) && (
+          {canEdit && inquerito.estado.codigo !== 'ARQUIVADO' && (!inquerito.documentacaoPendente || isMinhaDocPendente) && (
             <DocumentacaoPendenteToggle
               slug={inqSlug}
               pendente={!!isMinhaDocPendente}
