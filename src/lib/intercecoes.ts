@@ -51,9 +51,28 @@ export const OUVIDO_ATE_SELECT = {
   registadoPor: { select: { id: true, nome: true } },
 } as const
 
-/** Árvore de alvos com linhas (ordenadas por fim) e contagem de produtos. */
+/**
+ * Ordena alvos pela data de início da interceção — a da linha mais antiga do
+ * alvo (o alvo não tem data própria). Alvos sem linhas vão para o fim; empate
+ * por nome. Feito em memória porque o Prisma não ordena por agregados de uma
+ * relação 1-N.
+ */
+export function ordenarAlvosPorInicio<
+  T extends { nome: string; linhas: { dataInicio: Date }[] },
+>(alvos: T[]): T[] {
+  const inicio = (a: T) =>
+    a.linhas.length ? Math.min(...a.linhas.map((l) => l.dataInicio.getTime())) : Infinity
+  return [...alvos].sort(
+    (a, b) => inicio(a) - inicio(b) || a.nome.localeCompare(b.nome, 'pt', { sensitivity: 'base' }),
+  )
+}
+
+/**
+ * Árvore de alvos (por data de início) com linhas (ordenadas por fim) e
+ * contagem de produtos.
+ */
 export async function getIntercecoesTree(inqueritoId: string) {
-  return prisma.intercecaoAlvo.findMany({
+  const alvos = await prisma.intercecaoAlvo.findMany({
     where: { inqueritoid: inqueritoId },
     orderBy: { nome: 'asc' },
     select: {
@@ -73,6 +92,7 @@ export async function getIntercecoesTree(inqueritoId: string) {
       _count: { select: { produtos: true } },
     },
   })
+  return ordenarAlvosPorInicio(alvos)
 }
 
 export type IntercecaoAlvoTree = Awaited<ReturnType<typeof getIntercecoesTree>>[number]
