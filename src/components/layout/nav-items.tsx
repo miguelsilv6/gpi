@@ -89,7 +89,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
   },
   {
-    label: 'Perícias',
+    label: 'Exames/Perícias',
     href: '/pericias',
     icon: Microscope,
     roles: ['INSPETOR', 'INSPETOR_CHEFE', 'COORDENADOR', 'ADMINISTRACAO'],
