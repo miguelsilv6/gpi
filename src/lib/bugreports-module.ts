@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { isModuloAtivo } from '@/lib/modulos'
 import type { Role } from '@/generated/prisma/enums'
 
 /**
@@ -9,15 +9,6 @@ import type { Role } from '@/generated/prisma/enums'
  * Nota: isto controla apenas a submissão (/reportar-bug + POST). A página de
  * gestão (/bugs) é protegida por `bugreport:manage` e não depende deste toggle.
  */
-export async function isModuloBugReportsAtivo(role: Role): Promise<boolean> {
-  if (role === 'ADMINISTRACAO') return true
-  const config = await prisma.configuracaoSistema.findUnique({
-    where: { id: 'singleton' },
-    select: { moduloBugReportsAtivo: true, moduloBugReportsRoles: true },
-  })
-  if (!(config?.moduloBugReportsAtivo ?? true)) return false
-  const allowed = (config?.moduloBugReportsRoles ?? 'INSPETOR,INSPETOR_CHEFE,COORDENADOR')
-    .split(',')
-    .filter(Boolean)
-  return allowed.includes(role)
+export function isModuloBugReportsAtivo(role: Role): Promise<boolean> {
+  return isModuloAtivo('BugReports', role)
 }

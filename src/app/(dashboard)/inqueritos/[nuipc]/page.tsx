@@ -106,8 +106,8 @@ export default async function InqueritoDetailPage({
     notFound()
   }
 
-  // Pagination for atividades
-  const atividades = await prisma.atividade.findMany({
+  // Pagination for atividades (em paralelo com os padrões, abaixo)
+  const atividadesPromise = prisma.atividade.findMany({
     where: { inqueritoid: inquerito.id },
     // Sorted by createdAt because that's what the page now displays — keeps
     // visual order coherent with the timestamp shown next to each entry.
@@ -139,7 +139,7 @@ export default async function InqueritoDetailPage({
   // We pull all padrões in one go (not just those that count for statistics)
   // so the rendering layer can look up `temPrazo` / `categoriaDashboard` for
   // each atividade and decide which "Concluir" control to render.
-  const todosPadroes = await prisma.atividadePadrao.findMany({
+  const todosPadroesPromise = prisma.atividadePadrao.findMany({
     select: {
       nome: true,
       temPrazo: true,
@@ -148,6 +148,7 @@ export default async function InqueritoDetailPage({
       categoriaDashboard: true,
     },
   })
+  const [atividades, todosPadroes] = await Promise.all([atividadesPromise, todosPadroesPromise])
   const padraoByNome = new Map(todosPadroes.map((p) => [p.nome, p]))
   const nomesQueContam = todosPadroes
     .filter((p) => p.contaParaEstatistica)
@@ -186,79 +187,90 @@ export default async function InqueritoDetailPage({
   const totalAtividades = inquerito._count.atividades
   const totalAtivPages = Math.ceil(totalAtividades / ATIVIDADES_PAGE_SIZE)
 
-  // Mudanças de estado reconstruídas do AuditLog — alimentam a Cronologia e
-  // a barra "Estado do inquérito" (duração por estado).
-  const estadoTimeline = await getEstadoTimeline(inquerito.id)
-  const estadoDuracao = buildEstadoDuracao(estadoTimeline)
+  // Módulos ativos para o role (uma só leitura da configuração por request).
+  const [anexosAtivo, intercecoesAtivo, apreensoesAtivo, periciasAtivo] = await Promise.all([
+    isModuloAnexosAtivo(role),
+    isModuloIntercecoesAtivo(role),
+    isModuloApreensoesAtivo(role),
+    isModuloPericiasAtivo(role),
+  ])
 
-  // Documentos anexados (provas, relatórios, ofícios) — só quando o módulo Anexos
-  // está ativo para o role do utilizador.
-  const anexosAtivo = await isModuloAnexosAtivo(role)
-  const intercecoesAtivo = await isModuloIntercecoesAtivo(role)
-  const intercecoesResumo = intercecoesAtivo ? await getIntercecoesResumo(inquerito.id) : null
-  const apreensoesAtivo = await isModuloApreensoesAtivo(role)
-  const apreensoesRaw = apreensoesAtivo ? await getApreensoesForInquerito(inquerito.id) : []
+  // Consultas independentes entre si — correm em paralelo.
+  // - estadoTimeline: mudanças de estado reconstruídas do AuditLog (Cronologia
+  //   e barra "Estado do inquérito");
+  // - documentos: só com o módulo Anexos ativo;
+  // - notas: registo cronológico de notas de investigação;
+  // - tarefas: pessoais, só as do utilizador atual.
+  const [
+    estadoTimeline,
+    intercecoesResumo,
+    apreensoesRaw,
+    periciasRaw,
+    documentos,
+    notas,
+    tarefasRaw,
+  ] = await Promise.all([
+    getEstadoTimeline(inquerito.id),
+    intercecoesAtivo ? getIntercecoesResumo(inquerito.id) : Promise.resolve(null),
+    apreensoesAtivo ? getApreensoesForInquerito(inquerito.id) : Promise.resolve([]),
+    periciasAtivo ? getPericiasForInquerito(inquerito.id) : Promise.resolve([]),
+    anexosAtivo
+      ? prisma.documento.findMany({
+          where: { inqueritoid: inquerito.id },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            filename: true,
+            mimeType: true,
+            tamanho: true,
+            sha256: true,
+            createdAt: true,
+            uploadedBy: { select: { id: true, nome: true } },
+          },
+        })
+      : Promise.resolve([]),
+    prisma.notaInquerito.findMany({
+      where: { inqueritoId: inquerito.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        titulo: true,
+        conteudo: true,
+        createdAt: true,
+        updatedAt: true,
+        autor: { select: { id: true, nome: true } },
+        editadoPor: { select: { id: true, nome: true } },
+      },
+    }),
+    role !== 'ESTATISTICA'
+      ? prisma.tarefaInquerito.findMany({
+          where: { inqueritoId: inquerito.id, autorId: session.user.id },
+          orderBy: [{ concluida: 'asc' }, { prioridade: 'desc' }, { createdAt: 'desc' }],
+          select: {
+            id: true,
+            titulo: true,
+            descricao: true,
+            prioridade: true,
+            concluida: true,
+            concluidaEm: true,
+            createdAt: true,
+          },
+        })
+      : Promise.resolve([]),
+  ])
+  const estadoDuracao = buildEstadoDuracao(estadoTimeline)
   const apreensoesItems = apreensoesRaw.map((a) => ({
     ...a,
     dataApreensao: a.dataApreensao.toISOString(),
     dataDestino: a.dataDestino ? a.dataDestino.toISOString() : null,
   }))
   const apreensoesDisponiveis = apreensoesRaw.map((a) => ({ id: a.id, descricao: a.descricao }))
-  const periciasAtivo = await isModuloPericiasAtivo(role)
-  const periciasRaw = periciasAtivo ? await getPericiasForInquerito(inquerito.id) : []
   const periciasItems = periciasRaw.map((p) => ({
     ...p,
     dataPedido: p.dataPedido.toISOString(),
     dataPrevista: p.dataPrevista ? p.dataPrevista.toISOString() : null,
     dataConclusao: p.dataConclusao ? p.dataConclusao.toISOString() : null,
   }))
-  const documentos = anexosAtivo
-    ? await prisma.documento.findMany({
-        where: { inqueritoid: inquerito.id },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          filename: true,
-          mimeType: true,
-          tamanho: true,
-          sha256: true,
-          createdAt: true,
-          uploadedBy: { select: { id: true, nome: true } },
-        },
-      })
-    : []
-
-  // Notas de investigação — registo cronológico de notas por inquérito.
-  const notas = await prisma.notaInquerito.findMany({
-    where: { inqueritoId: inquerito.id },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      titulo: true,
-      conteudo: true,
-      createdAt: true,
-      updatedAt: true,
-      autor: { select: { id: true, nome: true } },
-      editadoPor: { select: { id: true, nome: true } },
-    },
-  })
-
-  // Tarefas pessoais — só as do utilizador actual.
-  const tarefasRaw = role !== 'ESTATISTICA'
-    ? await prisma.tarefaInquerito.findMany({
-        where: { inqueritoId: inquerito.id, autorId: session.user.id },
-        orderBy: [{ concluida: 'asc' }, { prioridade: 'desc' }, { createdAt: 'desc' }],
-        select: {
-          id: true,
-          titulo: true,
-          descricao: true,
-          prioridade: true,
-          concluida: true,
-          concluidaEm: true,
-          createdAt: true,
-        },
-      })
-    : []
 
   // Cronologia unificada — as fontes de secção (notas/documentos/tarefas)
   // reutilizam-se tal como a página as mostra (mesmo âmbito, por construção);
@@ -412,7 +424,14 @@ export default async function InqueritoDetailPage({
   // Inquéritos relacionados (apensos/conexões) — simétrico e com scope aplicado.
   // Em paralelo, deteção automática de possíveis conexões pelo denunciante
   // (NIF/contacto/email) — os já formalmente relacionados não repetem lá.
-  const [relacoes, conexoes, checklist] = await Promise.all([
+  // Colaboradores autorizados — quem pode gerir (titular/hierarquia) vê os
+  // controlos; a lista carrega-se sempre (leve) para todos com acesso.
+  // Outros intervenientes (lesado, vítima, advogado, …) — mesma permissão de
+  // gestão do denunciante (canEdit: titular/hierarquia).
+  const podeGerirColaboradores = canManageColaboradores(
+    role, session.user.id, session.user.brigadaId, inquerito,
+  )
+  const [relacoes, conexoes, checklist, colaboradoresRaw, inspetoresDisponiveis, intervenientesRaw] = await Promise.all([
     getRelacoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId),
     getConexoesForInquerito(inquerito.id, role, session.user.id, session.user.brigadaId, {
       // Já em memória — evita o findUnique redundante dentro da lib.
@@ -421,14 +440,6 @@ export default async function InqueritoDetailPage({
       email: inquerito.denuncianteEmail,
     }),
     getChecklistForInquerito(inquerito.crimeId, inquerito.id),
-  ])
-
-  // Colaboradores autorizados — quem pode gerir (titular/hierarquia) vê os
-  // controlos; a lista carrega-se sempre (leve) para todos com acesso.
-  const podeGerirColaboradores = canManageColaboradores(
-    role, session.user.id, session.user.brigadaId, inquerito,
-  )
-  const [colaboradoresRaw, inspetoresDisponiveis] = await Promise.all([
     prisma.inqueritoColaborador.findMany({
       where: { inqueritoid: inquerito.id },
       orderBy: { createdAt: 'desc' },
@@ -452,6 +463,15 @@ export default async function InqueritoDetailPage({
           select: { id: true, nome: true, email: true },
         })
       : Promise.resolve([]),
+    prisma.interveniente.findMany({
+      where: { inqueritoid: inquerito.id },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true, tipo: true, tipoOutro: true, nome: true, tipoPessoa: true,
+        nif: true, morada: true, codPostal: true, localidade: true,
+        contacto: true, email: true, responsavel: true, notas: true,
+      },
+    }),
   ])
   const colaboradorItems = colaboradoresRaw.map((c) => ({
     id: c.id,
@@ -461,18 +481,6 @@ export default async function InqueritoDetailPage({
     colaborador: c.colaborador,
     concedidoPor: c.concedidoPor,
   }))
-
-  // Outros intervenientes (lesado, vítima, advogado, …) — mesma permissão de
-  // gestão do denunciante (canEdit: titular/hierarquia).
-  const intervenientesRaw = await prisma.interveniente.findMany({
-    where: { inqueritoid: inquerito.id },
-    orderBy: { createdAt: 'asc' },
-    select: {
-      id: true, tipo: true, tipoOutro: true, nome: true, tipoPessoa: true,
-      nif: true, morada: true, codPostal: true, localidade: true,
-      contacto: true, email: true, responsavel: true, notas: true,
-    },
-  })
 
   const canReopen = hasPermission(role, 'inquerito:reopen')
   const canSeeAudit = hasPermission(role, 'inquerito:audit:read')
