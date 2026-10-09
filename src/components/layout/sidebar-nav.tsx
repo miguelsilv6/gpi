@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useMounted } from '@/hooks/use-client-value'
 import { cn } from '@/lib/utils'
 import { filterNavItems } from './nav-items'
 import type { Role } from '@/generated/prisma/enums'
@@ -45,8 +45,7 @@ export function SidebarNav({ role, moduloAjudasAtivo = true, moduloFeriasAtivo =
   // Evita hydration mismatch: o resolvedTheme só está disponível após o
   // primeiro paint do cliente. Antes disso usamos sempre a variante light
   // (que coincide com o que o servidor renderizou).
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const mounted = useMounted()
   const logo = mounted && resolvedTheme === 'dark' && darkLogo ? darkLogo : lightLogo
   const horizontalLogo = mounted && resolvedTheme === 'dark' && horizontalDarkLogo ? horizontalDarkLogo : horizontalLightLogo
 
