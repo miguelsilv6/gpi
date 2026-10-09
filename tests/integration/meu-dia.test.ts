@@ -120,4 +120,27 @@ describe('getMeuDia', () => {
     expect(dia.hoje).toHaveLength(0)
     expect(dia.tarefasTotal).toBe(0)
   })
+
+  test('interceções a terminar: janela de 7 dias, só com o módulo e no âmbito', async () => {
+    const s = await scenarioTwoBrigadas(prisma)
+    const alvoA = await prisma.intercecaoAlvo.create({ data: { inqueritoid: s.inqA[0].id, nome: 'Alvo A' } })
+    const alvoB = await prisma.intercecaoAlvo.create({ data: { inqueritoid: s.inqB[0].id, nome: 'Alvo B' } })
+    const linha = (alvoId: string, codigo: string, identificador: string, dataFim: Date) =>
+      prisma.intercecaoLinha.create({
+        data: { alvoId, codigo, tipo: 'SIM', identificador, dataInicio: at(-30), dataFim },
+      })
+    await linha(alvoA.id, '1', '911111111', at(2))
+    await linha(alvoA.id, '2', '922222222', at(0))
+    await linha(alvoA.id, '3', '933333333', at(20)) // fora da janela
+    await linha(alvoA.id, '4', '944444444', at(-1)) // já terminou
+    await linha(alvoB.id, '1', '955555555', at(1)) // outra brigada
+
+    const semModulo = await getMeuDia('INSPETOR', s.inspetorA.id, s.brigadaA.id)
+    expect(semModulo.intercecoesTotal).toBe(0)
+
+    const dia = await getMeuDia('INSPETOR', s.inspetorA.id, s.brigadaA.id, new Date(), { intercecoes: true })
+    expect(dia.intercecoesTotal).toBe(2)
+    expect(dia.intercecoes.map((l) => l.identificador)).toEqual(['922222222', '911111111'])
+    expect(dia.intercecoes[0].alvoNome).toBe('Alvo A')
+  })
 })

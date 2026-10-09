@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PRIORIDADE_LABEL, PRIORIDADE_COLOR } from '@/components/tarefas/tarefa-shared'
-import type { MeuDiaData } from '@/lib/meu-dia'
+import { INTERCECOES_DIAS, type MeuDiaData } from '@/lib/meu-dia'
 import type { AgendaEvent, AgendaEventTipo } from '@/lib/agenda'
-import { cn, formatTime } from '@/lib/utils'
+import { cn, formatDate, formatTime } from '@/lib/utils'
 import {
   Sun,
   AlertTriangle,
@@ -13,13 +13,15 @@ import {
   Repeat,
   Gavel,
   SquareCheck,
+  RadioTower,
   type LucideIcon,
 } from 'lucide-react'
 
 /**
  * "O meu dia" — bloco do dashboard com os eventos de hoje/amanhã (mesma
- * semântica e âmbito da Agenda), tarefas pessoais em aberto e um aviso de
- * atrasados. Server component estático.
+ * semântica e âmbito da Agenda), tarefas pessoais em aberto, linhas
+ * intercetadas a terminar (só quando há) e um aviso de atrasados. Server
+ * component estático.
  */
 
 const TIPO_META: Record<AgendaEventTipo, { label: string; icon: LucideIcon }> = {
@@ -110,7 +112,12 @@ export function MeuDiaCard({ dia }: { dia: MeuDiaData }) {
           </Link>
         )}
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div
+          className={cn(
+            'grid gap-4 md:grid-cols-3',
+            dia.intercecoesTotal > 0 && 'md:grid-cols-2 xl:grid-cols-4',
+          )}
+        >
           <EventList titulo="Hoje" eventos={dia.hoje} vazio="Sem eventos para hoje." />
           <EventList titulo="Amanhã" eventos={dia.amanha} vazio="Sem eventos para amanhã." />
           <div>
@@ -150,8 +157,46 @@ export function MeuDiaCard({ dia }: { dia: MeuDiaData }) {
               </div>
             )}
           </div>
+          {dia.intercecoesTotal > 0 && <IntercecoesList dia={dia} />}
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+/** Linhas intercetadas cuja autorização termina hoje ou nos próximos dias. */
+function IntercecoesList({ dia }: { dia: MeuDiaData }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+        Interceções a terminar ({dia.intercecoesTotal})
+      </p>
+      <div className="space-y-2">
+        {dia.intercecoes.map((l) => (
+          <Link
+            key={l.id}
+            href={`/inqueritos/${l.slug}/intercecoes`}
+            className="block rounded-md -mx-1 px-1 py-0.5 hover:bg-accent transition-colors"
+          >
+            <div className="flex items-start gap-2 min-w-0">
+              <RadioTower className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="text-sm break-words">
+                  {l.identificador} <span className="text-muted-foreground">· {l.alvoNome}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Termina {formatDate(l.dataFim)} · {l.nuipc}
+                </p>
+              </div>
+            </div>
+          </Link>
+        ))}
+        {dia.intercecoesTotal > dia.intercecoes.length && (
+          <Link href="/prazos" className="block text-xs text-primary hover:underline">
+            Ver todas (próximos {INTERCECOES_DIAS} dias) →
+          </Link>
+        )}
+      </div>
+    </div>
   )
 }

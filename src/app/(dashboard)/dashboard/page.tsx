@@ -7,6 +7,7 @@ import { buildInqueritoWhere } from '@/lib/auth-helpers'
 import { hasPermission, ROLE_LABELS } from '@/lib/rbac'
 import { getInqueritoCounters } from '@/lib/estatisticas-counters'
 import { getMeuDia } from '@/lib/meu-dia'
+import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import { MeuDiaCard } from '@/components/dashboard/meu-dia-card'
 import type { Role } from '@/generated/prisma/enums'
 import {
@@ -107,7 +108,9 @@ export default async function DashboardPage() {
   const [cards, meuDia, recentes] = await Promise.all([
     buildCards(),
     showMeuDia
-      ? getMeuDia(role, session.user.id, session.user.brigadaId)
+      ? isModuloIntercecoesAtivo(role).then((intercecoes) =>
+          getMeuDia(role, session.user.id, session.user.brigadaId, new Date(), { intercecoes }),
+        )
       : Promise.resolve(null),
     prisma.inquerito.findMany({
       where: baseWhere,

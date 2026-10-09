@@ -6,7 +6,9 @@
  *     com o seu âmbito por role — a mesma semântica da Agenda/Prazos);
  *   - contagens de atrasados (prazos vencidos, atividades e controlos em
  *     atraso), com os mesmos âmbitos;
- *   - tarefas pessoais em aberto (sempre do próprio utilizador).
+ *   - tarefas pessoais em aberto (sempre do próprio utilizador);
+ *   - linhas intercetadas a terminar nos próximos dias (só com o módulo
+ *     Interceções ativo; âmbito do inquérito, como o resto do módulo).
  */
 import { prisma } from '@/lib/prisma'
 import {
@@ -26,15 +28,31 @@ export interface MeuDiaTarefa {
   slug: string
 }
 
+export interface MeuDiaIntercecao {
+  id: string
+  identificador: string
+  codigo: string
+  alvoNome: string
+  /** ISO. */
+  dataFim: string
+  nuipc: string
+  slug: string
+}
+
 export interface MeuDiaData {
   hoje: AgendaEvent[]
   amanha: AgendaEvent[]
   atrasados: { prazos: number; atividades: number; controlos: number }
   tarefas: MeuDiaTarefa[]
   tarefasTotal: number
+  intercecoes: MeuDiaIntercecao[]
+  intercecoesTotal: number
 }
 
 const TAREFAS_LIMIT = 5
+const INTERCECOES_LIMIT = 5
+/** Janela de "a terminar": hoje + os próximos N dias. */
+export const INTERCECOES_DIAS = 7
 
 /** Meia-noite local do dia de `now`. */
 function startOfDay(now: Date): Date {
@@ -57,64 +75,102 @@ export async function getMeuDia(
   userId: string,
   brigadaId: string | null,
   now: Date = new Date(),
+  opts: { intercecoes?: boolean } = {},
 ): Promise<MeuDiaData> {
   const hoje0 = startOfDay(now)
   const amanha0 = new Date(hoje0)
   amanha0.setDate(amanha0.getDate() + 1)
   const depois0 = new Date(hoje0)
   depois0.setDate(depois0.getDate() + 2)
+  const fimJanela = new Date(hoje0)
+  fimJanela.setDate(fimJanela.getDate() + INTERCECOES_DIAS + 1)
 
-  const [eventos, prazosAtrasados, atividadesAtrasadas, controlosAtrasados, tarefasRaw, tarefasTotal] =
-    await Promise.all([
-      getAgendaEvents(role, userId, brigadaId, hoje0, depois0),
-      prisma.inquerito.count({
-        where: {
+  const intercecaoWhere = {
+    dataFim: { gte: hoje0, lt: fimJanela },
+    alvo: {
+      inquerito: {
+        AND: [
+          { deletedAt: null, estado: { terminal: false } },
+          buildInqueritoWhere(role, userId, brigadaId),
+        ],
+      },
+    },
+  }
+
+  const [
+    eventos,
+    prazosAtrasados,
+    atividadesAtrasadas,
+    controlosAtrasados,
+    tarefasRaw,
+    tarefasTotal,
+    linhasRaw,
+    intercecoesTotal,
+  ] = await Promise.all([
+    getAgendaEvents(role, userId, brigadaId, hoje0, depois0),
+    prisma.inquerito.count({
+      where: {
+        AND: [
+          { deletedAt: null },
+          { estado: { terminal: false } },
+          { dataPrazo: { lt: hoje0 } },
+          buildInqueritoWhere(role, userId, brigadaId),
+        ],
+      },
+    }),
+    prisma.atividade.count({
+      where: {
+        AND: [
+          { dataPrazo: { lt: hoje0 } },
+          { concluidaEm: null },
+          { inquerito: { deletedAt: null } },
+          buildAtividadePrazoWhere(role, userId, brigadaId),
+        ],
+      },
+    }),
+    prisma.controloRealizacao.count({
+      where: {
+        dataRealizacao: null,
+        dataEsperada: { lt: hoje0 },
+        controlo: {
           AND: [
-            { deletedAt: null },
-            { estado: { terminal: false } },
-            { dataPrazo: { lt: hoje0 } },
-            buildInqueritoWhere(role, userId, brigadaId),
+            buildControloWhere(role, userId, brigadaId),
+            { concluidoEm: null },
+            { OR: [{ inqueritoid: null }, { inquerito: { deletedAt: null } }] },
           ],
         },
-      }),
-      prisma.atividade.count({
-        where: {
-          AND: [
-            { dataPrazo: { lt: hoje0 } },
-            { concluidaEm: null },
-            { inquerito: { deletedAt: null } },
-            buildAtividadePrazoWhere(role, userId, brigadaId),
-          ],
-        },
-      }),
-      prisma.controloRealizacao.count({
-        where: {
-          dataRealizacao: null,
-          dataEsperada: { lt: hoje0 },
-          controlo: {
-            AND: [
-              buildControloWhere(role, userId, brigadaId),
-              { concluidoEm: null },
-              { OR: [{ inqueritoid: null }, { inquerito: { deletedAt: null } }] },
-            ],
+      },
+    }),
+    prisma.tarefaInquerito.findMany({
+      where: { autorId: userId, concluida: false, inquerito: { deletedAt: null } },
+      orderBy: [{ prioridade: 'desc' }, { createdAt: 'desc' }],
+      take: TAREFAS_LIMIT,
+      select: {
+        id: true,
+        titulo: true,
+        prioridade: true,
+        inquerito: { select: { nuipc: true } },
+      },
+    }),
+    prisma.tarefaInquerito.count({
+      where: { autorId: userId, concluida: false, inquerito: { deletedAt: null } },
+    }),
+    opts.intercecoes
+      ? prisma.intercecaoLinha.findMany({
+          where: intercecaoWhere,
+          orderBy: [{ dataFim: 'asc' }, { id: 'asc' }],
+          take: INTERCECOES_LIMIT,
+          select: {
+            id: true,
+            identificador: true,
+            codigo: true,
+            dataFim: true,
+            alvo: { select: { nome: true, inquerito: { select: { nuipc: true } } } },
           },
-        },
-      }),
-      prisma.tarefaInquerito.findMany({
-        where: { autorId: userId, concluida: false, inquerito: { deletedAt: null } },
-        orderBy: [{ prioridade: 'desc' }, { createdAt: 'desc' }],
-        take: TAREFAS_LIMIT,
-        select: {
-          id: true,
-          titulo: true,
-          prioridade: true,
-          inquerito: { select: { nuipc: true } },
-        },
-      }),
-      prisma.tarefaInquerito.count({
-        where: { autorId: userId, concluida: false, inquerito: { deletedAt: null } },
-      }),
-    ])
+        })
+      : Promise.resolve([]),
+    opts.intercecoes ? prisma.intercecaoLinha.count({ where: intercecaoWhere }) : Promise.resolve(0),
+  ])
 
   return {
     hoje: eventos.filter((e) => sameLocalDay(e.data, hoje0)),
@@ -132,5 +188,25 @@ export async function getMeuDia(
       slug: nuipcToSlug(t.inquerito.nuipc),
     })),
     tarefasTotal,
+    intercecoes: linhasRaw.map((l) => ({
+      id: l.id,
+      identificador: l.identificador,
+      codigo: l.codigo,
+      alvoNome: l.alvo.nome,
+      dataFim: l.dataFim.toISOString(),
+      nuipc: l.alvo.inquerito.nuipc,
+      slug: nuipcToSlug(l.alvo.inquerito.nuipc),
+    })),
+    intercecoesTotal,
   }
+}
+
+/** Há alguma coisa a assinalar (para não enviar resumos vazios)? */
+export function meuDiaTemConteudo(d: MeuDiaData): boolean {
+  return (
+    d.hoje.length > 0 ||
+    d.atrasados.prazos + d.atrasados.atividades + d.atrasados.controlos > 0 ||
+    d.tarefasTotal > 0 ||
+    d.intercecoesTotal > 0
+  )
 }

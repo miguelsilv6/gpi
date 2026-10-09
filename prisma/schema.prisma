@@ -179,6 +179,8 @@ model Utilizador {
   // guiada. Null = ainda não a viu → arranca automaticamente no primeiro
   // acesso. Pode ser reposta para voltar a ver ("Ver tour novamente" no Perfil).
   tourConcluidaEm               DateTime?
+  // Resumo "O meu dia" por email nos dias úteis de manhã (opt-in no Perfil).
+  resumoDiarioEmail             Boolean   @default(false)
   viaturas                      Viatura[]
   ausencias                     Ausencia[]               @relation("AusenciasInspetor")
   notificacaoPreferencias       NotificacaoPreferencia[]

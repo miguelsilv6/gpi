@@ -10,6 +10,9 @@ import { z } from 'zod'
  * Só expomos os tipos com destinatário "natural" (notificações operacionais
  * dirigidas ao utilizador) — os tipos de sistema (backup/atualização) são
  * geridos só pela policy global do admin.
+ *
+ * Inclui também o opt-in do resumo diário "O meu dia" por email
+ * (`Utilizador.resumoDiarioEmail`, desligado por omissão).
  */
 const USER_FACING_TIPOS = Object.values(TipoNotificacao).filter(
   (t) => NOTIFICATION_TIPO_HAS_NATURAL[t],
@@ -24,22 +27,29 @@ const putSchema = z.object({
       }),
     )
     .max(USER_FACING_TIPOS.length),
+  resumoDiario: z.boolean().optional(),
 })
 
 export async function GET() {
   try {
     const session = await getSession()
-    const rows = await prisma.notificacaoPreferencia.findMany({
-      where: { utilizadorId: session.user.id },
-      select: { tipo: true, emailEnabled: true },
-    })
+    const [rows, utilizador] = await Promise.all([
+      prisma.notificacaoPreferencia.findMany({
+        where: { utilizadorId: session.user.id },
+        select: { tipo: true, emailEnabled: true },
+      }),
+      prisma.utilizador.findUnique({
+        where: { id: session.user.id },
+        select: { resumoDiarioEmail: true },
+      }),
+    ])
     const byTipo = new Map(rows.map((r) => [r.tipo, r.emailEnabled]))
     // Ausência de linha = ativo (default on).
     const preferencias = USER_FACING_TIPOS.map((tipo) => ({
       tipo,
       emailEnabled: byTipo.get(tipo) ?? true,
     }))
-    return Response.json({ preferencias })
+    return Response.json({ preferencias, resumoDiario: utilizador?.resumoDiarioEmail ?? false })
   } catch (error) {
     return handleApiError(error)
   }
@@ -69,6 +79,12 @@ export async function PUT(req: NextRequest) {
               tipo: p.tipo as TipoNotificacao,
               emailEnabled: false,
             })),
+          })]
+        : []),
+      ...(parsed.data.resumoDiario !== undefined
+        ? [prisma.utilizador.update({
+            where: { id: userId },
+            data: { resumoDiarioEmail: parsed.data.resumoDiario },
           })]
         : []),
     ])
