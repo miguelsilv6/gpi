@@ -181,7 +181,7 @@ export default async function IntercecoesPage({
                           <tr>
                             <th className="py-1 pr-3 font-medium">Linha</th>
                             <th className="py-1 pr-3 font-medium">Código</th>
-                            <th className="py-1 pr-3 font-medium">Rede</th>
+                            <th className="py-1 pr-3 font-medium">Operadora</th>
                             <th className="py-1 pr-3 font-medium">Início</th>
                             <th className="py-1 pr-3 font-medium">Fim</th>
                             <th className="py-1 pr-3 font-medium">Prazo</th>

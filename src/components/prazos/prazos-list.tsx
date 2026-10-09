@@ -3,7 +3,6 @@
 import { Fragment, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { PrazoUrgencyBadge } from './prazo-urgency-badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -77,7 +76,6 @@ function GrupoCabecalho({
       >
         {grupo.inquerito.nuipc}
       </Link>
-      <EstadoBadge estado={grupo.inquerito.estado} />
       <span className="text-xs text-muted-foreground">
         {n} prazo{n !== 1 ? 's' : ''}
       </span>
@@ -117,7 +115,7 @@ export function PrazosList({
   }
 
   const grupos = agruparPorInquerito(items)
-  const colSpan = 6 + (showInspetor ? 1 : 0) + (showBrigada ? 1 : 0)
+  const colSpan = 5 + (showInspetor ? 1 : 0) + (showBrigada ? 1 : 0)
 
   return (
     <>
@@ -129,7 +127,6 @@ export function PrazosList({
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atividade</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Prazo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Urgência</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Estado</th>
               {showInspetor && (
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Inspetor</th>
               )}
@@ -170,9 +167,6 @@ export function PrazosList({
                         dataPrazo={p.dataPrazo}
                         alertaDias={p.alertaDias1 ?? alertaDias}
                       />
-                    </td>
-                    <td className="px-4 py-3">
-                      <EstadoBadge estado={p.inquerito.estado} />
                     </td>
                     {showInspetor && (
                       <td className="px-4 py-3 text-muted-foreground">

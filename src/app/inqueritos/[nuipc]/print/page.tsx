@@ -566,7 +566,7 @@ export default async function InqueritoPrintPage({
                 {alvo.linhas.length > 0 && (
                   <table className="tbl">
                     <thead>
-                      <tr><th>Código</th><th>Tipo</th><th>Nº / IMEI</th><th>Rede</th><th>Início</th><th>Fim</th><th>Renov.</th></tr>
+                      <tr><th>Código</th><th>Tipo</th><th>Nº / IMEI</th><th>Operadora</th><th>Início</th><th>Fim</th><th>Renov.</th></tr>
                     </thead>
                     <tbody>
                       {alvo.linhas.map((l) => (

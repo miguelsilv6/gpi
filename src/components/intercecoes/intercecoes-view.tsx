@@ -122,7 +122,7 @@ function toDateInput(iso: string): string {
  * um diálogo) e edita-se diretamente no cartão, com guardar independente das
  * restantes ações do alvo.
  */
-function AcompanhamentoField({
+export function AcompanhamentoField({
   base,
   alvoId,
   initial,
@@ -142,6 +142,8 @@ function AcompanhamentoField({
   const [saving, setSaving] = useState(false)
   const [ate, setAte] = useState(initialAte)
   const [savingAte, setSavingAte] = useState(false)
+  // "Agora": data/hora a confirmar num pop-up (guarda diretamente ao confirmar).
+  const [agoraConfirmar, setAgoraConfirmar] = useState<string | null>(null)
   // Nº de produtos por marcar como ouvidos após guardar a data/hora (diálogo).
   const [porMarcar, setPorMarcar] = useState<number | null>(null)
   const [marcando, setMarcando] = useState(false)
@@ -179,14 +181,14 @@ function AcompanhamentoField({
     }
   }
 
-  async function handleSaveAte() {
-    if (ateInvalida) {
+  async function handleSaveAte(valor: string = ate) {
+    if (parseDataHoraPt(valor.trim()) === null) {
       toast.error('Use o formato dd-mm-aaaa hh:mm:ss')
       return
     }
     setSavingAte(true)
     try {
-      const r = await put({ acompanhadoAte: ate.trim() })
+      const r = await put({ acompanhadoAte: valor.trim() })
       if (!r) return
       toast.success('Data/hora de acompanhamento guardada')
       onSaved()
@@ -244,12 +246,12 @@ function AcompanhamentoField({
               variant="outline"
               size="sm"
               className="h-8 text-xs"
-              onClick={() => setAte(agoraDataHoraPt())}
+              onClick={() => setAgoraConfirmar(agoraDataHoraPt())}
             >
               Agora
             </Button>
             {ateDirty && (
-              <Button size="sm" className="h-8 text-xs" onClick={handleSaveAte} disabled={savingAte || ateInvalida}>
+              <Button size="sm" className="h-8 text-xs" onClick={() => handleSaveAte()} disabled={savingAte || ateInvalida}>
                 {savingAte && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
                 Guardar
               </Button>
@@ -291,6 +293,36 @@ function AcompanhamentoField({
           </p>
         )}
       </div>
+
+      <Dialog open={agoraConfirmar !== null} onOpenChange={(o) => !o && !savingAte && setAgoraConfirmar(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar acompanhamento?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Registar que este alvo foi acompanhado até{' '}
+            <strong className="font-mono text-foreground">{agoraConfirmar}</strong>?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAgoraConfirmar(null)} disabled={savingAte}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                const valor = agoraConfirmar
+                if (!valor) return
+                setAte(valor)
+                await handleSaveAte(valor)
+                setAgoraConfirmar(null)
+              }}
+              disabled={savingAte}
+            >
+              {savingAte && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={porMarcar !== null} onOpenChange={(o) => !o && !marcando && setPorMarcar(null)}>
         <DialogContent className="max-w-sm">
@@ -565,7 +597,7 @@ export function IntercecoesView({ nuipcSlug, alvos, plano, relacoes, canEdit }: 
                       <th className="py-1.5 pr-3 font-medium">Tipo</th>
                       <th className="py-1.5 pr-3 font-medium">Código</th>
                       <th className="py-1.5 pr-3 font-medium">N.º telefone / IMEI</th>
-                      <th className="py-1.5 pr-3 font-medium">Rede</th>
+                      <th className="py-1.5 pr-3 font-medium">Operadora</th>
                       <th className="py-1.5 pr-3 font-medium">Início</th>
                       <th className="py-1.5 pr-3 font-medium">Fim</th>
                       <th className="py-1.5 pr-3 font-medium">Prazo</th>
@@ -809,7 +841,7 @@ export function IntercecoesView({ nuipcSlug, alvos, plano, relacoes, canEdit }: 
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="linhaRede">Rede</Label>
+              <Label htmlFor="linhaRede">Operadora</Label>
               <Input
                 id="linhaRede"
                 placeholder="MEO, Vodafone, NOS…"

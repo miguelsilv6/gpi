@@ -160,7 +160,7 @@ export const queryIntercecoes: RelatorioHandler = async (filters, session) => {
       { key: 'codigo', label: 'Código', flex: 0.8 },
       { key: 'tipo', label: 'Tipo', flex: 0.8 },
       { key: 'identificador', label: 'Identificador', flex: 1.2 },
-      { key: 'rede', label: 'Rede', flex: 0.9 },
+      { key: 'rede', label: 'Operadora', flex: 0.9 },
       { key: 'dataOficio', label: 'Ofício', flex: 0.8 },
       { key: 'dataInicio', label: 'Início', flex: 0.8 },
       { key: 'dataFim', label: 'Fim', flex: 0.8 },

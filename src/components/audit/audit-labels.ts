@@ -221,7 +221,7 @@ export const FIELD_LABELS: Record<string, string> = {
   ouvido: 'Ouvido',
   tipo: 'Tipo',
   identificador: 'N.º telefone / IMEI',
-  rede: 'Rede',
+  rede: 'Operadora',
   dataOficio: 'Data do ofício',
   dataInicio: 'Data de início',
   dataFim: 'Data de fim',
