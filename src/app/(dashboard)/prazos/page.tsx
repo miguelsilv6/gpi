@@ -12,6 +12,14 @@ import {
   startOfMonth,
 } from '@/lib/prazos'
 import { CONTROLO_SELECT } from '@/lib/controlos'
+import {
+  afterCursorWhere,
+  compareCursor,
+  formatCursor,
+  parseCursor,
+  parseHistorico,
+  type PrazoCursor,
+} from '@/lib/prazos-cursor'
 import { isModuloIntercecoesAtivo } from '@/lib/intercecoes-module'
 import { TIPO_LINHA_LABEL } from '@/lib/validations/intercecao'
 import { PrazosViewToggle } from '@/components/prazos/prazos-view-toggle'
@@ -34,6 +42,10 @@ interface SearchParams {
   status?: string
   inspetorId?: string
   page?: string
+  /** Cursor (último item da página anterior) — só com interceções misturadas. */
+  c?: string
+  /** Histórico de cursores anteriores, para o botão "Anterior". */
+  h?: string
   month?: string
   day?: string
   panel?: string
@@ -46,9 +58,6 @@ function startOfDayLocal(d: Date): Date {
   return x
 }
 
-// Limite de páginas: a paginação sobre atividades + interceções carrega até
-// ao fim da página pedida, por isso `page` não pode ser arbitrariamente grande.
-const MAX_PAGE = 40
 const PAGE_SIZE = 50
 const CALENDAR_MAX = 500
 
@@ -76,7 +85,7 @@ export default async function PrazosPage({
 
   const view: 'list' | 'calendar' = sp.view === 'calendar' ? 'calendar' : 'list'
   const status = sp.status === 'vencidos' || sp.status === 'proximos' ? sp.status : 'todos'
-  const page = Math.min(MAX_PAGE, Math.max(1, parseInt(sp.page ?? '1', 10) || 1))
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
 
   const config = await prisma.configuracaoSistema.findUnique({
     where: { id: 'singleton' },
@@ -147,6 +156,8 @@ export default async function PrazosPage({
   let items: PrazoItem[] = []
   let total = 0
   let totalPages = 1
+  // Cursor da página seguinte (null = última página); só no modo por cursor.
+  let proximoCursor: string | null = null
 
   // Fim das linhas intercetadas dos inquéritos do utilizador (só pendentes:
   // uma linha cuja autorização terminou não tem "conclusão" a registar).
@@ -196,7 +207,10 @@ export default async function PrazosPage({
     },
   } as const
 
-  async function loadIntercecoes(take: number): Promise<{ items: PrazoItem[]; count: number }> {
+  async function loadIntercecoes(
+    take: number,
+    cursor: PrazoCursor | null = null,
+  ): Promise<{ items: PrazoItem[]; count: number }> {
     if (!showIntercecoes) return { items: [], count: 0 }
     const where =
       status !== 'todos' && isCalendar && monthDate && monthEnd
@@ -204,8 +218,8 @@ export default async function PrazosPage({
         : intercecaoWhere
     const [rows, count] = await Promise.all([
       prisma.intercecaoLinha.findMany({
-        where,
-        orderBy: { dataFim: 'asc' },
+        where: cursor ? { AND: [where, afterCursorWhere('dataFim', 1, cursor)] } : where,
+        orderBy: [{ dataFim: 'asc' }, { id: 'asc' }],
         take,
         select: intercecaoSelect,
       }),
@@ -233,6 +247,19 @@ export default async function PrazosPage({
   const byDataPrazo = (a: PrazoItem, b: PrazoItem) =>
     new Date(a.dataPrazo).getTime() - new Date(b.dataPrazo).getTime()
 
+  const cursor = showIntercecoes && !isCalendar ? parseCursor(sp.c) : null
+  const historicoCursores = parseHistorico(sp.h)
+
+  /** Posição de um item na ordem total (data, fonte, id) da lista. */
+  function cursorOf(p: PrazoItem): PrazoCursor {
+    const inter = p.origem === 'intercecao'
+    return {
+      date: new Date(p.dataPrazo),
+      rank: inter ? 1 : 0,
+      id: inter ? p.id.replace(/^intercecao-/, '') : p.id,
+    }
+  }
+
   if (panel === 'prazos') {
     if (isCalendar) {
       const [data, inter] = await Promise.all([
@@ -249,29 +276,41 @@ export default async function PrazosPage({
         ...inter.items,
       ].sort(byDataPrazo)
     } else {
-      // Sem interceções a misturar (histórico / módulo desativado) pagina-se
-      // diretamente na BD. Com duas fontes, carrega-se até ao fim da página
-      // pedida de cada uma, ordena-se em conjunto e fatia-se.
-      const upTo = showIntercecoes ? page * PAGE_SIZE : PAGE_SIZE
-      const skip = showIntercecoes ? 0 : (page - 1) * PAGE_SIZE
-      const [data, count, inter] = await Promise.all([
-        prisma.atividade.findMany({
-          where: prazosWhere,
-          orderBy: prazosOrderBy,
-          skip,
-          take: upTo,
-          select: ATIVIDADE_PRAZO_SELECT,
-        }),
-        prisma.atividade.count({ where: prazosWhere }),
-        loadIntercecoes(upTo),
-      ])
-      const merged: PrazoItem[] = [
-        ...data.filter((a): a is typeof a & { dataPrazo: Date } => a.dataPrazo !== null),
-        ...inter.items,
-      ]
-      if (!historico) merged.sort(byDataPrazo)
-      items = showIntercecoes ? merged.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : merged
-      total = count + inter.count
+      if (showIntercecoes) {
+        // Paginação por cursor (keyset) sobre as duas fontes, ordenadas por
+        // (data, fonte, id): cada fonte devolve no máximo PAGE_SIZE+1 itens
+        // depois do cursor, independentemente da profundidade da página.
+        const [data, count, inter] = await Promise.all([
+          prisma.atividade.findMany({
+            where: { AND: [prazosWhere, afterCursorWhere('dataPrazo', 0, cursor)] },
+            orderBy: [{ dataPrazo: 'asc' }, { id: 'asc' }],
+            take: PAGE_SIZE + 1,
+            select: ATIVIDADE_PRAZO_SELECT,
+          }),
+          prisma.atividade.count({ where: prazosWhere }),
+          loadIntercecoes(PAGE_SIZE + 1, cursor),
+        ])
+        const merged = [
+          ...data.filter((a): a is typeof a & { dataPrazo: Date } => a.dataPrazo !== null),
+          ...inter.items,
+        ].sort((x, y) => compareCursor(cursorOf(x), cursorOf(y)))
+        items = merged.slice(0, PAGE_SIZE)
+        proximoCursor = merged.length > PAGE_SIZE ? formatCursor(cursorOf(items[PAGE_SIZE - 1])) : null
+        total = count + inter.count
+      } else {
+        const [data, count] = await Promise.all([
+          prisma.atividade.findMany({
+            where: prazosWhere,
+            orderBy: [prazosOrderBy, { id: 'asc' as const }],
+            skip: (page - 1) * PAGE_SIZE,
+            take: PAGE_SIZE,
+            select: ATIVIDADE_PRAZO_SELECT,
+          }),
+          prisma.atividade.count({ where: prazosWhere }),
+        ])
+        items = data.filter((a): a is typeof a & { dataPrazo: Date } => a.dataPrazo !== null)
+        total = count
+      }
       totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     }
   }
@@ -314,12 +353,42 @@ export default async function PrazosPage({
   const showCriador = false
   const showBrigadaControlos = false
 
-  function buildPageUrl(targetPage: number): string {
+  function baseParams(): URLSearchParams {
     const params = new URLSearchParams()
     for (const [k, v] of Object.entries(sp)) {
-      if (v && k !== 'page') params.set(k, String(v))
+      if (v && k !== 'page' && k !== 'c' && k !== 'h') params.set(k, String(v))
     }
-    params.set('page', String(targetPage))
+    return params
+  }
+
+  // Por cursor: "Próxima" guarda o cursor atual no histórico; "Anterior" volta
+  // ao último cursor guardado ('-' = primeira página).
+  const usaCursor = showIntercecoes && !isCalendar
+  const paginaAtual = usaCursor ? historicoCursores.length + 1 : page
+  const temAnterior = usaCursor ? historicoCursores.length > 0 : page > 1
+  const temProxima = usaCursor ? proximoCursor !== null : page < totalPages
+
+  function urlAnterior(): string {
+    const params = baseParams()
+    if (usaCursor) {
+      const hist = [...historicoCursores]
+      const prev = hist.pop() ?? '-'
+      if (prev !== '-') params.set('c', prev)
+      if (hist.length > 0) params.set('h', hist.join('~'))
+    } else {
+      params.set('page', String(page - 1))
+    }
+    return `/prazos?${params.toString()}`
+  }
+
+  function urlProxima(): string {
+    const params = baseParams()
+    if (usaCursor && proximoCursor) {
+      params.set('c', proximoCursor)
+      params.set('h', [...historicoCursores, sp.c ?? '-'].join('~'))
+    } else {
+      params.set('page', String(page + 1))
+    }
     return `/prazos?${params.toString()}`
   }
 
@@ -397,23 +466,23 @@ export default async function PrazosPage({
                 alertaDias={alertaDias}
                 emptyMessage={historico ? 'Sem prazos concluídos.' : 'Sem prazos por cumprir.'}
               />
-              {totalPages > 1 && (
+              {(temAnterior || temProxima) && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
-                    Página {page} de {totalPages}
+                    Página {paginaAtual} de {Math.max(totalPages, paginaAtual)}
                   </span>
                   <div className="flex gap-2">
-                    {page > 1 && (
+                    {temAnterior && (
                       <Link
-                        href={buildPageUrl(page - 1)}
+                        href={urlAnterior()}
                         className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
                       >
                         Anterior
                       </Link>
                     )}
-                    {page < totalPages && (
+                    {temProxima && (
                       <Link
-                        href={buildPageUrl(page + 1)}
+                        href={urlProxima()}
                         className="px-3 py-1.5 rounded-lg border hover:bg-accent transition-colors"
                       >
                         Próxima

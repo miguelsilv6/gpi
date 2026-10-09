@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { EstadoBadge } from '@/components/inqueritos/estado-badge'
@@ -17,9 +17,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { formatDate, nuipcToSlug } from '@/lib/utils'
-import { Check, Pencil, CheckCircle2, Loader2 } from 'lucide-react'
+import { Check, Pencil, CheckCircle2, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PrazoItem } from './types'
+import { diasRestantes } from '@/lib/prazos'
 
 interface Props {
   items: PrazoItem[]
@@ -29,6 +30,66 @@ interface Props {
   emptyMessage?: string
 }
 
+interface PrazoGrupo {
+  inquerito: PrazoItem['inquerito']
+  items: PrazoItem[]
+}
+
+/** Agrupa por inquérito, mantendo a ordem da primeira ocorrência de cada um. */
+function agruparPorInquerito(items: PrazoItem[]): PrazoGrupo[] {
+  const map = new Map<string, PrazoGrupo>()
+  for (const p of items) {
+    const g = map.get(p.inquerito.id)
+    if (g) g.items.push(p)
+    else map.set(p.inquerito.id, { inquerito: p.inquerito, items: [p] })
+  }
+  return Array.from(map.values())
+}
+
+function GrupoCabecalho({
+  grupo,
+  fechado,
+  onToggle,
+}: {
+  grupo: PrazoGrupo
+  fechado: boolean
+  onToggle: () => void
+}) {
+  const n = grupo.items.length
+  const vencidos = grupo.items.filter(
+    (p) => !p.concluidaEm && diasRestantes(new Date(p.dataPrazo)) < 0,
+  ).length
+  const Chevron = fechado ? ChevronRight : ChevronDown
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={!fechado}
+        aria-label={fechado ? 'Expandir grupo' : 'Recolher grupo'}
+        className="rounded p-0.5 text-muted-foreground hover:bg-accent"
+      >
+        <Chevron className="h-4 w-4" />
+      </button>
+      <Link
+        href={`/inqueritos/${nuipcToSlug(grupo.inquerito.nuipc)}`}
+        className="font-mono text-sm font-semibold hover:text-blue-600 hover:underline"
+      >
+        {grupo.inquerito.nuipc}
+      </Link>
+      <EstadoBadge estado={grupo.inquerito.estado} />
+      <span className="text-xs text-muted-foreground">
+        {n} prazo{n !== 1 ? 's' : ''}
+      </span>
+      {vencidos > 0 && (
+        <span className="rounded-full border border-red-200 bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-800 dark:border-red-900 dark:bg-red-900/30 dark:text-red-300">
+          {vencidos} vencido{vencidos !== 1 ? 's' : ''}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export function PrazosList({
   items,
   showInspetor,
@@ -36,6 +97,15 @@ export function PrazosList({
   alertaDias,
   emptyMessage = 'Sem prazos para mostrar.',
 }: Props) {
+  const [fechados, setFechados] = useState<Set<string>>(() => new Set())
+  const alternarGrupo = (id: string) =>
+    setFechados((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
   if (items.length === 0) {
     return (
       <Card>
@@ -46,6 +116,9 @@ export function PrazosList({
     )
   }
 
+  const grupos = agruparPorInquerito(items)
+  const colSpan = 6 + (showInspetor ? 1 : 0) + (showBrigada ? 1 : 0)
+
   return (
     <>
       {/* Desktop table */}
@@ -53,7 +126,6 @@ export function PrazosList({
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Inquérito</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atividade</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Prazo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Urgência</th>
@@ -69,76 +141,81 @@ export function PrazosList({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {items.map((p) => (
-              <tr key={p.id} className="hover:bg-accent/30 transition-colors">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/inqueritos/${nuipcToSlug(p.inquerito.nuipc)}`}
-                    className="font-mono font-medium hover:text-blue-600 hover:underline"
-                  >
-                    {p.inquerito.nuipc}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 max-w-[260px]">
-                  <p className="line-clamp-2">{p.descricao}</p>
-                  {p.quantidade != null && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Qtd: {p.quantidade}
-                    </p>
-                  )}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {formatDate(p.dataPrazo)}
-                </td>
-                <td className="px-4 py-3">
-                  <PrazoUrgencyBadge
-                    dataPrazo={p.dataPrazo}
-                    alertaDias={p.alertaDias1 ?? alertaDias}
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  <EstadoBadge estado={p.inquerito.estado} />
-                </td>
-                {showInspetor && (
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {p.realizadaPor.nome}
+            {grupos.map((g) => (
+              <Fragment key={g.inquerito.id}>
+                <tr className="bg-muted/40">
+                  <td colSpan={colSpan} className="px-4 py-2">
+                    <GrupoCabecalho
+                      grupo={g}
+                      fechado={fechados.has(g.inquerito.id)}
+                      onToggle={() => alternarGrupo(g.inquerito.id)}
+                    />
                   </td>
-                )}
-                {showBrigada && (
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {p.inquerito.brigada?.nome ?? '—'}
-                  </td>
-                )}
-                <td className="px-4 py-3 text-center text-xs text-muted-foreground">
-                  <AlertasIndicator
-                    dias1={p.alertaDias1}
-                    dias2={p.alertaDias2}
-                    sent1={p.alerta1Enviado}
-                    sent2={p.alerta2Enviado}
-                  />
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    {p.origem === 'intercecao' ? (
-                      <Link
-                        href={`/inqueritos/${nuipcToSlug(p.inquerito.nuipc)}`}
-                        className="text-xs text-muted-foreground hover:underline"
-                      >
-                        Interceção
-                      </Link>
-                    ) : !p.concluidaEm ? (
-                      <>
-                        <EditPrazoButton prazo={p} />
-                        <ConcluirPrazoButton prazo={p} />
-                      </>
-                    ) : (
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium inline-flex items-center gap-1">
-                        <Check className="h-3.5 w-3.5" /> Concluído
-                      </span>
+                </tr>
+                {!fechados.has(g.inquerito.id) && g.items.map((p) => (
+                  <tr key={p.id} className="hover:bg-accent/30 transition-colors">
+                    <td className="px-4 py-3 max-w-[260px]">
+                      <p className="line-clamp-2">{p.descricao}</p>
+                      {p.quantidade != null && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Qtd: {p.quantidade}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {formatDate(p.dataPrazo)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <PrazoUrgencyBadge
+                        dataPrazo={p.dataPrazo}
+                        alertaDias={p.alertaDias1 ?? alertaDias}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <EstadoBadge estado={p.inquerito.estado} />
+                    </td>
+                    {showInspetor && (
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {p.realizadaPor.nome}
+                      </td>
                     )}
-                  </div>
-                </td>
-              </tr>
+                    {showBrigada && (
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {p.inquerito.brigada?.nome ?? '—'}
+                      </td>
+                    )}
+                    <td className="px-4 py-3 text-center text-xs text-muted-foreground">
+                      <AlertasIndicator
+                        dias1={p.alertaDias1}
+                        dias2={p.alertaDias2}
+                        sent1={p.alerta1Enviado}
+                        sent2={p.alerta2Enviado}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {p.origem === 'intercecao' ? (
+                          <Link
+                            href={`/inqueritos/${nuipcToSlug(p.inquerito.nuipc)}`}
+                            className="text-xs text-muted-foreground hover:underline"
+                          >
+                            Interceção
+                          </Link>
+                        ) : !p.concluidaEm ? (
+                          <>
+                            <EditPrazoButton prazo={p} />
+                            <ConcluirPrazoButton prazo={p} />
+                          </>
+                        ) : (
+                          <span className="text-xs text-green-600 dark:text-green-400 font-medium inline-flex items-center gap-1">
+                            <Check className="h-3.5 w-3.5" /> Concluído
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -146,18 +223,19 @@ export function PrazosList({
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
-        {items.map((p) => (
+        {grupos.map((g) => (
+          <div key={g.inquerito.id} className="space-y-2">
+            <GrupoCabecalho
+              grupo={g}
+              fechado={fechados.has(g.inquerito.id)}
+              onToggle={() => alternarGrupo(g.inquerito.id)}
+            />
+            {!fechados.has(g.inquerito.id) && g.items.map((p) => (
           <Card key={p.id} className="overflow-hidden">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/inqueritos/${nuipcToSlug(p.inquerito.nuipc)}`}
-                    className="font-mono text-sm font-semibold hover:text-blue-600 hover:underline"
-                  >
-                    {p.inquerito.nuipc}
-                  </Link>
-                  <p className="text-sm mt-1 line-clamp-2">{p.descricao}</p>
+                  <p className="text-sm line-clamp-2">{p.descricao}</p>
                   <p className="text-xs text-muted-foreground mt-2">
                     Prazo: {formatDate(p.dataPrazo)}
                   </p>
@@ -177,7 +255,6 @@ export function PrazosList({
                     dataPrazo={p.dataPrazo}
                     alertaDias={p.alertaDias1 ?? alertaDias}
                   />
-                  <EstadoBadge estado={p.inquerito.estado} />
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between gap-2">
@@ -211,6 +288,8 @@ export function PrazosList({
               </div>
             </CardContent>
           </Card>
+            ))}
+          </div>
         ))}
       </div>
     </>

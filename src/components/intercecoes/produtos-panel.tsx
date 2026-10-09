@@ -27,7 +27,7 @@ import {
 import type { PlanoDTO } from './validacoes-panel'
 import type { RelacaoDTO } from './relacoes-panel'
 import { formatDate, cn, iconButtonClasses } from '@/lib/utils'
-import { ChevronDown, ChevronRight, Loader2, Plus, Pencil, Trash2, FileText, Timer } from 'lucide-react'
+import { ChevronDown, ChevronRight, Loader2, Plus, Pencil, Trash2, FileText, Timer, Headphones } from 'lucide-react'
 import type {
   TipoProdutoIntercecao,
   DirecaoProdutoIntercecao,
@@ -60,6 +60,8 @@ interface ProdutoItem {
   identificacaoPara: string | null
   resumo: string
   comentarios: string | null
+  ouvido: boolean
+  ouvidoEm: string | null
   criadoPor: { id: string; nome: string }
   linha: LinhaRef | null
 }
@@ -238,6 +240,24 @@ export function ProdutosPanel({
     }
   }
 
+  async function handleToggleOuvido(pItem: ProdutoItem) {
+    try {
+      const res = await fetch(`${base}/produtos/${pItem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ouvido: !pItem.ouvido }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'Erro ao atualizar')
+        return
+      }
+      await load(page)
+    } catch {
+      toast.error('Erro de rede')
+    }
+  }
+
   async function handleDelete(pItem: ProdutoItem) {
     if (!confirm('Eliminar este produto de interesse?')) return
     try {
@@ -299,6 +319,7 @@ export function ProdutosPanel({
                       <th className="py-1.5 pr-3 font-medium">De → Para</th>
                       <th className="py-1.5 pr-3 font-medium">Resumo</th>
                       <th className="py-1.5 pr-3 font-medium">Transcrição</th>
+                      <th className="py-1.5 pr-3 font-medium">Ouvido</th>
                       {canEdit && <th className="py-1.5 font-medium sr-only">Ações</th>}
                     </tr>
                   </thead>
@@ -326,7 +347,7 @@ export function ProdutosPanel({
                       {controlo !== null && controlo !== anterior && (
                         <tr className="bg-muted/50">
                           <td
-                            colSpan={canEdit ? 8 : 7}
+                            colSpan={canEdit ? 9 : 8}
                             className="py-1 px-1 text-xs font-semibold text-muted-foreground"
                           >
                             {controlo}.º Controlo
@@ -409,9 +430,30 @@ export function ProdutosPanel({
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </td>
+                        <td className="py-2 pr-3 whitespace-nowrap">
+                          {pItem.ouvido ? (
+                            <span
+                              className="inline-flex items-center gap-0.5 rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                              title={pItem.ouvidoEm ? `Marcado em ${formatDate(pItem.ouvidoEm)}` : undefined}
+                            >
+                              <Headphones className="h-3 w-3" />
+                              Ouvido
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
                         {canEdit && (
                           <td className="py-2 whitespace-nowrap">
                             <div className="flex items-center gap-1 justify-end">
+                              <button
+                                onClick={() => handleToggleOuvido(pItem)}
+                                className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}
+                                title={pItem.ouvido ? 'Desmarcar como ouvido' : 'Marcar como ouvido'}
+                                aria-label={pItem.ouvido ? 'Desmarcar como ouvido' : 'Marcar como ouvido'}
+                              >
+                                <Headphones className="h-3.5 w-3.5" />
+                              </button>
                               <button
                                 onClick={() => openEdit(pItem)}
                                 className={cn(iconButtonClasses, 'text-muted-foreground hover:text-foreground')}

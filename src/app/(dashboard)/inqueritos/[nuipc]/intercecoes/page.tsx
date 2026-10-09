@@ -1,3 +1,4 @@
+import { formatDataHoraPt } from '@/lib/datetime-pt'
 import { auth } from '@/auth'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -89,6 +90,7 @@ export default async function IntercecoesInqueritoPage({
     observacoes: a.observacoes,
     notas: a.notas,
     acompanhamento: a.acompanhamento,
+    acompanhadoAte: a.acompanhadoAte ? formatDataHoraPt(a.acompanhadoAte) : null,
     produtos: a._count.produtos,
     linhas: a.linhas.map((l) => ({
       ...l,

@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner'
 import type { PrioridadeTarefa } from '@/generated/prisma/enums'
 import { PRIORIDADE_LABEL, PRIORIDADE_COLOR } from '@/components/tarefas/tarefa-shared'
+import { ConfirmarConcluirDialog } from '@/components/tarefas/confirmar-concluir-dialog'
 
 export interface TarefaBrowserItem {
   id: string
@@ -46,6 +47,7 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
   const [filtro, setFiltro] = useState<Filtro>('pendentes')
   const [filtroPrioridade, setFiltroPrioridade] = useState<FiltroP>('todas')
   const [toggling, setToggling] = useState<string | null>(null)
+  const [toConcluir, setToConcluir] = useState<TarefaBrowserItem | null>(null)
 
   // Optimistic update para toggle de conclusão (resposta imediata ao clicar).
   const [tarefas, addOptimistic] = useOptimistic(
@@ -54,6 +56,12 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
       state.map((t) => t.id === id ? { ...t, concluida: !t.concluida } : t),
   )
   const [isPending, startTransition] = useTransition()
+
+  // Concluir pede confirmação; reabrir é imediato.
+  function requestToggle(t: TarefaBrowserItem) {
+    if (t.concluida) handleToggle(t)
+    else setToConcluir(t)
+  }
 
   function handleToggle(t: TarefaBrowserItem) {
     setToggling(t.id)
@@ -178,7 +186,7 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
                         type="button"
                         className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
                         title={t.concluida ? 'Reabrir tarefa' : 'Marcar como concluída'}
-                        onClick={() => handleToggle(t)}
+                        onClick={() => requestToggle(t)}
                         disabled={toggling === t.id || isPending}
                       >
                         {toggling === t.id
@@ -206,6 +214,16 @@ export function TarefasBrowser({ tarefas: initial }: Props) {
           ))}
         </div>
       )}
+
+      <ConfirmarConcluirDialog
+        titulo={toConcluir?.titulo ?? null}
+        onCancel={() => setToConcluir(null)}
+        onConfirm={() => {
+          const t = toConcluir
+          setToConcluir(null)
+          if (t) handleToggle(t)
+        }}
+      />
     </div>
   )
 }

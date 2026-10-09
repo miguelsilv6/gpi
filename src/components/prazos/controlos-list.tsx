@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,7 @@ import {
   ordinalControlo,
 } from '@/lib/controlos'
 import type { Urgency } from '@/lib/prazos'
+import { EstadoBadge } from '@/components/inqueritos/estado-badge'
 import { diasRestantes } from '@/lib/prazos'
 
 interface Props {
@@ -36,6 +37,49 @@ interface Props {
   showCriador: boolean
   showBrigada: boolean
   emptyMessage?: string
+}
+
+interface ControloGrupo {
+  key: string
+  inquerito: ControloItem['inquerito']
+  items: ControloItem[]
+}
+
+/** Agrupa por inquérito (controlos sem inquérito ficam num grupo à parte, no fim). */
+function agruparPorInquerito(items: ControloItem[]): ControloGrupo[] {
+  const map = new Map<string, ControloGrupo>()
+  for (const c of items) {
+    const key = c.inquerito?.id ?? '__sem_inquerito__'
+    const g = map.get(key)
+    if (g) g.items.push(c)
+    else map.set(key, { key, inquerito: c.inquerito, items: [c] })
+  }
+  const grupos = Array.from(map.values())
+  return [...grupos.filter((g) => g.inquerito), ...grupos.filter((g) => !g.inquerito)]
+}
+
+function GrupoCabecalho({ grupo }: { grupo: ControloGrupo }) {
+  const n = grupo.items.length
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {grupo.inquerito ? (
+        <>
+          <Link
+            href={`/inqueritos/${nuipcToSlug(grupo.inquerito.nuipc)}`}
+            className="font-mono text-sm font-semibold hover:text-blue-600 hover:underline"
+          >
+            {grupo.inquerito.nuipc}
+          </Link>
+          <EstadoBadge estado={grupo.inquerito.estado} />
+        </>
+      ) : (
+        <span className="text-sm font-semibold text-muted-foreground">Sem inquérito</span>
+      )}
+      <span className="text-xs text-muted-foreground">
+        {n} controlo{n !== 1 ? 's' : ''}
+      </span>
+    </div>
+  )
 }
 
 export function ControlosList({
@@ -55,6 +99,9 @@ export function ControlosList({
     )
   }
 
+  const grupos = agruparPorInquerito(items)
+  const colSpan = 7 + (showCriador ? 1 : 0) + (showBrigada ? 1 : 0)
+
   return (
     <>
       {/* Desktop table */}
@@ -63,7 +110,6 @@ export function ControlosList({
           <thead className="border-b bg-muted/50">
             <tr>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Descrição</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Inquérito</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Próximo controlo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Data esperada</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Urgência</th>
@@ -78,7 +124,14 @@ export function ControlosList({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {items.map((c) => {
+            {grupos.map((g) => (
+              <Fragment key={g.key}>
+                <tr className="bg-muted/40">
+                  <td colSpan={colSpan} className="px-4 py-2">
+                    <GrupoCabecalho grupo={g} />
+                  </td>
+                </tr>
+                {g.items.map((c) => {
               const next = nextRealizacao(c.realizacoes)
               const confirmed = countConfirmadas(c.realizacoes)
               const urgency = urgencyControlo(c, next)
@@ -90,18 +143,6 @@ export function ControlosList({
                       <p className="text-xs text-muted-foreground mt-0.5">
                         A cada {c.periodoDias} dias
                       </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {c.inquerito ? (
-                      <Link
-                        href={`/inqueritos/${nuipcToSlug(c.inquerito.nuipc)}`}
-                        className="font-mono font-medium hover:text-blue-600 hover:underline text-sm"
-                      >
-                        {c.inquerito.nuipc}
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -149,13 +190,18 @@ export function ControlosList({
                 </tr>
               )
             })}
+              </Fragment>
+            ))}
           </tbody>
         </table>
       </div>
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
-        {items.map((c) => {
+        {grupos.map((g) => (
+          <div key={g.key} className="space-y-2">
+            <GrupoCabecalho grupo={g} />
+            {g.items.map((c) => {
           const next = nextRealizacao(c.realizacoes)
           const confirmed = countConfirmadas(c.realizacoes)
           const urgency = urgencyControlo(c, next)
@@ -169,14 +215,6 @@ export function ControlosList({
                       <p className="text-xs text-muted-foreground mt-0.5">
                         A cada {c.periodoDias} dias
                       </p>
-                    )}
-                    {c.inquerito && (
-                      <Link
-                        href={`/inqueritos/${nuipcToSlug(c.inquerito.nuipc)}`}
-                        className="font-mono text-xs font-medium text-blue-600 hover:underline mt-1 block"
-                      >
-                        {c.inquerito.nuipc}
-                      </Link>
                     )}
                   </div>
                   <ControloUrgencyBadge urgency={urgency} next={next} />
@@ -214,7 +252,9 @@ export function ControlosList({
               </CardContent>
             </Card>
           )
-        })}
+            })}
+          </div>
+        ))}
       </div>
       {total !== undefined && total > items.length && (
         <p className="text-xs text-muted-foreground text-center pt-1">

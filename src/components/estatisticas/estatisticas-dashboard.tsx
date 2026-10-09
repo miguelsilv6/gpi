@@ -24,7 +24,7 @@ import {
   TipoInqueritoChart,
   StatsTable,
 } from './charts'
-import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity, Mail } from 'lucide-react'
+import { FileText, Users, X, ClipboardList, MonitorCog, Send, Archive, Share2, Activity, Mail, RadioTower } from 'lucide-react'
 
 interface Brigada { id: string; nome: string }
 interface Inspetor { id: string; nome: string; brigadaId: string | null }
@@ -39,6 +39,7 @@ interface Stats {
   aguardaExames: number
   enviados: number
   arquivados: number
+  intercecoes: { alvos: number; produtos: number } | null
   porEstado: { estadoId: string; codigo: string; nome: string; cor: string | null; count: number }[]
   porBrigada: { brigadaId: string; nome: string; count: number }[]
   porInspetor: { inspetorId: string; nome: string; count: number }[]
@@ -387,6 +388,22 @@ export function EstatisticasDashboard({
               </CardContent>
             </Card>
           </div>
+
+          {stats.intercecoes && (
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <RadioTower className="h-4 w-4 text-violet-500" />
+                  <span className="text-sm text-muted-foreground">Interceções ativas</span>
+                </div>
+                <p className="text-3xl font-bold mt-1">
+                  {stats.intercecoes.alvos} Alvo{stats.intercecoes.alvos !== 1 ? 's' : ''}
+                  <span className="text-muted-foreground font-normal"> – </span>
+                  {stats.intercecoes.produtos} Produto{stats.intercecoes.produtos !== 1 ? 's' : ''}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Charts row 1 */}
           <div className="grid gap-4 md:grid-cols-2">
