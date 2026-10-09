@@ -337,7 +337,7 @@ export async function GET(
       'Código',
       'Tipo',
       'N.º Telefone / IMEI',
-      'Rede',
+      'Operadora',
       'Data do Ofício',
       'Data Início',
       'Data Fim',

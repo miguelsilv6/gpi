@@ -597,7 +597,7 @@ export function IntercecoesView({ nuipcSlug, alvos, plano, relacoes, canEdit }: 
                       <th className="py-1.5 pr-3 font-medium">Tipo</th>
                       <th className="py-1.5 pr-3 font-medium">Código</th>
                       <th className="py-1.5 pr-3 font-medium">N.º telefone / IMEI</th>
-                      <th className="py-1.5 pr-3 font-medium">Rede</th>
+                      <th className="py-1.5 pr-3 font-medium">Operadora</th>
                       <th className="py-1.5 pr-3 font-medium">Início</th>
                       <th className="py-1.5 pr-3 font-medium">Fim</th>
                       <th className="py-1.5 pr-3 font-medium">Prazo</th>
@@ -841,7 +841,7 @@ export function IntercecoesView({ nuipcSlug, alvos, plano, relacoes, canEdit }: 
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="linhaRede">Rede</Label>
+              <Label htmlFor="linhaRede">Operadora</Label>
               <Input
                 id="linhaRede"
                 placeholder="MEO, Vodafone, NOS…"
