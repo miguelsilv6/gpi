@@ -35,6 +35,26 @@ describe('docker-compose', () => {
     expect(chavesDuplicadas(texto)).toEqual([])
   })
 
+  // Sem política de reinício, depois de reiniciar o servidor (ex.: node do
+  // Proxmox) os contentores ficam parados e a aplicação não volta sozinha.
+  test.each(['docker-compose.yml', 'docker-compose.prod.yml'])(
+    '%s: todos os serviços arrancam sozinhos após reinício',
+    (f) => {
+      const texto = readFileSync(join(process.cwd(), f), 'utf8')
+      const blocoServicos = texto.split(/^volumes:/m)[0]
+      const servicos = [...blocoServicos.matchAll(/^ {2}([a-z0-9_-]+):\s*$/gm)].map((m) => m[1])
+      expect(servicos.length).toBeGreaterThan(0)
+      const semRestart = servicos.filter((nome) => {
+        const inicio = blocoServicos.indexOf(`\n  ${nome}:`)
+        const resto = blocoServicos.slice(inicio + 1)
+        const proximo = resto.slice(1).search(/^ {2}[a-z0-9_-]+:\s*$/m)
+        const bloco = proximo === -1 ? resto : resto.slice(0, proximo + 1)
+        return !/^ {4}restart: (unless-stopped|always)\s*$/m.test(bloco)
+      })
+      expect(semRestart).toEqual([])
+    },
+  )
+
   test('o detetor apanha uma chave repetida', () => {
     const mau = 'services:\n  app:\n    environment:\n      A: 1\n      B: 2\n      A: 3\n'
     expect(chavesDuplicadas(mau)).toEqual(['linha 6: chave repetida "A"'])
